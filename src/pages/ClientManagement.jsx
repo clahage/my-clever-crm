@@ -134,7 +134,7 @@ const ClientManagement = () => {
             {searchTerm ? 'No clients found matching your search' : 'No clients yet'}
           </p>
           <button
-            onClick={() => window.location.href = '/add-client'}
+            onClick={() => navigate('/add-client')}
             className="mt-4 text-blue-600 hover:text-blue-700"
           >
             Add your first client
