@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../authContext';
 import { collection, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { db } from '../firebaseConfig';
+import { db } from "@/lib/firebase";
 
 export const useUserManagement = () => {
   const { isMasterAdmin, user } = useAuth();

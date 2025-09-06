@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { db } from '../firebaseConfig';
+import { db } from "@/lib/firebase";
 import { collection, query, where, orderBy, onSnapshot, addDoc } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
 import { PaperAirplaneIcon } from '@heroicons/react/24/outline';

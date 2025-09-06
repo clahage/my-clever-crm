@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
-import { db } from '../firebaseConfig';
+import { db } from '@/lib/firebase';
 
 export default function DisputeLetterDashboardWidget() {
   const [letters, setLetters] = useState([]);

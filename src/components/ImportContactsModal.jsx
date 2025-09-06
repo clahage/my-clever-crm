@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Papa from 'papaparse';
-import { db } from '../firebaseConfig';
+import { db } from '@/lib/firebase';
 import { collection, addDoc } from 'firebase/firestore';
 
 export default function ImportContactsModal({ isOpen, onClose, onImport }) {

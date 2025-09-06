@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { db } from "../firebaseConfig";
+import { db } from "@/lib/firebase";
 import { collection, addDoc, getDocs, query, where, orderBy } from "firebase/firestore";
 import { fetchIDIQReport } from "../utils/idiqProvider";
 import { parseCreditReport } from "../utils/aiCreditReportParser";

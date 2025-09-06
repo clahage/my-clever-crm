@@ -1,10 +1,15 @@
 {
   "projects": {
-    "default": "speedycrm-v2",
-    "prod": "my-clever-crm",
-    "firebase use default": "my-clever-crm",
-    "Staging": "my-clever-crm"
+    "default": "my-clever-crm"
   },
-  "targets": {},
+  "targets": {
+    "my-clever-crm": {
+      "hosting": {
+        "default": [
+          "my-clever-crm"
+        ]
+      }
+    }
+  },
   "etags": {}
 }

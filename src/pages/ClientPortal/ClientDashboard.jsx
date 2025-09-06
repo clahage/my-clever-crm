@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { doc, getDoc, collection, query, where, orderBy, onSnapshot, getDocs } from 'firebase/firestore';
-import { db } from '../../firebaseConfig';
+import { db } from "@/lib/firebase";
 import { 
   ChartBarIcon, 
   DocumentTextIcon,
@@ -192,7 +191,7 @@ const ClientDashboard = () => {
                 </div>
               </div>
             ))
-          )}
+          }
         </div>
       </motion.div>
     </div>

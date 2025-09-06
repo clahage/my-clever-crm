@@ -1,7 +1,9 @@
+// Moved console.log after navSections declaration to fix initialization error
 
 import React, { useState } from "react";
 import { FaBars } from "react-icons/fa";
 import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "../auth/AuthProvider";
 import {
   FaHome,
   FaUsers,
@@ -36,16 +38,29 @@ const navSections = [
     ],
   },
   {
-    label: "Credit Repair",
+    label: "Credit Services",
     icon: <FaLayerGroup className="mr-2" />,
     links: [
+      { label: "IDIQ Integration", to: "/idiq", icon: <FaRocket /> },
       { label: "Dispute Center", to: "/dispute-center", icon: <FaFileAlt /> },
       { label: "Progress Portal", to: "/progress-portal", icon: <FaChartBar /> },
+      { label: "Credit Scores", to: "/credit-scores", icon: <FaChartBar /> },
+    ],
+  },
+  {
+    label: "Communications & Letters",
+    icon: <FaEnvelope className="mr-2" />,
+    links: [
+      { label: "Letters", to: "/letters", icon: <FaFileAlt /> },
+      { label: "Dispute Letters", to: "/dispute-letters", icon: <FaFileAlt /> },
+    ],
+  },
+  {
+    label: "Analytics & Reports",
+    icon: <FaChartBar className="mr-2" />,
+    links: [
       { label: "Analytics", to: "/analytics", icon: <FaChartBar /> },
       { label: "Contact Reports", to: "/contact-reports", icon: <FaChartBar /> },
-      { label: "Letters", to: "/letters", icon: <FaFileAlt /> },
-      { label: "Credit Scores", to: "/credit-scores", icon: <FaChartBar /> },
-      { label: "Dispute Letters", to: "/dispute-letters", icon: <FaFileAlt /> },
     ],
   },
   {
@@ -54,9 +69,26 @@ const navSections = [
     links: [
       { label: "Billing", to: "/billing", icon: <FaMoneyBill /> },
       { label: "Calendar", to: "/calendar", icon: <FaCalendarAlt /> },
-      { label: "Communications", to: "/communications", icon: <FaEnvelope /> },
       { label: "Export", to: "/export", icon: <FaFileAlt /> },
       { label: "Bulk", to: "/bulk", icon: <FaLayerGroup /> },
+    ],
+  },
+  {
+    label: "Automation & AI",
+    icon: <FaCogs className="mr-2" />,
+    links: [
+      { label: "Automation", to: "/automation", icon: <FaCogs /> },
+      { label: "Drip Campaigns", to: "/drip-campaigns", icon: <FaRocket /> },
+      { label: "OpenAI Integration", to: "/openai", icon: <FaRocket /> },
+    ],
+  },
+  {
+    label: "Administration",
+    icon: <FaShieldAlt className="mr-2" />,
+    links: [
+      { label: "Permissions", to: "/permissions", icon: <FaShieldAlt /> },
+      { label: "Setup", to: "/setup", icon: <FaCogs /> },
+      { label: "Location", to: "/location", icon: <FaUser /> },
     ],
   },
   {
@@ -64,26 +96,6 @@ const navSections = [
     icon: <FaQuestionCircle className="mr-2" />,
     links: [
       { label: "Help", to: "/help", icon: <FaQuestionCircle /> },
-    ],
-  },
-  {
-    label: "Automation",
-    icon: <FaCogs className="mr-2" />,
-    links: [
-      { label: "Automation", to: "/automation", icon: <FaCogs /> },
-      { label: "Drip Campaigns", to: "/drip-campaigns", icon: <FaRocket /> },
-    ],
-  },
-  {
-    label: "Administration",
-    icon: <FaShieldAlt className="mr-2" />,
-    links: [
-      { label: "Administration", to: "/administration", icon: <FaShieldAlt /> },
-      { label: "Permissions", to: "/permissions", icon: <FaShieldAlt /> },
-      { label: "OpenAI Integration", to: "/openai", icon: <FaRocket /> },
-      { label: "AI Command Center", to: "/ai-command-center", icon: <FaChartBar /> },
-      { label: "Setup", to: "/setup", icon: <FaCogs /> },
-      { label: "Location", to: "/location", icon: <FaUser /> },
     ],
   },
 ];
@@ -97,6 +109,9 @@ export default function Navigation() {
   const [showPanel, setShowPanel] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { urgentCount } = useNotification();
+  const { user, loading, claims } = useAuth();
+
+  if (loading) return null; // don’t render menu until ready
 
   const handleAccordion = idx => {
     setOpenSection(openSection === idx ? null : idx);
@@ -166,18 +181,20 @@ export default function Navigation() {
                 className={`overflow-hidden transition-all duration-350 ${openSection === idx ? 'max-h-96 py-2' : 'max-h-0 py-0'}`}
               >
                 <ul className="pl-6">
-                  {section.links.map(link => (
-                    <li key={link.label} className="mb-1">
-                      <Link
-                        to={link.to}
-                        className={`flex items-center px-2 py-2 rounded text-sm font-medium transition-colors duration-350 ${location.pathname === link.to ? 'bg-blue-700 text-white' : 'text-blue-100 hover:bg-blue-700 hover:text-white'}`}
-                        onClick={() => setMobileOpen(false)}
-                      >
-                        <span className="mr-2">{link.icon}</span>
-                        {link.label}
-                      </Link>
-                    </li>
-                  ))}
+                  {section.links
+                    .filter(link => link.label !== "IDIQ Integration" || claims?.idiq)
+                    .map(link => (
+                      <li key={link.label} className="mb-1">
+                        <Link
+                          to={link.to}
+                          className={`flex items-center px-2 py-2 rounded text-sm font-medium transition-colors duration-350 ${location.pathname === link.to ? 'bg-blue-700 text-white' : 'text-blue-100 hover:bg-blue-700 hover:text-white'}`}
+                          onClick={() => setMobileOpen(false)}
+                        >
+                          <span className="mr-2">{link.icon}</span>
+                          {link.label}
+                        </Link>
+                      </li>
+                    ))}
                 </ul>
               </div>
             </div>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
-import { db } from '../firebaseConfig';
+import { db } from '@/lib/firebase';
 import { 
   UserGroupIcon, 
   PlusIcon,
@@ -10,6 +10,7 @@ import {
   PhoneIcon,
   EnvelopeIcon 
 } from '@heroicons/react/24/outline';
+import ClientCreditCard from '../components/IDIQIntegration/ClientCreditCard';
 
 const ClientManagement = () => {
   const [clients, setClients] = useState([]);
@@ -114,6 +115,8 @@ const ClientManagement = () => {
                 {client.phone || 'No phone'}
               </div>
             </div>
+
+            <ClientCreditCard client={client} />
 
             <div className="mt-4 pt-4 border-t dark:border-gray-700">
               <button

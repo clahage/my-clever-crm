@@ -10,7 +10,11 @@
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "start": "node server/index.js",
-    "server": "node server/index.js"
+    "server": "node server/index.js",
+    "set:idiq": "node scripts/set-claims.cjs",
+    "deploy:preview": "node scripts/deploy-preview.mjs",
+    "test:idiq": "node scripts/test-idiq.mjs",
+    "test:idiq:preview": "node scripts/test-idiq.mjs"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -32,7 +36,6 @@
     "dotenv": "^17.2.1",
     "file-saver": "^2.0.5",
     "firebase": "^11.10.0",
-    "firebase-admin": "^13.4.0",
     "framer-motion": "^12.23.12",
     "fuse.js": "^7.1.0",
     "html2canvas": "^1.4.1",
@@ -41,6 +44,7 @@
     "openai": "^5.12.2",
     "papaparse": "^5.5.3",
     "pdf-parse": "^1.1.1",
+    "pdfjs-dist": "^5.4.149",
     "pdfreader": "^3.0.7",
     "react": "^18.3.1",
     "react-calendar": "^6.0.0",
@@ -65,6 +69,7 @@
     "eslint-plugin-react": "^7.34.1",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.6",
+    "firebase-admin": "^13.5.0",
     "postcss": "^8.5.6",
     "react-icons": "^5.5.0",
     "tailwindcss": "^3.4.17",

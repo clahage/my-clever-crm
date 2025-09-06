@@ -10,7 +10,7 @@ import backlinksRouter from './routes/backlinks.js';
 import contactsRouter from './routes/contacts.js';
 import realestateRouter from './routes/realestate.js';
 import autoRouter from './routes/auto.js';
-import parsepdfRouter from './routes/parsepdf.js';
+// import parsepdfRouter from './routes/parsepdf.js';
 
 dotenv.config();
 
@@ -28,7 +28,7 @@ app.use('/api/backlinks', backlinksRouter);
 app.use('/api/contacts', contactsRouter);
 app.use('/api/realestate', realestateRouter);
 app.use('/api/auto', autoRouter);
-app.use('/api/parsepdf', parsepdfRouter);
+// app.use('/api/parsepdf', parsepdfRouter);
 
 app.get('/', (req, res) => {
   res.send('SCR Backend API is running.');

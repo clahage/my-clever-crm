@@ -30,3 +30,7 @@ Thumbs.db
 *.zip
 .inspections/
 .vercel
+
+# Service account and scripts
+serviceAccount.json
+/scripts/*.js

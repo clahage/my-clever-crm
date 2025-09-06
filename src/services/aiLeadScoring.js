@@ -1,7 +1,7 @@
 // AI Lead Scoring Service for MyAIFrontDesk webhook
 // Uses OpenAI API and stores usage in Firebase
 
-import { db } from '../firebaseConfig';
+import { db } from "@/lib/firebase";
 import { collection, addDoc } from 'firebase/firestore';
 
 const OPENAI_API_KEY = process.env.REACT_APP_OPENAI_API_KEY;

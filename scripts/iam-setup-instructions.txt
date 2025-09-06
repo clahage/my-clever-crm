@@ -1,0 +1,16 @@
+===== SIMPLE IAM SETUP FOR SPEEDYCRM =====
+Your Project ID: my-clever-crm
+
+OPTION 1 - EASIEST (Visual Method):
+1. Go to: https://console.cloud.google.com/functions
+2. Sign in with your Google account
+3. Select project "my-clever-crm" at the top
+4. You'll see your 11 IDIQ functions listed
+5. For now, just test with Mock Mode in your app!
+
+OPTION 2 - When Ready for Live Data:
+Come back to this file when you want to connect real IDIQ data.
+The commands will be here waiting for you.
+
+For now: Your Mock Mode is working perfectly!
+=====

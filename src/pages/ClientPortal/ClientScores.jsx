@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
-import { db } from '../../firebaseConfig';
+import { db } from "@/lib/firebase";
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,

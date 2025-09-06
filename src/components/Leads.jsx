@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect, useRef } from "react";
-import { db } from "../firebaseConfig";
+import { db } from "@/lib/firebase";
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from "firebase/firestore";
 import { motion } from "framer-motion";
 import Particles from "@tsparticles/react";

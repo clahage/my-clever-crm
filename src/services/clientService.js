@@ -1,5 +1,5 @@
 // src/services/clientService.js
-import { db } from '../firebaseConfig';
+import { db } from "@/lib/firebase";
 import {
   collection,
   doc,

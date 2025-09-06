@@ -36,7 +36,8 @@ const CRMLayout = () => {
         { id: 'disputes', label: 'Dispute Center', icon: FileText, path: '/disputes' },
         { id: 'letters', label: 'Letter Templates', icon: Mail, path: '/letters' },
         { id: 'reports', label: 'Credit Reports', icon: FileCheck, path: '/reports' },
-        { id: 'progress', label: 'Progress Tracking', icon: TrendingUp, path: '/progress' }
+        { id: 'progress', label: 'Progress Tracking', icon: TrendingUp, path: '/progress' },
+        { id: 'idiq', label: 'IDIQ Integration', icon: Shield, path: '/idiq' }
       ]
     },
     {

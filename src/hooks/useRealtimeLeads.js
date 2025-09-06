@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { db } from '../firebaseConfig';
+import { db } from "@/lib/firebase";
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 
 export default function useRealtimeLeads() {

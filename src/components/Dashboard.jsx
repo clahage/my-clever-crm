@@ -29,7 +29,7 @@ const quickActions = [
 
 import { useEffect, useState } from 'react';
 import { collection, onSnapshot } from 'firebase/firestore';
-import { db } from '../firebaseConfig';
+import { db } from "@/lib/firebase";
 
 export default function Dashboard() {
   const [contacts, setContacts] = useState([]);

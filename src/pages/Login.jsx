@@ -1,160 +1,249 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { signInWithEmailAndPassword, signInWithPopup, sendPasswordResetEmail } from 'firebase/auth';
-import { auth, googleProvider } from '../firebaseConfig';
+import React, { useEffect, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../auth/AuthProvider";
+import { auth, googleProvider } from "@/lib/firebase";
+import { 
+  signInWithEmailAndPassword, 
+  signInWithRedirect, 
+  getRedirectResult, 
+  signInWithPopup,
+  onAuthStateChanged 
+} from "firebase/auth";
 
-const Login = () => {
-  const navigate = useNavigate();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [showResetForm, setShowResetForm] = useState(false);
-  const [resetEmail, setResetEmail] = useState('');
-  const [resetMessage, setResetMessage] = useState(null);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-      navigate('/dashboard');
-    } catch (error) {
-      setError(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGoogleSignIn = async () => {
-    try {
-      await signInWithPopup(auth, googleProvider);
-      navigate('/dashboard');
-    } catch (error) {
-      setError('Failed to sign in with Google');
-    }
-  };
-
-  const handlePasswordReset = async (e) => {
-    e.preventDefault();
-    try {
-      await sendPasswordResetEmail(auth, resetEmail);
-      setResetMessage({ type: 'success', text: 'Password reset email sent!' });
-      setTimeout(() => {
-        setShowResetForm(false);
-        setResetEmail('');
-        setResetMessage(null);
-      }, 3000);
-    } catch (error) {
-      setResetMessage({ type: 'error', text: error.message });
-    }
-  };
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
-        <h1 className="text-2xl font-bold mb-6 text-center">Login</h1>
-        
-        {error && (
-          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
-            {error}
-          </div>
-        )}
-
-        {!showResetForm ? (
-          <>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 border rounded"
-                placeholder="Email"
-                required
-              />
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2 border rounded"
-                placeholder="Password"
-                required
-              />
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              >
-                {loading ? 'Signing in...' : 'Login'}
-              </button>
-            </form>
-
-            <div className="text-center mt-4">
-              <button
-                type="button"
-                onClick={() => setShowResetForm(true)}
-                className="text-sm text-blue-600 hover:text-blue-700 underline"
-              >
-                Forgot password?
-              </button>
-            </div>
-
-            <div className="my-4 text-center text-gray-500">Or</div>
-
-            <button
-              onClick={handleGoogleSignIn}
-              className="w-full py-2 bg-red-600 text-white rounded hover:bg-red-700"
-            >
-              Sign in with Google
-            </button>
-          </>
-        ) : (
-          <div>
-            <h2 className="text-xl font-semibold mb-4">Reset Password</h2>
-            {resetMessage && (
-              <div className={`mb-3 p-2 rounded ${
-                resetMessage.type === 'success' 
-                  ? 'bg-green-100 text-green-700' 
-                  : 'bg-red-100 text-red-700'
-              }`}>
-                {resetMessage.text}
-              </div>
-            )}
-            <form onSubmit={handlePasswordReset}>
-              <input
-                type="email"
-                value={resetEmail}
-                onChange={(e) => setResetEmail(e.target.value)}
-                placeholder="Enter your email"
-                className="w-full px-3 py-2 border rounded mb-3"
-                required
-              />
-              <div className="flex space-x-2">
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                >
-                  Send Reset
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowResetForm(false);
-                    setResetEmail('');
-                    setResetMessage(null);
-                  }}
-                  className="flex-1 px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+const env = import.meta.env || {};
+const fbEnv = {
+  API_KEY: env.VITE_FIREBASE_API_KEY,
+  AUTH_DOMAIN: env.VITE_FIREBASE_AUTH_DOMAIN,
+  PROJECT_ID: env.VITE_FIREBASE_PROJECT_ID,
+  STORAGE_BUCKET: env.VITE_FIREBASE_STORAGE_BUCKET,
+  MSG_SENDER_ID: env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  APP_ID: env.VITE_FIREBASE_APP_ID,
 };
 
-export default Login;
+const mask = (v) => {
+  if (!v) return "(missing)";
+  if (v.length <= 7) return v;
+  return `${v.slice(0,3)}…${v.slice(-3)}`;
+};
+
+const allPresent = Object.entries(fbEnv).every(([k, v]) => !!v);
+const isLocalhost = window.location.hostname === "localhost";
+
+export default function Login() {
+  const { user, loading, claims } = useAuth();
+  const lastAuthError = claims?._lastAuthError;
+  const navigate = useNavigate();
+  const location = useLocation();
+  const from = location.state?.from?.pathname || "/dashboard";
+  const [busy, setBusy] = useState(false);
+  const [showEnv, setShowEnv] = useState(false);
+  const [email, setEmail] = useState("");
+  const [pw, setPw] = useState("");
+  const [status, setStatus] = useState("Idle");
+  const [unauthDomain, setUnauthDomain] = useState(false);
+  const [error, setError] = useState("");
+
+  // If already signed in (including after Google redirect), leave /login immediately
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => {
+      if (u) navigate("/dashboard", { replace: true });
+    });
+    return () => unsub();
+  }, [navigate]);
+
+  // Handle Google redirect result
+  useEffect(() => {
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result) {
+          setStatus(`Google OK: ${result.user.uid}`);
+          navigate('/dashboard');
+        }
+      })
+      .catch((error) => {
+        console.error('Redirect sign-in error:', error);
+        setError('Failed to complete Google sign-in');
+        setStatus(`Google redirect error: ${error?.code || error?.message}`);
+      });
+  }, [navigate]);
+
+  const handleGoogle = async () => {
+    try {
+      console.log("[Login] Google button clicked");
+      setBusy(true);
+      setError("");
+      
+      if (isLocalhost) {
+        setStatus("Opening Google popup…");
+        const { user } = await signInWithPopup(auth, googleProvider);
+        setStatus(`Google OK (popup): ${user.uid}`);
+        navigate(from, { replace: true });
+      } else {
+        setStatus("Redirecting to Google…");
+        await signInWithRedirect(auth, googleProvider);
+      }
+    } catch (e) {
+      console.error("[Login] Google sign-in error:", e);
+      setStatus(`Google error: ${e?.code || e?.message}`);
+      setError('Failed to start Google sign-in');
+      if (e?.code === "auth/unauthorized-domain" || (typeof e?.message === "string" && e.message.includes("UNAUTHORIZED_DOMAIN"))) {
+        setUnauthDomain(true);
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const doEmail = async () => {
+    setStatus("Signing in with email…");
+    setError("");
+    try {
+      const { user } = await signInWithEmailAndPassword(auth, email, pw);
+      setStatus(`Email OK: ${user.uid}`);
+      navigate(from, { replace: true });
+    } catch (e) {
+      console.error("[Auth] Email error:", e);
+      setStatus(`Email error: ${e?.code || e?.message}`);
+      setError('Failed to sign in with email');
+      if (e?.code === "auth/unauthorized-domain" || (typeof e?.message === "string" && e.message.includes("UNAUTHORIZED_DOMAIN"))) {
+        setUnauthDomain(true);
+      }
+    }
+  };
+
+  if (loading) return <div style={{ padding: 24 }}>Checking session…</div>;
+
+  // Show already signed in hint
+  const alreadySignedIn = auth.currentUser;
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <div className="bg-white/90 backdrop-blur rounded-2xl shadow-xl border border-slate-100 p-6 sm:p-8">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Speedy CRM</h1>
+          <p className="text-sm text-slate-500 mt-1">Sign in to your account</p>
+          {error && <div className="text-red-500 text-sm mt-2">{error}</div>}
+          {status && (
+            <div className="mt-3 text-sm rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800">
+              {status}
+            </div>
+          )}
+          {unauthDomain && (
+            <div className="mt-3 text-sm rounded-md border-2 border-amber-400 bg-amber-50 px-3 py-2 text-amber-900 font-semibold">
+              This domain isn't authorized. Add <code className="px-1 py-0.5 bg-amber-100 rounded">{window.location.host}</code> in
+              <span className="font-semibold"> Firebase → Authentication → Settings → Authorized domains</span>.
+            </div>
+          )}
+          {lastAuthError && (
+            <div className="mt-3 text-sm rounded-md border border-red-200 bg-red-50 px-3 py-2 text-red-800">
+              <strong>Sign-in error:</strong> <code>{lastAuthError.code}</code>
+              <div className="mt-1">{lastAuthError.message}</div>
+            </div>
+          )}
+          {alreadySignedIn && (
+            <div className="mt-3 text-xs text-green-700 text-center">
+              Already signed in as <span className="font-semibold">{alreadySignedIn.email}</span> &rarr; <span className="underline">Continue</span>
+            </div>
+          )}
+          <button
+            onClick={handleGoogle}
+            disabled={busy}
+            className="mt-5 w-full inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 px-4 py-2.5 text-slate-800 shadow-sm disabled:opacity-60"
+          >
+            <svg className="h-5 w-5" viewBox="0 0 533.5 544.3" aria-hidden="true">
+              <g><path fill="#4285F4" d="M533.5 278.4c0-17.4-1.6-34.1-4.6-50.2H272v95h146.9c-6.3 34.1-25.1 62.9-53.6 82.2l87 67.7c50.7-46.8 80.2-115.7 80.2-194.7z"/><path fill="#34A853" d="M272 544.3c72.6 0 133.7-24.1 178.3-65.5l-87-67.7c-24.2 16.2-55.1 25.8-91.3 25.8-70.2 0-129.7-47.4-151-111.1l-89.5 69.2c44.7 88.1 137.2 149.3 240.5 149.3z"/><path fill="#FBBC05" d="M121 325.8c-10.2-30.1-10.2-62.7 0-92.8l-89.5-69.2C7.1 210.1 0 242.5 0 278.4c0 35.9 7.1 68.3 31.5 114.6l89.5-69.2z"/><path fill="#EA4335" d="M272 107.7c39.6 0 75.1 13.6 103.1 40.2l77.4-77.4C405.7 24.1 344.6 0 272 0 168.7 0 76.2 61.2 31.5 163.8l89.5 69.2C142.3 155.1 201.8 107.7 272 107.7z"/></g>
+            </svg>
+            Continue with Google
+          </button>
+          <div className="relative my-5">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200"/></div>
+            <div className="relative flex justify-center">
+              <span className="bg-white px-3 text-xs uppercase tracking-wide text-slate-400">or</span>
+            </div>
+          </div>
+          <label className="block text-sm font-medium text-slate-700">Email</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="mt-1 w-full rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500"
+            placeholder="name@company.com"
+            autoComplete="email"
+          />
+          <label className="mt-3 block text-sm font-medium text-slate-700">Password</label>
+          <input
+            type="password"
+            value={pw}
+            onChange={(e) => setPw(e.target.value)}
+            className="mt-1 w-full rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500"
+            placeholder="••••••••"
+            autoComplete="current-password"
+          />
+          <button
+            onClick={doEmail}
+            disabled={busy}
+            className="mt-5 w-full rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 shadow-sm disabled:opacity-60"
+          >
+            Sign in with Email
+          </button>
+          <p className="mt-4 text-center text-xs text-slate-500">
+            Trouble signing in? Clear site data (Application → Storage) and try again.
+          </p>
+        </div>
+      </div>
+      {/* Env Debug Toggle and Panel (unchanged, keep at root for dev) */}
+      <button
+        type="button"
+        onClick={() => setShowEnv(s => !s)}
+        style={{
+          position: "fixed",
+          right: 12,
+          bottom: 12,
+          padding: "6px 10px",
+          borderRadius: 6,
+          border: "1px solid #ddd",
+          background: "#fff",
+          boxShadow: "0 1px 6px rgba(0,0,0,0.15)",
+          fontSize: 12,
+          cursor: "pointer",
+          zIndex: 9999
+        }}
+      >
+        Env Debug {showEnv ? "▾" : "▸"}
+      </button>
+      {showEnv && (
+        <div
+          style={{
+            position: "fixed",
+            right: 12,
+            bottom: 52,
+            width: 360,
+            maxWidth: "90vw",
+            padding: 12,
+            borderRadius: 8,
+            border: "1px solid #e5e5e5",
+            background: "#fafafa",
+            boxShadow: "0 2px 14px rgba(0,0,0,0.18)",
+            fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+            fontSize: 12,
+            color: "#222",
+            zIndex: 9999
+          }}
+        >
+          <div style={{marginBottom: 8, fontWeight: 600}}>
+            Firebase Env Status: {allPresent ? "✅ Configured" : "❌ Missing keys"}
+          </div>
+          <div>PROJECT_ID: <code>{fbEnv.PROJECT_ID || "(missing)"}</code></div>
+          <div>AUTH_DOMAIN: <code>{fbEnv.AUTH_DOMAIN || "(missing)"}</code></div>
+          <div>API_KEY: <code>{mask(fbEnv.API_KEY)}</code></div>
+          <div>STORAGE_BUCKET: <code>{fbEnv.STORAGE_BUCKET || "(missing)"}</code></div>
+          <div>MSG_SENDER_ID: <code>{mask(fbEnv.MSG_SENDER_ID || "")}</code></div>
+          <div>APP_ID: <code>{mask(fbEnv.APP_ID || "")}</code></div>
+          <div style={{marginTop:8, opacity:0.8}}>
+            Tip: Values come from <code>.env</code>. After edits, run a fresh build & deploy.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
