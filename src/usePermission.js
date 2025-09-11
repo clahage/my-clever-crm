@@ -1,31 +1,30 @@
-import { useAuth } from './contexts/AuthContext';
-import { useMemo } from 'react';
+import { useAuth } from "./contexts/AuthContext";
+import { useMemo } from "react";
 
 export const usePermission = () => {
   const { user, userProfile, loading } = useAuth();
 
   // Admin email detection
-  const adminEmails = ['chris@speedycreditrepair.com', 'clahage@gmail.com'];
-  const normalizedUserEmail = (user?.email || '').toLowerCase();
-  const normalizedProfileEmail = (userProfile?.email || '').toLowerCase();
+  const adminEmails = ["chris@speedycreditrepair.com", "clahage@gmail.com"];
+  const normalizedUserEmail = (user?.email || "").toLowerCase();
+  const normalizedProfileEmail = (userProfile?.email || "").toLowerCase();
 
   const authState = useMemo(() => {
     const isAuthenticated = !!(user && !loading);
-    
-    const isMasterAdmin = (
+
+    const isMasterAdmin =
       adminEmails.includes(normalizedUserEmail) ||
       adminEmails.includes(normalizedProfileEmail) ||
-      userProfile?.role === 'master_admin' ||
-      userProfile?.role === 'admin' ||
-      userProfile?.allowedFeatures?.includes('*')
-    );
+      userProfile?.role === "master_admin" ||
+      userProfile?.role === "admin" ||
+      userProfile?.allowedFeatures?.includes("*");
 
     return {
       isAuthenticated,
       isMasterAdmin,
       isAdmin: isMasterAdmin,
-      userRole: userProfile?.role || 'guest',
-      userStatus: userProfile?.status || 'inactive'
+      userRole: userProfile?.role || "guest",
+      userStatus: userProfile?.status || "inactive",
     };
   }, [user, userProfile, loading, normalizedUserEmail, normalizedProfileEmail]);
 
@@ -42,12 +41,12 @@ export const usePermission = () => {
     }
 
     // Check if user status is active
-    if (authState.userStatus !== 'active') {
+    if (authState.userStatus !== "active") {
       return false;
     }
 
     // Check if user has wildcard access
-    if (userProfile?.allowedFeatures?.includes('*')) {
+    if (userProfile?.allowedFeatures?.includes("*")) {
       return true;
     }
 
@@ -58,13 +57,16 @@ export const usePermission = () => {
 
     // Default features for regular users
     const defaultUserFeatures = [
-      'dispute_center',
-      'progress_portal',
-      'page_contacts',
-      'page_clients'
+      "dispute_center",
+      "progress_portal",
+      "page_contacts",
+      "page_clients",
     ];
-    
-    if (defaultUserFeatures.includes(featureName) && authState.userRole === 'user') {
+
+    if (
+      defaultUserFeatures.includes(featureName) &&
+      authState.userRole === "user"
+    ) {
       return true;
     }
 
@@ -82,10 +84,10 @@ export const usePermission = () => {
       canCreateUsers: true,
       canEditUsers: true,
       canDeleteUsers: false,
-      canManageRoles: true
+      canManageRoles: true,
     };
 
-    if (authState.userRole === 'admin' && adminPermissions[permission]) {
+    if (authState.userRole === "admin" && adminPermissions[permission]) {
       return true;
     }
 
@@ -99,19 +101,26 @@ export const usePermission = () => {
     loading,
     hasFeatureAccess,
     hasRolePermission,
-    canManageUsers: () => hasRolePermission('canCreateUsers') || hasRolePermission('canEditUsers'),
-    canManageRoles: () => hasRolePermission('canManageRoles'),
+    canManageUsers: () =>
+      hasRolePermission("canCreateUsers") || hasRolePermission("canEditUsers"),
+    canManageRoles: () => hasRolePermission("canManageRoles"),
     getUserRole: () => authState.userRole,
     getAvailableFeatures: () => {
       if (authState.isMasterAdmin) {
-        return ['*', 'admin_panel', 'user_management', 'dispute_center', 'progress_portal'];
+        return [
+          "*",
+          "admin_panel",
+          "user_management",
+          "dispute_center",
+          "progress_portal",
+        ];
       }
       const userFeatures = userProfile?.allowedFeatures || [];
-      const defaultFeatures = ['dispute_center', 'progress_portal'];
+      const defaultFeatures = ["dispute_center", "progress_portal"];
       return [...new Set([...userFeatures, ...defaultFeatures])];
     },
     // Legacy compatibility
     roles: [],
-    features: []
+    features: [],
   };
 };

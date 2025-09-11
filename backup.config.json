@@ -1,0 +1,20 @@
+{
+  "backups": [
+    { "label": "A", "path": "backups/A/my-clever-crm" },
+    { "label": "B", "path": "backups/B/my-clever-crm" },
+    { "label": "C", "path": "backups/C/my-clever-crm" },
+    { "label": "D", "path": "backups/D/my-clever-crm" },
+    { "label": "E", "path": "backups/E/my-clever-crm" }
+  ],
+  "exts": [".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".json", ".html", ".css"],
+  "patterns": {
+    "openai": ["openai","gpt","ChatCompletion","Responses","Assistants","OpenAI"],
+    "aiReceptionist": ["receptionist","ivr","twilio","call","transcript","MyAIFrontDesk","voicebot"],
+    "webhooks": ["webhook","functions\\.https\\.onRequest","functions\\.https\\.onCall","onCall","onRequest"],
+    "leadScoring": ["leadScore","score","scoring","urgency","rank","priority"],
+    "firestore": ["Firestore","collection\\(","doc\\(","onSnapshot","serverTimestamp"],
+    "social": ["social","facebook","instagram","twitter","x\\.com","yelp","google reviews","bbb","share","webhookSocial"],
+    "widgets": ["Widget","widget","Dashboard","chart","graph","map","panel","card"],
+    "nav": ["NavLink","Sidebar","TopNav","Menu","routes","path:"]
+  }
+}

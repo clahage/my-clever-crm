@@ -1,0 +1,11 @@
+/* Basic App styles for CRM - placeholder file to resolve import error */
+body {
+  background: #f9fafb;
+  font-family: 'Inter', Arial, sans-serif;
+}
+
+.App {
+  min-height: 100vh;
+}
+
+/* Add more styles as needed */

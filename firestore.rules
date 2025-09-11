@@ -49,6 +49,11 @@ service cloud.firestore {
       allow read: if isAdmin();
       allow write: if false; // Only written by Cloud Functions
     }
+    // Leads collection
+    match /leads/{document=**} {
+      allow read: if isAuthenticated() && (isAdmin() || isEmployee());
+      allow write: if isAdmin();
+    }
     // Default deny all
     match /{document=**} {
       allow read, write: if false;

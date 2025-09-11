@@ -1,10 +1,7 @@
 // Moved console.log after navSections declaration to fix initialization error
 
 import React, { useState } from "react";
-import { FaBars } from "react-icons/fa";
-import { Link, useLocation } from "react-router-dom";
-import { useAuth } from "../auth/AuthProvider";
-import {
+import { FaBars ,
   FaHome,
   FaUsers,
   FaUser,
@@ -20,6 +17,9 @@ import {
   FaShieldAlt,
   FaQuestionCircle
 } from "react-icons/fa";
+import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "../auth/AuthProvider";
+
 
 const navSections = [
   {
@@ -38,48 +38,38 @@ const navSections = [
     ],
   },
   {
-    label: "Credit Services",
+    label: "Credit Repair/Services",
     icon: <FaLayerGroup className="mr-2" />,
     links: [
-      { label: "IDIQ Integration", to: "/idiq", icon: <FaRocket /> },
+      { label: "IDIQ Integration", to: "/idiq", icon: <FaRocket />, requiresIdiq: true },
       { label: "Dispute Center", to: "/dispute-center", icon: <FaFileAlt /> },
       { label: "Progress Portal", to: "/progress-portal", icon: <FaChartBar /> },
-      { label: "Credit Scores", to: "/credit-scores", icon: <FaChartBar /> },
-    ],
-  },
-  {
-    label: "Communications & Letters",
-    icon: <FaEnvelope className="mr-2" />,
-    links: [
+      { label: "Analytics", to: "/analytics", icon: <FaChartBar /> },
+      { label: "Contact Reports", to: "/contact-reports", icon: <FaChartBar /> },
       { label: "Letters", to: "/letters", icon: <FaFileAlt /> },
+      { label: "Credit Scores", to: "/credit-scores", icon: <FaChartBar /> },
       { label: "Dispute Letters", to: "/dispute-letters", icon: <FaFileAlt /> },
     ],
   },
   {
-    label: "Analytics & Reports",
-    icon: <FaChartBar className="mr-2" />,
-    links: [
-      { label: "Analytics", to: "/analytics", icon: <FaChartBar /> },
-      { label: "Contact Reports", to: "/contact-reports", icon: <FaChartBar /> },
-    ],
-  },
-  {
-    label: "Business Tools",
+    label: "Business Tools (Tools & Utilities)",
     icon: <FaTools className="mr-2" />,
     links: [
       { label: "Billing", to: "/billing", icon: <FaMoneyBill /> },
       { label: "Calendar", to: "/calendar", icon: <FaCalendarAlt /> },
+      { label: "Communications", to: "/communications", icon: <FaEnvelope /> },
       { label: "Export", to: "/export", icon: <FaFileAlt /> },
-      { label: "Bulk", to: "/bulk", icon: <FaLayerGroup /> },
+      { label: "Bulk Actions", to: "/bulk", icon: <FaLayerGroup /> },
     ],
   },
   {
     label: "Automation & AI",
     icon: <FaCogs className="mr-2" />,
     links: [
-      { label: "Automation", to: "/automation", icon: <FaCogs /> },
+      { label: "Automation Rules", to: "/automation", icon: <FaCogs /> },
       { label: "Drip Campaigns", to: "/drip-campaigns", icon: <FaRocket /> },
       { label: "OpenAI Integration", to: "/openai", icon: <FaRocket /> },
+      { label: "AI Command Center", to: "/ai-command-center", icon: <FaChartBar /> },
     ],
   },
   {
@@ -88,6 +78,8 @@ const navSections = [
     links: [
       { label: "Permissions", to: "/permissions", icon: <FaShieldAlt /> },
       { label: "Setup", to: "/setup", icon: <FaCogs /> },
+      { label: "User Management", to: "/user-management", icon: <FaUsers /> },
+      { label: "Roles & Permissions", to: "/roles", icon: <FaShieldAlt /> },
       { label: "Location", to: "/location", icon: <FaUser /> },
     ],
   },
@@ -110,7 +102,6 @@ export default function Navigation() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { urgentCount } = useNotification();
   const { user, loading, claims } = useAuth();
-
   if (loading) return null; // don’t render menu until ready
 
   const handleAccordion = idx => {
@@ -182,7 +173,7 @@ export default function Navigation() {
               >
                 <ul className="pl-6">
                   {section.links
-                    .filter(link => link.label !== "IDIQ Integration" || claims?.idiq)
+                    .filter(link => !link.requiresIdiq || claims?.idiq)
                     .map(link => (
                       <li key={link.label} className="mb-1">
                         <Link

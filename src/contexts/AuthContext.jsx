@@ -7,6 +7,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [claims, setClaims] = useState({});
 
   useEffect(() => {
     const unsubscribe = subscribeAuthState(async (firebaseUser) => {
@@ -24,6 +25,8 @@ export const AuthProvider = ({ children }) => {
           isMaster: claims.isMaster || false,
           customClaims: claims
         });
+        setClaims(tokenResult.claims);
+        // console.log('[DEBUG] Raw Firebase claims:', JSON.stringify(tokenResult.claims, null, 2)); // DEBUG
       } else {
         setUser(null);
       }

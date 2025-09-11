@@ -6,6 +6,7 @@ import LeadRevenueDetailWidget from './LeadRevenueDetailWidget.jsx';
 import { motion } from 'framer-motion';
 import { FaEnvelope, FaUserTie, FaStar, FaTag, FaChartLine, FaArrowLeft, FaCheckCircle, FaFileUpload, FaComments, FaListUl, FaUsers, FaRobot } from 'react-icons/fa';
 import useSound from 'use-sound';
+import { categorizeContact } from '../openaiService';
 
 export default function ContactDetailPage() {
   const { id } = useParams();
@@ -24,9 +25,16 @@ export default function ContactDetailPage() {
   // Real-time contact sync
   useEffect(() => {
     setLoading(true);
-    const unsub = onSnapshot(doc(db, 'contacts', id), docSnap => {
+    const unsub = onSnapshot(doc(db, 'contacts', id), async docSnap => {
       if (docSnap.exists()) {
-        setContact({ id, ...docSnap.data() });
+        const data = { id, ...docSnap.data() };
+        // AI categorization, heat, urgency, next move
+        try {
+          const ai = await categorizeContact(data);
+          setContact({ ...data, ...ai });
+        } catch {
+          setContact(data);
+        }
       } else {
         setContact(null);
       }

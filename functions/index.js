@@ -5,6 +5,7 @@ const IDIQ_PARTNER_ID = defineString("IDIQ_PARTNER_ID");
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const fetch = require('node-fetch');
+const { OpenAI } = require('openai');
 
 admin.initializeApp();
 
@@ -481,9 +482,10 @@ exports.testFunction = functions.https.onRequest((req, res) => {
 });
 
 // Replace with MY UID (I can get it from auth.currentUser.uid in console)
-const MASTER_ADMIN_UID = "PUT_MY_UID_HERE";
+const MASTER_ADMIN_UID = "BgTAnHE4zMOLr4ZhBqCBfFb3h6D3";
 
 exports.setUserClaims = functions.https.onCall(async (data, context) => {
+  // CORS is handled automatically for onCall functions by Firebase
   if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "Sign in first.");
   if (context.auth.uid !== MASTER_ADMIN_UID) throw new functions.https.HttpsError("permission-denied", "Admins only.");
 
@@ -493,4 +495,38 @@ exports.setUserClaims = functions.https.onCall(async (data, context) => {
   const user = await admin.auth().getUserByEmail(email);
   await admin.auth().setCustomUserClaims(user.uid, claims);
   return { ok: true, uid: user.uid, claims };
+});
+
+// AI Receptionist Lead Scoring Endpoint
+exports.scoreLead = functions.https.onRequest(async (req, res) => {
+  setCors(req, res);
+  if (req.method === 'OPTIONS') return res.status(204).send('');
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Use POST' });
+  try {
+    const { lead } = req.body;
+    if (!lead || !lead.transcript) {
+      return res.status(400).json({ error: 'Missing lead transcript' });
+    }
+    // Use OpenAI to analyze transcript and score lead
+    const apiKey = functions.config().openai?.key;
+    if (!apiKey) return res.status(500).json({ error: 'Missing OpenAI key in functions config (openai.key)' });
+    const client = new OpenAI({ apiKey });
+    const prompt = `Analyze this transcript and score the lead from 0-100 for sales readiness.\nTranscript:\n${lead.transcript}`;
+    const completion = await client.chat.completions.create({
+      model: 'gpt-4.1-mini',
+      messages: [
+        { role: 'system', content: 'You are a lead scoring expert.' },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.3,
+      max_tokens: 100,
+    });
+    const text = completion.choices?.[0]?.message?.content ?? '';
+    // Try to extract score from response
+    const score = parseInt(text.match(/\d+/)?.[0] || '50', 10);
+    return res.status(200).json({ score, raw: text });
+  } catch (err) {
+    console.error('Lead scoring error', err);
+    return res.status(500).json({ error: 'Failed to score lead', detail: err.message || String(err) });
+  }
 });

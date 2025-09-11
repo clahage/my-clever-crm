@@ -1,0 +1,83 @@
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { subscribeAuthState, login, register, logout, signInWithGoogle } from '../services/authService';
+
+const AuthContext = createContext();
+
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const unsubscribe = subscribeAuthState((firebaseUser) => {
+      setUser(firebaseUser);
+      setLoading(false);
+      console.log('Auth state changed:', firebaseUser);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const signIn = async (email, password) => {
+    setLoading(true);
+    setError('');
+    try {
+      await login(email, password);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const signUp = async (email, password) => {
+    setLoading(true);
+    setError('');
+    try {
+      await register(email, password);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const signOut = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      await logout();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const googleSignIn = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      await signInWithGoogle();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  console.log('AuthContext value:', { user, loading, error });
+  return (
+    <AuthContext.Provider value={{ user, loading, error, signIn, signUp, signOut, signInWithGoogle: googleSignIn }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    console.error('useAuth must be used within an AuthProvider');
+    return { user: null, loading: true, error: 'Auth context not found', signIn: () => {}, signUp: () => {}, signOut: () => {} };
+  }
+  return context;
+};

@@ -1,0 +1,13 @@
+/* Minimal AdminNotificationCenter.css to prevent build errors */
+
+.admin-notification-center {
+  /* Add any custom styles here if needed */
+}
+
+.modal-content {
+  background: inherit;
+}
+
+.modal-overlay {
+  background: rgba(0,0,0,0.3);
+}

@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { DocumentIcon, CloudArrowUpIcon, FolderIcon, TrashIcon, EyeIcon } from '@heroicons/react/24/outline';
-import { useAuth } from '../../contexts/AuthContext';
+import { DocumentIcon, CloudArrowUpIcon, FolderIcon, TrashIcon, EyeIcon , ChartBarIcon } from '@heroicons/react/24/outline';
+import { useAuth } from "../../contexts/AuthContext";
 import { storage, db } from "@/lib/firebase";
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { collection, addDoc, query, where, orderBy, onSnapshot, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { parseCreditReportPDF as parsePDF } from '../../utils/pdfParser';
-import { ChartBarIcon } from '@heroicons/react/24/outline';
+
 
 
 const ClientDocuments = () => {

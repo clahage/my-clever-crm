@@ -1,46 +1,20 @@
-console.log('Vite config loaded with CORS headers');
-
+// vite.config.js
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import tailwindcss from "tailwindcss";
-import autoprefixer from "autoprefixer";
-import path from "path"; // ⬅️ add this
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const API_BASE = process.env.VITE_API_BASE; // only used if set in dev env
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [react()],
+  server: {
+    headers: { "Access-Control-Allow-Origin": "*" },
+  },
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "src"), // ⬅️ add this
+      // If you still want "@", keep it here; otherwise remove this alias entirely.
+      "@": path.resolve(__dirname, "src"),
     },
   },
-  css: {
-    // Inline PostCSS so Vite doesn't try to auto-load an external config
-    postcss: {
-      plugins: [
-        tailwindcss(),
-        autoprefixer(),
-      ],
-    },
-  },
-  server: {
-    ...(API_BASE
-      ? {
-          proxy: {
-            '/api': {
-              target: API_BASE,
-              changeOrigin: true,
-              rewrite: (path) => path
-            }
-          }
-        }
-      : {}),
-    historyApiFallback: true
-  },
-  build: {
-    outDir: 'dist',
-    emptyOutDir: true,
-    sourcemap: false
-  }
 });

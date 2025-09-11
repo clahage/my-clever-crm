@@ -1,0 +1,15 @@
+{
+  "signals": {
+    "OpenAI": [],
+    "Receptionist": [],
+    "Webhooks": [],
+    "LeadScoring": [],
+    "Firestore": [],
+    "Social": [],
+    "Widgets": [],
+    "Nav": []
+  },
+  "summary": {
+    "totalBackups": 0
+  }
+}

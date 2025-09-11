@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "../auth/AuthProvider";
+import { useAuth } from "../contexts/AuthContext";
 import { auth, googleProvider } from "@/lib/firebase";
 import { 
   signInWithEmailAndPassword, 
@@ -9,6 +9,15 @@ import {
   signInWithPopup,
   onAuthStateChanged 
 } from "firebase/auth";
+import BrandLogo from "@/components/BrandLogo";
+import { useTheme } from '@/theme/ThemeProvider';
+
+// --- ON-SCREEN BEACON ---
+const Beacon = () => (
+  <div style={{background:'#fef9c3',color:'#92400e',padding:'4px 0',textAlign:'center',fontWeight:'bold',letterSpacing:1,marginBottom:12,zIndex:9999}}>
+    [BEACON: Login.jsx]
+  </div>
+);
 
 const env = import.meta.env || {};
 const fbEnv = {
@@ -42,6 +51,7 @@ export default function Login() {
   const [status, setStatus] = useState("Idle");
   const [unauthDomain, setUnauthDomain] = useState(false);
   const [error, setError] = useState("");
+  const { theme, setTheme } = useTheme();
 
   // If already signed in (including after Google redirect), leave /login immediately
   useEffect(() => {
@@ -117,11 +127,18 @@ export default function Login() {
   const alreadySignedIn = auth.currentUser;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="bg-white/90 backdrop-blur rounded-2xl shadow-xl border border-slate-100 p-6 sm:p-8">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Speedy CRM</h1>
-          <p className="text-sm text-slate-500 mt-1">Sign in to your account</p>
+    <>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900">
+        {import.meta.env.DEV && <Beacon />}
+        <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded shadow p-8 flex flex-col items-center">
+          <BrandLogo variant="client" theme={theme === 'dark' ? 'dark' : 'light'} style={{height:48, marginBottom:16}} />
+          <button
+            className="mb-4 px-2 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            aria-label="Toggle theme"
+          >
+            {theme === 'dark' ? '🌙' : '☀️'}
+          </button>
           {error && <div className="text-red-500 text-sm mt-2">{error}</div>}
           {status && (
             <div className="mt-3 text-sm rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800">
@@ -191,25 +208,13 @@ export default function Login() {
           </p>
         </div>
       </div>
+
       {/* Env Debug Toggle and Panel (unchanged, keep at root for dev) */}
       <button
-        type="button"
         onClick={() => setShowEnv(s => !s)}
-        style={{
-          position: "fixed",
-          right: 12,
-          bottom: 12,
-          padding: "6px 10px",
-          borderRadius: 6,
-          border: "1px solid #ddd",
-          background: "#fff",
-          boxShadow: "0 1px 6px rgba(0,0,0,0.15)",
-          fontSize: 12,
-          cursor: "pointer",
-          zIndex: 9999
-        }}
+        className="fixed right-3 bottom-3 px-2.5 py-1.5 rounded-md z-[9999] shadow bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100"
       >
-        Env Debug {showEnv ? "▾" : "▸"}
+        Env
       </button>
       {showEnv && (
         <div
@@ -244,6 +249,6 @@ export default function Login() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

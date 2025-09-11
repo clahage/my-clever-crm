@@ -1,0 +1,179 @@
+[debug] [2025-08-12T17:26:47.317Z] ----------------------------------------------------------------------
+[debug] [2025-08-12T17:26:47.320Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\Administrator\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js emulators:start
+[debug] [2025-08-12T17:26:47.320Z] CLI Version:   14.12.0
+[debug] [2025-08-12T17:26:47.320Z] Platform:      win32
+[debug] [2025-08-12T17:26:47.320Z] Node Version:  v22.17.1
+[debug] [2025-08-12T17:26:47.321Z] Time:          Tue Aug 12 2025 10:26:47 GMT-0700 (Pacific Daylight Time)
+[debug] [2025-08-12T17:26:47.321Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-08-12T17:26:47.549Z] Object "/functions" in "firebase.json" has unknown property: {"additionalProperty":"port"}
+[debug] [2025-08-12T17:26:47.550Z] Field "/functions" in "firebase.json" is possibly invalid: must be array
+[debug] [2025-08-12T17:26:47.550Z] Field "/functions" in "firebase.json" is possibly invalid: must match a schema in anyOf
+[debug] [2025-08-12T17:26:47.555Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-08-12T17:26:47.555Z] > authorizing via signed-in user (chris@speedycreditrepair.com)
+[info] i  emulators: Starting emulators: functions, hosting, extensions {"metadata":{"emulator":{"name":"hub"},"message":"Starting emulators: functions, hosting, extensions"}}
+[debug] [2025-08-12T17:26:47.559Z] Checked if tokens are valid: false, expires at: 1754964666889
+[debug] [2025-08-12T17:26:47.559Z] Checked if tokens are valid: false, expires at: 1754964666889
+[debug] [2025-08-12T17:26:47.559Z] > refreshing access token with scopes: []
+[debug] [2025-08-12T17:26:47.561Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2025-08-12T17:26:47.561Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-08-12T17:26:47.699Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 400
+[debug] [2025-08-12T17:26:47.699Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[error] Authentication Error: Your credentials are no longer valid. Please run firebase login --reauth
+
+For CI servers and headless environments, generate a new token with firebase login:ci
+[error] Authentication Error: Your credentials are no longer valid. Please run firebase login --reauth
+
+For CI servers and headless environments, generate a new token with firebase login:ci
+[error] !!  extensions: Unable to look up project number for my-clever-crm.
+ If this is a real project, ensure that you are logged in and have access to it.
+ If this is a fake project, please use a project ID starting with 'demo-' to skip production calls.
+ Continuing with a fake project number - secrets and other features that require production access may behave unexpectedly. {"metadata":{"emulator":{"name":"extensions"},"message":"Unable to look up project number for my-clever-crm.\n If this is a real project, ensure that you are logged in and have access to it.\n If this is a fake project, please use a project ID starting with 'demo-' to skip production calls.\n Continuing with a fake project number - secrets and other features that require production access may behave unexpectedly."}}
+[debug] [2025-08-12T17:26:47.710Z] [hosting] Hosting Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[warn] !  hub: emulator hub unable to start on port 4400, starting on 4401 instead. {"metadata":{"emulator":{"name":"hub"},"message":"emulator hub unable to start on port 4400, starting on 4401 instead."}}
+[warn] !  logging: Logging Emulator unable to start on port 4500, starting on 4501 instead. {"metadata":{"emulator":{"name":"logging"},"message":"Logging Emulator unable to start on port 4500, starting on 4501 instead."}}
+[debug] [2025-08-12T17:26:47.712Z] [logging] Logging Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2025-08-12T17:26:47.712Z] assigned listening specs for emulators {"user":{"ui":[{"address":"127.0.0.1","family":"IPv4","port":4001},{"address":"::1","family":"IPv6","port":4001}],"hosting":[{"address":"127.0.0.1","family":"IPv4","port":5002}],"hub":[{"address":"127.0.0.1","family":"IPv4","port":4401},{"address":"::1","family":"IPv6","port":4401}],"logging":[{"address":"127.0.0.1","family":"IPv4","port":4501}]},"metadata":{"message":"assigned listening specs for emulators"}}
+[debug] [2025-08-12T17:26:47.718Z] [hub] writing locator at C:\Users\ADMINI~1\AppData\Local\Temp\hub-my-clever-crm.json
+[debug] [2025-08-12T17:26:47.726Z] [Extensions] Started Extensions emulator, this is a noop.
+[debug] [2025-08-12T17:26:47.731Z] [functions] Functions Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[warn] !  eventarc: Eventarc Emulator unable to start on port 9299, starting on 9300 instead. {"metadata":{"emulator":{"name":"eventarc"},"message":"Eventarc Emulator unable to start on port 9299, starting on 9300 instead."}}
+[debug] [2025-08-12T17:26:47.732Z] [eventarc] Eventarc Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[warn] !  tasks: Cloud Tasks Emulator unable to start on port 9499, starting on 9500 instead. {"metadata":{"emulator":{"name":"tasks"},"message":"Cloud Tasks Emulator unable to start on port 9499, starting on 9500 instead."}}
+[debug] [2025-08-12T17:26:47.733Z] [tasks] Cloud Tasks Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2025-08-12T17:26:47.733Z] late-assigned ports for functions and eventarc emulators {"user":{"ui":[{"address":"127.0.0.1","family":"IPv4","port":4001},{"address":"::1","family":"IPv6","port":4001}],"hosting":[{"address":"127.0.0.1","family":"IPv4","port":5002}],"hub":[{"address":"127.0.0.1","family":"IPv4","port":4401},{"address":"::1","family":"IPv6","port":4401}],"logging":[{"address":"127.0.0.1","family":"IPv4","port":4501}],"functions":[{"address":"127.0.0.1","family":"IPv4","port":5010}],"eventarc":[{"address":"127.0.0.1","family":"IPv4","port":9300}],"tasks":[{"address":"127.0.0.1","family":"IPv4","port":9500}]},"metadata":{"message":"late-assigned ports for functions and eventarc emulators"}}
+[warn] !  functions: The following emulators are not running, calls to these services from the Functions emulator will affect production: apphosting, auth, firestore, database, pubsub, storage, dataconnect {"metadata":{"emulator":{"name":"functions"},"message":"The following emulators are not running, calls to these services from the Functions emulator will affect production: \u001b[1mapphosting, auth, firestore, database, pubsub, storage, dataconnect\u001b[22m"}}
+[debug] [2025-08-12T17:26:47.759Z] defaultcredentials: writing to file C:\Users\Administrator\AppData\Roaming\firebase\chris_speedycreditrepair_com_application_default_credentials.json
+[debug] [2025-08-12T17:26:47.762Z] Setting GAC to C:\Users\Administrator\AppData\Roaming\firebase\chris_speedycreditrepair_com_application_default_credentials.json {"metadata":{"emulator":{"name":"functions"},"message":"Setting GAC to C:\\Users\\Administrator\\AppData\\Roaming\\firebase\\chris_speedycreditrepair_com_application_default_credentials.json"}}
+[debug] [2025-08-12T17:26:47.762Z] Checked if tokens are valid: false, expires at: 1754964666889
+[debug] [2025-08-12T17:26:47.762Z] Checked if tokens are valid: false, expires at: 1754964666889
+[debug] [2025-08-12T17:26:47.763Z] > refreshing access token with scopes: []
+[debug] [2025-08-12T17:26:47.763Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2025-08-12T17:26:47.763Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-08-12T17:26:47.840Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 400
+[debug] [2025-08-12T17:26:47.840Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[error] Authentication Error: Your credentials are no longer valid. Please run firebase login --reauth
+
+For CI servers and headless environments, generate a new token with firebase login:ci
+[error] Authentication Error: Your credentials are no longer valid. Please run firebase login --reauth
+
+For CI servers and headless environments, generate a new token with firebase login:ci
+[debug] [2025-08-12T17:26:47.842Z] Failed to get Admin SDK config for my-clever-crm, falling back to cache Failed to get Admin SDK for Firebase project my-clever-crm. Please make sure the project exists and your account has permission to access it. {"name":"FirebaseError","children":[],"exit":2,"message":"Failed to get Admin SDK for Firebase project my-clever-crm. Please make sure the project exists and your account has permission to access it.","original":{"name":"FirebaseError","children":[],"exit":1,"message":"Authentication Error: Your credentials are no longer valid. Please run \u001b[1mfirebase login --reauth\u001b[22m\n\nFor CI servers and headless environments, generate a new token with \u001b[1mfirebase login:ci\u001b[22m","status":500},"status":500}
+[debug] [2025-08-12T17:26:47.855Z] Checked if tokens are valid: false, expires at: 1754964666889
+[debug] [2025-08-12T17:26:47.855Z] Checked if tokens are valid: false, expires at: 1754964666889
+[debug] [2025-08-12T17:26:47.855Z] > refreshing access token with scopes: []
+[debug] [2025-08-12T17:26:47.855Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2025-08-12T17:26:47.855Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-08-12T17:26:47.940Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 400
+[debug] [2025-08-12T17:26:47.940Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[error] Authentication Error: Your credentials are no longer valid. Please run firebase login --reauth
+
+For CI servers and headless environments, generate a new token with firebase login:ci
+[error] Authentication Error: Your credentials are no longer valid. Please run firebase login --reauth
+
+For CI servers and headless environments, generate a new token with firebase login:ci
+[debug] [2025-08-12T17:26:47.941Z] Failed to list hosting sites
+[debug] Authentication Error: Your credentials are no longer valid. Please run firebase login --reauth
+
+For CI servers and headless environments, generate a new token with firebase login:ci
+[debug] [2025-08-12T17:26:47.941Z] Checked if tokens are valid: false, expires at: 1754964666889
+[debug] [2025-08-12T17:26:47.941Z] Checked if tokens are valid: false, expires at: 1754964666889
+[debug] [2025-08-12T17:26:47.941Z] > refreshing access token with scopes: []
+[debug] [2025-08-12T17:26:47.941Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2025-08-12T17:26:47.941Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-08-12T17:26:48.022Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 400
+[debug] [2025-08-12T17:26:48.022Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[error] Authentication Error: Your credentials are no longer valid. Please run firebase login --reauth
+
+For CI servers and headless environments, generate a new token with firebase login:ci
+[error] Authentication Error: Your credentials are no longer valid. Please run firebase login --reauth
+
+For CI servers and headless environments, generate a new token with firebase login:ci
+[debug] [2025-08-12T17:26:48.023Z] fetchWebSetup error: FirebaseError: Authentication Error: Your credentials are no longer valid. Please run firebase login --reauth
+
+For CI servers and headless environments, generate a new token with firebase login:ci
+[warn] !  hosting: Using web app configuration from cache. 
+[debug] [2025-08-12T17:26:48.025Z] Checked if tokens are valid: false, expires at: 1754964666889
+[debug] [2025-08-12T17:26:48.025Z] Checked if tokens are valid: false, expires at: 1754964666889
+[debug] [2025-08-12T17:26:48.025Z] > refreshing access token with scopes: []
+[debug] [2025-08-12T17:26:48.025Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2025-08-12T17:26:48.025Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-08-12T17:26:48.101Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 400
+[debug] [2025-08-12T17:26:48.102Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[error] Authentication Error: Your credentials are no longer valid. Please run firebase login --reauth
+
+For CI servers and headless environments, generate a new token with firebase login:ci
+[error] Authentication Error: Your credentials are no longer valid. Please run firebase login --reauth
+
+For CI servers and headless environments, generate a new token with firebase login:ci
+[debug] [2025-08-12T17:26:48.103Z] Authentication Error: Your credentials are no longer valid. Please run firebase login --reauth
+
+For CI servers and headless environments, generate a new token with firebase login:ci
+[info] i  hosting[my-clever-crm]: Serving hosting files from: dist {"metadata":{"emulator":{"name":"hosting"},"message":"Serving hosting files from: \u001b[1mdist\u001b[22m"}}
+[info] +  hosting[my-clever-crm]: Local server: http://127.0.0.1:5002 {"metadata":{"emulator":{"name":"hosting"},"message":"Local server: \u001b[4m\u001b[1mhttp://127.0.0.1:5002\u001b[22m\u001b[24m"}}
+[debug] [2025-08-12T17:26:48.122Z] [Extensions] Connecting Extensions emulator, this is a noop.
+[info] i  functions: Watching "C:\SCR Project\my-clever-crm\functions" for Cloud Functions... {"metadata":{"emulator":{"name":"functions"},"message":"Watching \"C:\\SCR Project\\my-clever-crm\\functions\" for Cloud Functions..."}}
+[debug] [2025-08-12T17:26:48.126Z] Validating nodejs source
+[debug] [2025-08-12T17:26:48.941Z] > [functions] package.json contents: {
+  "name": "functions",
+  "description": "Cloud Functions for Firebase",
+  "scripts": {
+    "lint": "echo Skipping lint",
+    "serve": "firebase emulators:start --only functions",
+    "shell": "firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "engines": {
+    "node": "18"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-admin": "^11.11.1",
+    "firebase-functions": "^6.4.0",
+    "openai": "^5.12.2"
+  },
+  "devDependencies": {
+    "eslint": "^8.15.0",
+    "eslint-config-google": "^0.14.0",
+    "firebase-functions-test": "^3.1.0"
+  },
+  "private": true
+}
+[debug] [2025-08-12T17:26:48.942Z] Building nodejs source
+[debug] [2025-08-12T17:26:48.942Z] Failed to find version of module node: reached end of search path C:\SCR Project\my-clever-crm\functions\node_modules
+[warn] !  functions: Your requested "node" version "18" doesn't match your global version "22". Using node@22 from host. 
+[debug] [2025-08-12T17:26:48.945Z] Could not find functions.yaml. Must use http discovery
+[debug] [2025-08-12T17:26:48.951Z] Found firebase-functions binary at 'C:\SCR Project\my-clever-crm\functions\node_modules\.bin\firebase-functions'
+[info] Serving at port 8667
+
+[debug] [2025-08-12T17:26:49.855Z] Got response from /__/functions.yaml {"endpoints":{"ask":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","labels":{},"httpsTrigger":{},"entryPoint":"ask"},"ping":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","labels":{},"httpsTrigger":{},"entryPoint":"ping"}},"specVersion":"v1alpha1","requiredAPIs":[],"extensions":{}}
+[debug] [2025-08-12T17:26:53.887Z] defaultcredentials: writing to file C:\Users\Administrator\AppData\Roaming\firebase\chris_speedycreditrepair_com_application_default_credentials.json
+[debug] [2025-08-12T17:26:53.888Z] Setting GAC to C:\Users\Administrator\AppData\Roaming\firebase\chris_speedycreditrepair_com_application_default_credentials.json {"metadata":{"emulator":{"name":"functions"},"message":"Setting GAC to C:\\Users\\Administrator\\AppData\\Roaming\\firebase\\chris_speedycreditrepair_com_application_default_credentials.json"}}
+[info] +  functions: Loaded functions definitions from source: ask, ping. {"metadata":{"emulator":{"name":"functions"},"message":"Loaded functions definitions from source: ask, ping."}}
+[info] +  functions[us-central1-ask]: http function initialized (http://127.0.0.1:5010/my-clever-crm/us-central1/ask). {"metadata":{"emulator":{"name":"functions"},"message":"\u001b[1mhttp\u001b[22m function initialized (http://127.0.0.1:5010/my-clever-crm/us-central1/ask)."}}
+[info] +  functions[us-central1-ping]: http function initialized (http://127.0.0.1:5010/my-clever-crm/us-central1/ping). {"metadata":{"emulator":{"name":"functions"},"message":"\u001b[1mhttp\u001b[22m function initialized (http://127.0.0.1:5010/my-clever-crm/us-central1/ping)."}}
+[debug] [2025-08-12T17:26:55.156Z] Could not find VSCode notification endpoint: FetchError: request to http://localhost:40001/vscode/notify failed, reason: . If you are not running the Firebase Data Connect VSCode extension, this is expected and not an issue.
+[info] 
+┌─────────────────────────────────────────────────────────────┐
+│ ✔  All emulators ready! It is now safe to connect your app. │
+│ i  View Emulator UI at http://127.0.0.1:4001/               │
+└─────────────────────────────────────────────────────────────┘
+
+┌────────────┬────────────────┬──────────────────────────────────┐
+│ Emulator   │ Host:Port      │ View in Emulator UI              │
+├────────────┼────────────────┼──────────────────────────────────┤
+│ Functions  │ 127.0.0.1:5010 │ http://127.0.0.1:4001/functions  │
+├────────────┼────────────────┼──────────────────────────────────┤
+│ Hosting    │ 127.0.0.1:5002 │ n/a                              │
+├────────────┼────────────────┼──────────────────────────────────┤
+│ Extensions │ 127.0.0.1:5010 │ http://127.0.0.1:4001/extensions │
+└────────────┴────────────────┴──────────────────────────────────┘
+  Emulator Hub host: 127.0.0.1 port: 4401
+  Other reserved ports: 4501
+┌─────────────────────────┬───────────────┬─────────────────────┐
+│ Extension Instance Name │ Extension Ref │ View in Emulator UI │
+└─────────────────────────┴───────────────┴─────────────────────┘
+Issues? Report them at https://github.com/firebase/firebase-tools/issues and attach the *-debug.log files.
+ 

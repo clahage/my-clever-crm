@@ -1,0 +1,409 @@
+
+C:\SCR Project\my-clever-crm\src\AIReceptionistPrompt.js
+  51:10  warning  'sendIntroTextToLaurie' is defined but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\Home.jsx
+   29:58  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   29:65  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  118:77  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+C:\SCR Project\my-clever-crm\src\Preview.jsx
+  3:30  warning  'CreditCard' is defined but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  5:19  warning  'Phone' is defined but never used. Allowed unused vars must match /^_/u       no-unused-vars
+  6:42  warning  'Building' is defined but never used. Allowed unused vars must match /^_/u    no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\auth\AuthProvider.jsx
+   4:10  warning  'handleGoogleRedirectOnce' is defined but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  21:9   warning  'mounted' is assigned a value but never used. Allowed unused vars must match /^_/u          no-unused-vars
+  36:22  warning  'c' is defined but never used. Allowed unused args must match /^_/u                         no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\branding\theme.jsx
+  70:59  error  Empty block statement  no-empty
+
+C:\SCR Project\my-clever-crm\src\components\AIActivityFeed.jsx
+  47:9  warning  'err' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\components\AIActivityWidget.jsx
+  3:10  warning  'getApiKey' is defined but never used. Allowed unused vars must match /^_/u    no-unused-vars
+  4:10  warning  'logActivity' is defined but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\components\ActivityLog.jsx
+  5:46  warning  'limit' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\components\AddContactModal copy.jsx
+  6:68  warning  'existingContacts' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\components\AddContactModal.jsx
+  6:68  warning  'existingContacts' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\components\AddLeadModal.jsx
+  198:16  error  Parsing error: 'return' outside of function
+
+C:\SCR Project\my-clever-crm\src\components\AdminDisputeManager.jsx
+  4:69  warning  'FunnelIcon' is defined but never used. Allowed unused vars must match /^_/u        no-unused-vars
+  9:10  warning  'loading' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\components\AdminDocumentViewer.jsx
+  4:44  warning  'ChartBarIcon' is defined but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\components\AdvancedAnalytics.jsx
+   18:8  warning  Using exported name 'Particles' as identifier for default import                              import/no-named-as-default
+  246:9  warning  'handleLegendClick' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\components\Analytics.jsx
+   9:10  warning  'useDemo' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  21:10  warning  'error' is defined but never used. Allowed unused args must match /^_/u             no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\components\AskPanel.jsx
+  3:10  error  analytics not found in '../lib/firebase'  import/named
+
+C:\SCR Project\my-clever-crm\src\components\AuthDebugger.jsx
+  22:31  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  22:41  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+C:\SCR Project\my-clever-crm\src\components\Auth\LoginPage.jsx
+  4:22  error    Unable to resolve path to module '../lib/firebase'                                   import/no-unresolved
+  7:22  warning  'onLogin' is defined but never used. Allowed unused args must match /^_/u            no-unused-vars
+  9:9   warning  'navigate' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\components\Automation.jsx
+  13:10  warning  'useDemo' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  25:10  warning  'error' is defined but never used. Allowed unused args must match /^_/u             no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\components\BrandLogo.jsx
+  17:7   error  React Hook "useTheme" is called conditionally. React Hooks must be called in the exact same order in every component render  react-hooks/rules-of-hooks
+  19:11  error  Empty block statement                                                                                                        no-empty
+
+C:\SCR Project\my-clever-crm\src\components\Bulk.jsx
+  13:10  warning  'useDemo' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  25:10  warning  'error' is defined but never used. Allowed unused args must match /^_/u             no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\components\Calendar.jsx
+  11:10  warning  'useDemo' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  23:10  warning  'error' is defined but never used. Allowed unused args must match /^_/u             no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\components\ChangeRequestsAdmin.jsx
+  13:39  warning  'doc' is assigned a value but never used. Allowed unused vars must match /^_/u        no-unused-vars
+  13:44  warning  'updateDoc' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\components\ClientContracts.jsx
+  3:22  warning  'addDoc' is defined but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\components\ClientCreditReports.jsx
+  105:12  warning  'latest' is assigned a value but never used. Allowed unused vars must match /^_/u    no-unused-vars
+  105:20  warning  'previous' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\components\Clients.jsx
+  1:39  warning  'useRef' is defined but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\components\Communications.jsx
+  25:10  warning  'useDemo' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  37:10  warning  'error' is defined but never used. Allowed unused args must match /^_/u             no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\components\ContactDetailPage.jsx
+    3:15   warning  'getDoc' is defined but never used. Allowed unused vars must match /^_/u                     no-unused-vars
+   18:25   warning  'setCollaborators' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  211:106  warning  'e' is defined but never used. Allowed unused args must match /^_/u                          no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\components\ContractEditor.jsx
+  15:20  warning  'setTemplate' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\components\CreditReportWorkflow.jsx
+  90:6  warning  React Hook React.useEffect has a missing dependency: 'fetchReport'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\SCR Project\my-clever-crm\src\components\Dashboard.jsx
+    3:10  warning  'Link' is defined but never used. Allowed unused vars must match /^_/u                     no-unused-vars
+    9:7   warning  'metrics' is assigned a value but never used. Allowed unused vars must match /^_/u         no-unused-vars
+   16:7   warning  'recentActivity' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+   23:7   warning  'quickActions' is assigned a value but never used. Allowed unused vars must match /^_/u    no-unused-vars
+   35:7   warning  'logoDark' is assigned a value but never used. Allowed unused vars must match /^_/u        no-unused-vars
+  255:59  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                            react/no-unescaped-entities
+
+C:\SCR Project\my-clever-crm\src\components\DashboardCalendar.jsx
+  2:8  warning  Using exported name 'Calendar' as identifier for default import  import/no-named-as-default
+
+C:\SCR Project\my-clever-crm\src\components\DashboardCustomizer.jsx
+  14:32  warning  'children' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\components\DisputeCenter.jsx
+  30:10  warning  'error' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\components\DisputeLetterGenerator.jsx
+   7:3   warning  'updateDoc' is defined but never used. Allowed unused vars must match /^_/u           no-unused-vars
+   8:3   warning  'doc' is defined but never used. Allowed unused vars must match /^_/u                 no-unused-vars
+  61:18  warning  'setStatus' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  92:13  warning  'docRef' is assigned a value but never used. Allowed unused vars must match /^_/u     no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\components\DisputeTracker.jsx
+  3:57  warning  'addDoc' is defined but never used. Allowed unused vars must match /^_/u     no-unused-vars
+  3:65  warning  'updateDoc' is defined but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  3:76  warning  'doc' is defined but never used. Allowed unused vars must match /^_/u        no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\components\EmptyStates.jsx
+  3:3  warning  'DocumentIcon' is defined but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\components\Export.jsx
+  13:10  warning  'useDemo' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  25:10  warning  'error' is defined but never used. Allowed unused args must match /^_/u             no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\components\FeatureGuard.jsx
+  73:22  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  73:51  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  73:61  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+C:\SCR Project\my-clever-crm\src\components\FeatureTutorial.jsx
+  12:84  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  12:98  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+C:\SCR Project\my-clever-crm\src\components\Home.jsx
+   8:44  warning  'userRole' is assigned a value but never used. Allowed unused vars must match /^_/u       no-unused-vars
+  11:10  warning  'isDarkMode' is assigned a value but never used. Allowed unused vars must match /^_/u     no-unused-vars
+  11:22  warning  'setIsDarkMode' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\components\IDIQIntegration\ClientCreditCard.jsx
+  3:29  warning  'client' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\components\IDIQIntegration\ClientCreditPortal.jsx
+  5:10  warning  'loading' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\components\IDIQ\AddClientForm.jsx
+  2:20  error  Unable to resolve path to module '../lib/firebase'  import/no-unresolved
+
+C:\SCR Project\my-clever-crm\src\components\IDIQ\ClientDetailView.jsx
+  8:46  warning  'onEdit' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\components\IDIQ\IDIQDashboard.jsx
+    7:20  error  Unable to resolve path to module '../lib/firebase'  import/no-unresolved
+  166:49  error  'totalClients' is not defined                       no-undef
+  167:44  error  'enrolledClients' is not defined                    no-undef
+  168:51  error  'activeDisputes' is not defined                     no-undef
+  169:44  error  'resolvedDisputes' is not defined                   no-undef
+  170:50  error  'avgScoreGain' is not defined                       no-undef
+  184:14  error  'recentActivity' is not defined                     no-undef
+
+C:\SCR Project\my-clever-crm\src\components\ImportContactsModal.jsx
+  1:27  warning  'useEffect' is defined but never used. Allowed unused vars must match /^_/u         no-unused-vars
+  7:10  warning  'csvFile' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\components\LeadRevenueDetailWidget.jsx
+  17:9  warning  'decayFactor' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\components\Leads.jsx
+   3:22  warning  'getDocs' is defined but never used. Allowed unused vars must match /^_/u                    no-unused-vars
+   5:8   warning  Using exported name 'Particles' as identifier for default import                             import/no-named-as-default
+  33:10  warning  'loading' is assigned a value but never used. Allowed unused vars must match /^_/u           no-unused-vars
+  39:10  warning  'playSuccess' is assigned a value but never used. Allowed unused vars must match /^_/u       no-unused-vars
+  41:25  warning  'setCollaborators' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  51:8   warning  'err' is defined but never used. Allowed unused args must match /^_/u                        no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\components\Letters.jsx
+   9:10  warning  'useDemo' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  21:10  warning  'error' is defined but never used. Allowed unused args must match /^_/u             no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\components\Navigation.jsx
+  112:11  warning  'user' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\components\NotificationPanel.jsx
+  5:26  warning  'sendNotification' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\components\NotificationSystem.jsx
+  1:27  warning  'useEffect' is defined but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\components\ProgressPortal.jsx
+  13:10  warning  'useDemo' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  25:10  warning  'error' is defined but never used. Allowed unused args must match /^_/u             no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\components\ProtectedRoute.jsx
+  33:21  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+C:\SCR Project\my-clever-crm\src\components\RevenueEstimator.jsx
+  50:7  warning  React Hook useEffect has a complex expression in the dependency array. Extract it to a separate variable so it can be statically checked  react-hooks/exhaustive-deps
+
+C:\SCR Project\my-clever-crm\src\components\RevenueForecastWidget.jsx
+  10:17  error  React Hook "useMemo" is called conditionally. React Hooks must be called in the exact same order in every component render  react-hooks/rules-of-hooks
+
+C:\SCR Project\my-clever-crm\src\components\Settings.jsx
+   2:10  warning  'getApiKey' is defined but never used. Allowed unused vars must match /^_/u              no-unused-vars
+   3:10  warning  'Link' is defined but never used. Allowed unused vars must match /^_/u                   no-unused-vars
+  42:10  warning  'activeTab' is assigned a value but never used. Allowed unused vars must match /^_/u     no-unused-vars
+  42:21  warning  'setActiveTab' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  96:15  error    Empty block statement                                                                    no-empty
+
+C:\SCR Project\my-clever-crm\src\components\TemplateEngine\TemplateEditor.jsx
+  1:17  warning  'useState' is defined but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\components\UpsellBanner.jsx
+  22:56  error  Empty block statement  no-empty
+
+C:\SCR Project\my-clever-crm\src\components\UserManagementPanel.jsx
+   2:10  warning  'useAuth' is defined but never used. Allowed unused vars must match /^_/u                                      no-unused-vars
+  22:6   warning  React Hook useEffect has a missing dependency: 'fetchUsers'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\SCR Project\my-clever-crm\src\components\disputes\ActiveDisputes.jsx
+   2:8   warning  'PropTypes' is defined but never used. Allowed unused vars must match /^_/u            no-unused-vars
+  13:19  warning  'setSortDir' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\components\ui\Widget.jsx
+  5:39  warning  'color' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\dev\beacon.tsx
+  6:44  error  Parsing error: Unexpected token :
+
+C:\SCR Project\my-clever-crm\src\hooks\useFirestore.js
+  45:6   warning  React Hook useCallback has missing dependencies: 'options.orderByField', 'options.orderDirection', 'options.realtime', and 'options.whereConditions'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  45:23  warning  React Hook useCallback has a complex expression in the dependency array. Extract it to a separate variable so it can be statically checked                                                                react-hooks/exhaustive-deps
+
+C:\SCR Project\my-clever-crm\src\hooks\useRealtimeLeads.js
+  22:9  warning  'err' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\hooks\useUserManagement.js
+  35:5  error    Unnecessary try/catch wrapper                                                                                  no-useless-catch
+  48:5  error    Unnecessary try/catch wrapper                                                                                  no-useless-catch
+  64:6  warning  React Hook useEffect has a missing dependency: 'fetchUsers'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\SCR Project\my-clever-crm\src\layout\ProtectedLayout.jsx
+  1:17  warning  'useState' is defined but never used. Allowed unused vars must match /^_/u   no-unused-vars
+  1:27  warning  'useEffect' is defined but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\layout\Sidebar.jsx
+  176:7   warning  'SmartBadge' is assigned a value but never used. Allowed unused vars must match /^_/u                              no-unused-vars
+  206:7   warning  'ProgressRing' is assigned a value but never used. Allowed unused vars must match /^_/u                            no-unused-vars
+  303:44  warning  'stats' is defined but never used. Allowed unused args must match /^_/u                                            no-unused-vars
+  452:9   warning  'location' is assigned a value but never used. Allowed unused vars must match /^_/u                                no-unused-vars
+  455:29  warning  'isAuthenticated' is assigned a value but never used. Allowed unused vars must match /^_/u                         no-unused-vars
+  455:46  warning  'isMasterAdmin' is assigned a value but never used. Allowed unused vars must match /^_/u                           no-unused-vars
+  455:61  warning  'getUserRole' is assigned a value but never used. Allowed unused vars must match /^_/u                             no-unused-vars
+  456:11  warning  'signOut' is assigned a value but never used. Allowed unused vars must match /^_/u                                 no-unused-vars
+  479:6   warning  React Hook useEffect has a missing dependency: 'setIsCollapsed'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\SCR Project\my-clever-crm\src\layout\Topbar.jsx
+  3:10  warning  'Link' is defined but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\layout\navConfig.js
+  6:3  warning  'UsersIcon' is defined but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\lib\api\askClient.js
+  11:9  warning  'mergedSignal' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\modern\ModernDashboard.jsx
+    1:17  warning  'useState' is defined but never used. Allowed unused vars must match /^_/u  no-unused-vars
+   80:28  warning  'i' is defined but never used. Allowed unused args must match /^_/u         no-unused-vars
+  124:40  warning  'i' is defined but never used. Allowed unused args must match /^_/u         no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\openaiService.demo.js
+   2:38  warning  'form' is defined but never used. Allowed unused args must match /^_/u            no-unused-vars
+   6:37  warning  'clientDetails' is defined but never used. Allowed unused args must match /^_/u   no-unused-vars
+   6:52  warning  'disputes' is defined but never used. Allowed unused args must match /^_/u        no-unused-vars
+  10:40  warning  'disputeDetails' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  14:44  warning  'clientDetails' is defined but never used. Allowed unused args must match /^_/u   no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\pages\AuthDebug.jsx
+  2:10  warning  'initializeApp' is defined but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  4:3   warning  'getAuth' is defined but never used. Allowed unused vars must match /^_/u        no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\pages\ClientPortal\ClientDashboard.jsx
+  194:11  error  Parsing error: Unexpected token }
+
+C:\SCR Project\my-clever-crm\src\pages\ClientPortal\ClientDocuments.jsx
+  6:76  warning  'doc' is defined but never used. Allowed unused vars must match /^_/u        no-unused-vars
+  6:81  warning  'updateDoc' is defined but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\pages\ClientPortal\ClientLayout.jsx
+  19:11  warning  'user' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\pages\ClientPortal\ClientScores.jsx
+   8:3   warning  'ArrowTrendingUpIcon' is defined but never used. Allowed unused vars must match /^_/u         no-unused-vars
+   9:3   warning  'ArrowTrendingDownIcon' is defined but never used. Allowed unused vars must match /^_/u       no-unused-vars
+  10:3   warning  'InformationCircleIcon' is defined but never used. Allowed unused vars must match /^_/u       no-unused-vars
+  16:3   warning  'ExclamationTriangleIcon' is defined but never used. Allowed unused vars must match /^_/u     no-unused-vars
+  45:10  warning  'selectedBureau' is assigned a value but never used. Allowed unused vars must match /^_/u     no-unused-vars
+  45:26  warning  'setSelectedBureau' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\pages\ContactReports.jsx
+  29:10  warning  'contacts' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\pages\Dashboard.jsx
+   10:3   warning  'BellIcon' is defined but never used. Allowed unused vars must match /^_/u               no-unused-vars
+   36:21  warning  'setDocuments' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  168:78  error    'logoDark' is not defined                                                                no-undef
+  168:89  error    'logoLight' is not defined                                                               no-undef
+
+C:\SCR Project\my-clever-crm\src\pages\EContracts.jsx
+  3:22  warning  'addDoc' is defined but never used. Allowed unused vars must match /^_/u     no-unused-vars
+  3:39  warning  'updateDoc' is defined but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  3:50  warning  'doc' is defined but never used. Allowed unused vars must match /^_/u        no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\pages\FeaturesTutorials.jsx
+  10:84  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`                                                                                          react/no-unescaped-entities
+  10:98  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`                                                                                          react/no-unescaped-entities
+  13:33  error  React Hook "usePermission" cannot be called inside a callback. React Hooks must be called in a React function component or a custom React Hook function  react-hooks/rules-of-hooks
+
+C:\SCR Project\my-clever-crm\src\pages\Login.jsx
+   38:50  warning  'k' is defined but never used. Allowed unused args must match /^_/u              no-unused-vars
+   42:11  warning  'user' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  150:30  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                  react/no-unescaped-entities
+
+C:\SCR Project\my-clever-crm\src\pages\ThemeSamples.jsx
+  29:28  warning  'setNumber' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\services\clientService.js
+  25:3  error  Unnecessary try/catch wrapper  no-useless-catch
+  34:3  error  Unnecessary try/catch wrapper  no-useless-catch
+  43:3  error  Unnecessary try/catch wrapper  no-useless-catch
+  53:3  error  Unnecessary try/catch wrapper  no-useless-catch
+  62:3  error  Unnecessary try/catch wrapper  no-useless-catch
+
+C:\SCR Project\my-clever-crm\src\services\disputeService.js
+   98:44  warning  'disputes' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  103:19  error    Unreachable code                                                            no-unreachable
+
+C:\SCR Project\my-clever-crm\src\services\userService.js
+   6:3  warning  'addDoc' is defined but never used. Allowed unused vars must match /^_/u     no-unused-vars
+   8:3  warning  'deleteDoc' is defined but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  10:3  warning  'where' is defined but never used. Allowed unused vars must match /^_/u      no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\skins\SkinContext.jsx
+  12:9  warning  The 'allowed' logical expression could make the dependencies of useMemo Hook (at line 26) change on every render. To fix this, wrap the initialization of 'allowed' in its own useMemo() Hook  react-hooks/exhaustive-deps
+  16:6  warning  React Hook useEffect has missing dependencies: 'allowed' and 'skin'. Either include them or remove the dependency array                                                                        react-hooks/exhaustive-deps
+
+C:\SCR Project\my-clever-crm\src\skins\SkinSwitcher.jsx
+  17:11  error  Empty block statement                                                                                                         no-empty
+  27:11  error  Empty block statement                                                                                                         no-empty
+  43:27  error  React Hook "useState" is called conditionally. React Hooks must be called in the exact same order in every component render   react-hooks/rules-of-hooks
+  44:29  error  React Hook "useState" is called conditionally. React Hooks must be called in the exact same order in every component render   react-hooks/rules-of-hooks
+  45:20  error  React Hook "useRef" is called conditionally. React Hooks must be called in the exact same order in every component render     react-hooks/rules-of-hooks
+  46:18  error  React Hook "useRef" is called conditionally. React Hooks must be called in the exact same order in every component render     react-hooks/rules-of-hooks
+  48:3   error  React Hook "useEffect" is called conditionally. React Hooks must be called in the exact same order in every component render  react-hooks/rules-of-hooks
+  53:3   error  React Hook "useEffect" is called conditionally. React Hooks must be called in the exact same order in every component render  react-hooks/rules-of-hooks
+
+C:\SCR Project\my-clever-crm\src\skins\generic\GenericDashboard.jsx
+  2:23  error  Unable to resolve path to module '../BrandLogo'  import/no-unresolved
+
+C:\SCR Project\my-clever-crm\src\skins\skinRegistry.js
+  24:105  error  Empty block statement  no-empty
+  27:80   error  Empty block statement  no-empty
+
+C:\SCR Project\my-clever-crm\src\usePermission.js
+  30:6  warning  React Hook useMemo has a missing dependency: 'adminEmails'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\SCR Project\my-clever-crm\src\utils\activityLogger.js
+  1:10  warning  'getFirestore' is defined but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\utils\aiCreditReportParser.js
+  5:41  warning  'rawReport' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\utils\eSignatureProviders.js
+  11:40  warning  'contract' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  18:39  warning  'contract' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\utils\idiqProvider.js
+  4:39  warning  'client' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+C:\SCR Project\my-clever-crm\src\utils\pdfParser.js
+  88:42  error  Unnecessary escape character: \*  no-useless-escape
+
+C:\SCR Project\my-clever-crm\src\utils\requestChange.js
+  2:10  warning  'useAuth' is defined but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+✖ 208 problems (57 errors, 151 warnings)
+

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { db } from "@/lib/firebase";
+import { db } from "../firebaseConfig";
 import { collection, addDoc, getDocs, query, where, orderBy } from "firebase/firestore";
 import { fetchIDIQReport } from "../utils/idiqProvider";
 import { parseCreditReport } from "../utils/aiCreditReportParser";
 import { exportToCSV, exportToPDF } from '../utils/exportUtils';
 import { saveAs } from 'file-saver';
+import { getApiKey } from "../openaiConfig";
 
 const ClientCreditReports = ({ clientId, enrollmentDate, refreshIntervalDays = 30 }) => {
   const [reports, setReports] = useState([]);
@@ -56,9 +57,10 @@ const ClientCreditReports = ({ clientId, enrollmentDate, refreshIntervalDays = 3
     setParsing(true);
     setParsed(null);
     try {
+      // Use AI-powered parser
       const result = await parseCreditReport(rawReport);
       setParsed(result);
-    } catch {
+    } catch (err) {
       setParsed({ summary: "Failed to parse report." });
     } finally {
       setParsing(false);

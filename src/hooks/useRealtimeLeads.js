@@ -1,30 +1,143 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { db } from "@/lib/firebase";
-import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot, getDocs } from 'firebase/firestore';
 
-export default function useRealtimeLeads() {
-  const [hotLeads, setHotLeads] = useState([]);
+function useRealtimeLeads({ search, filter }) {
+  const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [lastDoc, setLastDoc] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [liveMode, setLiveMode] = useState(true);
+  const [liveError, setLiveError] = useState(false);
+  const unsubRef = useRef(null);
+  const pollIntervalRef = useRef(null);
 
-  useEffect(() => {
+  // Manual direct read for debugging
+  const manualReadLeads = async () => {
+    try {
+      const snap = await getDocs(collection(db, 'leads'));
+      const docs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      // Only log errors, not data
+    } catch (err) {
+      console.error('[useRealtimeLeads] Manual read error:', err);
+    }
+  };
+
+  // Manual refresh function
+  const refreshLeads = useCallback(async () => {
     setLoading(true);
-    setError('');
-    const callsRef = collection(db, 'aiReceptionistCalls');
-    const q = query(callsRef, where('leadScore', '>=', 8), orderBy('processedAt', 'desc'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const leads = [];
-      snapshot.forEach(doc => {
-        leads.push({ id: doc.id, ...doc.data() });
-      });
-      setHotLeads(leads);
-      setLoading(false);
-    }, (err) => {
-      setError('Error loading hot leads');
-      setLoading(false);
-    });
-    return () => unsubscribe();
+    try {
+      const q = collection(db, 'leads');
+      const snap = await getDocs(q);
+      const docs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setLeads(docs);
+      setLastDoc(snap.docs[snap.docs.length - 1] || null);
+      setHasMore(true);
+      setError('');
+      setLiveError(false);
+      setLiveMode(false);
+    } catch (err) {
+      setError('Failed to manually refresh leads.');
+      setLiveError(true);
+      setLiveMode(false);
+      console.error('[useRealtimeLeads] Manual refresh error:', err);
+    }
+    setLoading(false);
   }, []);
 
-  return { hotLeads, loading, error };
+  // Polling fallback
+  const startPolling = useCallback(() => {
+    if (pollIntervalRef.current) return;
+    pollIntervalRef.current = setInterval(async () => {
+      try {
+        const q = collection(db, 'leads');
+        const snap = await getDocs(q);
+        const docs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setLeads(docs);
+        setLastDoc(snap.docs[snap.docs.length - 1] || null);
+        setHasMore(true);
+        setError('');
+      } catch (err) {
+        setError('Polling failed.');
+        console.error('[useRealtimeLeads] Polling error:', err);
+      }
+    }, 5000);
+    setLiveMode(false);
+    setLiveError(true);
+  }, []);
+
+  const stopPolling = useCallback(() => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+  }, []);
+
+  // Try to enable live mode
+  const tryLiveMode = useCallback(() => {
+    setLiveMode(true);
+    setLiveError(false);
+    stopPolling();
+    refreshLeads(); // Immediate refresh
+  }, [stopPolling, refreshLeads]);
+
+  // Initial load (realtime for first page)
+  useEffect(() => {
+    setLoading(true);
+    if (!liveMode) {
+      startPolling();
+      setLoading(false);
+      return () => stopPolling();
+    }
+    try {
+      const q = collection(db, 'leads');
+      unsubRef.current = onSnapshot(q, (snap) => {
+        const docs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setLeads(docs);
+        setLastDoc(snap.docs[snap.docs.length - 1] || null);
+        setHasMore(true);
+        setLoading(false);
+        setError('');
+        setLiveError(false);
+        setLiveMode(true);
+      }, (err) => {
+        setError('Failed to load leads (onSnapshot).');
+        setLoading(false);
+        setLiveError(true);
+        setLiveMode(false);
+        startPolling();
+        console.error('[useRealtimeLeads] Error in onSnapshot, switching to polling:', err);
+      });
+    } catch (err) {
+      setError('Failed to set up Firestore listener.');
+      setLoading(false);
+      setLiveError(true);
+      setLiveMode(false);
+      startPolling();
+      console.error('[useRealtimeLeads] Listener setup error, switching to polling:', err);
+    }
+    return () => {
+      unsubRef.current && unsubRef.current();
+      stopPolling();
+    };
+  }, [search, filter, liveMode, startPolling, stopPolling]); // Reset on search/filter/liveMode change
+
+  // Load more (not realtime)
+  const loadMore = useCallback(async () => {
+    if (!lastDoc) return;
+    setLoading(true);
+    const q = collection(db, 'leads');
+    const snap = await getDocs(q);
+    const docs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    setLeads(prev => [...prev, ...docs]);
+    setLastDoc(snap.docs[snap.docs.length - 1] || null);
+    setHasMore(true);
+    setLoading(false);
+  }, [lastDoc]);
+
+  return { leads, loading, error, loadMore, hasMore, refreshLeads, manualReadLeads, liveMode, liveError, tryLiveMode };
 }
+
+export { useRealtimeLeads };
+export default useRealtimeLeads;

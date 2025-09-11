@@ -13,10 +13,10 @@ import {
   writeBatch
 } from 'firebase/firestore';
 import { createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
+import { db } from '@/lib/firebase';
 
 export class UserService {
-  constructor(db, auth) {
-    this.db = db;
+  constructor(auth) {
     this.auth = auth;
   }
 
@@ -50,7 +50,7 @@ export class UserService {
 
   async getUsers() {
     try {
-      const usersRef = collection(this.db, 'users');
+      const usersRef = collection(db, 'users');
       const q = query(usersRef, orderBy('createdAt', 'desc'));
       const snapshot = await getDocs(q);
       return snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
@@ -62,7 +62,7 @@ export class UserService {
 
   async getUser(uid) {
     try {
-      const userDoc = await getDoc(doc(this.db, 'users', uid));
+      const userDoc = await getDoc(doc(db, 'users', uid));
       return userDoc.exists() ? { uid: userDoc.id, ...userDoc.data() } : null;
     } catch (error) {
       console.error('Error fetching user:', error);
@@ -72,7 +72,7 @@ export class UserService {
 
   async updateUserProfile(uid, updates) {
     try {
-      const userRef = doc(this.db, 'users', uid);
+      const userRef = doc(db, 'users', uid);
       await updateDoc(userRef, {
         ...updates,
         updatedAt: serverTimestamp()
@@ -115,9 +115,9 @@ export class UserService {
 
   async syncFeatures(features) {
     try {
-      const batch = writeBatch(this.db);
+      const batch = writeBatch(db);
       features.forEach(feature => {
-        const featureRef = doc(this.db, 'features', feature.id);
+        const featureRef = doc(db, 'features', feature.id);
         batch.set(featureRef, {
           id: feature.id,
           label: feature.label,
