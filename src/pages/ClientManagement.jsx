@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -16,20 +16,26 @@ const ClientManagement = () => {
   const [clients, setClients] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState('all');
+  const location = useLocation();
+  const showingClients = location.pathname.includes('client-management') || location.pathname.includes('clients');
 
   const navigate = useNavigate();
   useEffect(() => {
     const q = query(collection(db, 'contacts'), orderBy('createdAt', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const clientsData = snapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(contact => contact.category === 'client');
+        .map(doc => ({ id: doc.id, ...doc.data() }));
       setClients(clientsData);
     });
     return () => unsubscribe();
   }, []);
 
-  const filteredClients = clients.filter(client =>
+  // Filter contacts based on route
+  const filteredContacts = showingClients 
+    ? clients.filter(c => c.category === 'Client' || c.status === 'Client' || c.responseStatus === 'Active')
+    : clients.filter(c => c.category === 'Lead' || c.status === 'Lead' || c.responseStatus !== 'Inactive' || !c.category);
+
+  const filteredClients = filteredContacts.filter(client =>
     client.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     client.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -39,7 +45,7 @@ const ClientManagement = () => {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Client Management
+            {showingClients ? 'Client Management' : 'Leads & Contacts'}
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
             Manage your clients and their information
@@ -96,7 +102,9 @@ const ClientManagement = () => {
                 </div>
                 <div className="ml-3">
                   <h3 className="font-semibold text-gray-900 dark:text-white">
-                    {client.name || 'Unknown Client'}
+                    {client.firstName && client.lastName
+                      ? [client.prefix, client.firstName, client.middleName, client.lastName, client.suffix].filter(Boolean).join(' ')
+                      : client.name || 'Unknown Client'}
                   </h3>
                   <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full">
                     Active
@@ -120,7 +128,7 @@ const ClientManagement = () => {
 
             <div className="mt-4 pt-4 border-t dark:border-gray-700">
               <button
-                onClick={() => window.location.href = `/client/${client.id}`}
+                onClick={() => navigate(`/contacts/${client.id}`)}
                 className="text-blue-600 hover:text-blue-700 text-sm font-medium"
               >
                 View Details →

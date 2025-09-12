@@ -1,12 +1,12 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, onSnapshot, collection } from 'firebase/firestore';
-import { db } from "@/lib/firebase";
-import LeadRevenueDetailWidget from './LeadRevenueDetailWidget.jsx';
+import { db } from '@/lib/firebase';
+import LeadRevenueDetailWidget from '@/components/LeadRevenueDetailWidget.jsx';
 import { motion } from 'framer-motion';
 import { FaEnvelope, FaUserTie, FaStar, FaTag, FaChartLine, FaArrowLeft, FaCheckCircle, FaFileUpload, FaComments, FaListUl, FaUsers, FaRobot } from 'react-icons/fa';
 import useSound from 'use-sound';
-import { categorizeContact } from '../openaiService';
+import { categorizeContact } from '@/openaiService';
 
 export default function ContactDetailPage() {
   const { id } = useParams();

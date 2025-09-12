@@ -47,6 +47,7 @@ const Location = lazy(() => import("@/pages/Location.jsx"));
 const Help = lazy(() => import("@/pages/Help.jsx"));
 const Analytics = lazy(() => import("@/pages/Analytics.jsx"));
 const Setup = lazy(() => import("@/pages/Setup.jsx"));
+const ContactDetailPage = lazy(() => import("@/pages/ContactDetailPage.jsx"));
 
 export default function App() {
   return (
@@ -68,6 +69,7 @@ export default function App() {
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard"  element={<Suspense fallback={<div />}>{<Dashboard />}</Suspense>} />
             <Route path="/contacts"   element={<Suspense fallback={<div />}>{<Contacts />}</Suspense>} />
+            <Route path="/contacts/:id" element={<Suspense fallback={<div />}>{<ContactDetailPage />}</Suspense>} />
             <Route path="/add-client" element={<Suspense fallback={<div />}>{<AddClient />}</Suspense>} />
             <Route path="/setup" element={<Suspense fallback={<div />}>{<Setup />}</Suspense>} />
             <Route path="/dispute-center"   element={<Suspense fallback={<div />}>{<Disputes />}</Suspense>} />

@@ -1,0 +1,72 @@
+[
+  {
+    "label": "D",
+    "openaiLoc": 20,
+    "navLoc": 102,
+    "nameHits": 6,
+    "contentHits": 22,
+    "pkgAiHits": 2,
+    "widgetFiles": 12,
+    "dashboardLoc": 427,
+    "score": 62,
+    "openaiPath": "backups\\D\\my-clever-crm\\src\\pages\\OpenAI.jsx",
+    "navPath": "backups\\D\\my-clever-crm\\src\\components\\layout\\TopNav.jsx",
+    "dashPath": "backups\\D\\my-clever-crm\\src\\components\\Dashboard.jsx"
+  },
+  {
+    "label": "C",
+    "openaiLoc": 20,
+    "navLoc": 102,
+    "nameHits": 6,
+    "contentHits": 22,
+    "pkgAiHits": 2,
+    "widgetFiles": 12,
+    "dashboardLoc": 253,
+    "score": 61,
+    "openaiPath": "backups\\C\\my-clever-crm\\src\\pages\\OpenAI.jsx",
+    "navPath": "backups\\C\\my-clever-crm\\src\\components\\layout\\TopNav.jsx",
+    "dashPath": "backups\\C\\my-clever-crm\\src\\components\\Dashboard.jsx"
+  },
+  {
+    "label": "B",
+    "openaiLoc": 20,
+    "navLoc": 102,
+    "nameHits": 6,
+    "contentHits": 22,
+    "pkgAiHits": 2,
+    "widgetFiles": 11,
+    "dashboardLoc": 249,
+    "score": 60,
+    "openaiPath": "backups\\B\\my-clever-crm\\src\\pages\\OpenAI.jsx",
+    "navPath": "backups\\B\\my-clever-crm\\src\\components\\layout\\TopNav.jsx",
+    "dashPath": "backups\\B\\my-clever-crm\\src\\components\\Dashboard.jsx"
+  },
+  {
+    "label": "A",
+    "openaiLoc": 20,
+    "navLoc": 102,
+    "nameHits": 6,
+    "contentHits": 19,
+    "pkgAiHits": 2,
+    "widgetFiles": 8,
+    "dashboardLoc": 249,
+    "score": 54,
+    "openaiPath": "backups\\A\\my-clever-crm\\src\\pages\\OpenAI.jsx",
+    "navPath": "backups\\A\\my-clever-crm\\src\\components\\layout\\TopNav.jsx",
+    "dashPath": "backups\\A\\my-clever-crm\\src\\components\\Dashboard.jsx"
+  },
+  {
+    "label": "E",
+    "openaiLoc": 20,
+    "navLoc": 102,
+    "nameHits": 6,
+    "contentHits": 12,
+    "pkgAiHits": 2,
+    "widgetFiles": 4,
+    "dashboardLoc": 112,
+    "score": 42,
+    "openaiPath": "backups\\E\\my-clever-crm\\src\\pages\\OpenAI.jsx",
+    "navPath": "backups\\E\\my-clever-crm\\src\\components\\layout\\TopNav.jsx",
+    "dashPath": "backups\\E\\my-clever-crm\\src\\components\\Dashboard.jsx"
+  }
+]

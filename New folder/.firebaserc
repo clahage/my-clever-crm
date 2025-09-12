@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "my-clever-crm"
+  },
+  "targets": {
+    "my-clever-crm": {
+      "hosting": {
+        "default": [
+          "my-clever-crm"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

@@ -1,0 +1,5 @@
+
+> scr-admin-vite@0.0.0 audit:backups
+> node scripts/backupAudit.mjs
+
+Backup audit complete.

@@ -1,7 +1,7 @@
 // OpenAI Service Utility
 // Usage: import { generateLetter, analyzeCredit, recommendDispute, suggestCommunication } from './openaiService';
 
-import { getApiKey } from '../openaiConfig';
+import { getApiKey } from './openaiConfig';
 // import { callOpenAI } from '../openaiService';
 
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';

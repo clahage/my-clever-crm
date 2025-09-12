@@ -1,0 +1,78 @@
+At line:1 char:10
++ foreach ( in 'A','B','C','D','E') 
+{  = 'backups/' +  + '/my-clever-cr 
+...
++          ~
+Missing variable name after foreach.
+At line:1 char:33
++ foreach ( in 'A','B','C','D','E') 
+{  = 'backups/' +  + '/my-clever-cr 
+...
++                                 ~
+Unexpected token ')' in expression 
+or statement.
+At line:1 char:182
++ ... *.js,*.jsx,*.ts,*.tsx,*.mjs,*.
+cjs,*.json,*.html,*.css;  = ( | 
+Where-O ...
++                                   
+                              ~
+An empty pipe element is not 
+allowed.
+At line:1 char:280
++ ... match 
+'openai|receptionist|webhook' 
+}).Count;  = 0; foreach ( in ) {  
+...
++                                   
+                               ~
+Missing variable name after foreach.
+At line:1 char:35
++ foreach ( in 'A','B','C','D','E') 
+{  = 'backups/' +  + '/my-clever-cr 
+...
++                                   
+~
+Missing closing '}' in statement 
+block or type definition.
+At line:1 char:284
++ ...  
+'openai|receptionist|webhook' 
+}).Count;  = 0; foreach ( in ) { if 
+(S ...
++                                   
+                              ~
+Unexpected token ')' in expression 
+or statement.
+At line:1 char:386
++ ... ttern 
+'openai|receptionist|webhook' 
+-SimpleMatch -Quiet) { ++ } }; Wr 
+...
++                                   
+                               ~
+Missing expression after unary 
+operator '++'.
+At line:1 char:467
++ ... ut ('Label ' +  + ' - 
+filename hits: ' +  + ' - content 
+hits: ' + ) }
++                                   
+                                   ~
+You must provide a value expression 
+following the '+' operator.
+At line:1 char:470
++ ... ut ('Label ' +  + ' - 
+filename hits: ' +  + ' - content 
+hits: ' + ) }
++                                   
+                                    
+  ~
+Unexpected token '}' in expression 
+or statement.
+    + CategoryInfo          : Parse 
+   rError: (:) [], ParentContainsE  
+  rrorRecordException
+    + FullyQualifiedErrorId : Missi 
+   ngVariableNameAfterForeach
+ 
