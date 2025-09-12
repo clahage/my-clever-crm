@@ -49,7 +49,11 @@ export default function Analytics() {
       }
     }
     fetchAnalytics();
-    return () => unsubscribe && unsubscribe();
+    return () => {
+      if (typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
+    };
   }, []);
 
   return (

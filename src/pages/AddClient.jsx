@@ -1,13 +1,19 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { createClient } from '../services/clientService';
+import { doc, getDoc, updateDoc, addDoc, collection } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 export default function AddClient() {
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const editId = params.get('edit');
   const [form, setForm] = useState({
     // Basic
     prefix: '', firstName: '', lastName: '', suffix: '', name: '', email: '', phone: '', address: '',
     // Personal
     middleName: '', dob: '', ssn: '', driversLicense: '', street: '', city: '', state: '', zip: '',
+    company: '', occupation: '',
     // Contact Preferences
     bestTimeToCall: '', preferredContact: '', secondaryPhone: '', secondaryEmail: '',
     // Financial
@@ -15,13 +21,32 @@ export default function AddClient() {
     // Service
     servicePackage: '', referralSource: '', urgency: '', targetCreditScore: '', timeline: '',
     // Notes
-    consultationNotes: '', specialCircumstances: ''
+    consultationNotes: '', specialCircumstances: '',
+    // Category
+    category: 'lead',
+    status: 'Active',
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (editId) {
+      setLoading(true);
+      getDoc(doc(db, 'contacts', editId)).then(docSnap => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setForm(f => ({ ...f, ...data }));
+        }
+        setLoading(false);
+      }).catch(err => {
+        console.error('Error loading contact:', err);
+        setLoading(false);
+      });
+    }
+  }, [editId]);
 
   const validate = () => {
     if (!form.firstName || !form.lastName || !form.email) return 'First Name, Last Name, and Email are required.';
@@ -38,47 +63,76 @@ export default function AddClient() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // Prevent double submission
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
-      const err = validate();
-      if (err) {
-        setError(err);
-        setSuccess(false);
-        setIsSubmitting(false);
-        return;
-      }
-      setLoading(true);
-      setError('');
-      setSuccess(false);
       const contactData = {
         ...form,
+        status: form.status || 'Active',
         name: [form.prefix, form.firstName, form.middleName, form.lastName, form.suffix].filter(Boolean).join(' ')
       };
-      await createClient(contactData);
-      setSuccess(true);
-      setForm({
-        prefix: '', firstName: '', lastName: '', suffix: '', name: '', email: '', phone: '', address: '',
-        middleName: '', dob: '', ssn: '', driversLicense: '', street: '', city: '', state: '', zip: '',
-        bestTimeToCall: '', preferredContact: '', secondaryPhone: '', secondaryEmail: '',
-        monthlyIncome: '', creditScoreRange: '', negativeItems: '', bankruptcy: '', collections: '', latePayments: '',
-        servicePackage: '', referralSource: '', urgency: '', targetCreditScore: '', timeline: '',
-        consultationNotes: '', specialCircumstances: ''
-      });
-      setTimeout(() => navigate('/clients'), 1200);
-    } catch (err) {
-      setError(err.message || 'Failed to add client.');
+      if (editId) {
+        await updateDoc(doc(db, 'contacts', editId), contactData);
+        alert('Contact updated successfully!');
+        navigate('/contacts');
+      } else {
+        await addDoc(collection(db, 'contacts'), contactData);
+        alert('Contact added successfully!');
+        setForm({
+          prefix: '', firstName: '', lastName: '', suffix: '', name: '', email: '', phone: '', address: '',
+          middleName: '', dob: '', ssn: '', driversLicense: '', street: '', city: '', state: '', zip: '',
+          company: '', occupation: '',
+          bestTimeToCall: '', preferredContact: '', secondaryPhone: '', secondaryEmail: '',
+          monthlyIncome: '', creditScoreRange: '', negativeItems: '', bankruptcy: '', collections: '', latePayments: '',
+          servicePackage: '', referralSource: '', urgency: '', targetCreditScore: '', timeline: '',
+          consultationNotes: '', specialCircumstances: '',
+          category: 'lead',
+          status: 'Active',
+        });
+      }
+    } catch (error) {
+      console.error('Error saving:', error);
+      alert('Error saving contact');
     } finally {
-      setLoading(false);
       setIsSubmitting(false);
     }
   };
 
   return (
     <div className="max-w-2xl mx-auto py-8 px-4">
-      <h1 className="text-2xl font-bold mb-6">Add Client</h1>
+      <h1 className="text-2xl font-bold mb-6">
+        {editId ? 'Edit Contact' : `Add New ${form.category === 'client' ? 'Client' : form.category === 'lead' ? 'Lead' : 'Contact'}`}
+      </h1>
       <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6 space-y-6">
+        <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+          <label className="block text-sm font-medium mb-2">Contact Type *</label>
+          <select
+            name="category"
+            value={form.category || 'lead'}
+            onChange={handleChange}
+            className="w-full p-2 border rounded text-lg font-semibold"
+            required
+          >
+            <option value="lead">Lead (Potential Client)</option>
+            <option value="client">Client (Active)</option>
+            <option value="vendor">Vendor</option>
+            <option value="affiliate">Affiliate</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-1">Status</label>
+          <select
+            name="status"
+            value={form.status || 'Active'}
+            onChange={handleChange}
+            className="w-full p-2 border rounded"
+          >
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+            <option value="Pending">Pending</option>
+          </select>
+        </div>
         {/* Basic Fields */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -259,7 +313,7 @@ export default function AddClient() {
             disabled={isSubmitting}
             className="bg-blue-600 text-white px-6 py-2 rounded shadow hover:bg-blue-700 font-semibold disabled:opacity-50"
           >
-            {isSubmitting ? 'Adding Client...' : 'Add Client'}
+            {isSubmitting ? (editId ? 'Updating...' : 'Adding...') : (editId ? 'Save Changes' : 'Add Contact')}
           </button>
           <button type="button" className="bg-gray-300 text-gray-800 px-6 py-2 rounded shadow hover:bg-gray-400 font-semibold" onClick={() => navigate('/clients')}>Back to Client List</button>
         </div>

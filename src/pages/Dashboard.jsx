@@ -13,13 +13,6 @@ import {
 import BrandLogo from "@/components/BrandLogo";
 import { useTheme } from '@/theme/ThemeProvider';
 
-// --- ON-SCREEN BEACON ---
-const Beacon = () => (
-  <div style={{background:'#e0e7ff',color:'#3730a3',padding:'4px 0',textAlign:'center',fontWeight:'bold',letterSpacing:1,marginBottom:12,zIndex:9999}}>
-    [BEACON: Dashboard.jsx]
-  </div>
-);
-
 const quickActions = [
   { label: 'Credit Scores', href: '/client/reports', color: 'bg-blue-600' },
   { label: 'Dispute Letters', href: '/client/disputes', color: 'bg-yellow-500' },
@@ -149,7 +142,6 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {import.meta.env.DEV && <Beacon />}
       <header className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 shadow mb-6">
         <BrandLogo portalType="admin" theme={theme === 'dark' ? 'dark' : 'default'} style={{height:48}} />
         <button

@@ -5,13 +5,6 @@ import { navItems } from "@/layout/navConfig";
 import BrandLogo from "@/components/BrandLogo";
 import { useTheme } from '@/theme/ThemeProvider';
 
-// --- ON-SCREEN BEACON ---
-const Beacon = () => (
-  <div style={{background:'#fee2e2',color:'#b91c1c',padding:'4px 0',textAlign:'center',fontWeight:'bold',letterSpacing:1,marginBottom:12,zIndex:9999}}>
-    [BEACON: ProtectedLayout.jsx]
-  </div>
-);
-
 export default function ProtectedLayout() {
   const { user } = useAuth();
   const { theme, setTheme } = useTheme();
@@ -22,7 +15,6 @@ export default function ProtectedLayout() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
-      {import.meta.env.DEV && <Beacon />}
       <div className="grid grid-cols-[240px_1fr]">
         {/* Sidebar */}
         <aside className="h-screen sticky top-0 bg-white border-r p-4 space-y-4 overflow-y-auto">
