@@ -1,6 +1,0 @@
-### IDIQ Partner Token (preview)
-POST https://getidiqpartnertoken-tvkxcewmxq-uc.a.run.app
-Content-Type: application/json
-Accept: application/json
-
-{}

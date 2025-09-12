@@ -1,5 +1,0 @@
-
-> scr-admin-vite@0.0.0 audit:spotcheck
-> node scripts/backupSpotcheck.mjs
-
-Spotcheck complete.
