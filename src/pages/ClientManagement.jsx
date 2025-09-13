@@ -35,20 +35,9 @@ const ClientManagement = () => {
   }, []);
 
   // Filter contacts based on route and status filter
-  const filteredContacts = clients.filter(contact => {
-    // Status filter with case-insensitive comparison
-    const contactStatus = (contact.status || 'Active').toLowerCase();
-    if (statusFilter === 'active' && contactStatus !== 'active') return false;
-    if (statusFilter === 'inactive' && contactStatus !== 'inactive') return false;
-    if (statusFilter === 'archived' && contactStatus !== 'archived') return false;
-    if (statusFilter === 'all' && contactStatus === 'archived') return false;
-    // Category filter
-    if (showingClients) {
-      return contact.category === 'client' || contact.category === 'Client';
-    } else {
-      return contact.category === 'lead' || contact.category === 'Lead' || !contact.category;
-    }
-  });
+  const filteredContacts = showingClients 
+    ? clients.filter(c => (c.category || '').toLowerCase() === 'client')
+    : clients.filter(c => (c.category || '').toLowerCase() === 'lead' || !c.category);
 
   const filteredClients = filteredContacts.filter(client =>
     client.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -84,7 +73,7 @@ const ClientManagement = () => {
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
         >
           <PlusIcon className="h-5 w-5" />
-          Add New Client
+          Add Contact
         </button>
       </div>
 

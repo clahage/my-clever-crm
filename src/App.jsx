@@ -79,7 +79,7 @@ export default function App() {
             <Route path="/idiq"       element={<Suspense fallback={<div />}>{<IDIQDashboard />}</Suspense>} />
             <Route path="/admin-tools"element={<Suspense fallback={<div />}>{<AdminTools />}</Suspense>} />
             <Route path="/settings"   element={<Suspense fallback={<div />}>{<Settings />}</Suspense>} />
-            <Route path="/leads"      element={<Suspense fallback={<div />}>{<Leads />}</Suspense>} />
+            <Route path="/leads" element={<Suspense fallback={<div />}>{<Leads />}</Suspense>} />
             <Route path="/openai"     element={<Suspense fallback={<div />}>{<OpenAI />}</Suspense>} />
             <Route path="/permissions"element={<Suspense fallback={<div />}>{<Permissions />}</Suspense>} />
             <Route path="/progress-portal"   element={<Suspense fallback={<div />}>{<ProgressPortal />}</Suspense>} />

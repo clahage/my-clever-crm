@@ -16,6 +16,7 @@ import {
   CpuChipIcon,    // for OpenAI
   LockClosedIcon, // for Permissions
 } from "@heroicons/react/24/outline";
+import { Target, Bot } from 'lucide-react';
 
 const item = (label, to, icon, opts = {}) => ({ label, to, icon, ...opts });
 
@@ -26,6 +27,9 @@ export const navItems = [
   // Client Management
   item("Contacts", "/contacts", IdentificationIcon),
   item("Clients", "/client-management", UsersIcon),
+
+  // Leads
+  item("Leads", "/leads", Target),
 
   // Credit Repair/Services
   item("IDIQ Integration", "/idiq", ShieldCheckIcon, { requiresIdiq: true }),
@@ -59,4 +63,5 @@ export const navItems = [
 
   // Support
   item("Help", "/help", ChartBarIcon),
+  item("Add Contact", "/add-client", UserPlusIcon)
 ];

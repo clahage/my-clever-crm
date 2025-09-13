@@ -87,7 +87,13 @@ export default function ContactDetailPage() {
               </div>
               <div>
                 <label className="text-sm font-medium">Phone</label>
-                <div className="text-gray-700">{contact.phone || 'Not provided'}</div>
+                <div className="text-gray-700">
+                  {contact.phone ? (
+                    <a href={`tel:${contact.phone}`} className="text-blue-600 hover:underline">
+                      {contact.phone}
+                    </a>
+                  ) : 'Not provided'}
+                </div>
               </div>
               <div>
                 <label className="text-sm font-medium">Company</label>
