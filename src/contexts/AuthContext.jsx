@@ -6,11 +6,14 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [initializing, setInitializing] = useState(true);  // ADD THIS LINE
   const [error, setError] = useState('');
   const [claims, setClaims] = useState({});
 
   useEffect(() => {
+    console.log('[AuthContext] Starting auth check, current path:', window.location.pathname);
     const unsubscribe = subscribeAuthState(async (firebaseUser) => {
+      console.log('[AuthContext] Auth state changed, user:', firebaseUser?.email, 'path:', window.location.pathname);
       if (firebaseUser) {
         // Get ID token result to access custom claims
         const tokenResult = await firebaseUser.getIdTokenResult();
@@ -30,7 +33,8 @@ export const AuthProvider = ({ children }) => {
       } else {
         setUser(null);
       }
-      setLoading(false);
+  setLoading(false);
+  setInitializing(false);  // ADD THIS LINE
       // ...removed for production...
     });
     return () => unsubscribe();
@@ -86,7 +90,7 @@ export const AuthProvider = ({ children }) => {
 
   // ...removed for production...
   return (
-    <AuthContext.Provider value={{ user, loading, error, signIn, signUp, signOut, signInWithGoogle: googleSignIn }}>
+    <AuthContext.Provider value={{ user, loading, error, initializing, signIn, signUp, signOut, signInWithGoogle: googleSignIn }}>
       {children}
     </AuthContext.Provider>
   );

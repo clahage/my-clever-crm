@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { db } from "@/lib/firebase";
-import { collection, onSnapshot, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot, getDocs, query, where } from 'firebase/firestore';
 
 function useRealtimeLeads({ search, filter }) {
   const [leads, setLeads] = useState([]);
@@ -85,43 +85,27 @@ function useRealtimeLeads({ search, filter }) {
   // Initial load (realtime for first page)
   useEffect(() => {
     setLoading(true);
-    if (!liveMode) {
-      startPolling();
+    console.log('Leads query: filtering for category = lead');
+    const q = query(
+      collection(db, 'contacts'),
+      where('category', '==', 'lead')
+    );
+    const unsubscribe = onSnapshot(q, (snap) => {
+      const docs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setLeads(docs);
       setLoading(false);
-      return () => stopPolling();
-    }
-    try {
-      const q = collection(db, 'leads');
-      unsubRef.current = onSnapshot(q, (snap) => {
-        const docs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setLeads(docs);
-        setLastDoc(snap.docs[snap.docs.length - 1] || null);
-        setHasMore(true);
-        setLoading(false);
-        setError('');
-        setLiveError(false);
-        setLiveMode(true);
-      }, (err) => {
-        setError('Failed to load leads (onSnapshot).');
-        setLoading(false);
-        setLiveError(true);
-        setLiveMode(false);
-        startPolling();
-        console.error('[useRealtimeLeads] Error in onSnapshot, switching to polling:', err);
-      });
-    } catch (err) {
-      setError('Failed to set up Firestore listener.');
+      setError('');
+      setLiveError(false);
+      setLiveMode(true);
+    }, (err) => {
+      setError('Failed to load leads (onSnapshot).');
       setLoading(false);
       setLiveError(true);
       setLiveMode(false);
-      startPolling();
-      console.error('[useRealtimeLeads] Listener setup error, switching to polling:', err);
-    }
-    return () => {
-      unsubRef.current && unsubRef.current();
-      stopPolling();
-    };
-  }, [search, filter, liveMode, startPolling, stopPolling]); // Reset on search/filter/liveMode change
+      console.error('[useRealtimeLeads] Error in onSnapshot:', err);
+    });
+    return () => unsubscribe();
+  }, [search, filter]); // Reset on search/filter change
 
   // Load more (not realtime)
   const loadMore = useCallback(async () => {

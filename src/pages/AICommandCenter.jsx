@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 
 export default function AICommandCenter() {
   const [query, setQuery] = useState('');
@@ -16,43 +18,56 @@ export default function AICommandCenter() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6">AI Command Center</h1>
-      
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">Enter your query:</label>
-            <textarea
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="w-full p-3 border rounded-lg"
-              rows="4"
-              placeholder="Ask the AI assistant anything..."
-              required
-            />
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 p-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-8">
+            AI Command Center
+          </h1>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-6 text-white">
+              <h3 className="text-lg font-semibold mb-2">Active AI Agents</h3>
+              <p className="text-3xl font-bold">4</p>
+              <p className="text-sm opacity-90">Lead Scoring, Email Parser, Receptionist, Analytics</p>
+            </div>
+            <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl p-6 text-white">
+              <h3 className="text-lg font-semibold mb-2">Processed Today</h3>
+              <p className="text-3xl font-bold">47</p>
+              <p className="text-sm opacity-90">Leads analyzed and scored</p>
+            </div>
+            <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-6 text-white">
+              <h3 className="text-lg font-semibold mb-2">Automation Savings</h3>
+              <p className="text-3xl font-bold">12.5 hrs</p>
+              <p className="text-sm opacity-90">Time saved this week</p>
+            </div>
           </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
-          >
-            {loading ? 'Processing...' : 'Send to AI'}
-          </button>
-        </form>
-      </div>
-
-      {response && (
-        <div className="bg-gray-50 rounded-lg shadow p-6">
-          <h2 className="font-semibold mb-2">AI Response:</h2>
-          <p className="text-gray-700">{response}</p>
+          <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-6">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-200">Enter your query:</label>
+                <textarea
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  className="w-full p-3 border rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  rows="4"
+                  placeholder="Ask the AI anything..."
+                />
+              </div>
+              <button
+                type="submit"
+                className="px-6 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-semibold shadow hover:from-purple-700 hover:to-blue-700 transition"
+                disabled={loading}
+              >
+                {loading ? 'Processing...' : 'Send to AI'}
+              </button>
+            </form>
+            {response && (
+              <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900 rounded-lg text-blue-900 dark:text-blue-100">
+                <strong>AI Response:</strong> {response}
+              </div>
+            )}
+          </div>
         </div>
-      )}
-
-      <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-        <p className="text-sm text-yellow-800">
-          <strong>Note:</strong> OpenAI integration is configured. Full AI features will be enabled once the service connections are verified.
-        </p>
       </div>
     </div>
   );

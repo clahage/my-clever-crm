@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "my-clever-crm",
+  "private_key_id": "97833950788a82a3025c48d3054088fa6b4f0ae4",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDpkcIbDFwNwomI\ntC4Bhw9y4JXSqPJQMJhi0+TkagvUbotOvt4xl1dh7Bh+cUP50UvF1smuDohtrcj7\nZFxyAgDrBDo1tx8z2H3Ts5qxo2Bz+POZB7YwmeDFXkWg+resmLrejlBOkUdPjYSo\nCGD8iFxOkw/PWmAtdaYWaVerBExes7rmflFOyT2KEfi5tFFGiYQz+n5948OZ3skK\nY50Avnlz4QmnZnlJR+yyuKTX6UqfALwJDOfk+fruo8971M+iWcht5BjVRTm/d5lS\nhpeNN6Zt3bT1D2qRitcqbEqtJZZ5/ITZA+NZukZbkgu9JEHLQY0UusAnWc6/2TVe\n4ypWPbQ5AgMBAAECggEAILz/eg8XcA5OfMzUjf5CWhXEqkxn+nl1QpT0xlde5R3B\nhP4X4teVtfID1OVHY+LEPizHBBChas4rF6GPm6NQQaDMD+9k/j1gFaZdDn0Z7ed9\nLXv5O4K2ELQQCmpaCGU3/C3yb7DJUAtEBtF11q++UH0ogCXoyTZuW0HUufHWSoee\nIPe6saSwI4WX/gtzW9D3A1RfLofKS2URxzUXJW568yxcLe7ux3JYzFjDHeWLrP7q\nMJwzVS+dFIlOL6WxaNYVPpN9o/GKr1tvqQzMw3hi1i4e7VfFbGfunT08LeXyOF54\nIujO2kvjURnH8TfXHCNiSfMYYno08XU767dd+LI1SQKBgQD5Rw0bPiB1K91ttgnT\nNAeA7h/QU95dYfTCJHjLLr9VRXBCsj3tqnvNaobTt/01M1WONb3QdFdnffTjVLfo\nFoKApjvP8l2yjhfh82wV7tAGCsz5LkeWd7SI6KLuXkXlN9e+dvk6RAJaqDyLgHr+\n4brjorvOso5fPWZZM+mG5nssywKBgQDv3kMDwIbYTYwej2oFelY8c2iSjJe93BPM\nCDofnVXpx1ipPd05kJvY3eqZl6B14t+mdBlrHkj/yehPum3cYlS9+s2tnm0q+pS/\n4r3SJrSXOva6rTvLvEXOli0zpO2flLoGRl6pqstT9PYpXvILdFplExfK5eydgH4x\nI+qZH5rmiwKBgHUHlm+jyzk3Ts2jGRm+44b0RJtZxJuy0WYUGWHKoKk34GxvogNi\ndp0J1iKvzoCbiR8qu+KRvDcqOz4/F9guOTaM1Kfb8YFSlIPP9H6Xj7JGf9S8lX9e\n07MzBMtEFyx1+yPAV2GzbCeDtGkJ+LSQ5VzZmbKAwbaU7OgUJx7eNhXhAoGBAK1l\n7uv3cYNMC87LvcjX9x8cDqxiFg+Z2HXWPK49/q1Q/jbaEeJbN04+nikKA2U07JhX\ntUhKTFscimOYUXLPYpMzixvHOwOmwYE1WCNi94mbhmDMej19jLkatvJud5i02wVO\nOYBNh07Z9llR2YeORQpsEvcJ31K8YH0FicHHpyKhAoGAHhp0w0znM+F5zJenmck4\n5P9jeFh+c4wA1is0itYkx98mk54MN9vVrQrXEZWlRwrINGsTuqtWDhtiw3zVpptP\nhA2P0Qx0wamfRPyK8iAX9BWqFzeN5Pg/MtJKVxNFLF5HAtqaGipYxERXCVqW1EQc\nfKUU12z0sdsU4Uv/fu3InBE=\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-fbsvc@my-clever-crm.iam.gserviceaccount.com",
+  "client_id": "100149174011823863881",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40my-clever-crm.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

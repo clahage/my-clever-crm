@@ -4,8 +4,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { navItems } from "@/layout/navConfig";
 import BrandLogo from "@/components/BrandLogo";
 import { useTheme } from '@/theme/ThemeProvider';
+import HotLeadsAlert from '../components/HotLeadsAlert';
 
 export default function ProtectedLayout() {
+  console.log('[ProtectedLayout] Rendering layout, current path:', window.location.pathname);
   const { user } = useAuth();
   const { theme, setTheme } = useTheme();
 
@@ -53,6 +55,7 @@ export default function ProtectedLayout() {
           </header>
 
           <div className="p-6">
+            <HotLeadsAlert />
             <Outlet />
           </div>
         </main>

@@ -135,7 +135,11 @@ export default function AddClient() {
         alert('Contact updated successfully!');
         navigate('/contacts');
       } else {
-        await addDoc(collection(db, 'contacts'), contactData);
+        // When saving a new contact, ensure it is saved to 'contacts' with the correct category field
+        await addDoc(collection(db, 'contacts'), {
+          ...contactData,
+          category: form.category || 'lead', // or 'client' as appropriate
+        });
         alert('Contact added successfully!');
         setForm({
           prefix: '', firstName: '', lastName: '', suffix: '', name: '', email: '', phone: '', address: '',

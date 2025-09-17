@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from "../contexts/AuthContext";
 import { doc, getDoc, collection, query, where, orderBy, onSnapshot, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import QuickContactConverter from '../components/QuickContactConverter';
 import { 
   ChartBarIcon, 
   DocumentTextIcon,
@@ -182,6 +183,10 @@ export default function Dashboard() {
             </div>
           )}
         </motion.div>
+
+          <div className="max-w-5xl mx-auto py-8">
+            <QuickContactConverter />
+          </div>
 
         {/* Quick Actions */}
         <div className="grid grid-cols-2 gap-4 mb-8">

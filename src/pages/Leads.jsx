@@ -13,12 +13,13 @@ import { useRealtimeLeads } from "@/hooks/useRealtimeLeads";
 import { useNavigate } from 'react-router-dom';
 
 // Firestore collection name
-const LEADS_COLLECTION = "leads";
+const LEADS_COLLECTION = "contacts"; // Changed from "leads"
 
 const statusOptions = ["New", "Contacted", "Qualified", "Converted", "Unqualified"];
 const filterOptions = ["All", ...statusOptions];
 
 function Leads() {
+  const [leads, setLeads] = useState([]);
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
@@ -50,7 +51,7 @@ function Leads() {
   const navigate = useNavigate();
 
   // Use paginated realtime leads
-  const { leads, loading: leadsLoading, error: leadsError, loadMore, hasMore, refreshLeads, manualReadLeads, liveMode, liveError, tryLiveMode } = useRealtimeLeads({ search, filter });
+  const { leads: realtimeLeads, loading: leadsLoading, error: leadsError, loadMore, hasMore, refreshLeads, manualReadLeads, liveMode, liveError, tryLiveMode } = useRealtimeLeads({ search, filter });
 
   // Metrics
   const metrics = {

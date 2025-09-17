@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { collection, query, orderBy, onSnapshot, deleteDoc, updateDoc, doc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, deleteDoc, updateDoc, doc, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { 
   UserGroupIcon, 
@@ -25,10 +25,17 @@ const ClientManagement = () => {
 
   const navigate = useNavigate();
   useEffect(() => {
-    const q = query(collection(db, 'contacts'), orderBy('createdAt', 'desc'));
+    console.log('ClientManagement: querying for category = client');
+    const q = query(
+      collection(db, 'contacts'),
+      where('category', '==', 'client')
+    );
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const clientsData = snapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }));
+      const clientsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      console.log('Found clients:', clientsData.length);
       setClients(clientsData);
     });
     return () => unsubscribe();

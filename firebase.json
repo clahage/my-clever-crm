@@ -9,6 +9,20 @@
     ],
     "rewrites": [
       {
+        "source": "/api/webhook",
+        "function": {
+          "functionId": "aiWebhook",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/test",
+        "function": {
+          "functionId": "testFunction",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
@@ -25,19 +39,17 @@
       }
     ]
   },
-  "functions": [
-    {
-      "source": "functions",
-      "codebase": "default",
-      "ignore": [
-        "node_modules",
-        ".git",
-        "firebase-debug.log",
-        "firebase-debug.*.log"
-      ],
+  "functions": {
+    "source": "functions",
+    "codebase": "default",
+    "ignore": [
+      "node_modules",
+      ".git",
+      "firebase-debug.log",
+      "firebase-debug.*.log"
+    ],
       "runtime": "nodejs20"
-    }
-  ],
+    },
   "firestore": {
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"

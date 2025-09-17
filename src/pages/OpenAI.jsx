@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+console.log('📍 OpenAI page loaded at:', new Date().toISOString());
 import { collection, query, where, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
@@ -36,6 +37,24 @@ export default function OpenAI() {
 
     return () => unsubscribe();
   }, []);
+
+  // DEBUG: Check if data is real or demo
+  useEffect(() => {
+    const checkDataFreshness = () => {
+      if (recentCalls && recentCalls.length > 0) {
+        const latestCall = recentCalls[0];
+        const callTime = new Date(latestCall.timestamp);
+        const now = new Date();
+        const hoursSinceCall = (now - callTime) / (1000 * 60 * 60);
+        
+        console.log('🔍 AI RECEPTIONIST CHECK:');
+        console.log('Latest call:', latestCall);
+        console.log('Hours since last call:', hoursSinceCall);
+        console.log('Is this LIVE data?', hoursSinceCall < 24 ? 'YES - Recent!' : 'Possibly old/demo');
+      }
+    };
+    checkDataFreshness();
+  }, [recentCalls]);
 
   return (
     <div className="max-w-7xl mx-auto py-8 px-4">

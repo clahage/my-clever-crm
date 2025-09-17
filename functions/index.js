@@ -1,8 +1,31 @@
-﻿const { onRequest, onCall, HttpsError } = require("firebase-functions/v2/https");
-const { defineSecret, defineString } = require("firebase-functions/params");
-const IDIQ_PARTNER_SECRET = defineSecret("IDIQ_PARTNER_SECRET");
-const IDIQ_PARTNER_ID = defineString("IDIQ_PARTNER_ID");
-const functions = require('firebase-functions');
+﻿const functions = require('firebase-functions');
+
+// ...existing code...
+
+// Process AI Receptionist Calls into Contacts
+exports.processAIReceptionistCall = functions.firestore
+  .document('aiReceptionistCalls/{docId}')
+  .onCreate(async (snap, context) => {
+  const data = snap.data();
+  console.log('Function triggered for document:', context.params.docId);
+  console.log('Project ID:', process.env.GCLOUD_PROJECT);
+  console.log('Firebase Config:', process.env.FIREBASE_CONFIG);
+  console.log('Processing new AI call:', context.params.docId);
+    
+    try {
+      console.log('Function triggered successfully!');
+      console.log('Document ID:', context.params.docId);
+      console.log('Data received:', JSON.stringify(data));
+      console.log('Username:', data.username);
+      console.log('Caller:', data.caller);
+      console.log('Would create contact but skipping due to permissions');
+      // Commented out all Firestore write operations for now
+    } catch (error) {
+      console.error('Error processing AI call:', error);
+      // Commented out Firestore error update
+    }
+  });
+
 const admin = require('firebase-admin');
 const fetch = require('node-fetch');
 const { OpenAI } = require('openai');
@@ -44,15 +67,15 @@ const IDIQ_CONFIG = {
 const IDIQ_ENV = process.env.IDIQ_ENV || "stage"; // "stage" | "prod"
 const IDIQ_PARTNER_TOKEN_PATH = process.env.IDIQ_PARTNER_TOKEN_PATH;
 
-exports.getIDIQPartnerToken = onRequest({ secrets: [IDIQ_PARTNER_SECRET] }, async (req, res) => {
+exports.getIDIQPartnerToken = functions.https.onRequest(async (req, res) => {
   setCors(req, res);
   if (req.method === "OPTIONS") {
     // Preflight
     return res.status(204).send(""); // 204 No Content is ideal for preflight
   }
   try {
-    const partnerId = IDIQ_PARTNER_ID.value();
-    const partnerSecret = IDIQ_PARTNER_SECRET.value();
+  const partnerId = process.env.IDIQ_PARTNER_ID || functions.config().idiq?.partner_id || '';
+  const partnerSecret = process.env.IDIQ_PARTNER_SECRET || functions.config().idiq?.partner_secret || '';
     if (!partnerId || !partnerSecret) throw new Error("Missing IDIQ credentials");
     const idiqEnv = IDIQ_ENV;
     const base = idiqEnv === "prod" ? IDIQ_CONFIG.PROD_BASE_URL : IDIQ_CONFIG.STAGE_BASE_URL;
@@ -155,10 +178,10 @@ exports.getIDIQPartnerToken = onRequest({ secrets: [IDIQ_PARTNER_SECRET] }, asyn
 });
 
 // Callable: getIDIQPartnerTokenCallable
-exports.getIDIQPartnerTokenCallable = onCall({ secrets: [IDIQ_PARTNER_SECRET] }, async (req) => {
-  const partnerId = IDIQ_PARTNER_ID.value();
-  const partnerSecret = IDIQ_PARTNER_SECRET.value();
-  if (!partnerId || !partnerSecret) throw new HttpsError("failed-precondition", "Missing IDIQ credentials");
+exports.getIDIQPartnerTokenCallable = functions.https.onCall(async (data, context) => {
+  const partnerId = process.env.IDIQ_PARTNER_ID || functions.config().idiq?.partner_id || '';
+  const partnerSecret = process.env.IDIQ_PARTNER_SECRET || functions.config().idiq?.partner_secret || '';
+  if (!partnerId || !partnerSecret) throw new functions.https.HttpsError("failed-precondition", "Missing IDIQ credentials");
   try {
     const response = await fetch(`${IDIQ_CONFIG.STAGE_BASE_URL}v1/enrollment/partner-token`, {
       method: 'POST',
@@ -169,11 +192,11 @@ exports.getIDIQPartnerTokenCallable = onCall({ secrets: [IDIQ_PARTNER_SECRET] },
     if (response.status === 200) {
       return { success: true, token: result.accessToken, expiresIn: result.expiresIn };
     } else {
-      throw new HttpsError("internal", result.message || 'Unknown error');
+      throw new functions.https.HttpsError("internal", result.message || 'Unknown error');
     }
   } catch (error) {
     console.error('IDIQ partner token error:', error);
-    throw new HttpsError("internal", error.message);
+    throw new functions.https.HttpsError("internal", error.message);
   }
 });
 
@@ -472,8 +495,16 @@ exports.getIDIQDisputeStatus = functions.https.onRequest(async (req, res) => {
 });
 
 // Test Function
-exports.testFunction = functions.https.onRequest((req, res) => {
+exports.testFunction = functions.runWith({
+  invoker: 'public'
+}).https.onRequest((req, res) => {
   res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
   res.json({ 
     status: 'success', 
     message: 'Firebase Functions are working!',
@@ -528,5 +559,48 @@ exports.scoreLead = functions.https.onRequest(async (req, res) => {
   } catch (err) {
     console.error('Lead scoring error', err);
     return res.status(500).json({ error: 'Failed to score lead', detail: err.message || String(err) });
+  }
+});
+
+// MyAIFrontDesk Webhook Handler
+exports.aiWebhook = functions.runWith({
+  invoker: 'public'
+}).https.onRequest(async (req, res) => {
+  // Add CORS headers
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  console.log('MyAIFrontDesk webhook received at:', new Date().toISOString());
+  console.log('Request body:', JSON.stringify(req.body));
+  try {
+    // Create the aiReceptionistCalls collection if it doesn't exist
+    // and add the webhook data
+    const docRef = await admin.firestore().collection('aiReceptionistCalls').add({
+      ...req.body,
+      receivedAt: admin.firestore.FieldValue.serverTimestamp(),
+      processed: false
+    });
+    console.log('Webhook data saved with ID:', docRef.id);
+    // Also create a lead if name or email exists
+    if (req.body.name || req.body.email) {
+      await admin.firestore().collection('contacts').add({
+        name: req.body.name || 'Unknown',
+        email: req.body.email || '',
+        phone: req.body.caller || '',
+        category: 'lead',
+        source: 'AI Receptionist',
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+      console.log('Lead created in contacts');
+    }
+    res.status(200).json({ success: true, id: docRef.id });
+  } catch (error) {
+    console.error('Webhook error:', error);
+    res.status(500).json({ error: error.message });
   }
 });
