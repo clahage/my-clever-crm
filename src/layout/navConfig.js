@@ -21,6 +21,7 @@ import { Target, Bot } from 'lucide-react';
 const item = (label, to, icon, opts = {}) => ({ label, to, icon, ...opts });
 
 export const navItems = [
+  item("Social Admin", "/social-admin", DocumentTextIcon),
   // Dashboard
   item("Dashboard", "/dashboard", HomeIcon),
 

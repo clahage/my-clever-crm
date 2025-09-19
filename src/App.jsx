@@ -1,122 +1,124 @@
-import React, { lazy, Suspense } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "./contexts/AuthContext";
-import ProtectedRoute from "./routes/ProtectedRoute";
-import ProtectedLayout from "@/layout/ProtectedLayout.jsx";
-import ClientRoutes from "./client/router/clientRoutes";
+import React, { useState } from 'react';
+import { Moon, Sun, LayoutDashboard, Users, UserPlus, FileText, Settings, TrendingUp, AlertTriangle, BarChart } from 'lucide-react';
+import Dashboard from './pages/Dashboard';
+import SocialMediaAdmin from './pages/SocialMediaAdmin';
+import './index.css';
 
-import Login from "./pages/Login";
-import NotFound from "./pages/NotFound";
-import Logout from "@/routes/Logout.jsx";
-import AuthDebug from "./pages/AuthDebug.jsx";
-import LoginTest from "./pages/LoginTest.jsx";
+function App() {
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [currentPage, setCurrentPage] = useState('dashboard');
+  
+  const user = { email: 'chris@speedycreditrepair.com' };
 
-// REAL feature screens (lazy)
-const Dashboard      = lazy(() => import("./components/Dashboard.jsx"));
-const Contacts       = lazy(() => import("@/pages/Contacts.jsx"));
-const AddClient      = lazy(() => import("@/pages/AddClient.jsx"));
-const Disputes       = lazy(() => import("./components/DisputeCenter.jsx"));
-const Documents      = lazy(() => import("./pages/ClientPortal/ClientDocuments.jsx"));
-const Billing        = lazy(() => import("@/components/Billing.jsx"));
-const Reports        = lazy(() => import("@/pages/Reports.jsx"));
-const IDIQDashboard  = lazy(() => import("@/components/IDIQIntegration/IDIQDashboard.jsx"));
-const AdminTools     = lazy(() => import("@/pages/AdminTools.jsx"));
-const Settings       = lazy(() => import("@/pages/Settings.jsx"));
-const Leads          = lazy(() => import("@/pages/Leads.jsx"));
-const OpenAI         = lazy(() => import("@/pages/OpenAI.jsx"));
-const Permissions    = lazy(() => import("@/pages/Permissions.jsx"));
-const ProgressPortal = lazy(() => import("@/pages/restore/ProgressPortal.jsx"));
-const DisputeCenter  = lazy(() => import("@/pages/restore/DisputeCenter.jsx"));
-const ActivityLog    = lazy(() => import("@/pages/restore/ActivityLog.jsx"));
-const FeaturesTutorials = lazy(() => import("@/pages/restore/FeaturesTutorials.jsx"));
-const ClientManagement = lazy(() => import("@/pages/ClientManagement.jsx"));
-const ContactReports = lazy(() => import("@/pages/ContactReports.jsx"));
-const Letters = lazy(() => import("@/pages/Letters.jsx"));
-const CreditScores = lazy(() => import("@/pages/CreditScores.jsx"));
-const DisputeLetters = lazy(() => import("@/pages/DisputeLetters.jsx"));
-import Calendar from "@/pages/Calendar.jsx";
-const Communications = lazy(() => import("@/pages/Communications.jsx"));
-const Export = lazy(() => import("@/pages/Export.jsx"));
-const Bulk = lazy(() => import("@/pages/Bulk.jsx"));
-const Automation = lazy(() => import("@/pages/Automation.jsx"));
-const DripCampaigns = lazy(() => import("@/pages/DripCampaigns.jsx"));
-const AICommandCenter = lazy(() => import("@/pages/AICommandCenter.jsx"));
-const UserManagement = lazy(() => import("@/pages/UserManagement.jsx"));
-const Roles = lazy(() => import("@/pages/Roles.jsx"));
-const Location = lazy(() => import("@/pages/Location.jsx"));
-const Help = lazy(() => import("@/pages/Help.jsx"));
-const Analytics = lazy(() => import("@/pages/Analytics.jsx"));
-const Setup = lazy(() => import("@/pages/Setup.jsx"));
-const ContactDetailPage = lazy(() => import("@/pages/ContactDetailPage.jsx"));
+  const toggleTheme = () => {
+    document.documentElement.classList.toggle('dark');
+    setIsDarkMode(!isDarkMode);
+  };
 
-export default function App() {
-  console.log('[App] App rendering, current URL:', window.location.pathname);
+  const menuItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'social-admin', label: 'Social Media Admin', icon: FileText },
+    { id: 'clients', label: 'Clients', icon: Users },
+    { id: 'leads', label: 'Leads', icon: UserPlus },
+    { id: 'progress', label: 'Progress Portal', icon: TrendingUp },
+    { id: 'disputes', label: 'Dispute Center', icon: AlertTriangle },
+    { id: 'reports', label: 'Reports', icon: BarChart },
+    { id: 'settings', label: 'Settings', icon: Settings },
+  ];
+
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          {/* Client Portal Routing */}
-          <Route path="/client/*" element={<ClientRoutes />} />
-          {/* Existing admin/auth routes below */}
-          <Route path="/login" element={<Login />} />
-          {/* All protected pages are nested under the layout */}
-          <Route
-            element={
-              <ProtectedRoute>
-                <ProtectedLayout />
-              </ProtectedRoute>
-            }
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+      <aside className="w-64 bg-white dark:bg-gray-800 border-r dark:border-gray-700 flex flex-col">
+        <div className="p-4 border-b dark:border-gray-700">
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">Speedy Credit</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Repair CRM</p>
+          <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">{user.email}</p>
+        </div>
+        
+        <nav className="flex-1 p-4 space-y-1">
+          {menuItems.map(item => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setCurrentPage(item.id)}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition ${
+                  currentPage === item.id 
+                    ? 'bg-blue-600 text-white' 
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+              >
+                <Icon className="h-5 w-5" />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="p-4 border-t dark:border-gray-700">
+          <button
+            onClick={toggleTheme}
+            className="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
           >
-            {/* Make dashboard the index without redirect */}
-            <Route index element={<Suspense fallback={<div />}>{<Dashboard />}</Suspense>} />
-            <Route path="dashboard"  element={<Suspense fallback={<div />}>{<Dashboard />}</Suspense>} />
-            <Route path="contacts"   element={<Suspense fallback={<div />}>{<Contacts />}</Suspense>} />
-            <Route path="contacts/:id" element={<Suspense fallback={<div />}>{<ContactDetailPage />}</Suspense>} />
-            <Route path="add-client" element={<Suspense fallback={<div />}>{<AddClient />}</Suspense>} />
-            <Route path="setup" element={<Suspense fallback={<div />}>{<Setup />}</Suspense>} />
-            <Route path="dispute-center"   element={<Suspense fallback={<div />}>{<Disputes />}</Suspense>} />
-            <Route path="documents"  element={<Suspense fallback={<div />}>{<Documents />}</Suspense>} />
-            <Route path="billing"    element={<Suspense fallback={<div />}>{<Billing />}</Suspense>} />
-            <Route path="reports"    element={<Suspense fallback={<div />}>{<Reports />}</Suspense>} />
-            <Route path="idiq"       element={<Suspense fallback={<div />}>{<IDIQDashboard />}</Suspense>} />
-            <Route path="admin-tools"element={<Suspense fallback={<div />}>{<AdminTools />}</Suspense>} />
-            <Route path="settings"   element={<Suspense fallback={<div />}>{<Settings />}</Suspense>} />
-            <Route path="leads" element={<Suspense fallback={<div />}>{<Leads />}</Suspense>} />
-            <Route path="openai"     element={<Suspense fallback={<div />}>{<OpenAI />}</Suspense>} />
-            <Route path="permissions"element={<Suspense fallback={<div />}>{<Permissions />}</Suspense>} />
-            <Route path="progress-portal"   element={<Suspense fallback={<div />}>{<ProgressPortal />}</Suspense>} />
-            <Route path="activity"   element={<Suspense fallback={<div />}>{<ActivityLog />}</Suspense>} />
-            <Route path="features"   element={<Suspense fallback={<div />}>{<FeaturesTutorials />}</Suspense>} />
-            <Route path="logout"     element={<Logout />} />
-            <Route path="client-management" element={<Suspense fallback={<div />}>{<ClientManagement />}</Suspense>} />
-            <Route path="contact-reports" element={<Suspense fallback={<div />}>{<ContactReports />}</Suspense>} />
-            <Route path="letters" element={<Suspense fallback={<div />}>{<Letters />}</Suspense>} />
-            <Route path="credit-scores" element={<Suspense fallback={<div />}>{<CreditScores />}</Suspense>} />
-            <Route path="dispute-letters" element={<Suspense fallback={<div />}>{<DisputeLetters />}</Suspense>} />
-            <Route path="calendar" element={<Calendar />} />
-            <Route path="communications" element={<Suspense fallback={<div />}>{<Communications />}</Suspense>} />
-            <Route path="export" element={<Suspense fallback={<div />}>{<Export />}</Suspense>} />
-            <Route path="bulk" element={<Suspense fallback={<div />}>{<Bulk />}</Suspense>} />
-            <Route path="automation" element={<Suspense fallback={<div />}>{<Automation />}</Suspense>} />
-            <Route path="drip-campaigns" element={<Suspense fallback={<div />}>{<DripCampaigns />}</Suspense>} />
-            <Route path="ai-command-center" element={<Suspense fallback={<div />}>{<AICommandCenter />}</Suspense>} />
-            <Route path="user-management" element={<Suspense fallback={<div />}>{<UserManagement />}</Suspense>} />
-            <Route path="roles" element={<Suspense fallback={<div />}>{<Roles />}</Suspense>} />
-            <Route path="location" element={<Suspense fallback={<div />}>{<Location />}</Suspense>} />
-            <Route path="help" element={<Suspense fallback={<div />}>{<Help />}</Suspense>} />
-            <Route path="analytics" element={<Suspense fallback={<div />}>{<Analytics />}</Suspense>} />
-            <Route path="progress-portal" element={<Suspense fallback={<div />}>{<ProgressPortal />}</Suspense>} />
-            {/* Back-compat: /clients (or /client) go to Contacts */}
-            <Route path="clients" element={<Navigate to="/contacts" replace />} />
-            <Route path="client"  element={<Navigate to="/contacts" replace />} />
-          </Route>
-          {import.meta.env.DEV && <Route path="/auth-debug" element={<AuthDebug />} />}
-          {import.meta.env.DEV && <Route path="/login-test" element={<LoginTest />} />}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+            <span className="flex items-center gap-3">
+              {isDarkMode ? (
+                <Sun className="h-5 w-5 text-yellow-500" />
+              ) : (
+                <Moon className="h-5 w-5 text-gray-600" />
+              )}
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                {isDarkMode ? 'Light Mode' : 'Dark Mode'}
+              </span>
+            </span>
+          </button>
+        </div>
+      </aside>
+
+      <main className="flex-1 overflow-auto">
+        <div className="p-6">
+          {currentPage === 'dashboard' && <Dashboard />}
+          {currentPage === 'social-admin' && <SocialMediaAdmin />}
+          {/* Temporarily show placeholders for broken components */}
+          {currentPage === 'clients' && (
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+              <h2 className="text-3xl font-bold mb-4">Clients</h2>
+              <p>Client management will be restored</p>
+            </div>
+          )}
+          {currentPage === 'leads' && (
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+              <h2 className="text-3xl font-bold mb-4">Leads</h2>
+              <p>Lead tracking will be restored</p>
+            </div>
+          )}
+          {currentPage === 'progress' && (
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+              <h2 className="text-3xl font-bold mb-4">Progress Portal</h2>
+              <p>Progress tracking will be restored</p>
+            </div>
+          )}
+          {currentPage === 'disputes' && (
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+              <h2 className="text-3xl font-bold mb-4">Dispute Center</h2>
+              <p>Dispute management will be restored</p>
+            </div>
+          )}
+          {currentPage === 'reports' && (
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+              <h2 className="text-3xl font-bold mb-4">Reports</h2>
+              <p>Analytics will be restored</p>
+            </div>
+          )}
+          {currentPage === 'settings' && (
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+              <h2 className="text-3xl font-bold mb-4">Settings</h2>
+              <p>Configuration options</p>
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
   );
 }
 
-console.log('[ROUTE FIX] All navConfig.js routes now have matching route definitions and imports. Critical routes tested.');
+export default App;

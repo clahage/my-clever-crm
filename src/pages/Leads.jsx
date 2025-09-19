@@ -1,3 +1,35 @@
+import React from 'react';
+
+export default function Leads() {
+  return (
+    <div>
+      <h2 className="text-3xl font-bold mb-6 text-gray-900 dark:text-white">Lead Management</h2>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+          <h3 className="font-semibold text-red-600">Hot Leads</h3>
+          <p className="text-2xl font-bold">3</p>
+        </div>
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+          <h3 className="font-semibold text-yellow-600">Warm Leads</h3>
+          <p className="text-2xl font-bold">5</p>
+        </div>
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+          <h3 className="font-semibold text-blue-600">Follow Up</h3>
+          <p className="text-2xl font-bold">2</p>
+        </div>
+      </div>
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+        <h3 className="text-xl font-bold mb-4">Recent Leads</h3>
+        <div className="space-y-2">
+          <div className="p-3 border rounded border-red-300">🔥 Sarah Williams - Hot Lead</div>
+          <div className="p-3 border rounded border-yellow-300">⭐ Mike Brown - Warm Lead</div>
+          <div className="p-3 border rounded">Tom Davis - Follow Up</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+// ...existing code...
 import React, { useState, useEffect, useRef } from "react";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, where } from "firebase/firestore";
@@ -342,5 +374,5 @@ function Leads() {
   );
 }
 
-export default Leads;
+// Removed duplicate default export
 

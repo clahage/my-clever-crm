@@ -1,0 +1,13 @@
+{
+  "facebook": {
+    "verifyToken": "speedy-crm-verify-2025",
+    "appId": "YOUR_FB_APP_ID",
+    "appSecret": "YOUR_FB_APP_SECRET"
+  },
+  "instagram": {
+    "verifyToken": "speedy-crm-ig-2025"
+  },
+  "google": {
+    "apiKey": "YOUR_GOOGLE_API_KEY"
+  }
+}

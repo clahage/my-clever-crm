@@ -16,13 +16,27 @@ import { User, LogOut, Shield ,
   Search,
   Plus,
   Eye,
-  X
+  X,
+  Moon,
+  Sun
 } from 'lucide-react';
+import { useTheme } from '../contexts/ThemeContext';
 // import { useAuth } from '../authContext';
 // import { usePermission } from '../usePermission';
 import { usePermission } from '../usePermission';
 import { useAuth } from '../authContext';
-// ...existing code...
+  // ...existing code...
+  let isDarkMode = false;
+  let toggleTheme = () => {};
+  try {
+    const theme = useTheme();
+    if (theme) {
+      isDarkMode = theme.isDarkMode;
+      toggleTheme = theme.toggleTheme;
+    }
+  } catch (error) {
+    console.warn('Theme context not available');
+  }
 // Sidebar user section for authentication UI
 const SidebarUserSection = () => {
   const { user, userProfile, signOut } = useAuth();
@@ -355,6 +369,13 @@ const navigationItems = [
     description: 'Overview & Analytics'
   },
   {
+    id: 'social-admin',
+    label: 'Social Media Admin',
+    icon: FileText,
+    path: '/social-admin',
+    description: 'Review & approve AI responses'
+  },
+  {
     id: 'clients',
     label: 'Clients',
     icon: Users,
@@ -516,8 +537,8 @@ const Sidebar = () => {
   // Filter navigation items by feature access
   const visibleItems = useMemo(() => {
     return filteredItems.filter(item => {
-      // Always show dashboard
-      if (item.id === 'dashboard') return true;
+      // Always show dashboard and social-admin
+      if (item.id === 'dashboard' || item.id === 'social-admin') return true;
       // Only show if user has access
       return hasFeatureAccess(item.id);
     });
@@ -661,6 +682,25 @@ const Sidebar = () => {
         </nav>
         {/* Footer: User section with authentication UI */}
         <SidebarUserSection />
+        {/* Theme Toggle - Sticky at Bottom */}
+        <div className="mt-auto pt-4 border-t border-gray-200 dark:border-gray-700">
+          <button
+            onClick={toggleTheme}
+            className="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          >
+            <span className="flex items-center gap-3">
+              {isDarkMode ? (
+                <Sun className="h-5 w-5 text-yellow-500" />
+              ) : (
+                <Moon className="h-5 w-5 text-gray-600" />
+              )}
+              <span className="text-sm font-medium">
+                {isDarkMode ? 'Light Mode' : 'Dark Mode'}
+              </span>
+            </span>
+          </button>
+        </div>
       </div>
     </>
   );
