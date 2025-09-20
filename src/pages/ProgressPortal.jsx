@@ -1,4 +1,6 @@
 import React from 'react';
+// ...existing code from backup...
+import React from 'react';
 
 export default function ProgressPortal() {
   return (

@@ -1,16 +1,9 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import AIActivityWidget from './AIActivityWidget';
 import AdvancedAnalytics from './AdvancedAnalytics';
-import { trackOpenAIUsage } from '../openaiService';
 
 export default function AIIntelligenceDashboard({ openaiStats, myaiStats }) {
-  useEffect(() => {
-    if (openaiStats?.costToday !== undefined) {
-      trackOpenAIUsage('dashboard_view', openaiStats.costToday, 'success');
-    }
-  }, [openaiStats?.costToday]);
-
   // Demo: Replace with real stats and BI metrics
   const aiKPIs = [
     { label: 'OpenAI API Cost (Today)', value: `$${(openaiStats?.costToday ?? 0).toFixed(4)}` },

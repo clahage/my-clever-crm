@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { db } from '../firebaseConfig';
 import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
-import { scoreLead } from '../openaiService';
 
 function getScoreColor(score) {
   if (score >= 8) return 'border-green-500 bg-green-50';
@@ -53,13 +52,6 @@ export default function AIActivityFeed() {
     const interval = setInterval(() => setCalls(calls => [...calls]), 60000);
     return () => { unsubscribe(); clearInterval(interval); };
   }, []);
-
-  // Example: Use scoreLead in activity feed or lead processing
-  async function handleScoreLead(transcript) {
-    const result = await scoreLead(transcript);
-    // Update UI or Firestore with result.score
-    // ...
-  }
 
   return (
     <div className="bg-white rounded-lg shadow-lg p-6 mb-6 border border-gray-300 max-h-[500px] overflow-y-auto">
