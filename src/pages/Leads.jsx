@@ -1,15 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
-import { db } from "@/lib/firebase";
-import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from "firebase/firestore";
+import { db } from "../firebaseConfig";
+import { collection, getDocs, query, where, addDoc, updateDoc, deleteDoc, doc, getDoc, onSnapshot } from "firebase/firestore";
 import { motion } from "framer-motion";
 import Particles from "@tsparticles/react";
-import Fuse from "fuse.js";
 import useSound from "use-sound";
 import { FaUserTie, FaSearch, FaSyncAlt, FaRobot, FaStar, FaUsers } from "react-icons/fa";
-import LeadUrgencyIndicator from "@/components/LeadUrgencyIndicator";
-import LeadRevenueDetailWidget from "@/components/LeadRevenueDetailWidget";
-import LeadMigrationTool from "@/components/LeadMigrationTool";
-import ImportContactsModal from "@/components/leads/ImportContactsModal";
+import LeadUrgencyIndicator from "../components/LeadUrgencyIndicator";
+import LeadRevenueDetailWidget from "../components/LeadRevenueDetailWidget";
+import LeadMigrationTool from "../components/LeadMigrationTool";
+import ImportContactsModal from "../components/leads/ImportContactsModal";
 import { useRealtimeLeads } from "@/hooks/useRealtimeLeads";
 
 // Firestore collection name
@@ -19,6 +18,13 @@ const statusOptions = ["New", "Contacted", "Qualified", "Converted", "Unqualifie
 const filterOptions = ["All", ...statusOptions];
 
 function Leads() {
+  console.log('🟢 Leads component rendering');
+  try {
+    const { user } = useAuth();
+    console.log('🟢 User in Leads:', user);
+  } catch (error) {
+    console.error('🔴 Error getting user:', error);
+  }
   const [form, setForm] = useState({
     name: "",
     email: "",

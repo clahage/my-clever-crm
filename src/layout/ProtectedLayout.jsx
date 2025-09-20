@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { NavLink, Outlet } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import { navItems } from "@/layout/navConfig";
-import BrandLogo from "@/components/BrandLogo";
+import { useAuth } from "../contexts/AuthContext";
+import { navItems } from "./navConfig";
+import BrandLogo from "../components/BrandLogo";
 import HotLeadsAlert from '../components/HotLeadsAlert';
 import { Moon, Sun } from 'lucide-react';
 
