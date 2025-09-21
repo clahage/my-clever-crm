@@ -6,7 +6,7 @@ export function useTheme() {
   return useContext(ThemeContext);
 }
 
-export default function ThemeProvider({ children }) {
+export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "light");
 
   useEffect(() => {

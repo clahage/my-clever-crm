@@ -1,2 +1,2 @@
-// Re-export the single source of truth; no initialization here.
-export * from "@/lib/firebase";
+// Re-export from the correct relative path
+export * from "./lib/firebase";

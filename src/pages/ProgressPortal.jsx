@@ -1,39 +1,3 @@
-import React from 'react';
-// ...existing code from backup...
-import React from 'react';
-
-export default function ProgressPortal() {
-  return (
-    <div>
-      <h2 className="text-3xl font-bold mb-6 text-gray-900 dark:text-white">Client Progress Portal</h2>
-      <div className="space-y-4">
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-          <h3 className="text-xl font-bold mb-4">Active Progress Tracking</h3>
-          <div className="space-y-3">
-            <div className="border rounded p-4">
-              <div className="flex justify-between mb-2">
-                <span className="font-semibold">John Smith</span>
-                <span className="text-green-600">75% Complete</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-green-600 h-2 rounded-full" style={{width: '75%'}}></div>
-              </div>
-            </div>
-            <div className="border rounded p-4">
-              <div className="flex justify-between mb-2">
-                <span className="font-semibold">Jane Doe</span>
-                <span className="text-yellow-600">45% Complete</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-yellow-600 h-2 rounded-full" style={{width: '45%'}}></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 import React, { useState, useEffect } from "react";
 import { db } from '../firebaseConfig';
 import { collection, query, onSnapshot } from 'firebase/firestore';
@@ -41,6 +5,8 @@ import { collection, query, onSnapshot } from 'firebase/firestore';
 const demoProgress = [
   { id: 1, client: "John Doe", status: "In Progress", percent: 65 },
   { id: 2, client: "Jane Smith", status: "Completed", percent: 100 },
+  { id: 3, client: "Mike Johnson", status: "In Progress", percent: 45 },
+  { id: 4, client: "Sarah Williams", status: "In Progress", percent: 80 }
 ];
 
 export default function ProgressPortal() {
@@ -53,58 +19,96 @@ export default function ProgressPortal() {
       const q = query(collection(db, 'progress'));
       unsubscribe = onSnapshot(q,
         (snapshot) => {
-          const firebaseData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-          setProgress(firebaseData);
-          setUseDemo(false);
+          const firebaseData = snapshot.docs.map(doc => ({ 
+            id: doc.id, 
+            ...doc.data() 
+          }));
+          if (firebaseData.length > 0) {
+            setProgress(firebaseData);
+            setUseDemo(false);
+          }
         },
         (error) => {
+          console.log("Using demo data:", error.message);
           setProgress(demoProgress);
           setUseDemo(true);
         }
       );
     } catch (error) {
+      console.log("Firebase connection error, using demo data");
       setProgress(demoProgress);
       setUseDemo(true);
     }
     return () => unsubscribe && unsubscribe();
   }, []);
+
   return (
-    <div className="min-h-screen bg-white text-gray-900">
-      <main className="mx-auto max-w-4xl px-6 py-10">
-        <h1 className="text-3xl font-bold mb-4">Progress Portal</h1>
-        <div className="overflow-x-auto mb-8">
-          <table className="min-w-full bg-white rounded shadow">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="py-2 px-4 text-left">Client</th>
-                <th className="py-2 px-4 text-left">Status</th>
-                <th className="py-2 px-4 text-left">Progress</th>
-              </tr>
-            </thead>
-            <tbody>
-              {progress.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={3}
-                    className="text-center py-4 text-gray-500"
-                  >
-                    No progress data found.
-                  </td>
-                </tr>
-              ) : (
-                progress.map((row) => (
-                  <tr key={row.id}>
-                    <td className="py-2 px-4">{row.client}</td>
-                    <td className="py-2 px-4">{row.status}</td>
-                    <td className="py-2 px-4">{row.percent}%</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+    <div className="p-6">
+      <h2 className="text-3xl font-bold mb-6 text-gray-900 dark:text-white">
+        Client Progress Portal
+      </h2>
+      
+      {useDemo && (
+        <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6">
+          <p className="font-bold">Demo Mode</p>
+          <p>Showing sample data. Connect to Firebase to see real progress.</p>
         </div>
-      </main>
+      )}
+
+      <div className="space-y-4">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+          <h3 className="text-xl font-bold mb-4">Active Progress Tracking</h3>
+          <div className="space-y-3">
+            {progress.map((item) => (
+              <div key={item.id} className="border rounded p-4 dark:border-gray-700">
+                <div className="flex justify-between mb-2">
+                  <span className="font-semibold">{item.client}</span>
+                  <span className={
+                    item.percent === 100 ? 'text-green-600' : 
+                    item.percent >= 75 ? 'text-blue-600' : 
+                    item.percent >= 50 ? 'text-yellow-600' : 'text-gray-600'
+                  }>
+                    {item.percent}% - {item.status}
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className={
+                      item.percent === 100 ? 'bg-green-600 h-2 rounded-full transition-all' :
+                      item.percent >= 75 ? 'bg-blue-600 h-2 rounded-full transition-all' :
+                      item.percent >= 50 ? 'bg-yellow-600 h-2 rounded-full transition-all' :
+                      'bg-gray-400 h-2 rounded-full transition-all'
+                    }
+                    style={{width: `${item.percent}%`}}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+          <h3 className="text-xl font-bold mb-4">Summary Statistics</h3>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-600">{progress.length}</div>
+              <div className="text-sm text-gray-600">Total Clients</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600">
+                {progress.filter(p => p.percent === 100).length}
+              </div>
+              <div className="text-sm text-gray-600">Completed</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-yellow-600">
+                {progress.filter(p => p.percent < 100).length}
+              </div>
+              <div className="text-sm text-gray-600">In Progress</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
-// Removed duplicate default export

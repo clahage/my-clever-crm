@@ -1,157 +1,115 @@
-import React, { useEffect, useState } from 'react';
-import { db } from "../lib/firebase";
-import { collectionGroup, query, onSnapshot, updateDoc, doc, getDoc } from 'firebase/firestore';
+import React, { useState, useEffect } from 'react';
+import { collection, query, orderBy, onSnapshot, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { db } from '../firebaseConfig';
+import { FileText, Plus, Trash2, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 
-const statusOptions = ['pending', 'active', 'resolved'];
-
-const DisputeCenter = () => {
+export default function DisputeCenter() {
   const [disputes, setDisputes] = useState([]);
-  const [filter, setFilter] = useState('');
-  const [search, setSearch] = useState('');
-  const [selected, setSelected] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [clientNames, setClientNames] = useState({});
-  const [modal, setModal] = useState({ open: false, dispute: null });
+  const [filter, setFilter] = useState('all');
 
-  // Real-time disputes and client name lookup
   useEffect(() => {
-    setLoading(true);
-    const q = query(collectionGroup(db, 'disputes'));
-    const unsub = onSnapshot(q, async (snap) => {
-      const allDisputes = [];
-      const clientIds = new Set();
-      snap.forEach(docSnap => {
-        const pathParts = docSnap.ref.path.split('/');
-        const clientId = pathParts[pathParts.indexOf('clients') + 1];
-        allDisputes.push({ id: docSnap.id, clientId, ...docSnap.data() });
-        clientIds.add(clientId);
-      });
-      setDisputes(allDisputes);
-      // Fetch client names
-      const names = {};
-      await Promise.all([...clientIds].map(async id => {
-        const clientDoc = await getDoc(doc(db, 'clients', id));
-        names[id] = clientDoc.exists() ? clientDoc.data().name || id : id;
+    const q = query(collection(db, 'disputes'), orderBy('createdAt', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const disputesData = snapshot.docs.map(doc => ({ 
+        id: doc.id, 
+        ...doc.data() 
       }));
-      setClientNames(names);
+      setDisputes(disputesData);
+      setLoading(false);
+    }, (error) => {
+      console.error('Error fetching disputes:', error);
       setLoading(false);
     });
-    return () => unsub();
+
+    return () => unsubscribe();
   }, []);
 
-  const filtered = disputes.filter(d =>
-    (!filter || d.status === filter) &&
-    (!search || (d.creditor?.toLowerCase().includes(search.toLowerCase()) || (clientNames[d.clientId] || d.clientId).toLowerCase().includes(search.toLowerCase())))
-  );
-
-  const handleStatusChange = async (dispute, newStatus) => {
-    await updateDoc(doc(db, 'clients', dispute.clientId, 'disputes', dispute.id), { status: newStatus });
+  const getStatusIcon = (status) => {
+    switch(status) {
+      case 'resolved': return <CheckCircle className="w-5 h-5 text-green-600" />;
+      case 'pending': return <Clock className="w-5 h-5 text-yellow-600" />;
+      default: return <AlertCircle className="w-5 h-5 text-red-600" />;
+    }
   };
 
-  const handleSelect = id => {
-    setSelected(selected.includes(id) ? selected.filter(s => s !== id) : [...selected, id]);
-  };
-  const selectAll = () => setSelected(filtered.map(d => d.id));
-  const clearSelect = () => setSelected([]);
+  const filteredDisputes = disputes.filter(dispute => {
+    if (filter === 'all') return true;
+    return dispute.status === filter;
+  });
 
-  const handleExportCSV = () => {
-    const rows = [
-      ['Client Name', 'Creditor', 'Status', 'Date Submitted', 'Reason', 'Type'],
-      ...filtered.map(d => [clientNames[d.clientId] || d.clientId, d.creditor, d.status, d.dateSubmitted, d.reason, d.type])
-    ];
-    const csv = rows.map(r => r.join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'disputes.csv';
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  // Bulk actions
-  const bulkUpdateStatus = async (newStatus) => {
-    await Promise.all(selected.map(async id => {
-      const dispute = disputes.find(d => d.id === id);
-      if (dispute) {
-        await updateDoc(doc(db, 'clients', dispute.clientId, 'disputes', id), { status: newStatus });
-      }
-    }));
-    clearSelect();
-  };
-  const bulkDelete = async () => {
-    await Promise.all(selected.map(async id => {
-      const dispute = disputes.find(d => d.id === id);
-      if (dispute) {
-        await updateDoc(doc(db, 'clients', dispute.clientId, 'disputes', id), { deleted: true }); // Soft delete
-      }
-    }));
-    clearSelect();
-  };
+  if (loading) return <div className="p-6">Loading disputes...</div>;
 
   return (
-    <div style={{padding: 32}}>
-      <h1 style={{fontSize: 28, fontWeight: 'bold', marginBottom: 18}}>Dispute Center</h1>
-      <div style={{display: 'flex', gap: 18, marginBottom: 18}}>
-        <select value={filter} onChange={e => setFilter(e.target.value)} style={{padding: 8, fontSize: 15, borderRadius: 6}}>
-          <option value="">All Statuses</option>
-          {statusOptions.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
-        </select>
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search client or creditor" style={{padding: 8, fontSize: 15, borderRadius: 6, minWidth: 220}} />
-        <button onClick={selectAll} style={{padding: '8px 14px', background: '#eee', border: 'none', borderRadius: 6}}>Select All</button>
-        <button onClick={clearSelect} style={{padding: '8px 14px', background: '#eee', border: 'none', borderRadius: 6}}>Clear</button>
-        <button onClick={() => bulkUpdateStatus('resolved')} disabled={!selected.length} style={{padding: '8px 14px', background: '#43a047', color: '#fff', border: 'none', borderRadius: 6}}>Bulk Resolve</button>
-        <button onClick={bulkDelete} disabled={!selected.length} style={{padding: '8px 14px', background: '#e53935', color: '#fff', border: 'none', borderRadius: 6}}>Bulk Delete</button>
-        <button onClick={handleExportCSV} style={{padding: '8px 18px', background: '#1976d2', color: '#fff', border: 'none', borderRadius: 6, fontWeight: 'bold'}}>Export to CSV</button>
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold flex items-center gap-2">
+          <FileText className="w-8 h-8" />
+          Dispute Center
+        </h1>
+        <button className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-2">
+          <Plus className="w-4 h-4" />
+          New Dispute
+        </button>
       </div>
-      {loading ? (
-        <div>Loading disputes...</div>
-      ) : (
-        <table style={{width: '100%', borderCollapse: 'collapse', background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #eee'}}>
-          <thead>
-            <tr style={{background: '#f5f7fa'}}>
-              <th style={{padding: 10}}></th>
-              <th style={{padding: 10}}>Client Name</th>
-              <th style={{padding: 10}}>Creditor</th>
-              <th style={{padding: 10}}>Status</th>
-              <th style={{padding: 10}}>Date Submitted</th>
-              <th style={{padding: 10}}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map(d => (
-              <tr key={d.id} style={{borderBottom: '1px solid #eee'}}>
-                <td style={{padding: 10}}>
-                  <input type="checkbox" checked={selected.includes(d.id)} onChange={() => handleSelect(d.id)} />
-                </td>
-                <td style={{padding: 10}}>{clientNames[d.clientId] || d.clientId}</td>
-                <td style={{padding: 10}}>{d.creditor}</td>
-                <td style={{padding: 10}}>
-                  <select value={d.status} onChange={e => handleStatusChange(d, e.target.value)} style={{padding: 6, borderRadius: 4}}>
-                    {statusOptions.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </td>
-                <td style={{padding: 10}}>{d.dateSubmitted ? new Date(d.dateSubmitted).toLocaleDateString() : ''}</td>
-                <td style={{padding: 10}}>
-                  <button onClick={() => setModal({ open: true, dispute: d })} style={{padding: '6px 14px', background: '#ffa726', color: '#fff', border: 'none', borderRadius: 6, fontWeight: 'bold'}}>View</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-      {/* Modal for dispute details */}
-      {modal.open && (
-        <div style={{position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999}}>
-          <div style={{background: '#fff', padding: 32, borderRadius: 12, minWidth: 400, maxWidth: 600}}>
-            <h2>Dispute Details</h2>
-            <pre style={{whiteSpace: 'pre-wrap', wordBreak: 'break-word'}}>{JSON.stringify(modal.dispute, null, 2)}</pre>
-            <button onClick={() => setModal({ open: false, dispute: null })} style={{marginTop: 18, padding: '8px 18px', background: '#1976d2', color: '#fff', border: 'none', borderRadius: 6}}>Close</button>
+
+      <div className="mb-4 flex gap-2">
+        <button
+          onClick={() => setFilter('all')}
+          className={`px-4 py-2 rounded ${filter === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+        >
+          All ({disputes.length})
+        </button>
+        <button
+          onClick={() => setFilter('pending')}
+          className={`px-4 py-2 rounded ${filter === 'pending' ? 'bg-yellow-600 text-white' : 'bg-gray-200'}`}
+        >
+          Pending ({disputes.filter(d => d.status === 'pending').length})
+        </button>
+        <button
+          onClick={() => setFilter('resolved')}
+          className={`px-4 py-2 rounded ${filter === 'resolved' ? 'bg-green-600 text-white' : 'bg-gray-200'}`}
+        >
+          Resolved ({disputes.filter(d => d.status === 'resolved').length})
+        </button>
+      </div>
+
+      <div className="grid gap-4">
+        {filteredDisputes.length === 0 ? (
+          <div className="bg-white p-8 rounded-lg shadow text-center text-gray-500">
+            No disputes found
           </div>
-        </div>
-      )}
+        ) : (
+          filteredDisputes.map(dispute => (
+            <div key={dispute.id} className="bg-white p-6 rounded-lg shadow">
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    {getStatusIcon(dispute.status)}
+                    <h3 className="text-lg font-semibold">
+                      {dispute.title || 'Untitled Dispute'}
+                    </h3>
+                  </div>
+                  <p className="text-gray-600 mb-2">
+                    Client: {dispute.clientName || 'Unknown'}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Created: {dispute.createdAt ? new Date(dispute.createdAt.seconds * 1000).toLocaleDateString() : 'Unknown'}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button className="text-blue-600 hover:text-blue-900">
+                    View Details
+                  </button>
+                  <button className="text-red-600 hover:text-red-900">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
-};
-
-export default DisputeCenter;
+}
