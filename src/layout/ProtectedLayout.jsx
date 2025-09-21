@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { navItems } from "./navConfig";
+import { navigation } from "./navConfig";
 import BrandLogo from "../components/BrandLogo";
 import HotLeadsAlert from '../components/HotLeadsAlert';
 import { Moon, Sun } from 'lucide-react';
@@ -40,12 +40,12 @@ export default function ProtectedLayout() {
       <aside className="h-screen sticky top-0 bg-white dark:bg-gray-800 border-r dark:border-gray-700 p-4 space-y-4 overflow-y-auto flex flex-col">
         <BrandLogo variant="admin" theme={isDarkMode ? 'dark' : 'light'} style={{height:40}} />
         <nav className="space-y-1 flex-1">
-          {navItems
+          {navigation
             .filter(item => !item.requiresIdiq || (user && user.claims && user.claims.idiq))
-            .map(({ label, to, icon: Icon }) => (
-              <NavLink key={to} to={to} className={linkClass} end={to === "/dashboard"}>
-                {Icon ? <Icon className="h-5 w-5" /> : null}
-                <span>{label}</span>
+            .map((item) => (
+              <NavLink key={item.href} to={item.href} className={linkClass} end={item.href === "/dashboard"}>
+                {item.icon ? <item.icon className="h-5 w-5" /> : null}
+                <span>{item.name}</span>
               </NavLink>
             ))}
           <NavLink to="/logout" className={linkClass}>Logout</NavLink>

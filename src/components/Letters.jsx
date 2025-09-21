@@ -1,6 +1,6 @@
 import React, { useState , useEffect } from "react";
 
-import { db } from "@/lib/firebase";
+import { db } from "../firebaseConfig";
 import { collection, query, onSnapshot } from 'firebase/firestore';
 import { demoLetters } from "../data/demoData";
 
