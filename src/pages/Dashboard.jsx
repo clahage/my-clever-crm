@@ -1,217 +1,251 @@
 import React, { useEffect, useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { motion } from 'framer-motion';
+import { useAuth } from '../auth/AuthProvider';
 import { doc, getDoc, collection, query, where, orderBy, onSnapshot, getDocs } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
-import {
-  BarChart3,
-  FileText,
-  Folder,
-  Bell,
-  TrendingUp,
-  Users,
-  DollarSign,
-  AlertCircle
-} from 'lucide-react';
+import { 
+  ChartBarIcon, 
+  DocumentTextIcon,
+  FolderIcon,
+  ArrowTrendingUpIcon
+} from '@heroicons/react/24/outline';
 
 const quickActions = [
-  { label: 'Credit Scores', href: '/reports', color: 'bg-blue-600' },
-  { label: 'Dispute Letters', href: '/disputes', color: 'bg-yellow-500' },
-  { label: 'Client Management', href: '/clients', color: 'bg-green-600' },
-  { label: 'Progress Portal', href: '/progress', color: 'bg-purple-600' },
+  { label: 'Credit Scores', href: '/client/reports', color: 'bg-blue-600' },
+  { label: 'Dispute Letters', href: '/client/disputes', color: 'bg-yellow-500' },
+  { label: 'Client Management', href: '/contacts', color: 'bg-green-600' },
+  { label: 'Client Portal', href: '/client', color: 'bg-purple-600' },
 ];
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const [stats, setStats] = useState({
-    totalClients: 0,
-    activeDisputes: 0,
-    monthlyRevenue: 0,
-    pendingTasks: 0
-  });
-  const [recentActivity, setRecentActivity] = useState([]);
+  const [clientData, setClientData] = useState(null);
+  const [creditScores, setCreditScores] = useState([]);
+  const [disputes, setDisputes] = useState([]);
+  const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [score, setScore] = useState(null);
+  const [activity, setActivity] = useState([]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
-    // Fetch stats
-    const fetchStats = async () => {
+    const loadClientData = async () => {
       try {
-        // Get contacts count
-        const contactsSnapshot = await getDocs(collection(db, 'contacts'));
-        const clientCount = contactsSnapshot.docs.filter(doc => 
-          doc.data().type === 'client'
-        ).length;
-
-        // Get disputes count
-        const disputesSnapshot = await getDocs(collection(db, 'disputes'));
-        const activeDisputesCount = disputesSnapshot.docs.filter(doc => 
-          doc.data().status !== 'resolved'
-        ).length;
-
-        setStats({
-          totalClients: clientCount,
-          activeDisputes: activeDisputesCount,
-          monthlyRevenue: 12450, // Demo value
-          pendingTasks: 7 // Demo value
-        });
-
-        setLoading(false);
+        const clientDoc = await getDoc(doc(db, 'clients', user.uid));
+        if (clientDoc.exists()) {
+          setClientData(clientDoc.data());
+        } else {
+          const q = query(collection(db, 'contacts'), where('email', '==', user.email));
+          const snapshot = await getDocs(q);
+          if (!snapshot.empty) {
+            setClientData(snapshot.docs[0].data());
+          }
+        }
       } catch (error) {
-        console.error('Error fetching stats:', error);
-        setLoading(false);
+        console.error('Error loading client data:', error);
       }
     };
 
-    fetchStats();
+    // Simplified queries with error handling
+    try {
+      const scoresQuery = query(
+        collection(db, 'creditScores'),
+        where('clientEmail', '==', user.email),
+        orderBy('date', 'desc')
+      );
+      const unsubscribeScores = onSnapshot(scoresQuery, 
+        (snapshot) => {
+          const scoresData = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }));
+          setCreditScores(scoresData);
+        },
+        (error) => {
+          console.log('Scores collection not ready:', error);
+          setCreditScores([]);
+        }
+      );
 
-    // Set up real-time activity listener
-    const q = query(
-      collection(db, 'contacts'),
-      orderBy('createdAt', 'desc'),
-      where('type', '==', 'lead')
-    );
+      const disputesQuery = query(
+        collection(db, 'disputeLetters'),
+        where('recipientEmail', '==', user.email),
+        orderBy('createdAt', 'desc')
+      );
+      const unsubscribeDisputes = onSnapshot(disputesQuery, 
+        (snapshot) => {
+          const disputesData = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }));
+          setDisputes(disputesData);
+        },
+        (error) => {
+          console.log('Disputes collection not ready:', error);
+          setDisputes([]);
+        }
+      );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const activities = snapshot.docs.slice(0, 5).map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        type: 'New Lead'
-      }));
-      setRecentActivity(activities);
-    }, (error) => {
-      console.error('Activity listener error:', error);
-    });
+      loadClientData();
+      setLoading(false);
 
-    return () => unsubscribe();
+      return () => {
+        unsubscribeScores();
+        unsubscribeDisputes();
+      };
+    } catch (error) {
+      console.error('Firebase error:', error);
+      setLoading(false);
+    }
   }, [user]);
 
-  const StatCard = ({ icon: Icon, label, value, color, trend }) => (
-    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow hover:shadow-lg transition-shadow">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm text-gray-600 dark:text-gray-400">{label}</p>
-          <p className="text-2xl font-bold mt-1">{value}</p>
-          {trend && (
-            <p className="text-xs text-green-600 mt-1 flex items-center">
-              <TrendingUp className="w-3 h-3 mr-1" />
-              {trend}
-            </p>
-          )}
-        </div>
-        <div className={`p-3 rounded-lg ${color}`}>
-          <Icon className="w-6 h-6 text-white" />
-        </div>
-      </div>
-    </div>
-  );
+  useEffect(() => {
+    if (creditScores.length > 0) {
+      setScore(creditScores[0]?.score);
+    }
+  }, [creditScores]);
+
+  useEffect(() => {
+    if (disputes.length > 0) {
+      const recentActivity = disputes.slice(0, 5).map(dispute => ({
+        type: 'dispute',
+        status: dispute.status || 'pending',
+        bureau: dispute.bureau || 'Unknown'
+      }));
+      setActivity(recentActivity);
+    }
+  }, [disputes]);
+
+  const getScoreImprovement = () => {
+    if (creditScores.length < 2) return 0;
+    const latest = creditScores[0]?.score || 0;
+    const previous = creditScores[1]?.score || 0;
+    return latest - previous;
+  };
+
+  const stats = [
+    {
+      title: 'Current Credit Score',
+      value: creditScores[0]?.score || '---',
+      change: getScoreImprovement(),
+      icon: ChartBarIcon,
+      color: 'blue'
+    },
+    {
+      title: 'Active Disputes',
+      value: disputes.filter(d => d.status !== 'resolved').length,
+      icon: DocumentTextIcon,
+      color: 'green'
+    },
+    {
+      title: 'Documents',
+      value: documents.length,
+      icon: FolderIcon,
+      color: 'purple'
+    }
+  ];
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">Loading dashboard...</div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-          Welcome back, {user?.displayName || user?.email || 'User'}!
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">
-          Here's your CRM overview for today
-        </p>
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      <header className="p-4 bg-white shadow mb-6">
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-2xl font-bold text-gray-900">SpeedyCRM Dashboard</h1>
+        </div>
+      </header>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <StatCard
-          icon={Users}
-          label="Total Clients"
-          value={stats.totalClients}
-          color="bg-blue-600"
-          trend="+12% this month"
-        />
-        <StatCard
-          icon={FileText}
-          label="Active Disputes"
-          value={stats.activeDisputes}
-          color="bg-yellow-500"
-        />
-        <StatCard
-          icon={DollarSign}
-          label="Monthly Revenue"
-          value={`$${stats.monthlyRevenue.toLocaleString()}`}
-          color="bg-green-600"
-          trend="+8% vs last month"
-        />
-        <StatCard
-          icon={Bell}
-          label="Pending Tasks"
-          value={stats.pendingTasks}
-          color="bg-purple-600"
-        />
-      </div>
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-gradient-to-r from-blue-600 to-green-600 rounded-xl p-8 mb-8 text-white"
+        >
+          <h1 className="text-3xl font-bold mb-2">
+            Welcome back, {clientData?.firstName || user?.displayName || user?.email?.split('@')[0] || 'Client'}!
+          </h1>
+          <p className="text-xl opacity-90">
+            Track your credit repair journey and monitor your progress
+          </p>
+          {getScoreImprovement() > 0 && (
+            <div className="mt-4 inline-flex items-center bg-white/20 backdrop-blur rounded-lg px-4 py-2">
+              <ArrowTrendingUpIcon className="h-5 w-5 mr-2" />
+              <span>Your score improved by {getScoreImprovement()} points!</span>
+            </div>
+          )}
+        </motion.div>
 
-      {/* Quick Actions */}
-      <div className="mb-8">
-        <h2 className="text-xl font-bold mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {quickActions.map((action, index) => (
-            <button
-              key={index}
-              onClick={() => window.location.href = action.href}
-              className={`${action.color} text-white p-4 rounded-lg text-center hover:opacity-90 transition-opacity`}
+        <div className="grid grid-cols-2 gap-4 mb-8">
+          {quickActions.map((action) => (
+            <a
+              key={action.label}
+              href={action.href}
+              className={`rounded-lg p-4 text-white font-semibold text-center shadow transition-colors ${action.color} hover:opacity-90`}
             >
-              <span className="font-medium">{action.label}</span>
-            </button>
+              {action.label}
+            </a>
           ))}
         </div>
-      </div>
 
-      {/* Recent Activity and Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Activity */}
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-          <h2 className="text-xl font-bold mb-4 flex items-center">
-            <AlertCircle className="w-5 h-5 mr-2" />
-            Recent Activity
-          </h2>
-          <div className="space-y-3">
-            {recentActivity.length === 0 ? (
-              <p className="text-gray-500">No recent activity</p>
-            ) : (
-              recentActivity.map((activity) => (
-                <div key={activity.id} className="flex items-start space-x-3 pb-3 border-b last:border-0">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">
-                      {activity.type}: {activity.name || activity.email || 'Unknown'}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {activity.createdAt ? new Date(activity.createdAt.seconds * 1000).toLocaleString() : 'Just now'}
-                    </p>
-                  </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          {stats.map((stat, index) => (
+            <motion.div
+              key={stat.title}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+              className="bg-white rounded-xl p-6 shadow-lg"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 rounded-lg bg-blue-100">
+                  <stat.icon className="h-6 w-6 text-blue-600" />
                 </div>
-              ))
-            )}
-          </div>
+                {stat.change > 0 && (
+                  <span className="text-green-600 text-sm font-semibold">
+                    +{stat.change}
+                  </span>
+                )}
+              </div>
+              <div className="text-2xl font-bold text-gray-900 mb-1">
+                {stat.value}
+              </div>
+              <div className="text-sm text-gray-600">
+                {stat.title}
+              </div>
+            </motion.div>
+          ))}
         </div>
 
-        {/* Performance Chart Placeholder */}
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-          <h2 className="text-xl font-bold mb-4 flex items-center">
-            <BarChart3 className="w-5 h-5 mr-2" />
-            Performance Overview
-          </h2>
-          <div className="h-64 flex items-center justify-center text-gray-400">
-            <div className="text-center">
-              <BarChart3 className="w-16 h-16 mx-auto mb-2" />
-              <p>Chart visualization coming soon</p>
-            </div>
-          </div>
+        <div className="mb-6 bg-white rounded-lg shadow p-6">
+          <span className="font-semibold text-gray-700">Credit Score:</span> 
+          <span className="text-xl font-bold text-blue-700 ml-2">
+            {score ?? 'N/A'}
+          </span>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-semibold mb-2 text-gray-800">Recent Activity</h2>
+          {activity.length === 0 ? (
+            <div className="text-gray-500">No recent activity.</div>
+          ) : (
+            <ul className="space-y-2">
+              {activity.map((item, i) => (
+                <li key={i} className="text-gray-700">
+                  {item.type === 'dispute' ? `Dispute: ${item.status}` : `Document: ${item.name}`}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
     </div>
