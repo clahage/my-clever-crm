@@ -44,28 +44,38 @@ const ClientDashboard = () => {
       where('clientEmail', '==', user.email),
       orderBy('date', 'desc')
     );
-    
-    const unsubscribeScores = onSnapshot(scoresQuery, (snapshot) => {
-      const scoresData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setCreditScores(scoresData);
-    });
-
+    const unsubscribeScores = onSnapshot(scoresQuery, 
+      (snapshot) => {
+        const scoresData = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setCreditScores(scoresData);
+      },
+      (error) => {
+        console.log('Scores collection not ready:', error);
+        setCreditScores([]);
+      }
+    );
+  
     const disputesQuery = query(
       collection(db, 'disputeLetters'),
       where('recipientEmail', '==', user.email),
       orderBy('createdAt', 'desc')
     );
-    
-    const unsubscribeDisputes = onSnapshot(disputesQuery, (snapshot) => {
-      const disputesData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setDisputes(disputesData);
-    });
+    const unsubscribeDisputes = onSnapshot(disputesQuery, 
+      (snapshot) => {
+        const disputesData = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setDisputes(disputesData);
+      },
+      (error) => {
+        console.log('Disputes collection not ready:', error);
+        setDisputes([]);
+      }
+    );
 
     loadClientData();
     setLoading(false);
@@ -104,7 +114,7 @@ const ClientDashboard = () => {
       color: 'purple'
     }
   ];
-
+  
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -135,35 +145,32 @@ const ClientDashboard = () => {
       </motion.div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        {stats.map((stat, index) => {
-          const Icon = stat.icon;
-          return (
-            <motion.div
-              key={stat.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 rounded-lg bg-${stat.color}-100 dark:bg-${stat.color}-900/30`}>
-                  <Icon className={`h-6 w-6 text-${stat.color}-600 dark:text-${stat.color}-400`} />
-                </div>
-                {stat.change > 0 && (
-                  <span className="text-green-600 text-sm font-semibold">
-                    +{stat.change}
-                  </span>
-                )}
+        {stats.map((stat, index) => (
+          <motion.div
+            key={stat.title}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1 }}
+            className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 rounded-lg bg-blue-100">
+                <stat.icon className="h-6 w-6 text-blue-600" />
               </div>
-              <div className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
-                {stat.value}
-              </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                {stat.title}
-              </div>
-            </motion.div>
-          );
-        })}
+              {stat.change > 0 && (
+                <span className="text-green-600 text-sm font-semibold">
+                  +{stat.change}
+                </span>
+              )}
+            </div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
+              {stat.value}
+            </div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              {stat.title}
+            </div>
+          </motion.div>
+        ))}
       </div>
 
       <motion.div
@@ -186,12 +193,16 @@ const ClientDashboard = () => {
               <div key={dispute.id} className="flex items-start space-x-3">
                 <DocumentTextIcon className="h-5 w-5 text-blue-600 mt-1" />
                 <div className="flex-1">
-                  <p className="font-medium">Dispute Letter Sent</p>
-                  <p className="text-sm text-gray-600">To {dispute.bureau}</p>
+                  <p className="text-gray-700 dark:text-gray-300">
+                    A dispute letter was sent to {dispute.bureau} with status: {dispute.status}
+                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-500">
+                    {new Date(dispute.createdAt.toDate()).toLocaleDateString()}
+                  </p>
                 </div>
               </div>
             ))
-          }
+          )}
         </div>
       </motion.div>
     </div>

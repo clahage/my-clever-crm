@@ -4,13 +4,16 @@ import { useAuth } from "../contexts/AuthContext";
 import { navigation } from "./navConfig";
 import BrandLogo from "../components/BrandLogo";
 import HotLeadsAlert from '../components/HotLeadsAlert';
-import { Moon, Sun } from 'lucide-react';
+import { Moon, Sun, Menu, X } from 'lucide-react';
 
 export default function ProtectedLayout() {
   console.log('[ProtectedLayout] Rendering layout, current path:', window.location.pathname);
   const { user } = useAuth();
 
-  // Simple local state for theme - no context needed for now
+  // Mobile menu state
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Theme state
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('theme');
     return saved === 'dark';
@@ -35,21 +38,64 @@ export default function ProtectedLayout() {
      ${isActive ? "bg-blue-600 text-white" : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"}`;
 
   return (
-    <div className="flex h-screen bg-white dark:bg-gray-900">
-      {/* Sidebar */}
-      <aside className="h-screen sticky top-0 bg-white dark:bg-gray-800 border-r dark:border-gray-700 p-4 space-y-4 overflow-y-auto flex flex-col">
-        <BrandLogo variant="admin" theme={isDarkMode ? 'dark' : 'light'} style={{height:40}} />
+    <div className="flex h-screen bg-white dark:bg-gray-900 relative">
+      {/* Mobile Menu Button */}
+      <button
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        className="md:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-white dark:bg-gray-800 shadow-lg"
+      >
+        {isMobileMenuOpen ? (
+          <X className="h-6 w-6 text-gray-700 dark:text-gray-300" />
+        ) : (
+          <Menu className="h-6 w-6 text-gray-700 dark:text-gray-300" />
+        )}
+      </button>
+
+      {/* Mobile Overlay */}
+      {isMobileMenuOpen && (
+        <div
+          className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Sidebar - Hidden on mobile by default, slides in when open */}
+      <aside className={`
+        fixed md:sticky top-0 left-0 h-screen bg-white dark:bg-gray-800 border-r dark:border-gray-700
+        p-4 space-y-4 overflow-y-auto flex flex-col z-40
+        transition-transform duration-300 ease-in-out
+        w-64 md:w-auto
+        ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+      `}>
+        {/* Logo - Add padding on mobile to avoid menu button */}
+        <div className="mt-12 md:mt-0">
+          <BrandLogo variant="admin" theme={isDarkMode ? 'dark' : 'light'} style={{height:40}} />
+        </div>
+
         <nav className="space-y-1 flex-1">
           {navigation
             .filter(item => !item.requiresIdiq || (user && user.claims && user.claims.idiq))
-            .map((item) => (
-              <NavLink key={item.href} to={item.href} className={linkClass} end={item.href === "/dashboard"}>
-                {item.icon ? <item.icon className="h-5 w-5" /> : null}
-                <span>{item.name}</span>
+            .map(({ name, href, icon: Icon }) => (
+              <NavLink
+                key={href}
+                to={href}
+                className={linkClass}
+                end={href === "/dashboard"}
+                onClick={() => setIsMobileMenuOpen(false)} // Close menu on mobile after clicking
+              >
+                {Icon ? <Icon className="h-5 w-5" /> : null}
+                <span>{name}</span>
               </NavLink>
             ))}
-          <NavLink to="/logout" className={linkClass}>Logout</NavLink>
+          <NavLink
+            to="/logout"
+            className={linkClass}
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            Logout
+          </NavLink>
         </nav>
+
         {/* Theme Toggle */}
         <div className="pt-4 mt-auto border-t border-gray-200 dark:border-gray-700">
           <button
@@ -69,9 +115,11 @@ export default function ProtectedLayout() {
           </button>
         </div>
       </aside>
-      {/* Main content */}
-      <main className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-900">
-        <div className="p-6">
+
+      {/* Main content - Full width on mobile, margin-left on desktop */}
+      <main className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-900 w-full">
+        {/* Add padding-top on mobile for menu button */}
+        <div className="p-6 pt-16 md:pt-6">
           <HotLeadsAlert />
           <Outlet />
         </div>

@@ -34,7 +34,9 @@ import ContactReports from './components/ContactReports';
 import BusinessCredit from './pages/BusinessCredit';
 import Referrals from './pages/Referrals';
 import Learn from './pages/Learn';
-import Automation from './pages/Automation';
+import Automation from './pages/Automation'; // Added the missing import for Automation
+
+import ClientPortal from './pages/ClientPortal';
 
 function App() {
   console.log('App.jsx is rendering');
@@ -84,6 +86,9 @@ function App() {
                 <Route path="learn" element={<Learn />} />
                 <Route path="automation" element={<Automation />} />
               </Route>
+
+              {/* Client Portal Routes */}
+              <Route path="/client/*" element={<ClientPortal />} />
             </Routes>
           </BrowserRouter>
         </AuthProvider>
