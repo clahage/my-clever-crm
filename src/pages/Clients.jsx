@@ -48,7 +48,10 @@ export default function Clients() {
           <Users className="w-8 h-8" />
           Clients Management
         </h1>
-        <button className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-2">
+        <button 
+          onClick={() => alert('Add Client feature coming soon - will connect to /add-client route')}
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-2"
+        >
           <UserPlus className="w-4 h-4" />
           Add New Client
         </button>

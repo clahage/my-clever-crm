@@ -186,6 +186,12 @@ export const navigation = [
     current: false
   },
   {
+    name: 'Client View (Demo)',
+    href: '/client',
+    icon: UserCheck,
+    current: false
+  },
+  {
     name: 'Learn',
     href: '/learn',
     icon: BookOpen,
