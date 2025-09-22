@@ -19,11 +19,11 @@ const ClientLayout = ({ children }) => {
   const { user, logout } = useAuth();
   
   const navigation = [
-    { name: 'Dashboard', href: '/client-portal', icon: HomeIcon },
-    { name: 'My Credit Scores', href: '/client-portal/scores', icon: ChartBarIcon },
-    { name: 'Dispute Status', href: '/client-portal/disputes', icon: DocumentTextIcon },
-    { name: 'Documents', href: '/client-portal/documents', icon: FolderIcon },
-    { name: 'Messages', href: '/client-portal/messages', icon: ChatBubbleLeftRightIcon },
+    { name: 'Dashboard', href: '/client', icon: HomeIcon },
+    { name: 'My Credit Scores', href: '/client/scores', icon: ChartBarIcon },
+    { name: 'Dispute Status', href: '/client/disputes', icon: DocumentTextIcon },
+    { name: 'Documents', href: '/client/documents', icon: FolderIcon },
+    { name: 'Messages', href: '/client/messages', icon: ChatBubbleLeftRightIcon },
   ];
   
   return (

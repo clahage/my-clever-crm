@@ -11,10 +11,10 @@ import {
 } from '@heroicons/react/24/outline';
 
 const quickActions = [
-  { label: 'Credit Scores', href: '/client/reports', color: 'bg-blue-600' },
-  { label: 'Dispute Letters', href: '/client/disputes', color: 'bg-yellow-500' },
-  { label: 'Client Management', href: '/contacts', color: 'bg-green-600' },
-  { label: 'Client Portal', href: '/client', color: 'bg-purple-600' },
+  { label: 'Credit Scores', href: '/reports', color: 'bg-blue-600' },
+  { label: 'Dispute Letters', href: '/disputes', color: 'bg-yellow-500' },
+  { label: 'Client Management', href: '/clients', color: 'bg-green-600' },
+  { label: 'Progress Portal', href: '/progress', color: 'bg-purple-600' },
 ];
 
 export default function Dashboard() {
