@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 console.log('📍 OpenAI page loaded at:', new Date().toISOString());
 import { collection, query, where, orderBy, limit, onSnapshot } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db } from '../firebaseConfig';
+import QuickContactConverter from '../components/QuickContactConverter';
 
 export default function OpenAI() {
   const [recentCalls, setRecentCalls] = useState([]);
@@ -15,14 +16,14 @@ export default function OpenAI() {
       orderBy('processedAt', 'desc'),
       limit(20)
     );
-    
+
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const calls = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
       setRecentCalls(calls);
-      
+
       // Calculate stats
       const totals = calls.reduce((acc, call) => {
         acc.total++;
@@ -31,7 +32,7 @@ export default function OpenAI() {
         else acc.cold++;
         return acc;
       }, { total: 0, hot: 0, warm: 0, cold: 0 });
-      
+
       setStats(totals);
     });
 
@@ -46,7 +47,7 @@ export default function OpenAI() {
         const callTime = new Date(latestCall.timestamp);
         const now = new Date();
         const hoursSinceCall = (now - callTime) / (1000 * 60 * 60);
-        
+
         console.log('🔍 AI RECEPTIONIST CHECK:');
         console.log('Latest call:', latestCall);
         console.log('Hours since last call:', hoursSinceCall);
@@ -59,7 +60,7 @@ export default function OpenAI() {
   return (
     <div className="max-w-7xl mx-auto py-8 px-4">
       <h1 className="text-3xl font-bold mb-6">AI Receptionist Dashboard</h1>
-      
+
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-white rounded-lg shadow p-6">
@@ -98,31 +99,33 @@ export default function OpenAI() {
                   navigator.clipboard.writeText(webhookUrl);
                   alert('Copied to clipboard!');
                 }}
-                className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
               >
                 Copy
               </button>
             </div>
-            <p className="text-xs text-gray-600 mt-1">
-              This is already configured in your MyAIFrontDesk account
-            </p>
           </div>
-          
-          <div className="bg-green-50 border border-green-200 rounded p-4">
-            <p className="text-sm text-green-800">
-              ✅ Your AI Receptionist is connected and processing calls automatically
-            </p>
+          <div className="bg-green-50 p-3 rounded border border-green-200 text-sm text-green-800">
+            ✅ Your AI Receptionist is connected and processing calls automatically
           </div>
         </div>
       </div>
 
-      {/* Recent Calls */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-bold mb-4 text-blue-700">Recent AI-Processed Calls</h2>
+      {/* Unprocessed AI Calls */}
+      <div className="mb-8">
+        <h2 className="text-xl font-bold mb-4">Unprocessed AI Calls - Convert to Contacts</h2>
+        <QuickContactConverter />
+      </div>
+
+      {/* Recent AI-Processed Calls */}
+      <div className="bg-white rounded-lg shadow">
+        <div className="px-6 py-4 border-b">
+          <h2 className="text-xl font-bold">Recent AI-Processed Calls</h2>
+        </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b">
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
                 <th className="text-left p-2">Time</th>
                 <th className="text-left p-2">Caller</th>
                 <th className="text-left p-2">Score</th>
@@ -135,14 +138,14 @@ export default function OpenAI() {
             <tbody>
               {recentCalls.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="text-center p-8 text-gray-500">
+                  <td colSpan="7" className="text-center py-8 text-gray-500">
                     No calls yet. Waiting for MyAIFrontDesk to send data...
                   </td>
                 </tr>
               ) : (
-                recentCalls.map(call => (
+                recentCalls.map((call) => (
                   <tr key={call.id} className="border-b hover:bg-gray-50">
-                    <td className="p-2">
+                    <td className="p-2 text-sm">
                       {call.processedAt ? new Date(call.processedAt).toLocaleString() : 'N/A'}
                     </td>
                     <td className="p-2">{call.username || 'Unknown'}</td>
@@ -177,7 +180,6 @@ export default function OpenAI() {
             </tbody>
           </table>
         </div>
-        
         {/* Scoring Breakdown Legend */}
         <div className="mt-6 p-4 bg-gray-50 rounded">
           <h3 className="font-bold mb-2">AI Scoring Breakdown</h3>

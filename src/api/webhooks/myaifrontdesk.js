@@ -43,67 +43,7 @@ module.exports = async function handler(req, res) {
     };
   }
 
-  // Find existing contact by phone
-  let contactId = null;
-  let contactDoc = null;
-  try {
-    const contactsRef = collection(db, 'contacts');
-    const q = query(contactsRef, where('phone', '==', phone));
-    const snapshot = await getDocs(q);
-    if (!snapshot.empty) {
-      contactDoc = snapshot.docs[0];
-      contactId = contactDoc.id;
-    }
-  } catch (err) {
-    return res.status(500).json({ error: 'Error searching contacts', details: err.message });
-  }
-
-  // Prepare contact data (all enhanced fields + AI scoring)
-  const contactData = {
-    firstName: data.username || '',
-    phone,
-    source: 'AI Receptionist',
-    category: 'Lead',
-    urgencyLevel: aiScore.urgencyLevel || 'Medium',
-    timeline: 'ASAP',
-    responseStatus: 'Pending',
-    notes: data.summary || '',
-    conversationNotes: data.transcript || '',
-    leadScore: aiScore.leadScore,
-    painPoints: aiScore.painPoints,
-    conversionProbability: aiScore.conversionProbability,
-    aiCategory: aiScore.urgencyLevel === 'high' ? 'hot_lead' : 'standard_lead',
-    platformResponseTime: '',
-    budgetMentioned: '',
-    streetAddress: '',
-    city: '',
-    state: '',
-    zipCode: '',
-    country: 'United States',
-    email: '',
-    prefix: '',
-    middleName: '',
-    lastName: '',
-    suffix: '',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-
-  // Create or update contact
-  try {
-    if (contactId) {
-      await updateDoc(doc(db, 'contacts', contactId), {
-        ...contactData,
-        updatedAt: new Date().toISOString(),
-      });
-    } else {
-      await addDoc(collection(db, 'contacts'), contactData);
-    }
-  } catch (err) {
-    return res.status(500).json({ error: 'Error saving contact', details: err.message });
-  }
-
-  // Store call data in aiReceptionistCalls collection (include scoring breakdown)
+  // Store call data in aiReceptionistCalls collection FIRST (with processed: false)
   try {
     await addDoc(collection(db, 'aiReceptionistCalls'), {
       ...data,
@@ -115,11 +55,16 @@ module.exports = async function handler(req, res) {
       aiCategory: aiScore.urgencyLevel === 'high' ? 'hot_lead' : 'standard_lead',
       scoringBreakdown: aiScore.scoringBreakdown,
       processedAt: new Date().toISOString(),
+      processed: false,  // ADD THIS - marks call as unprocessed for QuickContactConverter
       openAICost,
     });
   } catch (err) {
     return res.status(500).json({ error: 'Error saving call data', details: err.message });
   }
+
+  // Note: We're NOT creating contacts automatically anymore
+  // The QuickContactConverter will handle converting calls to contacts
+  // This prevents duplicates and gives users control over contact creation
 
   // Real-time dashboard notification for high-scoring leads
   if (aiScore.leadScore >= 8) {
@@ -137,8 +82,15 @@ module.exports = async function handler(req, res) {
       });
     } catch (err) {
       // Notification error, do not block
+      console.log('Notification error (non-blocking):', err.message);
     }
   }
 
-  return res.status(200).json({ success: true, leadScore: aiScore.leadScore, openAICost, scoringBreakdown: aiScore.scoringBreakdown });
+  return res.status(200).json({ 
+    success: true, 
+    leadScore: aiScore.leadScore, 
+    openAICost, 
+    scoringBreakdown: aiScore.scoringBreakdown,
+    message: 'Call saved to aiReceptionistCalls for processing'
+  });
 };
