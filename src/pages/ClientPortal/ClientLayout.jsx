@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   HomeIcon, 
@@ -9,14 +9,18 @@ import {
   ChatBubbleLeftRightIcon,
   Bars3Icon,
   XMarkIcon,
-  ArrowRightOnRectangleIcon
+  ArrowRightOnRectangleIcon,
+  ArrowLeftIcon
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../../contexts/AuthContext';
+import { signOut } from 'firebase/auth';
+import { auth } from '../../firebaseConfig';
 
 const ClientLayout = ({ children }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
-  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   
   const navigation = [
     { name: 'Dashboard', href: '/client', icon: HomeIcon },
@@ -25,6 +29,19 @@ const ClientLayout = ({ children }) => {
     { name: 'Documents', href: '/client/documents', icon: FolderIcon },
     { name: 'Messages', href: '/client/messages', icon: ChatBubbleLeftRightIcon },
   ];
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      navigate('/login');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
+  const handleExitToAdmin = () => {
+    navigate('/dashboard');
+  };
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 dark:from-gray-900 dark:to-gray-800">
@@ -54,7 +71,7 @@ const ClientLayout = ({ children }) => {
                   <nav className="mt-5 px-2 space-y-1">
                     {navigation.map((item) => {
                       const Icon = item.icon;
-                      const isActive = location.pathname.startsWith(item.href);
+                      const isActive = location.pathname === item.href;
                       return (
                         <Link
                           key={item.name}
@@ -90,7 +107,7 @@ const ClientLayout = ({ children }) => {
               <nav className="mt-5 flex-1 px-2 space-y-1">
                 {navigation.map((item) => {
                   const Icon = item.icon;
-                  const isActive = location.pathname.startsWith(item.href);
+                  const isActive = location.pathname === item.href;
                   return (
                     <Link
                       key={item.name}
@@ -108,9 +125,21 @@ const ClientLayout = ({ children }) => {
                 })}
               </nav>
             </div>
-            <div className="flex-shrink-0 px-4 py-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex-shrink-0 px-4 py-4 space-y-2 border-t border-gray-200 dark:border-gray-700">
+              {/* Exit to Admin Button - Only show for admin users */}
+              {user && (
+                <button
+                  onClick={handleExitToAdmin}
+                  className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400 w-full"
+                >
+                  <ArrowLeftIcon className="h-5 w-5" />
+                  <span className="font-medium">Exit to Admin View</span>
+                </button>
+              )}
+              
+              {/* Logout Button */}
               <button
-                onClick={logout}
+                onClick={handleLogout}
                 className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 w-full"
               >
                 <ArrowRightOnRectangleIcon className="h-5 w-5" />
