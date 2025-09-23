@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { collection, onSnapshot, query, orderBy, where } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import AddContactModal from '../components/AddContactModal';
-import { UserPlus, Search, Filter, Users, UserCheck, Building, Briefcase, Phone } from 'lucide-react';
+import ImportContactsModal from '../components/ImportContactsModal';
+import { UserPlus, Search, Filter, Users, UserCheck, Building, Briefcase, Phone, Upload } from 'lucide-react';
 
 const Contacts = () => {
   const [contacts, setContacts] = useState([]);
@@ -10,6 +11,7 @@ const Contacts = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [editingContact, setEditingContact] = useState(null);
 
   // Contact type colors for visual distinction
@@ -107,13 +109,22 @@ const Contacts = () => {
               All contacts across categories • Total: {contacts.length} contacts
             </p>
           </div>
-          <button
-            onClick={handleAddContact}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-          >
-            <UserPlus className="w-4 h-4" />
-            Add New Contact
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleAddContact}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            >
+              <UserPlus className="w-4 h-4" />
+              Add New Contact
+            </button>
+            <button
+              onClick={() => setShowImportModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+            >
+              <Upload className="w-4 h-4" />
+              Import CSV
+            </button>
+          </div>
         </div>
 
         {/* Filters Bar */}
@@ -281,6 +292,13 @@ const Contacts = () => {
           existingContacts={contacts}
         />
       )}
+
+      {/* Import CSV Modal */}
+      <ImportContactsModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onImport={() => window.location.reload()}
+      />
     </div>
   );
 };
