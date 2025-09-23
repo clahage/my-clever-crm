@@ -172,7 +172,7 @@ export default function Dashboard() {
           className="bg-gradient-to-r from-blue-600 to-green-600 rounded-xl p-8 mb-8 text-white"
         >
           <h1 className="text-3xl font-bold mb-2">
-            Welcome back, {clientData?.firstName || user?.displayName || user?.email?.split('@')[0] || 'Client'}!
+            Welcome back, {user?.email?.split('@')[0] || 'Administrator'}!
           </h1>
           <p className="text-xl opacity-90">
             Track your credit repair journey and monitor your progress
