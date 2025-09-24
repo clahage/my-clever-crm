@@ -1,309 +1,467 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, orderBy, onSnapshot, deleteDoc, doc, updateDoc } from 'firebase/firestore';
-import { db } from '../firebaseConfig';
-import { UserPlus, Search, ChevronRight, Phone, Mail, Clock, TrendingUp, AlertCircle } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { collection, query, where, onSnapshot, doc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../config/firebase';
+import { Phone, Mail, Calendar, TrendingUp, Star, Clock, Filter, Search, ChevronDown, MoreVertical } from 'lucide-react';
 
-export default function Leads() {
+const Leads = () => {
   const [leads, setLeads] = useState([]);
+  const [filteredLeads, setFilteredLeads] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterScore, setFilterScore] = useState('all');
-  const [converting, setConverting] = useState(null);
-  const navigate = useNavigate();
-
-  // Lead score colors (matching your contact system)
-  const scoreColors = {
-    6: { bg: 'bg-red-100', text: 'text-red-800', label: 'Hot' },
-    5: { bg: 'bg-orange-100', text: 'text-orange-800', label: 'Warm' },
-    4: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Interested' },
-    3: { bg: 'bg-green-100', text: 'text-green-800', label: 'Neutral' },
-    2: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Cool' },
-    1: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Cold' }
-  };
+  const [sortBy, setSortBy] = useState('date');
+  const [selectedLeads, setSelectedLeads] = useState(new Set());
 
   useEffect(() => {
-    // Query for leads (both 'lead' and 'Lead' for compatibility)
+    // Query for contacts with category = 'lead'
+    console.log('Setting up leads query...');
     const q = query(
-      collection(db, 'contacts'), 
-      orderBy('createdAt', 'desc')
+      collection(db, 'contacts'),
+      where('category', '==', 'lead')
     );
-    
+
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const leadsData = snapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(contact => 
-          contact.type?.toLowerCase() === 'lead' || 
-          contact.category?.toLowerCase() === 'lead'
-        );
+      const leadsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      
+      console.log('Leads loaded:', leadsData.length);
       setLeads(leadsData);
+      setLoading(false);
+    }, (error) => {
+      console.error('Error loading leads:', error);
       setLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
 
-  const handleConvertToClient = async (lead) => {
-    if (!window.confirm(`Convert ${lead.firstName} ${lead.lastName} to a client?`)) {
-      return;
+  // Filter and search effect
+  useEffect(() => {
+    let filtered = [...leads];
+
+    // Apply status filter
+    if (filter !== 'all') {
+      filtered = filtered.filter(lead => lead.status === filter);
     }
 
-    setConverting(lead.id);
-    try {
-      await updateDoc(doc(db, 'contacts', lead.id), {
-        type: 'Client',
-        category: 'Client',
-        conversionDate: new Date(),
-        previousType: 'Lead',
-        previousLeadScore: lead.leadScore,
-        updatedAt: new Date(),
-        notes: `${lead.notes || ''}\n\nConverted from Lead to Client on ${new Date().toLocaleDateString()}`
-      });
+    // Apply search
+    if (searchTerm) {
+      const search = searchTerm.toLowerCase();
+      filtered = filtered.filter(lead => 
+        lead.name?.toLowerCase().includes(search) ||
+        lead.email?.toLowerCase().includes(search) ||
+        lead.phone?.includes(search) ||
+        lead.company?.toLowerCase().includes(search)
+      );
+    }
 
-      // Show success message
-      alert(`Successfully converted ${lead.firstName} ${lead.lastName} to a client!`);
-      
-      // Optional: Navigate to clients page
-      setTimeout(() => {
-        navigate('/clients');
-      }, 1000);
+    // Apply sorting
+    filtered.sort((a, b) => {
+      switch(sortBy) {
+        case 'score':
+          return (b.leadScore || 0) - (a.leadScore || 0);
+        case 'name':
+          return (a.name || '').localeCompare(b.name || '');
+        case 'date':
+        default:
+          const dateA = a.createdAt?.toDate?.() || new Date(0);
+          const dateB = b.createdAt?.toDate?.() || new Date(0);
+          return dateB - dateA;
+      }
+    });
+
+    setFilteredLeads(filtered);
+  }, [leads, filter, searchTerm, sortBy]);
+
+  // Convert lead to client
+  const convertToClient = async (leadId) => {
+    try {
+      await updateDoc(doc(db, 'contacts', leadId), {
+        category: 'client',
+        status: 'active',
+        convertedAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+      console.log('Lead converted to client:', leadId);
     } catch (error) {
       console.error('Error converting lead:', error);
-      alert('Failed to convert lead to client');
-    } finally {
-      setConverting(null);
     }
   };
 
-  const handleDelete = async (id, name) => {
-    if (window.confirm(`Are you sure you want to delete ${name}?`)) {
+  // Update lead status
+  const updateLeadStatus = async (leadId, newStatus) => {
+    try {
+      await updateDoc(doc(db, 'contacts', leadId), {
+        status: newStatus,
+        updatedAt: serverTimestamp()
+      });
+      console.log('Lead status updated:', leadId, newStatus);
+    } catch (error) {
+      console.error('Error updating lead status:', error);
+    }
+  };
+
+  // Delete lead
+  const deleteLead = async (leadId) => {
+    if (window.confirm('Are you sure you want to delete this lead?')) {
       try {
-        await deleteDoc(doc(db, 'contacts', id));
+        await deleteDoc(doc(db, 'contacts', leadId));
+        console.log('Lead deleted:', leadId);
       } catch (error) {
         console.error('Error deleting lead:', error);
-        alert('Failed to delete lead');
       }
     }
   };
 
-  const filteredLeads = leads.filter(lead => {
-    // Search filter
-    const matchesSearch = 
-      (lead.firstName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      (lead.lastName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      (lead.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      (lead.phone?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      (lead.company?.toLowerCase() || '').includes(searchTerm.toLowerCase());
+  // Format date
+  const formatDate = (timestamp) => {
+    if (!timestamp) return 'N/A';
+    try {
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      return date.toLocaleDateString();
+    } catch {
+      return 'N/A';
+    }
+  };
 
-    // Score filter
-    const matchesScore = 
-      filterScore === 'all' ||
-      (filterScore === 'hot' && lead.leadScore >= 5) ||
-      (filterScore === 'warm' && lead.leadScore >= 3 && lead.leadScore < 5) ||
-      (filterScore === 'cold' && lead.leadScore < 3);
+  // Get status color
+  const getStatusColor = (status) => {
+    switch(status) {
+      case 'hot': return 'bg-red-100 text-red-800 border-red-200';
+      case 'warm': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'cold': return 'bg-blue-100 text-blue-800 border-blue-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
 
-    return matchesSearch && matchesScore;
-  });
+  // Get score color
+  const getScoreColor = (score) => {
+    if (score >= 8) return 'text-red-600';
+    if (score >= 5) return 'text-yellow-600';
+    return 'text-gray-600';
+  };
+
+  // Toggle lead selection
+  const toggleLeadSelection = (leadId) => {
+    const newSelection = new Set(selectedLeads);
+    if (newSelection.has(leadId)) {
+      newSelection.delete(leadId);
+    } else {
+      newSelection.add(leadId);
+    }
+    setSelectedLeads(newSelection);
+  };
+
+  // Select all visible leads
+  const selectAllLeads = () => {
+    if (selectedLeads.size === filteredLeads.length) {
+      setSelectedLeads(new Set());
+    } else {
+      setSelectedLeads(new Set(filteredLeads.map(lead => lead.id)));
+    }
+  };
+
+  // Bulk actions
+  const performBulkAction = async (action) => {
+    const leadIds = Array.from(selectedLeads);
+    
+    switch(action) {
+      case 'convert':
+        for (const leadId of leadIds) {
+          await convertToClient(leadId);
+        }
+        break;
+      case 'hot':
+      case 'warm':
+      case 'cold':
+        for (const leadId of leadIds) {
+          await updateLeadStatus(leadId, action);
+        }
+        break;
+      case 'delete':
+        if (window.confirm(`Delete ${leadIds.length} leads?`)) {
+          for (const leadId of leadIds) {
+            await deleteDoc(doc(db, 'contacts', leadId));
+          }
+        }
+        break;
+    }
+    
+    setSelectedLeads(new Set());
+  };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Leads Management</h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">
-              {leads.length} total leads • Track and convert prospects
-            </p>
-          </div>
-          <button 
-            onClick={() => navigate('/contacts')}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-          >
-            <UserPlus className="w-4 h-4" />
-            Add New Lead
-          </button>
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Leads</h1>
+          <p className="text-gray-600 mt-1">
+            {filteredLeads.length} of {leads.length} leads
+          </p>
         </div>
+        
+        {/* Bulk Actions */}
+        {selectedLeads.size > 0 && (
+          <div className="flex gap-2">
+            <button
+              onClick={() => performBulkAction('convert')}
+              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+            >
+              Convert to Client ({selectedLeads.size})
+            </button>
+            <button
+              onClick={() => performBulkAction('delete')}
+              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+            >
+              Delete ({selectedLeads.size})
+            </button>
+          </div>
+        )}
+      </div>
 
-        {/* Filters */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            {/* Search */}
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+      {/* Filters Bar */}
+      <div className="bg-white rounded-lg shadow p-4">
+        <div className="flex flex-wrap gap-4 items-center">
+          {/* Search */}
+          <div className="flex-1 min-w-[250px]">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type="text"
-                placeholder="Search by name, email, phone, or company..."
+                placeholder="Search leads..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
+          </div>
 
-            {/* Score Filter */}
-            <div className="flex gap-2">
-              <button
-                onClick={() => setFilterScore('all')}
-                className={`px-4 py-2 rounded-lg transition ${
-                  filterScore === 'all' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300'
-                }`}
-              >
-                All Leads
-              </button>
-              <button
-                onClick={() => setFilterScore('hot')}
-                className={`px-4 py-2 rounded-lg transition ${
-                  filterScore === 'hot' 
-                    ? 'bg-red-600 text-white' 
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300'
-                }`}
-              >
-                Hot (5-6)
-              </button>
-              <button
-                onClick={() => setFilterScore('warm')}
-                className={`px-4 py-2 rounded-lg transition ${
-                  filterScore === 'warm' 
-                    ? 'bg-yellow-600 text-white' 
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300'
-                }`}
-              >
-                Warm (3-4)
-              </button>
-              <button
-                onClick={() => setFilterScore('cold')}
-                className={`px-4 py-2 rounded-lg transition ${
-                  filterScore === 'cold' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300'
-                }`}
-              >
-                Cold (1-2)
-              </button>
+          {/* Status Filter */}
+          <select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="all">All Status</option>
+            <option value="hot">Hot Leads</option>
+            <option value="warm">Warm Leads</option>
+            <option value="cold">Cold Leads</option>
+            <option value="new">New Leads</option>
+          </select>
+
+          {/* Sort By */}
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="date">Newest First</option>
+            <option value="score">Highest Score</option>
+            <option value="name">Name A-Z</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Total Leads</p>
+              <p className="text-2xl font-bold">{leads.length}</p>
+            </div>
+            <TrendingUp className="w-8 h-8 text-blue-600" />
+          </div>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Hot Leads</p>
+              <p className="text-2xl font-bold text-red-600">
+                {leads.filter(l => l.status === 'hot').length}
+              </p>
+            </div>
+            <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+              <div className="w-4 h-4 bg-red-600 rounded-full"></div>
             </div>
           </div>
         </div>
-
-        {/* Leads Grid */}
-        {filteredLeads.length === 0 ? (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-8 text-center">
-            <UserPlus className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500 dark:text-gray-400">
-              {searchTerm || filterScore !== 'all' 
-                ? 'No leads found matching your criteria' 
-                : 'No leads yet. Add your first lead to get started!'}
-            </p>
+        
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Warm Leads</p>
+              <p className="text-2xl font-bold text-yellow-600">
+                {leads.filter(l => l.status === 'warm').length}
+              </p>
+            </div>
+            <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
+              <div className="w-4 h-4 bg-yellow-600 rounded-full"></div>
+            </div>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredLeads.map((lead) => {
-              const score = lead.leadScore || 3;
-              const scoreInfo = scoreColors[score] || scoreColors[3];
-              
-              return (
-                <div key={lead.id} className="bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition-shadow">
-                  <div className="p-6">
-                    {/* Lead Header */}
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                          {lead.firstName} {lead.lastName}
-                        </h3>
-                        {lead.company && (
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {lead.company}
-                          </p>
-                        )}
-                      </div>
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${scoreInfo.bg} ${scoreInfo.text}`}>
-                        {scoreInfo.label}
-                      </span>
-                    </div>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Cold Leads</p>
+              <p className="text-2xl font-bold text-blue-600">
+                {leads.filter(l => l.status === 'cold').length}
+              </p>
+            </div>
+            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+              <div className="w-4 h-4 bg-blue-600 rounded-full"></div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-                    {/* Contact Info */}
-                    <div className="space-y-2 mb-4">
-                      {lead.email && (
-                        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                          <Mail className="w-4 h-4" />
-                          {lead.email}
-                        </div>
+      {/* Leads Table */}
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <table className="min-w-full">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-4 py-3 text-left">
+                <input
+                  type="checkbox"
+                  checked={selectedLeads.size === filteredLeads.length && filteredLeads.length > 0}
+                  onChange={selectAllLeads}
+                  className="rounded border-gray-300"
+                />
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Name
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Contact
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Score
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Status
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Source
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Created
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {filteredLeads.length === 0 ? (
+              <tr>
+                <td colSpan="8" className="px-4 py-8 text-center text-gray-500">
+                  No leads found. Adjust your filters or wait for new leads from the AI Receptionist.
+                </td>
+              </tr>
+            ) : (
+              filteredLeads.map((lead) => (
+                <tr key={lead.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-4">
+                    <input
+                      type="checkbox"
+                      checked={selectedLeads.has(lead.id)}
+                      onChange={() => toggleLeadSelection(lead.id)}
+                      className="rounded border-gray-300"
+                    />
+                  </td>
+                  <td className="px-4 py-4">
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {lead.name || 'Unknown'}
+                      </div>
+                      {lead.company && (
+                        <div className="text-sm text-gray-500">{lead.company}</div>
                       )}
+                    </div>
+                  </td>
+                  <td className="px-4 py-4">
+                    <div className="space-y-1">
                       {lead.phone && (
-                        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                          <Phone className="w-4 h-4" />
+                        <a 
+                          href={`tel:${lead.phone}`}
+                          className="flex items-center text-sm text-blue-600 hover:text-blue-800"
+                        >
+                          <Phone className="w-3 h-3 mr-1" />
                           {lead.phone}
-                        </div>
+                        </a>
                       )}
-                      <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                        <Clock className="w-4 h-4" />
-                        Added {new Date(lead.createdAt).toLocaleDateString()}
-                      </div>
-                    </div>
-
-                    {/* Source and Urgency */}
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {lead.source && (
-                        <span className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">
-                          {lead.source}
-                        </span>
-                      )}
-                      {lead.urgencyLevel && (
-                        <span className={`px-2 py-1 text-xs rounded ${
-                          lead.urgencyLevel === 'high' || lead.urgencyLevel === 'Critical' ? 'bg-red-100 text-red-800' :
-                          lead.urgencyLevel === 'medium' || lead.urgencyLevel === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-blue-100 text-blue-800'
-                        }`}>
-                          {lead.urgencyLevel}
-                        </span>
+                      {lead.email && (
+                        <a 
+                          href={`mailto:${lead.email}`}
+                          className="flex items-center text-sm text-blue-600 hover:text-blue-800"
+                        >
+                          <Mail className="w-3 h-3 mr-1" />
+                          {lead.email}
+                        </a>
                       )}
                     </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex gap-2">
+                  </td>
+                  <td className="px-4 py-4">
+                    <div className="flex items-center">
+                      <span className={`text-lg font-bold ${getScoreColor(lead.leadScore || 0)}`}>
+                        {lead.leadScore || 0}
+                      </span>
+                      <span className="text-sm text-gray-500 ml-1">/10</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-4">
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(lead.status || 'new')}`}>
+                      {lead.status || 'new'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-4">
+                    <span className="text-sm text-gray-600">
+                      {lead.source || 'Direct'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-4">
+                    <span className="text-sm text-gray-600">
+                      {formatDate(lead.createdAt)}
+                    </span>
+                  </td>
+                  <td className="px-4 py-4">
+                    <div className="flex items-center space-x-2">
                       <button
-                        onClick={() => handleConvertToClient(lead)}
-                        disabled={converting === lead.id}
-                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                        onClick={() => convertToClient(lead.id)}
+                        className="text-green-600 hover:text-green-800 text-sm"
                       >
-                        {converting === lead.id ? (
-                          <>Converting...</>
-                        ) : (
-                          <>
-                            <TrendingUp className="w-4 h-4" />
-                            Convert to Client
-                          </>
-                        )}
+                        Convert
                       </button>
+                      <span className="text-gray-300">|</span>
                       <button
-                        onClick={() => navigate(`/contacts?edit=${lead.id}`)}
-                        className="px-3 py-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-lg transition"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(lead.id, `${lead.firstName} ${lead.lastName}`)}
-                        className="px-3 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-gray-700 rounded-lg transition"
+                        onClick={() => deleteLead(lead.id)}
+                        className="text-red-600 hover:text-red-800 text-sm"
                       >
                         Delete
                       </button>
                     </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );
-}
+};
+
+export default Leads;
