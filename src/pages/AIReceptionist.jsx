@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { db } from '../config/firebase';
 import { collection, query, where, orderBy, onSnapshot, limit, doc, updateDoc } from 'firebase/firestore';
 import { Phone, Clock, TrendingUp, Users, AlertCircle, CheckCircle } from 'lucide-react';
-import QuickContactConverter from '../components/QuickContactConverter';
+// REMOVED: import QuickContactConverter from '../components/QuickContactConverter';
 import { processExistingCalls } from '../utils/processExistingCalls';
 import { fixProcessedField } from '../utils/fixProcessedField';
 import { fixAllCallerNames } from '../utils/fixAllCallerNames';
@@ -22,7 +22,6 @@ const AIReceptionist = () => {
   const [fixTestMessage, setFixTestMessage] = useState("");
   const [fixAllMessage, setFixAllMessage] = useState("");
   const [recentCalls, setRecentCalls] = useState([]);
-  const [unprocessedCalls, setUnprocessedCalls] = useState([]);
   const [processing, setProcessing] = useState(false);
   const [processingMessage, setProcessingMessage] = useState('');
   const [fixingFields, setFixingFields] = useState(false);
@@ -97,26 +96,9 @@ const AIReceptionist = () => {
       setRecentCalls(calls);
     });
 
-    // Listen to unprocessed calls
-    const unprocessedQ = query(
-      collection(db, 'aiReceptionistCalls'),
-      where('processed', '==', false),
-      orderBy('created_at', 'desc'),
-      limit(10)
-    );
-    
-    const unsubscribeUnprocessed = onSnapshot(unprocessedQ, (snapshot) => {
-      const calls = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setUnprocessedCalls(calls);
-    });
-
     return () => {
       unsubscribeStats();
       unsubscribeProcessed();
-      unsubscribeUnprocessed();
     };
   }, []);
 
@@ -286,18 +268,14 @@ const AIReceptionist = () => {
         )}
       </div>
 
-      {/* Unprocessed AI Calls */}
-      {unprocessedCalls.length > 0 && (
-        <div className="mb-8">
-          <h2 className="text-xl font-bold mb-4">Unprocessed AI Calls - Convert to Contacts</h2>
-          <QuickContactConverter />
-        </div>
-      )}
+      {/* REMOVED: Unprocessed AI Calls section with QuickContactConverter */}
+      {/* The automated pipeline handles conversion automatically */}
 
       {/* Recent AI-Processed Calls */}
       <div className="bg-white rounded-lg shadow">
         <div className="px-6 py-4 border-b">
           <h2 className="text-xl font-bold">Recent AI-Processed Calls</h2>
+          <p className="text-sm text-gray-500 mt-1">Calls are automatically converted to contacts by the pipeline</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -316,7 +294,7 @@ const AIReceptionist = () => {
               {recentCalls.length === 0 ? (
                 <tr>
                   <td colSpan="7" className="text-center py-8 text-gray-500">
-                    No processed calls yet. Click "Process Historical Calls" to analyze existing calls.
+                    No processed calls yet. Calls will appear here after AI analysis.
                   </td>
                 </tr>
               ) : (

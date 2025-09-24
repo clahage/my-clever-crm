@@ -1,93 +1,83 @@
-// Webhook receiver for MyAIFrontDesk
-// Receives POST requests with AI receptionist call data
-// Uses Firebase config from src/firebaseConfig.js
+// Updated webhook handler for MyAIFrontDesk with automated pipeline integration
+import { db } from '../../config/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { processAICallData } from '../../services/aiDataProcessor';
 
-const { db } = require('../../firebaseConfig');
-const { collection, addDoc, updateDoc, getDocs, query, where, doc } = require('firebase/firestore');
-const { processAICallData } = require('../../services/aiDataProcessor.js');
-
-module.exports = async function handler(req, res) {
+// Webhook handler for MyAIFrontDesk
+export default async function handler(req, res) {
+  // Only accept POST requests
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const data = req.body;
-  // Validate incoming data
-  const requiredFields = [
-    'username', 'timestamp', 'caller', 'transcript', 'sentiment', 'duration', 'satisfaction', 'summary', 'texts_sent'
-  ];
-  for (const field of requiredFields) {
-    if (!(field in data)) {
-      return res.status(400).json({ error: `Missing field: ${field}` });
-    }
-  }
-
-  // Parse caller phone number
-  const phone = data.caller.replace(/[^\d+]/g, '');
-
-  // Call AI lead scoring service
-  let aiScore, openAICost = 0;
   try {
-    aiScore = await aiLeadScoring(data);
-    openAICost = aiScore?.cost || 0;
-  } catch (err) {
-    aiScore = {
-      leadScore: 1,
-      painPoints: [],
-      urgencyLevel: 'medium',
-      conversionProbability: 10,
-      aiCategory: 'standard_lead',
-      scoringBreakdown: {},
-      fallback: true,
-      cost: 0
-    };
-  }
-
-  // Enrich raw webhook data using aiDataProcessor
-  try {
-    const enrichedData = processAICallData({
-      ...data,
-      phone
-    });
-    await addDoc(collection(db, 'aiReceptionistCalls'), {
+    console.log('Received MyAIFrontDesk webhook:', req.body);
+    
+    // Process the raw webhook data through AI analysis
+    const enrichedData = processAICallData(req.body);
+    
+    // Add to aiReceptionistCalls collection
+    // DO NOT set convertedToContact - let the pipeline handle it
+    const callData = {
       ...enrichedData,
-      processedAt: new Date().toISOString(),
+      // Original webhook data
+      username: req.body.username || '',
+      caller: req.body.caller || '',
+      timestamp: req.body.timestamp || new Date().toISOString(),
+      transcript: req.body.transcript || '',
+      sentiment: req.body.sentiment || {},
+      duration: req.body.duration || 0,
+      satisfaction: req.body.satisfaction || null,
+      summary: req.body.summary || '',
+      texts_sent: req.body.texts_sent || [],
+      
+      // Enhanced data from AI processing
+      callerName: enrichedData.callerName || '',
+      painPoints: enrichedData.painPoints || [],
+      urgencyLevel: enrichedData.urgencyLevel || 'medium',
+      leadScore: enrichedData.leadScore || 0,
+      conversionProbability: enrichedData.conversionProbability || 0,
+      
+      // Processing flags
       processed: true,
-      openAICost: enrichedData.openAICost || 0
+      processedAt: serverTimestamp(),
+      
+      // DO NOT SET convertedToContact - the pipeline will handle this automatically
+      // convertedToContact: false, // REMOVED - pipeline handles this
+      
+      // Source tracking
+      source: 'MyAIFrontDesk',
+      webhookReceivedAt: serverTimestamp()
+    };
+    
+    // Save to Firestore
+    const docRef = await addDoc(collection(db, 'aiReceptionistCalls'), callData);
+    
+    console.log('Call saved with ID:', docRef.id);
+    console.log('Lead Score:', callData.leadScore);
+    console.log('Caller Name:', callData.callerName);
+    console.log('Pain Points:', callData.painPoints);
+    
+    // The ContactPipelineService will automatically:
+    // 1. Detect this new call via real-time listener
+    // 2. Create/update contact in master contacts collection
+    // 3. Categorize as lead/client/etc based on score and data
+    // 4. No manual intervention required
+    
+    // Send success response
+    res.status(200).json({ 
+      success: true, 
+      id: docRef.id,
+      message: 'Call received and queued for automatic processing',
+      leadScore: callData.leadScore,
+      category: callData.leadScore >= 8 ? 'hot-lead' : callData.leadScore >= 5 ? 'warm-lead' : 'cold-lead'
     });
-  } catch (err) {
-    return res.status(500).json({ error: 'Error saving call data', details: err.message });
+    
+  } catch (error) {
+    console.error('Error processing webhook:', error);
+    res.status(500).json({ 
+      error: 'Failed to process webhook', 
+      details: error.message 
+    });
   }
-
-  // Note: We're NOT creating contacts automatically anymore
-  // The QuickContactConverter will handle converting calls to contacts
-  // This prevents duplicates and gives users control over contact creation
-
-  // Real-time dashboard notification for high-scoring leads
-  if (aiScore.leadScore >= 8) {
-    try {
-      await addDoc(collection(db, 'notifications'), {
-        type: 'hot_lead',
-        message: `Hot lead: ${data.username} (${phone}) scored ${aiScore.leadScore}/10`,
-        timestamp: new Date().toISOString(),
-        details: {
-          leadScore: aiScore.leadScore,
-          painPoints: aiScore.painPoints,
-          urgencyLevel: aiScore.urgencyLevel,
-          conversionProbability: aiScore.conversionProbability
-        }
-      });
-    } catch (err) {
-      // Notification error, do not block
-      console.log('Notification error (non-blocking):', err.message);
-    }
-  }
-
-  return res.status(200).json({ 
-    success: true, 
-    leadScore: aiScore.leadScore, 
-    openAICost, 
-    scoringBreakdown: aiScore.scoringBreakdown,
-    message: 'Call saved to aiReceptionistCalls for processing'
-  });
-};
+}

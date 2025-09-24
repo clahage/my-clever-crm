@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import ProtectedLayout from './layout/ProtectedLayout';
 import Login from './pages/Login';
@@ -34,13 +34,36 @@ import ContactReports from './components/ContactReports';
 import BusinessCredit from './pages/BusinessCredit';
 import Referrals from './pages/Referrals';
 import Learn from './pages/Learn';
-import Automation from './pages/Automation'; // Added the missing import for Automation
-
+import Automation from './pages/Automation';
 import ClientPortal from './pages/ClientPortal';
+
+// Import the contact pipeline service
+import contactPipeline from './services/contactPipelineService';
 
 function App() {
   console.log('App.jsx is rendering');
   console.log('Current URL:', window.location.pathname);
+  
+  useEffect(() => {
+    // Initialize the contact pipeline service on app start
+    console.log('Initializing automated contact pipeline...');
+    
+    // The pipeline will automatically:
+    // 1. Listen for new AI receptionist calls
+    // 2. Convert them to contacts without manual intervention
+    // 3. Categorize them based on lead score and engagement
+    // 4. Monitor for status changes
+    // 5. Handle external sources when configured
+    
+    // Note: The pipeline is a singleton, so it initializes itself on import
+    // We just need to ensure it's imported to start the listeners
+    
+    return () => {
+      // Cleanup listeners when app unmounts
+      console.log('Cleaning up contact pipeline...');
+      contactPipeline.dispose();
+    };
+  }, []);
   
   return (
     <ThemeProvider>
