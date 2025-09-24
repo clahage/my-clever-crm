@@ -1,122 +1,122 @@
-import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import ProtectedLayout from './layout/ProtectedLayout';
-import Login from './pages/Login';
+import React, { useEffect, useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from './config/firebase';
+
+// Layout
+import Layout from './components/Layout';
+
+// Pages
 import Dashboard from './pages/Dashboard';
-import SocialMediaAdmin from './pages/SocialMediaAdmin';
 import Leads from './pages/Leads';
 import Clients from './pages/Clients';
-import ProgressPortal from './pages/ProgressPortal';
-import DisputeCenter from './pages/DisputeCenter';
-import Reports from './pages/Reports';
-import Settings from './pages/Settings';
-import Logout from './routes/Logout';
-import { AuthProvider } from './contexts/AuthContext';
-import { NotificationProvider } from './contexts/NotificationContext';
-import { ThemeProvider } from './theme/ThemeProvider';
-import CommunicationsPage from './pages/CommunicationsPage';
-import BillingPage from './pages/BillingPage';
+import Contacts from './pages/Contacts';
 import AIReceptionist from './pages/AIReceptionist';
 import OpenAI from './pages/OpenAI';
 import AdminTools from './pages/AdminTools';
-import Portal from './pages/Portal';
-import Support from './pages/Support';
-import Contacts from './pages/Contacts';
-import CreditReports from './pages/CreditReports';
-import CreditScores from './components/CreditScores';
-import DisputeLetters from './components/DisputeLetters';
-import Letters from './components/Letters';
-import Calendar from './components/Calendar';
-import Export from './components/Export';
-import BulkActions from './components/BulkActions';
+import Calendar from './pages/Calendar';
+import Messages from './pages/Messages';
+import Documents from './pages/Documents';
 import Analytics from './pages/Analytics';
-import ContactReports from './components/ContactReports';
-import BusinessCredit from './pages/BusinessCredit';
-import Referrals from './pages/Referrals';
-import Learn from './pages/Learn';
-import Automation from './pages/Automation';
-import ClientPortal from './pages/ClientPortal';
+import Settings from './pages/Settings';
+import Profile from './pages/Profile';
+import Login from './pages/Login';
+import Register from './pages/Register';
 
-// Import the contact pipeline service
-import contactPipeline from './services/contactPipelineService';
+// Protected Route Component
+function ProtectedRoute({ children }) {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user);
+      setLoading(false);
+    });
+
+    return unsubscribe;
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+}
 
 function App() {
-  console.log('App.jsx is rendering');
-  console.log('Current URL:', window.location.pathname);
-  
+  // Initialize contact pipeline service (if you have it)
   useEffect(() => {
-    // Initialize the contact pipeline service on app start
-    console.log('Initializing automated contact pipeline...');
-    
-    // The pipeline will automatically:
-    // 1. Listen for new AI receptionist calls
-    // 2. Convert them to contacts without manual intervention
-    // 3. Categorize them based on lead score and engagement
-    // 4. Monitor for status changes
-    // 5. Handle external sources when configured
-    
-    // Note: The pipeline is a singleton, so it initializes itself on import
-    // We just need to ensure it's imported to start the listeners
-    
-    return () => {
-      // Cleanup listeners when app unmounts
-      console.log('Cleaning up contact pipeline...');
-      contactPipeline.dispose();
-    };
+    // This will run the pipeline service if it exists
+    try {
+      import('./services/contactPipelineService').then(module => {
+        console.log('Contact pipeline service initialized');
+      }).catch(err => {
+        console.log('Contact pipeline service not found or not needed');
+      });
+    } catch (error) {
+      console.log('Pipeline service not configured');
+    }
   }, []);
-  
-  return (
-    <ThemeProvider>
-      <NotificationProvider>
-        <AuthProvider>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/logout" element={<Logout />} />
-              
-              {/* Protected Routes using the layout */}
-              <Route path="/" element={<ProtectedLayout />}>
-                <Route index element={<Dashboard />} />
-                <Route path="dashboard" element={<Dashboard />} />
-                <Route path="social-media" element={<SocialMediaAdmin />} />
-                <Route path="clients" element={<Clients />} />
-                <Route path="leads" element={<Leads />} />
-                <Route path="progress-portal" element={<ProgressPortal />} />
-                <Route path="disputes" element={<DisputeCenter />} />
-                <Route path="reports" element={<Reports />} />
-                <Route path="settings" element={<Settings />} />
-                {/* Added routes for new pages */}
-                <Route path="communications" element={<CommunicationsPage />} />
-                <Route path="billing" element={<BillingPage />} />
-                <Route path="ai-receptionist" element={<AIReceptionist />} />
-                <Route path="openai" element={<OpenAI />} />
-                <Route path="admin" element={<AdminTools />} />
-                <Route path="portal" element={<Portal />} />
-                <Route path="support" element={<Support />} />
-                {/* New routes from Prompt #19 */}
-                <Route path="contacts" element={<Contacts />} />
-                <Route path="credit-reports" element={<CreditReports />} />
-                <Route path="credit-scores" element={<CreditScores />} />
-                <Route path="dispute-letters" element={<DisputeLetters />} />
-                <Route path="letters" element={<Letters />} />
-                <Route path="calendar" element={<Calendar />} />
-                <Route path="export" element={<Export />} />
-                <Route path="bulk" element={<BulkActions />} />
-                <Route path="analytics" element={<Analytics />} />
-                <Route path="contact-reports" element={<ContactReports />} />
-                <Route path="business-credit" element={<BusinessCredit />} />
-                <Route path="referrals" element={<Referrals />} />
-                <Route path="learn" element={<Learn />} />
-                <Route path="automation" element={<Automation />} />
-              </Route>
 
-              {/* Client Portal Routes */}
-              <Route path="/client/*" element={<ClientPortal />} />
-            </Routes>
-          </BrowserRouter>
-        </AuthProvider>
-      </NotificationProvider>
-    </ThemeProvider>
+  return (
+    <Router>
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+
+        {/* Protected Routes with Layout */}
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }
+        >
+          {/* Default redirect to dashboard */}
+          <Route index element={<Navigate to="/dashboard" replace />} />
+          
+          {/* Main Pages */}
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="leads" element={<Leads />} />
+          <Route path="clients" element={<Clients />} />
+          <Route path="contacts" element={<Contacts />} />
+          
+          {/* AI & Automation */}
+          <Route path="ai-receptionist" element={<AIReceptionist />} />
+          <Route path="openai" element={<OpenAI />} />
+          
+          {/* Admin Tools - Both routes for compatibility */}
+          <Route path="admin" element={<AdminTools />} />
+          <Route path="admin-tools" element={<AdminTools />} />
+          
+          {/* Communication */}
+          <Route path="calendar" element={<Calendar />} />
+          <Route path="messages" element={<Messages />} />
+          
+          {/* Resources */}
+          <Route path="documents" element={<Documents />} />
+          <Route path="analytics" element={<Analytics />} />
+          
+          {/* User */}
+          <Route path="settings" element={<Settings />} />
+          <Route path="profile" element={<Profile />} />
+        </Route>
+
+        {/* Catch all - redirect to dashboard */}
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+    </Router>
   );
 }
 
