@@ -4,7 +4,7 @@
 
 const { db } = require('../../firebaseConfig');
 const { collection, addDoc, updateDoc, getDocs, query, where, doc } = require('firebase/firestore');
-const { processAICallData } = require('../../services/aiDataProcessor.js');
+const { aiLeadScoring } = require('../../services/aiLeadScoring.js');
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -43,17 +43,20 @@ module.exports = async function handler(req, res) {
     };
   }
 
-  // Enrich raw webhook data using aiDataProcessor
+  // Store call data in aiReceptionistCalls collection FIRST (with processed: false)
   try {
-    const enrichedData = processAICallData({
-      ...data,
-      phone
-    });
     await addDoc(collection(db, 'aiReceptionistCalls'), {
-      ...enrichedData,
+      ...data,
+      phone,
+      leadScore: aiScore.leadScore,
+      painPoints: aiScore.painPoints,
+      urgencyLevel: aiScore.urgencyLevel,
+      conversionProbability: aiScore.conversionProbability,
+      aiCategory: aiScore.urgencyLevel === 'high' ? 'hot_lead' : 'standard_lead',
+      scoringBreakdown: aiScore.scoringBreakdown,
       processedAt: new Date().toISOString(),
-      processed: true,
-      openAICost: enrichedData.openAICost || 0
+      processed: false,  // ADD THIS - marks call as unprocessed for QuickContactConverter
+      openAICost,
     });
   } catch (err) {
     return res.status(500).json({ error: 'Error saving call data', details: err.message });

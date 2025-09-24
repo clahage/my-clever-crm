@@ -1,268 +1,162 @@
-import React, { useEffect, useState } from "react";
-import { db } from "../firebaseConfig";
-import {
-  collection,
-  query,
-  where,
-  onSnapshot,
-  addDoc,
-  updateDoc,
-  doc,
-} from "firebase/firestore";
+import React, { useState, useEffect } from 'react';
+import { collection, query, where, onSnapshot, doc, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../config/firebase';
+import { Users, Phone, Mail, Calendar, TrendingUp } from 'lucide-react';
 
-function getSentimentColor(score) {
-  if (score >= 0.7) return "bg-green-100 text-green-800";
-  if (score >= 0.4) return "bg-yellow-100 text-yellow-800";
-  return "bg-red-100 text-red-800";
-}
-
-function getUrgencyBorder(urgency) {
-  if (urgency === "hot" || urgency === "high") return "border-2 border-red-500";
-  if (urgency === "warm" || urgency === "medium") return "border-2 border-yellow-500";
-  return "border border-gray-300";
-}
-
-// Extract caller name from Intake Form field or transcript
-function extractCallerName(call) {
-  // Try to get name from "Intake Form: May I ask for your full name..." field
-  const intakeNameField = Object.keys(call).find(key => 
-    key.includes('Intake Form') && key.includes('full name')
-  );
-  
-  if (intakeNameField && call[intakeNameField]) {
-    return call[intakeNameField];
-  }
-  
-  // Fallback: try to extract from transcript
-  if (call.transcript) {
-    const nameMatch = call.transcript.match(/user@\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\./);
-    if (nameMatch) {
-      return nameMatch[1];
-    }
-  }
-  
-  // Last resort: check summary for name
-  if (call.summary) {
-    const summaryMatch = call.summary.match(/The user,?\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*),?\s+/);
-    if (summaryMatch) {
-      return summaryMatch[1];
-    }
-  }
-  
-  return null;
-}
-
-export default function QuickContactConverter() {
-  const [calls, setCalls] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [toast, setToast] = useState("");
+const QuickContactConverter = () => {
+  const [unprocessedCalls, setUnprocessedCalls] = useState([]);
+  const [converting, setConverting] = useState({});
+  const [message, setMessage] = useState('');
 
   useEffect(() => {
-    const q = query(collection(db, "aiReceptionistCalls"), where("processed", "==", false));
-    const unsub = onSnapshot(
-      q, 
-      (snap) => {
-        setCalls(snap.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
-        setLoading(false);
-      },
-      (error) => {
-        console.error("Error loading AI calls:", error);
-        setLoading(false);
-      }
+    const q = query(
+      collection(db, 'aiReceptionistCalls'),
+      where('convertedToContact', '!=', true)
     );
-    return () => unsub();
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const calls = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setUnprocessedCalls(calls);
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  async function handleConvert(call) {
+  const convertToContact = async (call) => {
+    setConverting(prev => ({ ...prev, [call.id]: true }));
+    setMessage('');
+    
     try {
-      // Extract the actual caller's name
-      const callerName = extractCallerName(call);
-      const nameParts = callerName ? callerName.split(' ') : ['Unknown', 'Caller'];
-      
-      // Create new contact with proper fields
-      await addDoc(collection(db, "contacts"), {
-        // Name fields
-        firstName: nameParts[0] || 'Unknown',
-        lastName: nameParts.slice(1).join(' ') || 'Caller',
-        
-        // Contact info - use 'caller' field for phone
-        phone: call.caller || call.phone || '',
+      // Create contact data with proper categorization
+      const contactData = {
+        // Basic info
+        name: call.callerName || call.caller || 'Unknown Caller',
+        phone: call.caller || '',
         email: call.email || '',
         
-        // Categorization
-        type: 'Lead',
-        source: "AI Receptionist",
-        category: 'Lead',
+        // Lead categorization
+        category: 'lead', // All AI calls start as leads
+        status: call.leadScore >= 8 ? 'hot' : call.leadScore >= 5 ? 'warm' : 'cold',
+        leadScore: call.leadScore || 0,
+        urgency: call.urgencyLevel || 'medium',
         
-        // AI-specific data
-        aiCategory: call.aiCategory || '',
-        urgencyLevel: call.urgencyLevel || 'medium',
-        leadScore: call.leadScore || (call.urgencyLevel === 'high' ? 5 : call.urgencyLevel === 'medium' ? 4 : 3),
-        
-        // Call data
+        // Details from AI analysis
+        painPoints: call.painPoints || [],
+        conversionProbability: call.conversionProbability || 0,
         summary: call.summary || '',
-        conversationNotes: call.transcript || '',
-        sentiment: call.sentiment ? `Positive: ${call.sentiment.positive}%, Negative: ${call.sentiment.negative}%, Neutral: ${call.sentiment.neutral}%` : '',
         
-        // Platform-specific
-        callDuration: call.duration || '',
-        callRecordingUrl: call.call_info_link || '',
+        // Source tracking
+        source: 'AI Receptionist',
+        sourceDetails: {
+          callId: call.id,
+          duration: call.duration,
+          timestamp: call.timestamp,
+          sentiment: call.sentiment
+        },
         
         // Metadata
-        createdAt: new Date(),
-        processedAt: new Date(),
-        originalCallId: call.id,
-        
-        // Additional useful fields
-        notes: `AI Receptionist call from ${call.timestamp || 'unknown time'}. ${call.summary || ''}`,
-        timeline: call.urgencyLevel === 'high' ? 'Immediate' : '1-2 weeks'
+        createdAt: serverTimestamp(),
+        lastContact: call.timestamp || new Date().toISOString(),
+        tags: ['ai-receptionist', `score-${call.leadScore || 0}`],
+        notes: `AI Call Summary: ${call.summary || 'No summary available'}\nTranscript available in source call record.`
+      };
+
+      // Add to contacts collection
+      const contactRef = await addDoc(collection(db, 'contacts'), contactData);
+      
+      // Update the original call to mark as converted
+      await updateDoc(doc(db, 'aiReceptionistCalls', call.id), {
+        convertedToContact: true,
+        contactId: contactRef.id,
+        convertedAt: new Date().toISOString()
       });
       
-      // Mark call as processed
-      await updateDoc(doc(db, "aiReceptionistCalls", call.id), { 
-        processed: true,
-        processedAt: new Date(),
-        convertedToContact: true
-      });
+      // Create a notification for hot leads
+      if (call.leadScore >= 8) {
+        await addDoc(collection(db, 'notifications'), {
+          type: 'hot_lead',
+          title: `🔥 New Hot Lead: ${contactData.name}`,
+          message: `Score: ${call.leadScore}/10 - Immediate follow-up recommended`,
+          contactId: contactRef.id,
+          read: false,
+          createdAt: serverTimestamp()
+        });
+      }
       
-      setToast(`✓ Contact created for ${callerName || 'Unknown Caller'}`);
-      setTimeout(() => setToast(""), 3000);
+      setMessage(`✅ Successfully converted ${contactData.name} to contact (${contactData.status} lead)`);
+      
     } catch (error) {
-      console.error("Error converting to contact:", error);
-      setToast("❌ Error creating contact. Please try again.");
-      setTimeout(() => setToast(""), 3000);
+      console.error('Error converting to contact:', error);
+      setMessage(`❌ Error: ${error.message}`);
+    } finally {
+      setConverting(prev => ({ ...prev, [call.id]: false }));
     }
-  }
+  };
 
-  async function handleDismiss(call) {
-    try {
-      await updateDoc(doc(db, "aiReceptionistCalls", call.id), { 
-        processed: true,
-        processedAt: new Date(),
-        dismissed: true
-      });
-      setToast("Call dismissed.");
-      setTimeout(() => setToast(""), 2000);
-    } catch (error) {
-      console.error("Error dismissing call:", error);
-      setToast("❌ Error dismissing call.");
-      setTimeout(() => setToast(""), 2000);
+  const convertAll = async () => {
+    setMessage('Converting all calls...');
+    for (const call of unprocessedCalls) {
+      await convertToContact(call);
     }
-  }
+    setMessage(`✅ Converted ${unprocessedCalls.length} calls to contacts`);
+  };
 
-  if (loading) {
+  if (unprocessedCalls.length === 0) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  if (calls.length === 0) {
-    return (
-      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-8 text-center">
-        <p className="text-gray-500 dark:text-gray-400">
-          No unprocessed AI receptionist calls at this time.
-        </p>
-        <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">
-          New calls will appear here automatically.
-        </p>
+      <div className="bg-gray-50 p-4 rounded text-gray-500 text-center">
+        No unprocessed calls to convert
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      {toast && (
-        <div className="fixed top-4 right-4 z-50 bg-white dark:bg-gray-800 shadow-lg rounded-lg p-4 border-l-4 border-blue-500">
-          <p className="text-sm font-medium">{toast}</p>
+    <div className="bg-white rounded-lg shadow p-4">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-semibold">Unprocessed AI Calls</h3>
+        <button
+          onClick={convertAll}
+          className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+        >
+          Convert All to Contacts
+        </button>
+      </div>
+      
+      {message && (
+        <div className={`mb-4 p-2 rounded text-sm ${
+          message.includes('✅') ? 'bg-green-100 text-green-800' : 
+          message.includes('❌') ? 'bg-red-100 text-red-800' : 
+          'bg-blue-100 text-blue-800'
+        }`}>
+          {message}
         </div>
       )}
       
-      <div className="grid gap-4">
-        {calls.map((call) => {
-          const callerName = extractCallerName(call);
-          const phoneNumber = call.caller || call.phone || 'No phone';
-          
-          return (
-            <div
-              key={call.id}
-              className={`bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 ${getUrgencyBorder(call.urgencyLevel)}`}
-            >
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    {callerName || 'Unknown Caller'}
-                  </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {phoneNumber}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                  Received by: {call.forwardedFrom || 'Speedy Credit Repair'}
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  {call.urgencyLevel && (
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      call.urgencyLevel === 'high' ? 'bg-red-100 text-red-800' :
-                      call.urgencyLevel === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-blue-100 text-blue-800'
-                    }`}>
-                      {call.urgencyLevel.toUpperCase()}
-                    </span>
-                  )}
-                  {call.sentiment && call.sentiment.positive !== undefined && (
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      call.sentiment.positive > 50 ? 'bg-green-100 text-green-800' :
-                      call.sentiment.negative > 30 ? 'bg-red-100 text-red-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      Sentiment: {call.sentiment.positive > 50 ? 'Positive' : 
-                                 call.sentiment.negative > 30 ? 'Negative' : 'Neutral'}
-                    </span>
-                  )}
-                  {call.leadScore && (
-                    <span className="px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">
-                      Score: {call.leadScore}/10
-                    </span>
-                  )}
-                </div>
+      <div className="space-y-2">
+        {unprocessedCalls.map(call => (
+          <div key={call.id} className="border rounded p-3 flex justify-between items-center">
+            <div className="flex-1">
+              <div className="font-medium">
+                {call.callerName || call.caller || 'Unknown'}
               </div>
-              
-              {call.summary && (
-                <div className="mb-4">
-                  <p className="text-sm text-gray-700 dark:text-gray-300">
-                    <span className="font-medium">Summary:</span> {call.summary}
-                  </p>
-                </div>
-              )}
-              
-              <div className="flex items-center justify-between">
-                <div className="text-xs text-gray-500 dark:text-gray-400">
-                  {call.timestamp || 
-                   (call.processedAt ? new Date(call.processedAt).toLocaleString() : 'No timestamp')}
-                  {call.duration && ` • Duration: ${call.duration}s`}
-                </div>
-                
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleDismiss(call)}
-                    className="px-3 py-1 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
-                  >
-                    Dismiss
-                  </button>
-                  <button
-                    onClick={() => handleConvert(call)}
-                    className="px-4 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                  >
-                    Convert to Contact
-                  </button>
-                </div>
+              <div className="text-sm text-gray-500">
+                Score: {call.leadScore || 0}/10 | Duration: {call.duration}s
               </div>
             </div>
-          );
-        })}
+            <button
+              onClick={() => convertToContact(call)}
+              disabled={converting[call.id]}
+              className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 disabled:bg-gray-400"
+            >
+              {converting[call.id] ? 'Converting...' : 'Convert to Contact'}
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   );
-}
+};
+
+export default QuickContactConverter;

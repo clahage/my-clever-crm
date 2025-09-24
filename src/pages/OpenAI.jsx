@@ -3,6 +3,7 @@ console.log('📍 OpenAI page loaded at:', new Date().toISOString());
 import { collection, query, where, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import QuickContactConverter from '../components/QuickContactConverter';
+import HotLeadsWidget from '../components/HotLeadsWidget';
 
 export default function OpenAI() {
   const [recentCalls, setRecentCalls] = useState([]);
@@ -48,7 +49,7 @@ export default function OpenAI() {
         const now = new Date();
         const hoursSinceCall = (now - callTime) / (1000 * 60 * 60);
 
-        console.log('🔍 AI RECEPTIONIST CHECK:');
+        console.log('📍 AI RECEPTIONIST CHECK:');
         console.log('Latest call:', latestCall);
         console.log('Hours since last call:', hoursSinceCall);
         console.log('Is this LIVE data?', hoursSinceCall < 24 ? 'YES - Recent!' : 'Possibly old/demo');
@@ -80,6 +81,9 @@ export default function OpenAI() {
           <p className="text-3xl font-bold text-blue-600">{stats.cold}</p>
         </div>
       </div>
+
+      {/* Hot Leads Widget */}
+      <HotLeadsWidget />
 
       {/* Webhook Configuration */}
       <div className="bg-white rounded-lg shadow p-6 mb-8">
