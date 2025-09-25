@@ -1,389 +1,533 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, onSnapshot, doc, updateDoc, deleteDoc, orderBy, limit } from 'firebase/firestore';
+import { useNavigate } from 'react-router-dom';
+import { 
+  Users, 
+  Plus, 
+  Search, 
+  Filter, 
+  Mail, 
+  Phone, 
+  MapPin,
+  Calendar,
+  DollarSign,
+  Edit,
+  Trash2,
+  Eye,
+  UserCheck,
+  ChevronDown,
+  Star,
+  Clock,
+  AlertCircle,
+  TrendingUp,
+  ArrowUpRight,
+  FileText
+} from 'lucide-react';
 import { db } from '../config/firebase';
-import { Search, Filter, Phone, Mail, Calendar, DollarSign, Award, Star, Building, Briefcase } from 'lucide-react';
+import { 
+  collection, 
+  query, 
+  where, 
+  orderBy, 
+  getDocs,
+  doc,
+  updateDoc,
+  deleteDoc,
+  serverTimestamp 
+} from 'firebase/firestore';
 
 const Clients = () => {
+  const navigate = useNavigate();
   const [clients, setClients] = useState([]);
   const [filteredClients, setFilteredClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [tierFilter, setTierFilter] = useState('all');
-  const [sourceFilter, setSourceFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('newest');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [showFilters, setShowFilters] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [stats, setStats] = useState({
     total: 0,
-    premium: 0,
-    standard: 0,
-    basic: 0,
-    fromLeads: 0,
-    totalRevenue: 0
+    active: 0,
+    inactive: 0,
+    totalValue: 0,
+    avgValue: 0,
+    newThisMonth: 0
   });
 
   useEffect(() => {
-    // Query for clients (contacts with category='client')
-    const clientsQuery = query(
-      collection(db, 'contacts'),
-      where('category', '==', 'client'),
-      orderBy('createdAt', 'desc'),
-      limit(100)
-    );
-
-    const unsubscribe = onSnapshot(clientsQuery, (snapshot) => {
-      const clientsData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      
-      setClients(clientsData);
-      setFilteredClients(clientsData);
-      
-      // Calculate stats
-      const newStats = {
-        total: clientsData.length,
-        premium: clientsData.filter(c => c.tier === 'premium').length,
-        standard: clientsData.filter(c => c.tier === 'standard').length,
-        basic: clientsData.filter(c => c.tier === 'basic' || !c.tier).length,
-        fromLeads: clientsData.filter(c => c.convertedFromLead || c.source === 'AI Receptionist').length,
-        totalRevenue: clientsData.reduce((sum, c) => sum + (c.revenue || 0), 0)
-      };
-      setStats(newStats);
-      setLoading(false);
-    }, (error) => {
-      console.error('Error fetching clients:', error);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
+    fetchClients();
   }, []);
 
   useEffect(() => {
-    // Apply filters
+    filterAndSortClients();
+  }, [clients, searchTerm, sortBy, filterStatus]);
+
+  const fetchClients = async () => {
+    setLoading(true);
+    try {
+      // FIXED: Query contacts collection where roles array contains 'client'
+      const q = query(
+        collection(db, 'contacts'),
+        where('roles', 'array-contains', 'client'),
+        orderBy('createdAt', 'desc')
+      );
+      
+      const querySnapshot = await getDocs(q);
+      const clientsData = [];
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      
+      querySnapshot.forEach((doc) => {
+        const data = { id: doc.id, ...doc.data() };
+        clientsData.push(data);
+      });
+      
+      // Calculate stats
+      const activeClients = clientsData.filter(c => c.isActive !== false).length;
+      const inactiveClients = clientsData.filter(c => c.isActive === false).length;
+      const totalValue = clientsData.reduce((sum, c) => sum + (c.value || 0), 0);
+      const newThisMonth = clientsData.filter(c => {
+        const createdDate = c.createdAt?.toDate ? c.createdAt.toDate() : new Date(c.createdAt);
+        return createdDate >= startOfMonth;
+      }).length;
+      
+      setStats({
+        total: clientsData.length,
+        active: activeClients,
+        inactive: inactiveClients,
+        totalValue: totalValue,
+        avgValue: clientsData.length > 0 ? totalValue / clientsData.length : 0,
+        newThisMonth: newThisMonth
+      });
+      
+      setClients(clientsData);
+    } catch (error) {
+      console.error('Error fetching clients:', error);
+      // Fallback: try old clients collection
+      try {
+        const fallbackQuery = query(
+          collection(db, 'clients'),
+          orderBy('createdAt', 'desc')
+        );
+        const fallbackSnapshot = await getDocs(fallbackQuery);
+        const fallbackData = [];
+        fallbackSnapshot.forEach((doc) => {
+          fallbackData.push({ id: doc.id, ...doc.data() });
+        });
+        if (fallbackData.length > 0) {
+          setClients(fallbackData);
+          console.log('Used fallback clients collection');
+        }
+      } catch (fallbackError) {
+        console.error('Fallback also failed:', fallbackError);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filterAndSortClients = () => {
     let filtered = [...clients];
-    
+
     // Search filter
     if (searchTerm) {
-      filtered = filtered.filter(client => 
-        client.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        client.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        client.phone?.includes(searchTerm) ||
-        client.company?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-    
-    // Tier filter
-    if (tierFilter !== 'all') {
-      filtered = filtered.filter(client => 
-        (client.tier || 'basic') === tierFilter
-      );
-    }
-    
-    // Source filter
-    if (sourceFilter !== 'all') {
-      if (sourceFilter === 'converted') {
-        filtered = filtered.filter(client => 
-          client.convertedFromLead || client.source === 'AI Receptionist'
-        );
-      } else if (sourceFilter === 'direct') {
-        filtered = filtered.filter(client => 
-          !client.convertedFromLead && client.source !== 'AI Receptionist'
-        );
-      }
-    }
-    
-    setFilteredClients(filtered);
-  }, [searchTerm, tierFilter, sourceFilter, clients]);
-
-  const updateClientTier = async (clientId, newTier) => {
-    try {
-      await updateDoc(doc(db, 'contacts', clientId), {
-        tier: newTier,
-        updatedAt: new Date()
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(client => {
+        const fullName = `${client.firstName || ''} ${client.lastName || ''}`.toLowerCase();
+        const company = (client.company || '').toLowerCase();
+        const email = (client.email || '').toLowerCase();
+        const phone = (client.phone || '').toLowerCase();
+        
+        return fullName.includes(term) || 
+               company.includes(term) || 
+               email.includes(term) || 
+               phone.includes(term);
       });
-    } catch (error) {
-      console.error('Error updating client tier:', error);
     }
-  };
 
-  const deleteClient = async (clientId) => {
-    if (window.confirm('Are you sure you want to delete this client? This action cannot be undone.')) {
-      try {
-        await deleteDoc(doc(db, 'contacts', clientId));
-      } catch (error) {
-        console.error('Error deleting client:', error);
+    // Status filter
+    if (filterStatus === 'active') {
+      filtered = filtered.filter(client => client.isActive !== false);
+    } else if (filterStatus === 'inactive') {
+      filtered = filtered.filter(client => client.isActive === false);
+    }
+
+    // Sorting
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'newest':
+          return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
+        case 'oldest':
+          return (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0);
+        case 'name':
+          const nameA = `${a.firstName || ''} ${a.lastName || ''}`.toLowerCase();
+          const nameB = `${b.firstName || ''} ${b.lastName || ''}`.toLowerCase();
+          return nameA.localeCompare(nameB);
+        case 'value':
+          return (b.value || 0) - (a.value || 0);
+        default:
+          return 0;
       }
+    });
+
+    setFilteredClients(filtered);
+  };
+
+  const handleConvertToContact = async (clientId) => {
+    try {
+      // FIXED: Update roles array instead of status field
+      const clientDoc = clients.find(c => c.id === clientId);
+      if (!clientDoc) return;
+      
+      const currentRoles = clientDoc.roles || [];
+      const newRoles = currentRoles.filter(r => r !== 'client');
+      if (!newRoles.includes('contact')) {
+        newRoles.push('contact');
+      }
+      
+      const docRef = doc(db, 'contacts', clientId);
+      await updateDoc(docRef, {
+        roles: newRoles,
+        primaryRole: 'contact',
+        updatedAt: serverTimestamp()
+      });
+      await fetchClients();
+    } catch (error) {
+      console.error('Error converting client:', error);
     }
   };
 
-  const getTierColor = (tier) => {
-    switch(tier) {
-      case 'premium': return 'bg-purple-100 text-purple-700 border-purple-200';
-      case 'standard': return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'basic': 
-      default: return 'bg-gray-100 text-gray-700 border-gray-200';
+  const handleDelete = async (clientId) => {
+    try {
+      await deleteDoc(doc(db, 'contacts', clientId));
+      setDeleteConfirm(null);
+      await fetchClients();
+    } catch (error) {
+      console.error('Error deleting client:', error);
     }
   };
 
-  const getTierIcon = (tier) => {
-    switch(tier) {
-      case 'premium': return <Star className="w-4 h-4 text-purple-500" />;
-      case 'standard': return <Award className="w-4 h-4 text-blue-500" />;
-      case 'basic':
-      default: return <Briefcase className="w-4 h-4 text-gray-500" />;
+  const formatDate = (date) => {
+    if (!date) return 'N/A';
+    if (date.seconds) {
+      return new Date(date.seconds * 1000).toLocaleDateString();
     }
+    return new Date(date).toLocaleDateString();
   };
 
-  const formatRevenue = (amount) => {
+  const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
+      currency: 'USD'
     }).format(amount || 0);
+  };
+
+  const getInitials = (firstName, lastName) => {
+    return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase() || '?';
+  };
+
+  const getStatusColor = (isActive) => {
+    return isActive !== false 
+      ? 'bg-green-100 text-green-800' 
+      : 'bg-gray-100 text-gray-600';
   };
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-4 md:p-6 space-y-6">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">Clients Management</h1>
-        <p className="text-gray-600">Manage your active clients and track revenue</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Clients Management</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Manage and track your active client relationships
+          </p>
+        </div>
+        <button
+          onClick={() => navigate('/contacts?status=new')}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <Plus className="h-5 w-5" />
+          Add New Contact
+        </button>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
-        <div className="bg-white rounded-lg shadow p-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Total Clients</p>
-              <p className="text-2xl font-bold text-gray-800">{stats.total}</p>
+              <p className="text-xs text-gray-500">Total Clients</p>
+              <p className="text-xl font-bold text-gray-900">{stats.total}</p>
             </div>
-            <Building className="w-8 h-8 text-blue-500" />
+            <Users className="h-8 w-8 text-blue-500" />
           </div>
         </div>
-        
-        <div className="bg-white rounded-lg shadow p-4">
+
+        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Premium</p>
-              <p className="text-2xl font-bold text-purple-600">{stats.premium}</p>
+              <p className="text-xs text-gray-500">Active</p>
+              <p className="text-xl font-bold text-green-600">{stats.active}</p>
             </div>
-            <Star className="w-8 h-8 text-purple-500" />
+            <UserCheck className="h-8 w-8 text-green-500" />
           </div>
         </div>
-        
-        <div className="bg-white rounded-lg shadow p-4">
+
+        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Standard</p>
-              <p className="text-2xl font-bold text-blue-600">{stats.standard}</p>
+              <p className="text-xs text-gray-500">Inactive</p>
+              <p className="text-xl font-bold text-gray-600">{stats.inactive}</p>
             </div>
-            <Award className="w-8 h-8 text-blue-500" />
+            <Clock className="h-8 w-8 text-gray-400" />
           </div>
         </div>
-        
-        <div className="bg-white rounded-lg shadow p-4">
+
+        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Basic</p>
-              <p className="text-2xl font-bold text-gray-600">{stats.basic}</p>
+              <p className="text-xs text-gray-500">Total Value</p>
+              <p className="text-xl font-bold text-gray-900">{formatCurrency(stats.totalValue)}</p>
             </div>
-            <Briefcase className="w-8 h-8 text-gray-500" />
+            <DollarSign className="h-8 w-8 text-green-500" />
           </div>
         </div>
-        
-        <div className="bg-white rounded-lg shadow p-4">
+
+        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">From Leads</p>
-              <p className="text-2xl font-bold text-green-600">{stats.fromLeads}</p>
+              <p className="text-xs text-gray-500">Avg Value</p>
+              <p className="text-xl font-bold text-gray-900">{formatCurrency(stats.avgValue)}</p>
             </div>
-            <Phone className="w-8 h-8 text-green-500" />
+            <TrendingUp className="h-8 w-8 text-blue-500" />
           </div>
         </div>
-        
-        <div className="bg-white rounded-lg shadow p-4">
+
+        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Total Revenue</p>
-              <p className="text-xl font-bold text-green-600">
-                {formatRevenue(stats.totalRevenue)}
-              </p>
+              <p className="text-xs text-gray-500">New This Month</p>
+              <p className="text-xl font-bold text-purple-600">{stats.newThisMonth}</p>
             </div>
-            <DollarSign className="w-8 h-8 text-green-500" />
+            <Calendar className="h-8 w-8 text-purple-500" />
           </div>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white rounded-lg shadow p-4 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Search clients..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+      {/* Search and Filters */}
+      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+        <div className="flex flex-col lg:flex-row gap-4">
+          <div className="flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search clients by name, email, phone, or company..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
           </div>
-          
-          <select
-            className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={tierFilter}
-            onChange={(e) => setTierFilter(e.target.value)}
+
+          <div className="flex gap-2">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+              <option value="name">Name (A-Z)</option>
+              <option value="value">Highest Value</option>
+            </select>
+
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              <Filter className="h-5 w-5" />
+              Filters
+              <ChevronDown className={`h-4 w-4 transform transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+            </button>
+          </div>
+        </div>
+
+        {showFilters && (
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="flex gap-2">
+              <button
+                onClick={() => setFilterStatus('all')}
+                className={`px-3 py-1 rounded-lg text-sm ${
+                  filterStatus === 'all'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                All Clients ({stats.total})
+              </button>
+              <button
+                onClick={() => setFilterStatus('active')}
+                className={`px-3 py-1 rounded-lg text-sm ${
+                  filterStatus === 'active'
+                    ? 'bg-green-100 text-green-700'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                Active ({stats.active})
+              </button>
+              <button
+                onClick={() => setFilterStatus('inactive')}
+                className={`px-3 py-1 rounded-lg text-sm ${
+                  filterStatus === 'inactive'
+                    ? 'bg-gray-200 text-gray-700'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                Inactive ({stats.inactive})
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Clients List/Grid */}
+      {filteredClients.length > 0 ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+          {filteredClients.map((client) => (
+            <div key={client.id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+              <div className="p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-semibold text-lg">
+                      {getInitials(client.firstName, client.lastName)}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900">
+                        {client.firstName} {client.lastName}
+                      </h3>
+                      {client.company && (
+                        <p className="text-sm text-gray-500">{client.company}</p>
+                      )}
+                    </div>
+                  </div>
+                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(client.isActive)}`}>
+                    {client.isActive !== false ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
+
+                <div className="space-y-2 mb-4">
+                  {client.email && (
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <Mail className="h-4 w-4 text-gray-400" />
+                      <span className="truncate">{client.email}</span>
+                    </div>
+                  )}
+                  {client.phone && (
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <Phone className="h-4 w-4 text-gray-400" />
+                      <span>{client.phone}</span>
+                    </div>
+                  )}
+                  {client.address && (
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <MapPin className="h-4 w-4 text-gray-400" />
+                      <span className="truncate">{client.address}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Calendar className="h-4 w-4 text-gray-400" />
+                    <span>Client since {formatDate(client.createdAt)}</span>
+                  </div>
+                  {client.value && (
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <DollarSign className="h-4 w-4 text-gray-400" />
+                      <span>{formatCurrency(client.value)}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => navigate(`/contacts/${client.id}`)}
+                    className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+                  >
+                    <Eye className="h-4 w-4" />
+                    View
+                  </button>
+                  <button
+                    onClick={() => navigate(`/contacts/${client.id}/edit`)}
+                    className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+                  >
+                    <Edit className="h-4 w-4" />
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => navigate(`/dispute-letters?clientId=${client.id}`)}
+                    className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 transition-colors"
+                  >
+                    <FileText className="h-4 w-4" />
+                    Disputes
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+          <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            {searchTerm || filterStatus !== 'all' ? 'No clients found' : 'No clients yet'}
+          </h3>
+          <p className="text-gray-500 mb-6">
+            {searchTerm || filterStatus !== 'all' 
+              ? 'Try adjusting your search or filters'
+              : 'Convert contacts to clients to see them here'}
+          </p>
+          <button
+            onClick={() => navigate('/contacts')}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
-            <option value="all">All Tiers</option>
-            <option value="premium">Premium</option>
-            <option value="standard">Standard</option>
-            <option value="basic">Basic</option>
-          </select>
-          
-          <select
-            className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={sourceFilter}
-            onChange={(e) => setSourceFilter(e.target.value)}
-          >
-            <option value="all">All Sources</option>
-            <option value="converted">Converted Leads</option>
-            <option value="direct">Direct Clients</option>
-          </select>
-          
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-            <Filter className="w-5 h-5 inline mr-2" />
-            Advanced Filters
+            <ArrowUpRight className="h-5 w-5" />
+            Go to Contacts
           </button>
         </div>
-      </div>
+      )}
 
-      {/* Clients Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Client Info
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Contact
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Tier
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Revenue
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Source
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Since
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredClients.length === 0 ? (
-                <tr>
-                  <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
-                    <Building className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                    <p className="text-lg font-medium">No clients found</p>
-                    <p className="text-sm mt-2">Try adjusting your filters or convert some leads</p>
-                  </td>
-                </tr>
-              ) : (
-                filteredClients.map((client) => (
-                  <tr key={client.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">{client.name}</div>
-                        <div className="text-sm text-gray-500">{client.company || 'No company'}</div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        <div className="flex items-center gap-1">
-                          <Phone className="w-3 h-3" />
-                          {client.phone || 'No phone'}
-                        </div>
-                        <div className="flex items-center gap-1 mt-1">
-                          <Mail className="w-3 h-3" />
-                          {client.email || 'No email'}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        {getTierIcon(client.tier || 'basic')}
-                        <select
-                          value={client.tier || 'basic'}
-                          onChange={(e) => updateClientTier(client.id, e.target.value)}
-                          className={`px-3 py-1 rounded-full text-xs font-medium border ${getTierColor(client.tier || 'basic')}`}
-                        >
-                          <option value="premium">Premium</option>
-                          <option value="standard">Standard</option>
-                          <option value="basic">Basic</option>
-                        </select>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {formatRevenue(client.revenue)}
-                      </div>
-                      {client.monthlyRevenue && (
-                        <div className="text-xs text-gray-500">
-                          {formatRevenue(client.monthlyRevenue)}/mo
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        client.source === 'AI Receptionist' || client.convertedFromLead
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {client.convertedFromLead ? 'Converted Lead' : 
-                         client.source === 'AI Receptionist' ? 'AI Lead' :
-                         'Direct'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <Calendar className="w-3 h-3 inline mr-1" />
-                      {client.createdAt ? new Date(client.createdAt.toDate ? client.createdAt.toDate() : client.createdAt).toLocaleDateString() : 'N/A'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button
-                        className="text-blue-600 hover:text-blue-900 mr-3"
-                        title="View Details"
-                      >
-                        View
-                      </button>
-                      <button
-                        onClick={() => deleteClient(client.id)}
-                        className="text-red-600 hover:text-red-900"
-                        title="Delete Client"
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 max-w-sm w-full">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Confirm Delete</h3>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete this client? This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => handleDelete(deleteConfirm)}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Delete
+              </button>
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

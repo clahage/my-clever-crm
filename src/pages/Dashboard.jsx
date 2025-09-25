@@ -34,7 +34,7 @@ const Dashboard = () => {
     const unsubscribers = [];
 
     // Listen to leads with enhanced stats
-    const leadsQuery = query(collection(db, 'contacts'), where('category', '==', 'lead'));
+  const leadsQuery = query(collection(db, 'contacts'), where('roles', 'array-contains', 'lead'));
     unsubscribers.push(
       onSnapshot(leadsQuery, (snapshot) => {
         const hotLeadsCount = snapshot.docs.filter(doc => 
@@ -49,7 +49,7 @@ const Dashboard = () => {
     );
 
     // Listen to clients with revenue calculation
-    const clientsQuery = query(collection(db, 'contacts'), where('category', '==', 'client'));
+  const clientsQuery = query(collection(db, 'contacts'), where('roles', 'array-contains', 'client'));
     unsubscribers.push(
       onSnapshot(clientsQuery, (snapshot) => {
         const totalRevenue = snapshot.docs.reduce((sum, doc) => {
