@@ -68,10 +68,10 @@ const Leads = () => {
   const fetchLeads = async () => {
     setLoading(true);
     try {
-      // FIXED: Query contacts collection where roles array contains 'lead'
+      // FIXED: Query contacts collection where status = 'lead'
       const q = query(
         collection(db, 'contacts'),
-        where('roles', 'array-contains', 'lead'),
+        where('status', '==', 'lead'),
         orderBy('createdAt', 'desc')
       );
       
@@ -219,20 +219,10 @@ const Leads = () => {
 
   const handleConvertToClient = async (leadId) => {
     try {
-      // FIXED: Update roles array instead of status field
-      const leadDoc = leads.find(l => l.id === leadId);
-      if (!leadDoc) return;
-      
-      const currentRoles = leadDoc.roles || [];
-      const newRoles = currentRoles.filter(r => r !== 'lead');
-      if (!newRoles.includes('client')) {
-        newRoles.push('client');
-      }
-      
+      // Update status to 'client'
       const docRef = doc(db, 'contacts', leadId);
       await updateDoc(docRef, {
-        roles: newRoles,
-        primaryRole: 'client',
+        status: 'client',
         convertedAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
@@ -565,7 +555,7 @@ const Leads = () => {
 
                   <div className="flex gap-2">
                     <button
-                      onClick={() => console.log('View contact:', lead.id)}
+                      onClick={() => navigate(`/contacts/${lead.id}`)}
                       className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-sm"
                     >
                       <Eye className="h-4 w-4" />
