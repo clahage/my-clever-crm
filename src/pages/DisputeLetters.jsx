@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import disputeService from '../services/disputeService';
+import pdfService from '../services/pdfService';
 import DisputeLetterGenerator from '../components/DisputeLetterGenerator';
 import { 
   FileText, 
@@ -75,6 +76,15 @@ const DisputeLetters = () => {
       calculateStats(letters.filter(l => l.id !== letterId));
     } catch (error) {
       console.error('Error deleting letter:', error);
+    }
+  };
+
+  const handleDownloadPDF = (letter) => {
+    const result = pdfService.generateProfessionalPDF(letter);
+    if (result.success) {
+      console.log('PDF downloaded:', result.filename);
+    } else {
+      console.error('PDF generation failed:', result.error);
     }
   };
 
@@ -313,8 +323,9 @@ const DisputeLetters = () => {
                     <Copy className="w-4 h-4" />
                   </button>
                   <button
+                    onClick={() => handleDownloadPDF(letter)}
                     className="p-1.5 text-gray-500 hover:text-purple-600 hover:bg-purple-50 rounded transition-colors"
-                    title="Download"
+                    title="Download PDF"
                   >
                     <Download className="w-4 h-4" />
                   </button>
@@ -403,12 +414,21 @@ const DisputeLetters = () => {
             >
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-bold">{selectedLetter.title}</h2>
-                <button
-                  onClick={() => setShowPreview(false)}
-                  className="p-2 hover:bg-gray-100 rounded-full"
-                >
-                  <X className="w-6 h-6" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleDownloadPDF(selectedLetter)}
+                    className="px-3 py-1 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+                  >
+                    <Download className="w-4 h-4" />
+                    Download PDF
+                  </button>
+                  <button
+                    onClick={() => setShowPreview(false)}
+                    className="p-2 hover:bg-gray-100 rounded-full"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
               </div>
               
               <div className="prose max-w-none">
