@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import InteractionLogger from '../components/InteractionLogger';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   Users, 
@@ -30,9 +31,10 @@ import {
   Clock,
   FileText,
   Paperclip,
-  X
+  X,
+  MessageSquare
 } from 'lucide-react';
-import { db } from '../config/firebase';
+import { db } from '../config/firebase';  // CORRECT IMPORT
 import { 
   collection, 
   query, 
@@ -50,7 +52,12 @@ import {
 } from 'firebase/firestore';
 
 const Contacts = () => {
+  // Add console log to confirm component is mounted
+  console.log('Contacts component mounted');
+
   const navigate = useNavigate();
+  const [showInteractionLogger, setShowInteractionLogger] = useState(false);
+  const [selectedContactForInteraction, setSelectedContactForInteraction] = useState(null);
   const [searchParams] = useSearchParams();
   const [contacts, setContacts] = useState([]);
   const [filteredContacts, setFilteredContacts] = useState([]);
@@ -122,6 +129,8 @@ const Contacts = () => {
   }, [contacts, searchTerm, sortBy, filterRoles, filterLifecycle]);
 
   const fetchContacts = async () => {
+    // Add console log to confirm function call
+    console.log('fetchContacts called');
     setLoading(true);
     try {
       const q = query(
@@ -472,7 +481,7 @@ const Contacts = () => {
       </div>
     );
   };
-
+  
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -616,6 +625,23 @@ const Contacts = () => {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Roles</label>
               <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => {
+                    if (filterRoles.length > 0) {
+                      setFilterRoles([]);
+                    } else {
+                      setFilterRoles(Object.keys(ROLES));
+                    }
+                  }}
+                  className={`px-3 py-1 rounded-lg text-sm flex items-center gap-1 ${
+                    filterRoles.length === Object.keys(ROLES).length
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  <RefreshCw className="h-3 w-3" />
+                  Select All
+                </button>
                 {Object.entries(ROLES).map(([key, role]) => (
                   <button
                     key={key}
@@ -824,6 +850,16 @@ const Contacts = () => {
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
+                        <button
+                          onClick={() => {
+                            setSelectedContactForInteraction(contact);
+                            setShowInteractionLogger(true);
+                          }}
+                          className="p-1.5 text-green-600 hover:bg-green-50 rounded transition-colors"
+                          title="Log Interaction"
+                        >
+                          <MessageSquare className="h-4 w-4" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -859,6 +895,22 @@ const Contacts = () => {
           contact={editingRoles}
           onSave={handleUpdateRoles}
           onCancel={() => setEditingRoles(null)}
+        />
+      )}
+      
+      {/* Interaction Logger Modal */}
+      {showInteractionLogger && selectedContactForInteraction && (
+        <InteractionLogger
+          contactId={selectedContactForInteraction.id}
+          contactName={`${selectedContactForInteraction.firstName} ${selectedContactForInteraction.lastName}`}
+          onClose={() => {
+            setShowInteractionLogger(false);
+            setSelectedContactForInteraction(null);
+          }}
+          onSave={() => {
+            setShowInteractionLogger(false);
+            setSelectedContactForInteraction(null);
+          }}
         />
       )}
 
