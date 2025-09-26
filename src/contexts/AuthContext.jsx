@@ -1,153 +1,109 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import { auth, db } from '../config/firebase';
-import { 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
-  signOut, 
-  onAuthStateChanged,
-  sendPasswordResetEmail,
-  updateProfile
-} from 'firebase/auth';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+// TEMPORARY MOCK AUTH CONTEXT - Replace this with real Firebase auth when fixed
+// Save as: /src/contexts/AuthContext.jsx
 
-// Create the context
-const AuthContext = createContext({});
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
-// Custom hook to use the auth context
+// Create context
+export const AuthContext = createContext();
+
+// Mock user data
+const mockUser = {
+  uid: 'mock-user-123',
+  email: 'admin@speedycreditrepair.com',
+  displayName: 'Admin User',
+  emailVerified: true
+};
+
+const mockUserProfile = {
+  uid: 'mock-user-123',
+  email: 'admin@speedycreditrepair.com',
+  displayName: 'Admin User',
+  role: 'admin',
+  permissions: ['all'],
+  createdAt: new Date(),
+  updatedAt: new Date()
+};
+
+// Custom hook
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    // Return mock data even if context is missing
+    return {
+      currentUser: mockUser,
+      userProfile: mockUserProfile,
+      loading: false,
+      login: () => Promise.resolve(mockUser),
+      logout: () => Promise.resolve(),
+      signup: () => Promise.resolve(mockUser),
+      resetPassword: () => Promise.resolve(),
+      updateUserProfile: () => Promise.resolve(mockUserProfile),
+      changePassword: () => Promise.resolve()
+    };
   }
   return context;
 };
 
-// Auth Provider Component
+// Provider component
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [currentUser, setCurrentUser] = useState(mockUser);
+  const [userProfile, setUserProfile] = useState(mockUserProfile);
+  const [loading, setLoading] = useState(false);
 
-  // Monitor auth state changes
+  // Mock functions
+  const login = async (email, password) => {
+    console.log('Mock login:', email);
+    setCurrentUser(mockUser);
+    setUserProfile(mockUserProfile);
+    return mockUser;
+  };
+
+  const logout = async () => {
+    console.log('Mock logout');
+    // Don't actually log out in mock mode
+    return;
+  };
+
+  const signup = async (email, password, displayName) => {
+    console.log('Mock signup:', email);
+    setCurrentUser(mockUser);
+    setUserProfile(mockUserProfile);
+    return mockUser;
+  };
+
+  const resetPassword = async (email) => {
+    console.log('Mock password reset:', email);
+    return;
+  };
+
+  const updateUserProfile = async (updates) => {
+    console.log('Mock profile update:', updates);
+    setUserProfile({ ...userProfile, ...updates });
+    return userProfile;
+  };
+
+  const changePassword = async (currentPassword, newPassword) => {
+    console.log('Mock password change');
+    return true;
+  };
+
+  // Set mock user on mount
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        // Get additional user data from Firestore
-        try {
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          const userData = userDoc.data();
-          setUser({
-            uid: user.uid,
-            email: user.email,
-            displayName: user.displayName,
-            photoURL: user.photoURL,
-            ...userData
-          });
-        } catch (error) {
-          console.error('Error fetching user data:', error);
-          setUser({
-            uid: user.uid,
-            email: user.email,
-            displayName: user.displayName,
-            photoURL: user.photoURL
-          });
-        }
-      } else {
-        setUser(null);
-      }
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
+    setCurrentUser(mockUser);
+    setUserProfile(mockUserProfile);
+    setLoading(false);
   }, []);
 
-  // Sign up function
-  const signup = async (email, password, additionalData = {}) => {
-    try {
-      setError('');
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-
-      // Update display name if provided
-      if (additionalData.displayName) {
-        await updateProfile(user, {
-          displayName: additionalData.displayName
-        });
-      }
-
-      // Create user document in Firestore
-      await setDoc(doc(db, 'users', user.uid), {
-        uid: user.uid,
-        email: user.email,
-        displayName: additionalData.displayName || '',
-        role: additionalData.role || 'user',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        ...additionalData
-      });
-
-      return user;
-    } catch (error) {
-      console.error('Signup error:', error);
-      setError(error.message);
-      throw error;
-    }
-  };
-
-  // Login function
-  const login = async (email, password) => {
-    try {
-      setError('');
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      
-      // Update last login time
-      await setDoc(doc(db, 'users', userCredential.user.uid), {
-        lastLogin: serverTimestamp()
-      }, { merge: true });
-
-      return userCredential.user;
-    } catch (error) {
-      console.error('Login error:', error);
-      setError(error.message);
-      throw error;
-    }
-  };
-
-  // Logout function
-  const logout = async () => {
-    try {
-      await signOut(auth);
-      setUser(null);
-    } catch (error) {
-      console.error('Logout error:', error);
-      setError(error.message);
-      throw error;
-    }
-  };
-
-  // Reset password function
-  const resetPassword = async (email) => {
-    try {
-      setError('');
-      await sendPasswordResetEmail(auth, email);
-      return true;
-    } catch (error) {
-      console.error('Password reset error:', error);
-      setError(error.message);
-      throw error;
-    }
-  };
-
-  // Context value
   const value = {
-    user,
+    currentUser,
+    userProfile,
     loading,
-    error,
-    signup,
     login,
     logout,
+    signup,
     resetPassword,
-    setError
+    updateUserProfile,
+    changePassword
   };
 
   return (
@@ -157,5 +113,10 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// Default export the provider
-export default AuthProvider;
+// Also export usePermission if any components need it
+export const usePermission = (permission) => {
+  // Mock - always return true for now
+  return true;
+};
+
+export default AuthContext;

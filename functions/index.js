@@ -1,36 +1,147 @@
 ﻿const functions = require('firebase-functions');
+const admin = require('firebase-admin');
+const cors = require('cors')({ origin: true }); // Primary CORS declaration
 
-// ...existing code...
+// Initialize admin
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
 
-// Process AI Receptionist Calls into Contacts
-exports.processAIReceptionistCall = functions.firestore
-  .document('aiReceptionistCalls/{docId}')
-  .onCreate(async (snap, context) => {
-  const data = snap.data();
-  console.log('Function triggered for document:', context.params.docId);
-  console.log('Project ID:', process.env.GCLOUD_PROJECT);
-  console.log('Firebase Config:', process.env.FIREBASE_CONFIG);
-  console.log('Processing new AI call:', context.params.docId);
+// ============================================
+// EMAIL TRACKING FUNCTIONS
+// ============================================
+
+// Email Open Tracking Pixel Endpoint
+// EXPLICITLY SET INVOKER TO PUBLIC to resolve deployment IAM error
+exports.trackEmailOpen = functions.runWith({
+  invoker: 'public'
+}).https.onRequest(async (req, res) => {
+  const trackingId = req.path.split('/').pop();
+  
+  if (!trackingId || trackingId === 'trackEmailOpen') {
+    res.status(400).send('Missing tracking ID');
+    return;
+  }
+
+  try {
+    const trackingQuery = await admin.firestore().collection('emailTracking')
+      .where('trackingId', '==', trackingId)
+      .limit(1)
+      .get();
+
+    if (!trackingQuery.empty) {
+      const trackingDoc = trackingQuery.docs[0];
+      const trackingData = trackingDoc.data();
+      
+      await trackingDoc.ref.update({
+        opened: true,
+        openedAt: trackingData.openedAt || admin.firestore.FieldValue.serverTimestamp(),
+        openCount: admin.firestore.FieldValue.increment(1),
+        lastOpenedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+      
+      if (trackingData.emailId) {
+        await admin.firestore().collection('emails').doc(trackingData.emailId).update({
+          opened: true,
+          openedAt: trackingData.openedAt || admin.firestore.FieldValue.serverTimestamp(),
+          openCount: admin.firestore.FieldValue.increment(1)
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Error tracking email open:', error);
+  }
+  
+  // Return 1x1 transparent pixel
+  const pixel = Buffer.from(
+    'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+    'base64'
+  );
+  
+  res.set({
+    'Content-Type': 'image/gif',
+    'Content-Length': pixel.length,
+    'Cache-Control': 'no-store, no-cache, must-revalidate, private'
+  });
+  
+  res.end(pixel);
+});
+
+// Email Link Click Tracking
+// EXPLICITLY SET INVOKER TO PUBLIC to resolve deployment IAM error
+exports.trackEmailClick = functions.runWith({
+  invoker: 'public'
+}).https.onRequest(async (req, res) => {
+  const pathParts = req.path.split('/');
+  const trackingId = pathParts[pathParts.length - 1];
+  const destinationUrl = req.query.url;
+  
+  if (!trackingId || !destinationUrl) {
+    res.status(400).send('Missing parameters');
+    return;
+  }
+
+  try {
+    const trackingQuery = await admin.firestore().collection('emailTracking')
+      .where('trackingId', '==', trackingId)
+      .limit(1)
+      .get();
+
+    if (!trackingQuery.empty) {
+      const trackingDoc = trackingQuery.docs[0];
+      const trackingData = trackingDoc.data();
+      
+      await trackingDoc.ref.update({
+        clicked: true,
+        clickedAt: trackingData.clickedAt || admin.firestore.FieldValue.serverTimestamp(),
+        clickCount: admin.firestore.FieldValue.increment(1),
+        lastClickedAt: admin.firestore.FieldValue.serverTimestamp(),
+        lastClickedLink: destinationUrl
+      });
+    }
+  } catch (error) {
+    console.error('Error tracking email click:', error);
+  }
+  
+  res.redirect(destinationUrl);
+});
+
+// Website Visitor Tracking
+// EXPLICITLY SET INVOKER TO PUBLIC to resolve deployment IAM error
+exports.trackWebsite = functions.runWith({
+  invoker: 'public'
+}).https.onRequest(async (req, res) => {
+  cors(req, res, async () => {
+    if (req.method !== 'POST') {
+      res.status(405).send('Method Not Allowed');
+      return;
+    }
+
+    const { type, data } = req.body;
     
     try {
-      console.log('Function triggered successfully!');
-      console.log('Document ID:', context.params.docId);
-      console.log('Data received:', JSON.stringify(data));
-      console.log('Username:', data.username);
-      console.log('Caller:', data.caller);
-      console.log('Would create contact but skipping due to permissions');
-      // Commented out all Firestore write operations for now
+      await admin.firestore().collection('websiteTracking').add({
+        type,
+        data,
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        processed: false,
+        source: 'website'
+      });
+      
+      res.json({ success: true });
     } catch (error) {
-      console.error('Error processing AI call:', error);
-      // Commented out Firestore error update
+      console.error('Error tracking website visitor:', error);
+      res.status(500).json({ error: 'Failed to track' });
     }
   });
+});
 
-const admin = require('firebase-admin');
+// ============================================
+// IDIQ FUNCTIONS (Credential/Auth Helpers)
+// ============================================
+
 const fetch = require('node-fetch');
 const { OpenAI } = require('openai');
-
-admin.initializeApp();
 
 // Allowlist of front-end origins that may call our HTTP function (preview + prod + localhost)
 const ALLOW_ORIGINS = new Set([
@@ -63,7 +174,6 @@ const IDIQ_CONFIG = {
   PLAN_CODE: process.env.IDIQ_PLAN_CODE || 'PLAN03B'
 };
 
-// Get IDIQ Partner Token (onRequest, with CORS header)
 const IDIQ_ENV = process.env.IDIQ_ENV || "stage"; // "stage" | "prod"
 const IDIQ_PARTNER_TOKEN_PATH = process.env.IDIQ_PARTNER_TOKEN_PATH;
 
@@ -604,3 +714,27 @@ exports.aiWebhook = functions.runWith({
     res.status(500).json({ error: error.message });
   }
 });
+
+// Process AI Receptionist Calls into Contacts (Keep this at the end)
+exports.processAIReceptionistCall = functions.firestore
+  .document('aiReceptionistCalls/{docId}')
+  .onCreate(async (snap, context) => {
+  const data = snap.data();
+  console.log('Function triggered for document:', context.params.docId);
+  console.log('Project ID:', process.env.GCLOUD_PROJECT);
+  console.log('Firebase Config:', process.env.FIREBASE_CONFIG);
+  console.log('Processing new AI call:', context.params.docId);
+    
+    try {
+      console.log('Function triggered successfully!');
+      console.log('Document ID:', context.params.docId);
+      console.log('Data received:', JSON.stringify(data));
+      console.log('Username:', data.username);
+      console.log('Caller:', data.caller);
+      console.log('Would create contact but skipping due to permissions');
+      // Commented out all Firestore write operations for now
+    } catch (error) {
+      console.error('Error processing AI call:', error);
+      // Commented out Firestore error update
+    }
+  });
