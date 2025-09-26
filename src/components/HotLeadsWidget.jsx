@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Phone, TrendingUp, AlertCircle, ChevronRight, Clock, DollarSign } from 'lucide-react';
 import { collection, query, where, onSnapshot, orderBy, limit } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { db } from '../lib/firebase';
 import { Link } from 'react-router-dom';
 
 const HotLeadsWidget = () => {

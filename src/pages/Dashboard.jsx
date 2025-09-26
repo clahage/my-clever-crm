@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, limit, orderBy } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext'; // FIXED: contexts with 's'
 import { 
   Users, UserCheck, Phone, TrendingUp, 

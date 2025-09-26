@@ -1,44 +1,32 @@
-import { initializeApp, getApps, getApp } from "firebase/app";
+// src/lib/firebase.js
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
-import {
-  GoogleAuthProvider,
-  initializeAuth,
-  indexedDBLocalPersistence,
-  browserLocalPersistence,
-  inMemoryPersistence,
-  browserPopupRedirectResolver,
-} from "firebase/auth";
 import { getStorage } from "firebase/storage";
+import { GoogleAuthProvider } from "firebase/auth";
 
-// IMPORTANT: Keep this project config consistent across dev/prod.
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  apiKey: "AIzaSyBUH0RQTzR4x_g0o1z_RCBcdb7YXvm5dGM",
   authDomain: "my-clever-crm.firebaseapp.com",
   projectId: "my-clever-crm",
   storageBucket: "my-clever-crm.appspot.com",
-  // Include these if available for this project:
-  // messagingSenderId: "1042713435709",
-  appId: "1:1042713435709:web:364304bffb4c77d5c31454",
+  appId: "1:1042713435709:web:364304bffb4c77d5c31454"
 };
 
-// Single app instance (avoids HMR dupes)
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
 
-// IMPORTANT: initializeAuth with redirect resolver + layered persistence
-// Note: initializeAuth is required to supply the popup/redirect resolver.
-export const auth = initializeAuth(app, {
-  persistence: [
-    indexedDBLocalPersistence,
-    browserLocalPersistence,
-    inMemoryPersistence,
-  ],
-  popupRedirectResolver: browserPopupRedirectResolver,
-});
+// Initialize Firebase Authentication and get a reference to the service
+export const auth = getAuth(app);
 
-// Configure Google provider (force account chooser)
+// Initialize Cloud Firestore and get a reference to the service
+export const db = getFirestore(app);
+
+// Initialize Cloud Storage and get a reference to the service
+export const storage = getStorage(app);
+
+// Google Auth Provider
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: "select_account" });
 
-export const db = getFirestore(app);
-export const storage = getStorage(app);
 export { app };

@@ -6,7 +6,7 @@ import './Calendar.css';
 import { 
   collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, where 
 } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   Calendar as CalendarIcon, Clock, User, MapPin, Tag, AlertCircle,

@@ -7,6 +7,7 @@ import ProtectedLayout from './layout/ProtectedLayout';
 // Auth Pages
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Logout from './pages/Logout';
 
 // Protected Pages - Core
 import Dashboard from './pages/Dashboard';
@@ -51,6 +52,7 @@ function App() {
           {/* Public Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/logout" element={<Logout />} />
 
           {/* Protected Routes with Layout */}
           <Route path="/" element={<ProtectedRoute><ProtectedLayout /></ProtectedRoute>}>
@@ -96,9 +98,6 @@ function App() {
             <Route path="client" element={<Portal />} />
             <Route path="learn" element={<Learn />} />
             <Route path="support" element={<Support />} />
-            
-            {/* Logout Route */}
-            <Route path="logout" element={<Navigate to="/login" replace />} />
           </Route>
 
           {/* Catch all route */}

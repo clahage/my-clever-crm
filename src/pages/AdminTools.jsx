@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { db } from '../lib/firebase';
 import { runMigration } from '../utils/migrateToAutomatedPipeline';
 import { Settings, Database, RefreshCw, AlertCircle, CheckCircle, Users, Phone, Trash2, Shield } from 'lucide-react';
 

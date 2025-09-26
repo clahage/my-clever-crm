@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, User, Mail, Phone, X, Check } from 'lucide-react';
-import { db } from '../config/firebase';
+import { db } from '../lib/firebase';
 import { collection, query, orderBy, limit, getDocs, where } from 'firebase/firestore';
 
 const ClientPicker = ({ 

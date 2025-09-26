@@ -22,7 +22,7 @@ import {
   ArrowUpRight,
   FileText
 } from 'lucide-react';
-import { db } from '../config/firebase';
+import { db } from '../lib/firebase';
 import { 
   collection, 
   query, 

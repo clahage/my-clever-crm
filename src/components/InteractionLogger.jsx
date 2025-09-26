@@ -1,6 +1,6 @@
 // src/components/InteractionLogger.jsx
 import React, { useState } from 'react';
-import { db } from '../config/firebase';
+import { db } from '../lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
 import { Phone, Mail, Users, MessageSquare, Calendar, TrendingUp, TrendingDown, Minus, X } from 'lucide-react';

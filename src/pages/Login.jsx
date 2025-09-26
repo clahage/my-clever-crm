@@ -1,30 +1,36 @@
-import React, { useState } from 'react';
+// src/pages/Login.jsx
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../firebaseConfig';
+import { useAuth } from '../contexts/AuthContext';
 import { Mail, Lock, Eye, EyeOff, AlertCircle, Phone } from 'lucide-react';
 
 const Login = () => {
   const navigate = useNavigate();
+  const { login, currentUser, loading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (currentUser && !loading) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [currentUser, loading, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
+    setIsLoading(true);
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      console.log('Login successful');
-      navigate('/dashboard');
+      await login(email, password);
+      navigate('/dashboard', { replace: true });
     } catch (err) {
       console.error('Login error:', err);
       
-      // Handle specific Firebase auth errors
       switch (err.code) {
         case 'auth/invalid-email':
           setError('Invalid email address');
@@ -48,29 +54,33 @@ const Login = () => {
           setError('Failed to sign in. Please try again');
       }
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  // Quick fill demo credentials
   const useDemoAccount = () => {
     setEmail('test@test.com');
     setPassword('test123');
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Logo/Brand */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">SpeedyCRM</h1>
           <p className="text-gray-600">Sign in to your account</p>
         </div>
 
-        {/* Login Card */}
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Error Message */}
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2">
                 <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
@@ -78,7 +88,6 @@ const Login = () => {
               </div>
             )}
 
-            {/* Email Field */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                 Email Address
@@ -97,7 +106,6 @@ const Login = () => {
               </div>
             </div>
 
-            {/* Password Field */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
                 Password
@@ -123,7 +131,6 @@ const Login = () => {
               </div>
             </div>
 
-            {/* Remember Me & Forgot Password */}
             <div className="flex items-center justify-between">
               <label className="flex items-center">
                 <input type="checkbox" className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
@@ -134,13 +141,12 @@ const Login = () => {
               </a>
             </div>
 
-            {/* Submit Button */}
             <button
               type="submit"
-              disabled={loading}
+              disabled={isLoading}
               className="w-full py-3 px-4 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {loading ? (
+              {isLoading ? (
                 <span className="flex items-center justify-center">
                   <svg className="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
@@ -153,7 +159,6 @@ const Login = () => {
               )}
             </button>
 
-            {/* Divider */}
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-300"></div>
@@ -163,7 +168,6 @@ const Login = () => {
               </div>
             </div>
 
-            {/* Demo Account Button */}
             <button
               type="button"
               onClick={useDemoAccount}
@@ -171,20 +175,8 @@ const Login = () => {
             >
               Use Demo Account
             </button>
-
-            {/* Phone Login Note */}
-            <div className="text-center">
-              <button
-                type="button"
-                className="inline-flex items-center text-sm text-gray-600 hover:text-gray-800"
-              >
-                <Phone className="w-4 h-4 mr-1" />
-                Phone login coming soon
-              </button>
-            </div>
           </form>
 
-          {/* Sign Up Link */}
           <div className="mt-6 text-center">
             <span className="text-sm text-gray-600">
               Don't have an account?{' '}
@@ -195,7 +187,6 @@ const Login = () => {
           </div>
         </div>
 
-        {/* Footer with Demo Credentials */}
         <div className="mt-8 text-center">
           <div className="bg-blue-50 rounded-lg p-3 mb-3">
             <p className="text-sm text-gray-600">Demo credentials:</p>

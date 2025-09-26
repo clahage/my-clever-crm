@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, doc, updateDoc, addDoc, serverTimestamp, getDocs } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { db } from '../lib/firebase';
 import { Users, Phone, Mail, Calendar, TrendingUp, CheckCircle, AlertCircle } from 'lucide-react';
 
 const QuickContactConverter = () => {

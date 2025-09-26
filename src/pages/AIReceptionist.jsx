@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { db } from '../config/firebase';
+import { db } from '../lib/firebase';
 import { collection, query, where, orderBy, onSnapshot, limit, doc, updateDoc } from 'firebase/firestore';
 import { Phone, Clock, TrendingUp, Users, AlertCircle, CheckCircle } from 'lucide-react';
 // REMOVED: import QuickContactConverter from '../components/QuickContactConverter';

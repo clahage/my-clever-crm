@@ -1,122 +1,130 @@
-// TEMPORARY MOCK AUTH CONTEXT - Replace this with real Firebase auth when fixed
-// Save as: /src/contexts/AuthContext.jsx
-
+// src/contexts/AuthContext.jsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { auth, db } from '../lib/firebase';
+import { 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  signOut, 
+  onAuthStateChanged,
+  sendPasswordResetEmail,
+  updateProfile
+} from 'firebase/auth';
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 
-// Create context
-export const AuthContext = createContext();
+const AuthContext = createContext({});
 
-// Mock user data
-const mockUser = {
-  uid: 'mock-user-123',
-  email: 'admin@speedycreditrepair.com',
-  displayName: 'Admin User',
-  emailVerified: true
-};
-
-const mockUserProfile = {
-  uid: 'mock-user-123',
-  email: 'admin@speedycreditrepair.com',
-  displayName: 'Admin User',
-  role: 'admin',
-  permissions: ['all'],
-  createdAt: new Date(),
-  updatedAt: new Date()
-};
-
-// Custom hook
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    // Return mock data even if context is missing
-    return {
-      currentUser: mockUser,
-      userProfile: mockUserProfile,
-      loading: false,
-      login: () => Promise.resolve(mockUser),
-      logout: () => Promise.resolve(),
-      signup: () => Promise.resolve(mockUser),
-      resetPassword: () => Promise.resolve(),
-      updateUserProfile: () => Promise.resolve(mockUserProfile),
-      changePassword: () => Promise.resolve()
-    };
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 };
 
-// Provider component
 export const AuthProvider = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState(mockUser);
-  const [userProfile, setUserProfile] = useState(mockUserProfile);
-  const [loading, setLoading] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Mock functions
+  // Login function
   const login = async (email, password) => {
-    console.log('Mock login:', email);
-    setCurrentUser(mockUser);
-    setUserProfile(mockUserProfile);
-    return mockUser;
+    return signInWithEmailAndPassword(auth, email, password);
   };
 
-  const logout = async () => {
-    console.log('Mock logout');
-    // Don't actually log out in mock mode
-    return;
-  };
-
+  // Signup function
   const signup = async (email, password, displayName) => {
-    console.log('Mock signup:', email);
-    setCurrentUser(mockUser);
-    setUserProfile(mockUserProfile);
-    return mockUser;
+    const result = await createUserWithEmailAndPassword(auth, email, password);
+    
+    if (displayName) {
+      await updateProfile(result.user, { displayName });
+    }
+    
+    // Create user profile in Firestore
+    await setDoc(doc(db, 'users', result.user.uid), {
+      uid: result.user.uid,
+      email: result.user.email,
+      displayName: displayName || 'User',
+      role: 'user',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+    
+    return result;
   };
 
-  const resetPassword = async (email) => {
-    console.log('Mock password reset:', email);
-    return;
+  // Logout function
+  const logout = () => {
+    return signOut(auth);
   };
 
-  const updateUserProfile = async (updates) => {
-    console.log('Mock profile update:', updates);
-    setUserProfile({ ...userProfile, ...updates });
-    return userProfile;
+  // Reset password
+  const resetPassword = (email) => {
+    return sendPasswordResetEmail(auth, email);
   };
 
-  const changePassword = async (currentPassword, newPassword) => {
-    console.log('Mock password change');
-    return true;
+  // Fetch user profile from Firestore
+  const fetchUserProfile = async (uid) => {
+    try {
+      const docRef = doc(db, 'users', uid);
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        setUserProfile(docSnap.data());
+        return docSnap.data();
+      } else {
+        // Create profile if doesn't exist
+        const newProfile = {
+          uid: uid,
+          email: auth.currentUser?.email,
+          displayName: auth.currentUser?.displayName || 'User',
+          role: 'user',
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        };
+        await setDoc(doc(db, 'users', uid), newProfile);
+        setUserProfile(newProfile);
+        return newProfile;
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      return null;
+    }
   };
 
-  // Set mock user on mount
+  // Auth state observer
   useEffect(() => {
-    setCurrentUser(mockUser);
-    setUserProfile(mockUserProfile);
-    setLoading(false);
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      console.log('Auth state changed:', user?.email || 'No user');
+      setCurrentUser(user);
+      
+      if (user) {
+        await fetchUserProfile(user.uid);
+      } else {
+        setUserProfile(null);
+      }
+      
+      setLoading(false);
+    });
+
+    return unsubscribe;
   }, []);
 
   const value = {
     currentUser,
     userProfile,
-    loading,
+    signup,
     login,
     logout,
-    signup,
     resetPassword,
-    updateUserProfile,
-    changePassword
+    loading,
+    user: currentUser // alias for compatibility
   };
 
   return (
     <AuthContext.Provider value={value}>
-      {children}
+      {!loading && children}
     </AuthContext.Provider>
   );
-};
-
-// Also export usePermission if any components need it
-export const usePermission = (permission) => {
-  // Mock - always return true for now
-  return true;
 };
 
 export default AuthContext;

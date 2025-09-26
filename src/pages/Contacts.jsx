@@ -34,7 +34,7 @@ import {
   X,
   MessageSquare
 } from 'lucide-react';
-import { db } from '../config/firebase';  // CORRECT IMPORT
+import { db } from '../lib/firebase';  // CORRECT IMPORT
 import { 
   collection, 
   query, 

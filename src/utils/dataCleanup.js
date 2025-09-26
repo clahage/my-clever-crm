@@ -2,7 +2,7 @@
 // Tool to clean up test data and organize your Firebase collections
 
 import { collection, getDocs, deleteDoc, doc, updateDoc, query, where } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { db } from '../lib/firebase';
 
 export const DataCleanupTool = {
   // Analyze data quality

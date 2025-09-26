@@ -1,5 +1,5 @@
 // src/services/emailTrackingService.js
-import { db } from '../config/firebase';
+import { db } from '../lib/firebase';
 import { 
   doc, 
   updateDoc, 

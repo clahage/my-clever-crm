@@ -1,6 +1,6 @@
 // Enhanced name extraction with specific fixes for multi-word names split across user@ tags
 import { collection, getDocs, updateDoc, doc } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { db } from '../lib/firebase';
 
 function extractCallerName(transcript = "", phoneNumber = "") {
   if (!transcript) return phoneNumber || "Not Provided";

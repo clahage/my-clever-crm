@@ -1,5 +1,5 @@
 // src/api/trackingRoutes.js
-import { db } from '../config/firebase';
+import { db } from '../lib/firebase';
 import emailTrackingService from '../services/emailTrackingService';
 
 // Handle email open tracking

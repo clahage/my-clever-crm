@@ -1,6 +1,6 @@
 // Unified Contact Pipeline Service - Handles all contact creation and categorization
 import { collection, doc, setDoc, updateDoc, onSnapshot, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { db } from '../lib/firebase';
 
 class ContactPipelineService {
   constructor() {

@@ -3,7 +3,7 @@
 // Path: src/utils/migrateToAutomatedPipeline.js
 
 import { collection, getDocs, updateDoc, doc, writeBatch, serverTimestamp } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { db } from '../lib/firebase';
 
 export async function migrateToAutomatedPipeline() {
   console.log('========== STARTING MIGRATION TO AUTOMATED PIPELINE ==========');

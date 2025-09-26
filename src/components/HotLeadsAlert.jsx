@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
-import { db } from '../config/firebase'; // FIXED: corrected import path
+import { db } from '../lib/firebase'; // FIXED: corrected import path
 import { AlertCircle, TrendingUp, X, Phone, Clock, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
