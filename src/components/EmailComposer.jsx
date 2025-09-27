@@ -66,21 +66,34 @@ const EmailComposer = () => {
     replied: 0
   });
 
-  // Load contacts on mount
-  useEffect(() => {
-    const loadContacts = async () => {
-      const q = query(collection(db, 'contacts'), orderBy('name'));
+ // Load contacts on mount
+useEffect(() => {
+  const loadContacts = async () => {
+    try {
+      // Remove the orderBy since 'name' field doesn't exist
+      const q = query(collection(db, 'contacts'));
       const unsubscribe = onSnapshot(q, (snapshot) => {
-        const contactsList = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
+        const contactsList = snapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+            // Create display name from available fields
+            name: data.name || `${data.firstName || ''} ${data.lastName || ''}`.trim() || data.email || 'Unknown'
+          };
+        });
+        // Sort manually after loading
+        contactsList.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
         setContacts(contactsList);
       });
       return unsubscribe;
-    };
-    loadContacts();
-  }, []);
+    } catch (error) {
+      console.error('Error loading contacts:', error);
+      setContacts([]); // Set empty array on error
+    }
+  };
+  loadContacts();
+}, []);
 
   // Load email templates
   useEffect(() => {

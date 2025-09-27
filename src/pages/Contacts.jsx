@@ -32,7 +32,9 @@ import {
   FileText,
   Paperclip,
   X,
-  MessageSquare
+  MessageSquare,
+  User,
+  Info
 } from 'lucide-react';
 import { db } from '../lib/firebase';  // CORRECT IMPORT
 import { 
@@ -96,14 +98,104 @@ const Contacts = () => {
     closed: { label: 'Closed', color: 'bg-gray-100 text-gray-700' }
   };
 
-  // New contact form state with enhanced fields
+  // State list for dropdown
+  const US_STATES = [
+    { value: '', label: 'Select State...' },
+    { value: 'AL', label: 'Alabama' },
+    { value: 'AK', label: 'Alaska' },
+    { value: 'AZ', label: 'Arizona' },
+    { value: 'AR', label: 'Arkansas' },
+    { value: 'CA', label: 'California' },
+    { value: 'CO', label: 'Colorado' },
+    { value: 'CT', label: 'Connecticut' },
+    { value: 'DE', label: 'Delaware' },
+    { value: 'FL', label: 'Florida' },
+    { value: 'GA', label: 'Georgia' },
+    { value: 'HI', label: 'Hawaii' },
+    { value: 'ID', label: 'Idaho' },
+    { value: 'IL', label: 'Illinois' },
+    { value: 'IN', label: 'Indiana' },
+    { value: 'IA', label: 'Iowa' },
+    { value: 'KS', label: 'Kansas' },
+    { value: 'KY', label: 'Kentucky' },
+    { value: 'LA', label: 'Louisiana' },
+    { value: 'ME', label: 'Maine' },
+    { value: 'MD', label: 'Maryland' },
+    { value: 'MA', label: 'Massachusetts' },
+    { value: 'MI', label: 'Michigan' },
+    { value: 'MN', label: 'Minnesota' },
+    { value: 'MS', label: 'Mississippi' },
+    { value: 'MO', label: 'Missouri' },
+    { value: 'MT', label: 'Montana' },
+    { value: 'NE', label: 'Nebraska' },
+    { value: 'NV', label: 'Nevada' },
+    { value: 'NH', label: 'New Hampshire' },
+    { value: 'NJ', label: 'New Jersey' },
+    { value: 'NM', label: 'New Mexico' },
+    { value: 'NY', label: 'New York' },
+    { value: 'NC', label: 'North Carolina' },
+    { value: 'ND', label: 'North Dakota' },
+    { value: 'OH', label: 'Ohio' },
+    { value: 'OK', label: 'Oklahoma' },
+    { value: 'OR', label: 'Oregon' },
+    { value: 'PA', label: 'Pennsylvania' },
+    { value: 'RI', label: 'Rhode Island' },
+    { value: 'SC', label: 'South Carolina' },
+    { value: 'SD', label: 'South Dakota' },
+    { value: 'TN', label: 'Tennessee' },
+    { value: 'TX', label: 'Texas' },
+    { value: 'UT', label: 'Utah' },
+    { value: 'VT', label: 'Vermont' },
+    { value: 'VA', label: 'Virginia' },
+    { value: 'WA', label: 'Washington' },
+    { value: 'WV', label: 'West Virginia' },
+    { value: 'WI', label: 'Wisconsin' },
+    { value: 'WY', label: 'Wyoming' }
+  ];
+
+  // Phone formatting helper
+  const formatPhoneNumber = (value) => {
+    const phone = value.replace(/\D/g, '');
+    const match = phone.match(/^(\d{3})(\d{3})(\d{4})$/);
+    if (match) {
+      return '(' + match[1] + ') ' + match[2] + '-' + match[3];
+    }
+    return value;
+  };
+
+  // ZIP code formatting
+  const formatZipCode = (value) => {
+    const zip = value.replace(/\D/g, '');
+    if (zip.length > 5) {
+      return zip.slice(0, 5) + '-' + zip.slice(5, 9);
+    }
+    return zip;
+  };
+
+  // Enhanced contact form state with all fields
   const [newContact, setNewContact] = useState({
+    // Name fields
     firstName: '',
+    middleName: '',  // NEW
     lastName: '',
+    
+    // Contact fields
     email: '',
     phone: '',
+    phoneExt: '',    // NEW
+    
+    // Professional fields
     company: '',
-    address: '',
+    occupation: '',   // NEW
+    
+    // Address fields - EXPANDED
+    street: '',       // NEW
+    city: '',         // NEW
+    state: '',        // NEW
+    zipCode: '',      // NEW
+    country: 'USA',   // NEW
+    
+    // System fields
     roles: ['contact'],
     primaryRole: 'contact',
     lifecycleStatus: 'intake',
@@ -183,21 +275,25 @@ const Contacts = () => {
   const filterAndSortContacts = () => {
     let filtered = [...contacts];
 
-    // Search filter
+    // Search filter - updated to include middle name
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(contact => {
-        const fullName = `${contact.firstName || ''} ${contact.lastName || ''}`.toLowerCase();
+        const fullName = `${contact.firstName || ''} ${contact.middleName || ''} ${contact.lastName || ''}`.toLowerCase();
         const company = (contact.company || '').toLowerCase();
+        const occupation = (contact.occupation || '').toLowerCase();
         const email = (contact.email || '').toLowerCase();
         const phone = (contact.phone || '').toLowerCase();
         const tags = (contact.tags || []).join(' ').toLowerCase();
+        const address = `${contact.street || ''} ${contact.city || ''} ${contact.state || ''} ${contact.zipCode || ''}`.toLowerCase();
         
         return fullName.includes(term) || 
                company.includes(term) || 
+               occupation.includes(term) ||
                email.includes(term) || 
                phone.includes(term) ||
-               tags.includes(term);
+               tags.includes(term) ||
+               address.includes(term);
       });
     }
 
@@ -321,6 +417,22 @@ const Contacts = () => {
   const handleAddContact = async (e) => {
     e.preventDefault();
     try {
+      // Build full address string from components
+      const addressParts = [
+        newContact.street,
+        newContact.city,
+        newContact.state,
+        newContact.zipCode,
+        newContact.country
+      ].filter(Boolean);
+      
+      const fullAddress = addressParts.length > 0 ? addressParts.join(', ') : '';
+      
+      // Build phone with extension
+      const fullPhone = newContact.phoneExt 
+        ? `${newContact.phone} ext. ${newContact.phoneExt}`
+        : newContact.phone;
+      
       // Initialize role history
       const roleHistory = [{
         roles: newContact.roles,
@@ -331,22 +443,62 @@ const Contacts = () => {
       }];
       
       await addDoc(collection(db, 'contacts'), {
-        ...newContact,
+        // Name fields
+        firstName: newContact.firstName,
+        middleName: newContact.middleName,
+        lastName: newContact.lastName,
+        
+        // Contact fields
+        email: newContact.email,
+        phone: fullPhone,
+        phoneBase: newContact.phone,
+        phoneExt: newContact.phoneExt,
+        
+        // Professional
+        company: newContact.company,
+        occupation: newContact.occupation,
+        
+        // Address fields
+        address: fullAddress, // Full address for backward compatibility
+        street: newContact.street,
+        city: newContact.city,
+        state: newContact.state,
+        zipCode: newContact.zipCode,
+        country: newContact.country,
+        
+        // System fields
+        roles: newContact.roles,
+        primaryRole: newContact.primaryRole,
+        lifecycleStatus: newContact.lifecycleStatus,
+        tags: newContact.tags,
+        source: newContact.source,
+        notes: newContact.notes,
+        piiLevel: newContact.piiLevel,
         roleHistory,
+        
+        // Timestamps
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         documentCount: 0,
         lastActivityDate: serverTimestamp()
       });
       
+      // Reset form
       setShowNewContactForm(false);
       setNewContact({
         firstName: '',
+        middleName: '',
         lastName: '',
         email: '',
         phone: '',
+        phoneExt: '',
         company: '',
-        address: '',
+        occupation: '',
+        street: '',
+        city: '',
+        state: '',
+        zipCode: '',
+        country: 'USA',
         roles: ['contact'],
         primaryRole: 'contact',
         lifecycleStatus: 'intake',
@@ -359,6 +511,7 @@ const Contacts = () => {
       await fetchContacts();
     } catch (error) {
       console.error('Error adding contact:', error);
+      alert('Error adding contact. Please try again.');
     }
   };
 
@@ -589,7 +742,7 @@ const Contacts = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search by name, email, phone, company, or tags..."
+                placeholder="Search by name, email, phone, company, occupation, address, or tags..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -755,10 +908,13 @@ const Contacts = () => {
                         </div>
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900">
-                            {contact.firstName} {contact.lastName}
+                            {contact.firstName} {contact.middleName ? contact.middleName + ' ' : ''}{contact.lastName}
                           </div>
                           {contact.company && (
-                            <div className="text-xs text-gray-500">{contact.company}</div>
+                            <div className="text-xs text-gray-500">
+                              {contact.company}
+                              {contact.occupation && ` • ${contact.occupation}`}
+                            </div>
                           )}
                         </div>
                       </div>
@@ -775,6 +931,12 @@ const Contacts = () => {
                           <div className="flex items-center gap-1 mt-1">
                             <Phone className="h-3 w-3 text-gray-400" />
                             {contact.phone}
+                          </div>
+                        )}
+                        {(contact.city || contact.state) && (
+                          <div className="flex items-center gap-1 mt-1">
+                            <MapPin className="h-3 w-3 text-gray-400" />
+                            {[contact.city, contact.state].filter(Boolean).join(', ')}
                           </div>
                         )}
                       </div>
@@ -914,77 +1076,161 @@ const Contacts = () => {
         />
       )}
 
-      {/* New Contact Form Modal */}
+      {/* Enhanced New Contact Form Modal */}
       {showNewContactForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Add New Contact</h3>
-            <form onSubmit={handleAddContact} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    First Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={newContact.firstName}
-                    onChange={(e) => setNewContact({...newContact, firstName: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Last Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={newContact.lastName}
-                    onChange={(e) => setNewContact({...newContact, lastName: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
+          <div className="bg-white rounded-lg p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-semibold text-gray-900">Add New Contact</h3>
+              <button
+                onClick={() => setShowNewContactForm(false)}
+                className="p-2 hover:bg-gray-100 rounded-full"
+              >
+                <X className="h-5 w-5 text-gray-500" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddContact} className="space-y-6">
+              {/* Name Section */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Personal Information
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      First Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={newContact.firstName}
+                      onChange={(e) => setNewContact({...newContact, firstName: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      placeholder="John"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Middle Name
+                      <span className="text-xs text-gray-500 ml-1">(Optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={newContact.middleName}
+                      onChange={(e) => setNewContact({...newContact, middleName: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      placeholder="Michael"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Last Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={newContact.lastName}
+                      onChange={(e) => setNewContact({...newContact, lastName: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      placeholder="Doe"
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    value={newContact.email}
-                    onChange={(e) => setNewContact({...newContact, email: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Phone
-                  </label>
-                  <input
-                    type="tel"
-                    value={newContact.phone}
-                    onChange={(e) => setNewContact({...newContact, phone: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
+              {/* Contact Information */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                  <Phone className="h-4 w-4" />
+                  Contact Information
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Email
+                      <span className="text-xs text-gray-500 ml-1">(Recommended)</span>
+                    </label>
+                    <input
+                      type="email"
+                      value={newContact.email}
+                      onChange={(e) => setNewContact({...newContact, email: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      placeholder="john.doe@example.com"
+                    />
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Phone
+                        <span className="text-xs text-gray-500 ml-1">(10 digits)</span>
+                      </label>
+                      <input
+                        type="tel"
+                        value={newContact.phone}
+                        onChange={(e) => setNewContact({
+                          ...newContact, 
+                          phone: formatPhoneNumber(e.target.value)
+                        })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        placeholder="(555) 123-4567"
+                        maxLength="14"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Ext
+                        <span className="text-xs text-gray-500 ml-1">(Optional)</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={newContact.phoneExt}
+                        onChange={(e) => setNewContact({...newContact, phoneExt: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        placeholder="123"
+                        maxLength="6"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Company
-                  </label>
-                  <input
-                    type="text"
-                    value={newContact.company}
-                    onChange={(e) => setNewContact({...newContact, company: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
+              {/* Professional Information */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                  <Building2 className="h-4 w-4" />
+                  Professional Information
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Company
+                      <span className="text-xs text-gray-500 ml-1">(Organization name)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={newContact.company}
+                      onChange={(e) => setNewContact({...newContact, company: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      placeholder="Acme Corporation"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Occupation
+                      <span className="text-xs text-gray-500 ml-1">(Job title)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={newContact.occupation}
+                      onChange={(e) => setNewContact({...newContact, occupation: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      placeholder="Software Engineer"
+                    />
+                  </div>
                 </div>
-                <div>
+                <div className="mt-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Source
                   </label>
@@ -1004,142 +1250,234 @@ const Contacts = () => {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Address
-                </label>
-                <input
-                  type="text"
-                  value={newContact.address}
-                  onChange={(e) => setNewContact({...newContact, address: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                />
+              {/* Address Information */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  Address Information
+                </h4>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Street Address
+                      <span className="text-xs text-gray-500 ml-1">(Optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={newContact.street}
+                      onChange={(e) => setNewContact({...newContact, street: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      placeholder="123 Main Street, Apt 4B"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        City
+                      </label>
+                      <input
+                        type="text"
+                        value={newContact.city}
+                        onChange={(e) => setNewContact({...newContact, city: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        placeholder="New York"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        State
+                      </label>
+                      <select
+                        value={newContact.state}
+                        onChange={(e) => setNewContact({...newContact, state: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      >
+                        {US_STATES.map(state => (
+                          <option key={state.value} value={state.value}>
+                            {state.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        ZIP Code
+                      </label>
+                      <input
+                        type="text"
+                        value={newContact.zipCode}
+                        onChange={(e) => setNewContact({
+                          ...newContact,
+                          zipCode: formatZipCode(e.target.value)
+                        })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        placeholder="10001"
+                        maxLength="10"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Country
+                    </label>
+                    <select
+                      value={newContact.country}
+                      onChange={(e) => setNewContact({...newContact, country: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="USA">United States</option>
+                      <option value="CAN">Canada</option>
+                      <option value="MEX">Mexico</option>
+                      <option value="OTHER">Other</option>
+                    </select>
+                  </div>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Roles (select multiple)
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {Object.entries(ROLES).map(([key, role]) => {
-                    const Icon = role.icon;
-                    return (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => {
-                          const currentRoles = newContact.roles || [];
-                          if (currentRoles.includes(key)) {
-                            if (currentRoles.length > 1) {
+              {/* Roles and Classification */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                  <Shield className="h-4 w-4" />
+                  Roles & Classification
+                </h4>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Roles (select multiple)
+                    <Info className="inline h-3 w-3 ml-1 text-gray-400" />
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {Object.entries(ROLES).map(([key, role]) => {
+                      const Icon = role.icon;
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => {
+                            const currentRoles = newContact.roles || [];
+                            if (currentRoles.includes(key)) {
+                              if (currentRoles.length > 1) {
+                                setNewContact({
+                                  ...newContact,
+                                  roles: currentRoles.filter(r => r !== key),
+                                  primaryRole: newContact.primaryRole === key ? currentRoles.filter(r => r !== key)[0] : newContact.primaryRole
+                                });
+                              }
+                            } else {
                               setNewContact({
                                 ...newContact,
-                                roles: currentRoles.filter(r => r !== key),
-                                primaryRole: newContact.primaryRole === key ? currentRoles.filter(r => r !== key)[0] : newContact.primaryRole
+                                roles: [...currentRoles, key],
+                                primaryRole: currentRoles.length === 0 ? key : newContact.primaryRole
                               });
                             }
-                          } else {
-                            setNewContact({
-                              ...newContact,
-                              roles: [...currentRoles, key],
-                              primaryRole: currentRoles.length === 0 ? key : newContact.primaryRole
-                            });
-                          }
-                        }}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${
-                          newContact.roles.includes(key)
-                            ? 'border-blue-500 bg-blue-50 text-blue-700'
-                            : 'border-gray-300 hover:bg-gray-50'
-                        }`}
-                      >
-                        <Icon className="h-4 w-4" />
-                        {role.label}
-                      </button>
-                    );
-                  })}
+                          }}
+                          className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${
+                            newContact.roles.includes(key)
+                              ? 'border-blue-500 bg-blue-50 text-blue-700'
+                              : 'border-gray-300 hover:bg-gray-50'
+                          }`}
+                        >
+                          <Icon className="h-4 w-4" />
+                          {role.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {newContact.roles.length > 1 && (
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Primary Role
+                    </label>
+                    <select
+                      value={newContact.primaryRole}
+                      onChange={(e) => setNewContact({...newContact, primaryRole: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    >
+                      {newContact.roles.map(role => (
+                        <option key={role} value={role}>{ROLES[role]?.label || role}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-4 mt-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Lifecycle Status
+                    </label>
+                    <select
+                      value={newContact.lifecycleStatus}
+                      onChange={(e) => setNewContact({...newContact, lifecycleStatus: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    >
+                      {Object.entries(LIFECYCLE_STATUSES).map(([key, status]) => (
+                        <option key={key} value={key}>{status.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      PII Level
+                      <span className="text-xs text-gray-500 ml-1">(Data sensitivity)</span>
+                    </label>
+                    <select
+                      value={newContact.piiLevel}
+                      onChange={(e) => setNewContact({...newContact, piiLevel: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="low">Low - Public Info</option>
+                      <option value="med">Medium - Contact Info</option>
+                      <option value="high">High - Sensitive Data</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
-              {newContact.roles.length > 1 && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Primary Role
-                  </label>
-                  <select
-                    value={newContact.primaryRole}
-                    onChange={(e) => setNewContact({...newContact, primaryRole: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  >
-                    {newContact.roles.map(role => (
-                      <option key={role} value={role}>{ROLES[role]?.label || role}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Lifecycle Status
-                  </label>
-                  <select
-                    value={newContact.lifecycleStatus}
-                    onChange={(e) => setNewContact({...newContact, lifecycleStatus: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  >
-                    {Object.entries(LIFECYCLE_STATUSES).map(([key, status]) => (
-                      <option key={key} value={key}>{status.label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    PII Level
-                  </label>
-                  <select
-                    value={newContact.piiLevel}
-                    onChange={(e) => setNewContact({...newContact, piiLevel: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="low">Low - Public Info</option>
-                    <option value="med">Medium - Contact Info</option>
-                    <option value="high">High - Sensitive Data</option>
-                  </select>
+              {/* Additional Information */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                  <Tag className="h-4 w-4" />
+                  Additional Information
+                </h4>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Tags
+                      <span className="text-xs text-gray-500 ml-1">(Separate with commas)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={newContact.tags.join(', ')}
+                      onChange={(e) => setNewContact({
+                        ...newContact,
+                        tags: e.target.value.split(',').map(t => t.trim()).filter(t => t)
+                      })}
+                      placeholder="vip, referral-source, high-value"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Notes
+                    </label>
+                    <textarea
+                      value={newContact.notes}
+                      onChange={(e) => setNewContact({...newContact, notes: e.target.value})}
+                      rows={3}
+                      placeholder="Additional notes about this contact..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tags (comma separated)
-                </label>
-                <input
-                  type="text"
-                  value={newContact.tags.join(', ')}
-                  onChange={(e) => setNewContact({
-                    ...newContact,
-                    tags: e.target.value.split(',').map(t => t.trim()).filter(t => t)
-                  })}
-                  placeholder="vip, referral-source, high-value"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Notes
-                </label>
-                <textarea
-                  value={newContact.notes}
-                  onChange={(e) => setNewContact({...newContact, notes: e.target.value})}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div className="flex gap-3 pt-4">
+              <div className="flex gap-3 pt-4 border-t">
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
                 >
+                  <Plus className="h-5 w-5" />
                   Add Contact
                 </button>
                 <button
