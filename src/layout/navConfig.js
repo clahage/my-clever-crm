@@ -1,3 +1,4 @@
+// src/layout/navConfig.js
 import {
   LayoutDashboard,
   Users,
@@ -25,7 +26,9 @@ import {
   UserCheck,
   FileCheck,
   ScrollText,
-  Activity
+  Activity,
+  Gift,
+  HeadphonesIcon
 } from 'lucide-react';
 
 export const navigation = [
@@ -51,6 +54,24 @@ export const navigation = [
     name: 'Clients',
     href: '/clients',
     icon: UserCheck,
+    current: false
+  },
+  {
+    name: 'Affiliates',
+    href: '/affiliates',
+    icon: Gift,
+    current: false
+  },
+  {
+    name: 'Business Credit',
+    href: '/business-credit',
+    icon: Building2,
+    current: false
+  },
+  {
+    name: 'Learn',
+    href: '/learn',
+    icon: BookOpen,
     current: false
   },
   {
@@ -162,9 +183,9 @@ export const navigation = [
     current: false
   },
   {
-    name: 'Business Credit',
-    href: '/business-credit',
-    icon: Building2,
+    name: 'Support',
+    href: '/support',
+    icon: HeadphonesIcon,
     current: false
   },
   {
@@ -189,18 +210,6 @@ export const navigation = [
     name: 'Client View (Demo)',
     href: '/client',
     icon: UserCheck,
-    current: false
-  },
-  {
-    name: 'Learn',
-    href: '/learn',
-    icon: BookOpen,
-    current: false
-  },
-  {
-    name: 'Support',
-    href: '/support',
-    icon: HelpCircle,
     current: false
   }
 ];

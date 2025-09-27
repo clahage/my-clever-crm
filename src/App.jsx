@@ -39,6 +39,7 @@ import Automation from './pages/Automation';
 import SocialMediaAdmin from './pages/SocialMediaAdmin';
 import BusinessCredit from './pages/BusinessCredit';
 import Referrals from './pages/Referrals';
+import Affiliates from './pages/Affiliates';
 import AdminTools from './pages/AdminTools';
 import Portal from './pages/Portal';
 import Learn from './pages/Learn';
@@ -90,6 +91,7 @@ function App() {
             <Route path="reports" element={<Reports />} />
             <Route path="contact-reports" element={<ContactReports />} />
             <Route path="business-credit" element={<BusinessCredit />} />
+            <Route path="affiliates" element={<Affiliates />} />
             <Route path="referrals" element={<Referrals />} />
             
             {/* Admin & Support Routes */}
