@@ -7,7 +7,6 @@ import {
   Calendar,
   Settings,
   Shield,
-  UserPlus,
   Building,
   TrendingUp,
   AlertCircle,
@@ -32,11 +31,12 @@ import {
   Layers,
   Package,
   BookOpen,
-  Key
+  Key,
+  GitBranch,
+  List
 } from 'lucide-react';
 
 // Enhanced navigation with collapsible groups
-// Backward compatible - can still be used as flat array with items.flatMap(g => g.items || [g])
 export const navigationItems = [
   {
     id: 'dashboard',
@@ -56,15 +56,16 @@ export const navigationItems = [
         id: 'contacts',
         title: 'All Contacts',
         path: '/contacts',
-        icon: Users,
+        icon: List,
         permission: 'user'
       },
       {
-        id: 'add-contact',
-        title: 'Add Contact',
-        path: '/contacts?status=new',  // FIXED: Changed from /add-contact
-        icon: UserPlus,
-        permission: 'user'
+        id: 'pipeline',
+        title: 'Pipeline',
+        path: '/pipeline',
+        icon: GitBranch,
+        permission: 'user',
+        badge: 'NEW'
       },
       {
         id: 'import',
@@ -236,6 +237,20 @@ export const navigationItems = [
     defaultExpanded: false,
     items: [
       {
+        id: 'companies',
+        title: 'Companies',
+        path: '/companies',
+        icon: Building,
+        permission: 'user'
+      },
+      {
+        id: 'invoices',
+        title: 'Invoices',
+        path: '/invoices',
+        icon: FileSpreadsheet,
+        permission: 'user'
+      },
+      {
         id: 'affiliates',
         title: 'Affiliates',
         path: '/affiliates',
@@ -250,25 +265,11 @@ export const navigationItems = [
         permission: 'admin'
       },
       {
-        id: 'invoices',
-        title: 'Invoices',
-        path: '/invoices',
-        icon: FileSpreadsheet,
-        permission: 'user'
-      },
-      {
         id: 'products',
         title: 'Products',
         path: '/products',
         icon: Package,
         permission: 'admin'
-      },
-      {
-        id: 'companies',
-        title: 'Companies',
-        path: '/companies',
-        icon: Building,
-        permission: 'user'
       }
     ]
   },

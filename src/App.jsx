@@ -35,6 +35,7 @@ import SMS from './pages/SMS';
 import Templates from './pages/Templates';
 import CallLogs from './pages/CallLogs';
 import Notifications from './pages/Notifications';
+import Pipeline from './pages/Pipeline';
 
 // Documents
 import Documents from './pages/Documents';
@@ -135,6 +136,8 @@ function App() {
             
             {/* Contacts & CRM */}
             <Route path="contacts" element={<Contacts />} />
+            <Route path="pipeline" element={<Pipeline />} />
+
             {/* Removed add-contact route - using modal instead */}
             <Route path="contact/:id" element={<ContactDetailPage />} />
             <Route path="import" element={<ImportCSV />} />

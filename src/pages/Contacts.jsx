@@ -1,3 +1,6 @@
+import ImportContactsModal from '../components/ImportContactsModal';
+import ExportModal from '../components/ExportModal';
+import BulkActions from '../components/BulkActions';
 import React, { useState, useEffect } from 'react';
 import InteractionLogger from '../components/InteractionLogger';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -64,6 +67,8 @@ const Contacts = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('newest');
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [filterRoles, setFilterRoles] = useState([]);
   const [filterLifecycle, setFilterLifecycle] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
@@ -388,7 +393,7 @@ const Contacts = () => {
     }
   };
 
-  const formatDate = (date) => {
+    const formatDate = (date) => {
     if (!date) return 'N/A';
     if (date.seconds) {
       return new Date(date.seconds * 1000).toLocaleDateString();
