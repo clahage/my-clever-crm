@@ -24,6 +24,7 @@ const ProtectedLayout = () => {
   const [expandedGroups, setExpandedGroups] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredNav, setFilteredNav] = useState([]);
+  const [notificationCount, setNotificationCount] = useState(3); // Example notification count
 
   // Initialize expanded groups based on defaults and current location
   useEffect(() => {
@@ -96,6 +97,11 @@ const ProtectedLayout = () => {
     }
   };
 
+  const handleNotificationClick = () => {
+    setNotificationCount(0); // Clear notification count when clicked
+    navigate('/notifications');
+  };
+
   const renderNavItem = (item) => {
     const isActive = location.pathname === item.path;
     const Icon = item.icon;
@@ -143,6 +149,24 @@ const ProtectedLayout = () => {
               {item.items.map(subItem => {
                 const SubIcon = subItem.icon;
                 const isSubActive = location.pathname === subItem.path;
+                
+                // Handle special case for Add Contact modal
+                if (subItem.path === '/contacts?status=new') {
+                  return (
+                    <button
+                      key={subItem.id}
+                      onClick={() => navigate('/contacts', { state: { openAddModal: true } })}
+                      className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors text-left ${
+                        isSubActive
+                          ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                      }`}
+                    >
+                      <SubIcon className="w-4 h-4" />
+                      <span className="text-sm">{subItem.title}</span>
+                    </button>
+                  );
+                }
                 
                 return (
                   <Link
@@ -272,18 +296,39 @@ const ProtectedLayout = () => {
             </h2>
             
             <div className="flex items-center space-x-4">
-              {/* Notifications */}
-              <button className="relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400">
+              {/* Notifications - NOW CLICKABLE! */}
+              <button 
+                onClick={handleNotificationClick}
+                className="relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors"
+                title="View Notifications"
+              >
                 <Bell className="w-5 h-5" />
-                <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+                {notificationCount > 0 && (
+                  <>
+                    <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                      {notificationCount}
+                    </span>
+                  </>
+                )}
               </button>
               
               {/* Dark Mode Toggle */}
               <button
                 onClick={toggleDarkMode}
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors"
+                title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
               >
                 {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              </button>
+              
+              {/* Profile Button */}
+              <button
+                onClick={() => navigate('/settings')}
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors"
+                title="Settings"
+              >
+                <User className="w-5 h-5" />
               </button>
             </div>
           </div>
