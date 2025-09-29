@@ -1,129 +1,301 @@
-import React, { useState, useEffect } from "react";
-import { NavLink, Outlet } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext";
-import { navigation } from "./navConfig";
-import BrandLogo from "../components/BrandLogo";
-import HotLeadsAlert from '../components/HotLeadsAlert';
-import { Moon, Sun, Menu, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { 
+  Menu, 
+  X, 
+  LogOut, 
+  User, 
+  Sun, 
+  Moon,
+  ChevronDown,
+  ChevronRight,
+  Search,
+  Bell
+} from 'lucide-react';
+import { navigationItems, filterNavigationByRole } from './navConfig';
 
-export default function ProtectedLayout() {
-  console.log('[ProtectedLayout] Rendering layout, current path:', window.location.pathname);
-  const { user } = useAuth();
+const ProtectedLayout = () => {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState({});
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredNav, setFilteredNav] = useState([]);
 
-  // Mobile menu state
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  // Theme state
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    const saved = localStorage.getItem('theme');
-    return saved === 'dark';
-  });
-
+  // Initialize expanded groups based on defaults and current location
   useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  }, [isDarkMode]);
+    const initialExpanded = {};
+    navigationItems.forEach(item => {
+      if (item.isGroup) {
+        // Check if current path is in this group
+        const isCurrentInGroup = item.items?.some(subItem => 
+          location.pathname === subItem.path
+        );
+        initialExpanded[item.id] = item.defaultExpanded || isCurrentInGroup || false;
+      }
+    });
+    setExpandedGroups(initialExpanded);
+  }, [location.pathname]);
 
-  const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
+  // Filter navigation based on user role and search
+  useEffect(() => {
+    const userRole = user?.role || 'user';
+    let filtered = filterNavigationByRole(navigationItems, userRole);
+    
+    if (searchTerm) {
+      filtered = filtered.reduce((acc, item) => {
+        if (item.isGroup && item.items) {
+          const filteredItems = item.items.filter(subItem =>
+            subItem.title.toLowerCase().includes(searchTerm.toLowerCase())
+          );
+          if (filteredItems.length > 0) {
+            return [...acc, { ...item, items: filteredItems }];
+          }
+        } else if (item.title.toLowerCase().includes(searchTerm.toLowerCase())) {
+          return [...acc, item];
+        }
+        return acc;
+      }, []);
+    }
+    
+    setFilteredNav(filtered);
+  }, [user, searchTerm]);
+
+  // Dark mode effect
+  useEffect(() => {
+    const savedMode = localStorage.getItem('darkMode') === 'true';
+    setIsDarkMode(savedMode);
+    if (savedMode) {
+      document.documentElement.classList.add('dark');
+    }
+  }, []);
+
+  const toggleDarkMode = () => {
+    const newMode = !isDarkMode;
+    setIsDarkMode(newMode);
+    localStorage.setItem('darkMode', newMode.toString());
+    document.documentElement.classList.toggle('dark');
   };
 
-  const linkClass = ({ isActive }) =>
-    `flex items-center gap-2 px-3 py-2 rounded-lg transition
-     ${isActive ? "bg-blue-600 text-white" : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"}`;
+  const toggleGroup = (groupId) => {
+    setExpandedGroups(prev => ({
+      ...prev,
+      [groupId]: !prev[groupId]
+    }));
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
+
+  const renderNavItem = (item) => {
+    const isActive = location.pathname === item.path;
+    const Icon = item.icon;
+
+    if (item.isGroup) {
+      const isExpanded = expandedGroups[item.id];
+      const hasActiveChild = item.items?.some(subItem => 
+        location.pathname === subItem.path
+      );
+
+      return (
+        <div key={item.id} className="mb-1">
+          <button
+            onClick={() => toggleGroup(item.id)}
+            className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${
+              hasActiveChild 
+                ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' 
+                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+            }`}
+          >
+            <div className="flex items-center space-x-3">
+              <Icon className="w-5 h-5" />
+              <span className={`font-medium ${!isSidebarOpen && 'hidden'}`}>
+                {item.title}
+              </span>
+            </div>
+            {isSidebarOpen && (
+              <div className="flex items-center">
+                {item.items && (
+                  <span className="text-xs text-gray-500 dark:text-gray-400 mr-2">
+                    {item.items.length}
+                  </span>
+                )}
+                {isExpanded ? (
+                  <ChevronDown className="w-4 h-4" />
+                ) : (
+                  <ChevronRight className="w-4 h-4" />
+                )}
+              </div>
+            )}
+          </button>
+          
+          {isExpanded && isSidebarOpen && item.items && (
+            <div className="ml-4 mt-1 space-y-1">
+              {item.items.map(subItem => {
+                const SubIcon = subItem.icon;
+                const isSubActive = location.pathname === subItem.path;
+                
+                return (
+                  <Link
+                    key={subItem.id}
+                    to={subItem.path}
+                    className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
+                      isSubActive
+                        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                    }`}
+                  >
+                    <SubIcon className="w-4 h-4" />
+                    <span className="text-sm">{subItem.title}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <Link
+        key={item.id}
+        to={item.path}
+        className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
+          isActive
+            ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+        }`}
+      >
+        <Icon className="w-5 h-5" />
+        {isSidebarOpen && <span>{item.title}</span>}
+      </Link>
+    );
+  };
 
   return (
-    <div className="flex h-screen bg-white dark:bg-gray-900 relative">
-      {/* Mobile Menu Button */}
-      <button
-        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className="md:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-white dark:bg-gray-800 shadow-lg"
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Sidebar */}
+      <aside
+        className={`${
+          isSidebarOpen ? 'w-64' : 'w-16'
+        } bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 flex flex-col`}
       >
-        {isMobileMenuOpen ? (
-          <X className="h-6 w-6 text-gray-700 dark:text-gray-300" />
-        ) : (
-          <Menu className="h-6 w-6 text-gray-700 dark:text-gray-300" />
-        )}
-      </button>
-
-      {/* Mobile Overlay */}
-      {isMobileMenuOpen && (
-        <div
-          className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
-          onClick={() => setIsMobileMenuOpen(false)}
-        />
-      )}
-
-      {/* Sidebar - Hidden on mobile by default, slides in when open */}
-      <aside className={`
-        fixed md:sticky top-0 left-0 h-screen bg-white dark:bg-gray-800 border-r dark:border-gray-700
-        p-4 space-y-4 overflow-y-auto flex flex-col z-40
-        transition-transform duration-300 ease-in-out
-        w-64 md:w-auto
-        ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-      `}>
-        {/* Logo - Add padding on mobile to avoid menu button */}
-        <div className="mt-12 md:mt-0">
-          <BrandLogo variant="admin" theme={isDarkMode ? 'dark' : 'light'} style={{height:40}} />
+        {/* Sidebar Header */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+          {isSidebarOpen && (
+            <h1 className="text-xl font-bold text-gray-800 dark:text-white">
+              CleverCRM
+            </h1>
+          )}
+          <button
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
+          >
+            {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
         </div>
 
-        <nav className="space-y-1 flex-1">
-          {navigation
-            .filter(item => !item.requiresIdiq || (user && user.claims && user.claims.idiq))
-            .map(({ name, href, icon: Icon }) => (
-              <NavLink
-                key={href}
-                to={href}
-                className={linkClass}
-                end={href === "/dashboard"}
-                onClick={() => setIsMobileMenuOpen(false)} // Close menu on mobile after clicking
-              >
-                {Icon ? <Icon className="h-5 w-5" /> : null}
-                <span>{name}</span>
-              </NavLink>
-            ))}
-          <NavLink
-            to="/logout"
-            className={linkClass}
-            onClick={() => setIsMobileMenuOpen(false)}
-          >
-            Logout
-          </NavLink>
+        {/* Search Bar */}
+        {isSidebarOpen && (
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search menu..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto p-4 space-y-1">
+          {filteredNav.map(item => renderNavItem(item))}
         </nav>
 
-        {/* Theme Toggle */}
-        <div className="pt-4 mt-auto border-t border-gray-200 dark:border-gray-700">
-          <button
-            onClick={toggleTheme}
-            className="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-          >
-            <span className="flex items-center gap-3">
-              {isDarkMode ? (
-                <Sun className="h-5 w-5 text-yellow-500" />
-              ) : (
-                <Moon className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-              )}
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                {isDarkMode ? 'Light Mode' : 'Dark Mode'}
-              </span>
-            </span>
-          </button>
+        {/* User Section */}
+        <div className="border-t border-gray-200 dark:border-gray-700 p-4">
+          <div className={`flex items-center ${isSidebarOpen ? 'justify-between' : 'justify-center'}`}>
+            {isSidebarOpen && (
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white">
+                  <User className="w-4 h-4" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {user?.email || 'User'}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {user?.role || 'Member'}
+                  </p>
+                </div>
+              </div>
+            )}
+            <button
+              onClick={handleLogout}
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
+              title="Logout"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </aside>
 
-      {/* Main content - Full width on mobile, margin-left on desktop */}
-      <main className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-900 w-full">
-        {/* Add padding-top on mobile for menu button */}
-        <div className="p-6 pt-16 md:pt-6">
-          <HotLeadsAlert />
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        {/* Top Bar */}
+        <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-gray-800 dark:text-white">
+              {filteredNav.reduce((title, item) => {
+                if (item.isGroup && item.items) {
+                  const found = item.items.find(subItem => subItem.path === location.pathname);
+                  if (found) return found.title;
+                } else if (item.path === location.pathname) {
+                  return item.title;
+                }
+                return title;
+              }, 'Dashboard')}
+            </h2>
+            
+            <div className="flex items-center space-x-4">
+              {/* Notifications */}
+              <button className="relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400">
+                <Bell className="w-5 h-5" />
+                <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+              </button>
+              
+              {/* Dark Mode Toggle */}
+              <button
+                onClick={toggleDarkMode}
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
+              >
+                {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              </button>
+            </div>
+          </div>
+        </header>
+
+        {/* Page Content */}
+        <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 p-6">
           <Outlet />
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
-}
+};
+
+export default ProtectedLayout;

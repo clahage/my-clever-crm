@@ -1,221 +1,432 @@
-// src/layout/navConfig.js
 import {
-  LayoutDashboard,
+  Home,
   Users,
-  UserPlus,
   FileText,
-  MessageSquare,
   CreditCard,
-  BarChart,
-  Phone,
-  Share2,
-  Brain,
+  Mail,
+  Calendar,
+  Settings,
   Shield,
+  UserPlus,
+  Building,
+  TrendingUp,
+  AlertCircle,
+  FileSpreadsheet,
+  Download,
+  Upload,
+  Phone,
+  MessageSquare,
+  Bell,
+  BarChart,
+  DollarSign,
   Briefcase,
   HelpCircle,
-  BookOpen,
-  Target,
-  TrendingUp,
   Award,
+  Target,
+  PieChart,
+  Archive,
   Zap,
-  Calendar,
-  Download,
+  Globe,
+  Database,
+  CheckSquare,
   Layers,
-  Mail,
-  Building2,
-  UserCheck,
-  FileCheck,
-  ScrollText,
-  Activity,
-  Gift,
-  HeadphonesIcon
+  Package,
+  BookOpen,
+  Key
 } from 'lucide-react';
 
-export const navigation = [
+// Enhanced navigation with collapsible groups
+// Backward compatible - can still be used as flat array with items.flatMap(g => g.items || [g])
+export const navigationItems = [
   {
-    name: 'Dashboard',
-    href: '/dashboard',
-    icon: LayoutDashboard,
-    current: true
+    id: 'dashboard',
+    title: 'Dashboard',
+    path: '/',
+    icon: Home,
+    permission: 'user'
   },
   {
-    name: 'Contacts',
-    href: '/contacts',
+    id: 'contacts-group',
+    title: 'Contacts & CRM',
     icon: Users,
-    current: false
+    isGroup: true,
+    defaultExpanded: true,
+    items: [
+      {
+        id: 'contacts',
+        title: 'All Contacts',
+        path: '/contacts',
+        icon: Users,
+        permission: 'user'
+      },
+      {
+        id: 'add-contact',
+        title: 'Add Contact',
+        path: '/contacts?status=new',  // FIXED: Changed from /add-contact
+        icon: UserPlus,
+        permission: 'user'
+      },
+      {
+        id: 'import',
+        title: 'Import Contacts',
+        path: '/import',
+        icon: Upload,
+        permission: 'user'
+      },
+      {
+        id: 'export',
+        title: 'Export Data',
+        path: '/export',
+        icon: Download,
+        permission: 'user'
+      },
+      {
+        id: 'contact-reports',
+        title: 'Contact Reports',
+        path: '/contact-reports',
+        icon: BarChart,
+        permission: 'user'
+      },
+      {
+        id: 'segments',
+        title: 'Segments',
+        path: '/segments',
+        icon: Layers,
+        permission: 'user'
+      }
+    ]
   },
   {
-    name: 'Leads',
-    href: '/leads',
-    icon: UserPlus,
-    current: false
-  },
-  {
-    name: 'Clients',
-    href: '/clients',
-    icon: UserCheck,
-    current: false
-  },
-  {
-    name: 'Affiliates',
-    href: '/affiliates',
-    icon: Gift,
-    current: false
-  },
-  {
-    name: 'Business Credit',
-    href: '/business-credit',
-    icon: Building2,
-    current: false
-  },
-  {
-    name: 'Learn',
-    href: '/learn',
-    icon: BookOpen,
-    current: false
-  },
-  {
-    name: 'Dispute Center',
-    href: '/disputes',
-    icon: FileText,
-    current: false
-  },
-  {
-    name: 'Progress Portal',
-    href: '/progress-portal',
-    icon: TrendingUp,
-    current: false
-  },
-  {
-    name: 'Credit Reports',
-    href: '/credit-reports',
-    icon: FileCheck,
-    current: false
-  },
-  {
-    name: 'Credit Scores',
-    href: '/credit-scores',
-    icon: Activity,
-    current: false
-  },
-  {
-    name: 'Dispute Letters',
-    href: '/dispute-letters',
-    icon: ScrollText,
-    current: false
-  },
-  {
-    name: 'Letters',
-    href: '/letters',
-    icon: Mail,
-    current: false
-  },
-  {
-    name: 'Communications',
-    href: '/communications',
-    icon: MessageSquare,
-    current: false
-  },
-  {
-    name: 'Billing',
-    href: '/billing',
+    id: 'credit-group',
+    title: 'Credit Management',
     icon: CreditCard,
-    current: false
+    isGroup: true,
+    defaultExpanded: false,
+    items: [
+      {
+        id: 'credit-scores',
+        title: 'Credit Scores',
+        path: '/credit-scores',
+        icon: TrendingUp,
+        permission: 'user'
+      },
+      {
+        id: 'disputes',
+        title: 'Dispute Letters',
+        path: '/disputes',
+        icon: AlertCircle,
+        permission: 'user'
+      },
+      {
+        id: 'credit-reports',
+        title: 'Credit Reports',
+        path: '/credit-reports',
+        icon: FileText,
+        permission: 'user'
+      },
+      {
+        id: 'credit-monitoring',
+        title: 'Credit Monitoring',
+        path: '/credit-monitoring',
+        icon: Shield,
+        permission: 'user'
+      },
+      {
+        id: 'score-simulator',
+        title: 'Score Simulator',
+        path: '/score-simulator',
+        icon: Zap,
+        permission: 'user'
+      }
+    ]
   },
   {
-    name: 'Calendar',
-    href: '/calendar',
-    icon: Calendar,
-    current: false
+    id: 'communication-group',
+    title: 'Communication',
+    icon: MessageSquare,
+    isGroup: true,
+    defaultExpanded: false,
+    items: [
+      {
+        id: 'letters',
+        title: 'Letters',
+        path: '/letters',
+        icon: Mail,
+        permission: 'user'
+      },
+      {
+        id: 'emails',
+        title: 'Email Campaigns',
+        path: '/emails',
+        icon: Mail,
+        permission: 'user'
+      },
+      {
+        id: 'sms',
+        title: 'SMS Campaigns',
+        path: '/sms',
+        icon: MessageSquare,
+        permission: 'user'
+      },
+      {
+        id: 'templates',
+        title: 'Templates',
+        path: '/templates',
+        icon: FileText,
+        permission: 'user'
+      },
+      {
+        id: 'call-logs',
+        title: 'Call Logs',
+        path: '/call-logs',
+        icon: Phone,
+        permission: 'user'
+      },
+      {
+        id: 'notifications',
+        title: 'Notifications',
+        path: '/notifications',
+        icon: Bell,
+        permission: 'user'
+      }
+    ]
   },
   {
-    name: 'Export',
-    href: '/export',
-    icon: Download,
-    current: false
-  },
-  {
-    name: 'Bulk Actions',
-    href: '/bulk',
-    icon: Layers,
-    current: false
-  },
-  {
-    name: 'Reports',
-    href: '/reports',
-    icon: BarChart,
-    current: false
-  },
-  {
-    name: 'Analytics',
-    href: '/analytics',
-    icon: Target,
-    current: false
-  },
-  {
-    name: 'Contact Reports',
-    href: '/contact-reports',
+    id: 'documents-group',
+    title: 'Documents',
     icon: FileText,
-    current: false
+    isGroup: true,
+    defaultExpanded: false,
+    items: [
+      {
+        id: 'documents',
+        title: 'All Documents',
+        path: '/documents',
+        icon: FileText,
+        permission: 'user'
+      },
+      {
+        id: 'econtracts',
+        title: 'E-Contracts',
+        path: '/econtracts',
+        icon: FileSpreadsheet,
+        permission: 'user'
+      },
+      {
+        id: 'forms',
+        title: 'Forms',
+        path: '/forms',
+        icon: CheckSquare,
+        permission: 'user'
+      },
+      {
+        id: 'document-storage',
+        title: 'Document Storage',
+        path: '/document-storage',
+        icon: Archive,
+        permission: 'user'
+      }
+    ]
   },
   {
-    name: 'AI Receptionist',
-    href: '/ai-receptionist',
-    icon: Phone,
-    current: false
-  },
-  {
-    name: 'OpenAI',
-    href: '/openai',
-    icon: Brain,
-    current: false
-  },
-  {
-    name: 'Automation',
-    href: '/automation',
-    icon: Zap,
-    current: false
-  },
-  {
-    name: 'Social Media',
-    href: '/social-media',
-    icon: Share2,
-    current: false
-  },
-  {
-    name: 'Support',
-    href: '/support',
-    icon: HeadphonesIcon,
-    current: false
-  },
-  {
-    name: 'Referrals',
-    href: '/referrals',
-    icon: Award,
-    current: false
-  },
-  {
-    name: 'Admin Tools',
-    href: '/admin',
-    icon: Shield,
-    current: false
-  },
-  {
-    name: 'Client Portal',
-    href: '/portal',
+    id: 'business-group',
+    title: 'Business Tools',
     icon: Briefcase,
-    current: false
+    isGroup: true,
+    defaultExpanded: false,
+    items: [
+      {
+        id: 'affiliates',
+        title: 'Affiliates',
+        path: '/affiliates',
+        icon: Globe,
+        permission: 'admin'
+      },
+      {
+        id: 'billing',
+        title: 'Billing',
+        path: '/billing',
+        icon: DollarSign,
+        permission: 'admin'
+      },
+      {
+        id: 'invoices',
+        title: 'Invoices',
+        path: '/invoices',
+        icon: FileSpreadsheet,
+        permission: 'user'
+      },
+      {
+        id: 'products',
+        title: 'Products',
+        path: '/products',
+        icon: Package,
+        permission: 'admin'
+      },
+      {
+        id: 'companies',
+        title: 'Companies',
+        path: '/companies',
+        icon: Building,
+        permission: 'user'
+      }
+    ]
   },
   {
-    name: 'Client View (Demo)',
-    href: '/client',
-    icon: UserCheck,
-    current: false
+    id: 'schedule-group',
+    title: 'Scheduling',
+    icon: Calendar,
+    isGroup: true,
+    defaultExpanded: false,
+    items: [
+      {
+        id: 'calendar',
+        title: 'Calendar',
+        path: '/calendar',
+        icon: Calendar,
+        permission: 'user'
+      },
+      {
+        id: 'appointments',
+        title: 'Appointments',
+        path: '/appointments',
+        icon: Calendar,
+        permission: 'user'
+      },
+      {
+        id: 'tasks',
+        title: 'Tasks',
+        path: '/tasks',
+        icon: CheckSquare,
+        permission: 'user'
+      },
+      {
+        id: 'reminders',
+        title: 'Reminders',
+        path: '/reminders',
+        icon: Bell,
+        permission: 'user'
+      }
+    ]
+  },
+  {
+    id: 'analytics-group',
+    title: 'Analytics & Reports',
+    icon: PieChart,
+    isGroup: true,
+    defaultExpanded: false,
+    items: [
+      {
+        id: 'analytics',
+        title: 'Analytics Dashboard',
+        path: '/analytics',
+        icon: BarChart,
+        permission: 'user'
+      },
+      {
+        id: 'reports',
+        title: 'Reports',
+        path: '/reports',
+        icon: FileText,
+        permission: 'user'
+      },
+      {
+        id: 'goals',
+        title: 'Goals',
+        path: '/goals',
+        icon: Target,
+        permission: 'user'
+      },
+      {
+        id: 'achievements',
+        title: 'Achievements',
+        path: '/achievements',
+        icon: Award,
+        permission: 'user'
+      }
+    ]
+  },
+  {
+    id: 'admin-group',
+    title: 'Administration',
+    icon: Settings,
+    isGroup: true,
+    defaultExpanded: false,
+    items: [
+      {
+        id: 'settings',
+        title: 'Settings',
+        path: '/settings',
+        icon: Settings,
+        permission: 'user'
+      },
+      {
+        id: 'team',
+        title: 'Team Management',
+        path: '/team',
+        icon: Users,
+        permission: 'admin'
+      },
+      {
+        id: 'roles',
+        title: 'Roles & Permissions',
+        path: '/roles',
+        icon: Key,
+        permission: 'admin'
+      },
+      {
+        id: 'integrations',
+        title: 'Integrations',
+        path: '/integrations',
+        icon: Database,
+        permission: 'admin'
+      },
+      {
+        id: 'training',
+        title: 'Training',
+        path: '/training',
+        icon: BookOpen,
+        permission: 'user'
+      },
+      {
+        id: 'support',
+        title: 'Support',
+        path: '/support',
+        icon: HelpCircle,
+        permission: 'user'
+      }
+    ]
   }
 ];
 
-export const userNavigation = [
-  { name: 'Your Profile', href: '/profile' },
-  { name: 'Settings', href: '/settings' },
-  { name: 'Sign out', href: '#', action: 'logout' }
-];
+// Helper function to get flat array (backward compatibility)
+export const getFlatNavigation = () => {
+  return navigationItems.reduce((acc, item) => {
+    if (item.isGroup && item.items) {
+      return [...acc, ...item.items];
+    }
+    return [...acc, item];
+  }, []);
+};
+
+// Helper function to check if user has permission
+export const hasPermission = (item, userRole) => {
+  if (!item.permission) return true;
+  if (userRole === 'admin') return true;
+  return item.permission === 'user';
+};
+
+// Helper function to filter navigation by permissions
+export const filterNavigationByRole = (items, userRole) => {
+  return items.reduce((acc, item) => {
+    if (item.isGroup && item.items) {
+      const filteredItems = item.items.filter(subItem => hasPermission(subItem, userRole));
+      if (filteredItems.length > 0) {
+        return [...acc, { ...item, items: filteredItems }];
+      }
+    } else if (hasPermission(item, userRole)) {
+      return [...acc, item];
+    }
+    return acc;
+  }, []);
+};
