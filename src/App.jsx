@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
-import { useAuth } from './contexts/AuthContext';  // FIXED - from AuthContext, not hooks
+import { useAuth } from './contexts/AuthContext';
 
 // Layout
 import ProtectedLayout from './layout/ProtectedLayout';
@@ -14,7 +14,6 @@ import ForgotPassword from './pages/ForgotPassword';
 // Main Pages
 import Home from './pages/Home';
 import Contacts from './pages/Contacts';
-// Removed AddContact - using modal instead
 import ContactDetailPage from './pages/ContactDetailPage';
 import ImportCSV from './pages/ImportCSV';
 import Export from './pages/Export';
@@ -22,6 +21,7 @@ import ContactReports from './pages/ContactReports';
 import Segments from './pages/Segments';
 
 // Credit Management
+import BusinessCredit from './pages/BusinessCredit';
 import CreditScores from './pages/CreditScores';
 import DisputeLetters from './pages/DisputeLetters';
 import CreditReports from './pages/CreditReports';
@@ -32,6 +32,7 @@ import ScoreSimulator from './pages/ScoreSimulator';
 import Letters from './pages/Letters';
 import Emails from './pages/Emails';
 import SMS from './pages/SMS';
+import DripCampaigns from './pages/DripCampaigns';  // NEW IMPORT
 import Templates from './pages/Templates';
 import CallLogs from './pages/CallLogs';
 import Notifications from './pages/Notifications';
@@ -49,6 +50,7 @@ import Billing from './pages/Billing';
 import Invoices from './pages/Invoices';
 import Products from './pages/Products';
 import Companies from './pages/Companies';
+import Location from './pages/Location';  // NEW IMPORT
 
 // Scheduling
 import Calendar from './pages/Calendar';
@@ -68,6 +70,7 @@ import Team from './pages/Team';
 import Roles from './pages/Roles';
 import Integrations from './pages/Integrations';
 import Training from './pages/Training';
+import Learn from './pages/Learn';  // NEW IMPORT
 import Support from './pages/Support';
 
 // Protected Route Component
@@ -137,8 +140,6 @@ function App() {
             {/* Contacts & CRM */}
             <Route path="contacts" element={<Contacts />} />
             <Route path="pipeline" element={<Pipeline />} />
-
-            {/* Removed add-contact route - using modal instead */}
             <Route path="contact/:id" element={<ContactDetailPage />} />
             <Route path="import" element={<ImportCSV />} />
             <Route path="export" element={<Export />} />
@@ -146,6 +147,7 @@ function App() {
             <Route path="segments" element={<Segments />} />
             
             {/* Credit Management */}
+            <Route path="business-credit" element={<BusinessCredit />} />
             <Route path="credit-scores" element={<CreditScores />} />
             <Route path="disputes" element={<DisputeLetters />} />
             <Route path="credit-reports" element={<CreditReports />} />
@@ -156,6 +158,7 @@ function App() {
             <Route path="letters" element={<Letters />} />
             <Route path="emails" element={<Emails />} />
             <Route path="sms" element={<SMS />} />
+            <Route path="drip-campaigns" element={<DripCampaigns />} />  {/* NEW ROUTE */}
             <Route path="templates" element={<Templates />} />
             <Route path="call-logs" element={<CallLogs />} />
             <Route path="notifications" element={<Notifications />} />
@@ -168,6 +171,7 @@ function App() {
             
             {/* Business Tools */}
             <Route path="companies" element={<Companies />} />
+            <Route path="location" element={<Location />} />  {/* NEW ROUTE */}
             <Route path="invoices" element={<Invoices />} />
             
             {/* Admin-only Business Tools */}
@@ -211,6 +215,7 @@ function App() {
             {/* Settings & Admin */}
             <Route path="settings" element={<Settings />} />
             <Route path="training" element={<Training />} />
+            <Route path="learn" element={<Learn />} />  {/* NEW ROUTE */}
             <Route path="support" element={<Support />} />
             
             {/* Admin-only Settings */}

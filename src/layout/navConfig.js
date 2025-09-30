@@ -33,7 +33,8 @@ import {
   BookOpen,
   Key,
   GitBranch,
-  List
+  List,
+  MapPin
 } from 'lucide-react';
 
 // Enhanced navigation with collapsible groups
@@ -104,6 +105,7 @@ export const navigationItems = [
     isGroup: true,
     defaultExpanded: false,
     items: [
+      
       {
         id: 'credit-scores',
         title: 'Credit Scores',
@@ -138,6 +140,13 @@ export const navigationItems = [
         path: '/score-simulator',
         icon: Zap,
         permission: 'user'
+      },
+      {
+        id: 'business-credit',
+        title: 'Business Credit',
+        path: '/business-credit',
+        icon: Building,
+        permission: 'user'
       }
     ]
   },
@@ -168,6 +177,14 @@ export const navigationItems = [
         path: '/sms',
         icon: MessageSquare,
         permission: 'user'
+      },
+      {
+        id: 'drip-campaigns',
+        title: 'Drip Campaigns',
+        path: '/drip-campaigns',
+        icon: GitBranch,
+        permission: 'user',
+        badge: 'NEW'
       },
       {
         id: 'templates',
@@ -241,6 +258,13 @@ export const navigationItems = [
         title: 'Companies',
         path: '/companies',
         icon: Building,
+        permission: 'user'
+      },
+      {
+        id: 'location',
+        title: 'Locations',
+        path: '/location',
+        icon: MapPin,
         permission: 'user'
       },
       {
@@ -386,6 +410,13 @@ export const navigationItems = [
         id: 'training',
         title: 'Training',
         path: '/training',
+        icon: BookOpen,
+        permission: 'user'
+      },
+      {
+        id: 'learn',
+        title: 'Learning Center',
+        path: '/learn',
         icon: BookOpen,
         permission: 'user'
       },
