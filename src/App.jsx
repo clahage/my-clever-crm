@@ -28,7 +28,7 @@ import CreditScores from './pages/CreditScores';
 import DisputeLetters from './pages/DisputeLetters';
 import CreditReports from './pages/CreditReports';
 import CreditMonitoring from './pages/CreditMonitoring';
-import ScoreSimulator from './pages/ScoreSimulator';
+import CreditSimulator from './pages/CreditSimulator';
 
 // Communication
 import Letters from './pages/Letters';
@@ -153,7 +153,7 @@ function AppContent() {
         <Route path="dispute-letters" element={<DisputeLetters />} />
         <Route path="credit-reports" element={<CreditReports />} />
         <Route path="credit-monitoring" element={<CreditMonitoring />} />
-        <Route path="score-simulator" element={<ScoreSimulator />} />
+        <Route path="credit-simulator" element={<CreditSimulator />} />
         
         {/* Communication */}
         <Route path="letters" element={<Letters />} />

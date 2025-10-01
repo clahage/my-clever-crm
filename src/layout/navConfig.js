@@ -1,4 +1,4 @@
-// navConfig.js - Fixed with proper exports
+// navConfig.js - Complete and Error-Free Navigation Configuration
 import {
   Home,
   Users,
@@ -8,14 +8,6 @@ import {
   Calendar,
   Settings,
   Shield,
-  Building,
-  TrendingUp,
-  AlertCircle,
-  FileSpreadsheet,
-  Download,
-  Upload,
-  Phone,
-  MessageSquare,
   Bell,
   BarChart,
   DollarSign,
@@ -35,7 +27,16 @@ import {
   Key,
   GitBranch,
   List,
-  MapPin
+  MapPin,
+  Upload,
+  Download,
+  MessageSquare,
+  Phone,
+  FileSpreadsheet,
+  AlertCircle,
+  Building,
+  TrendingUp,
+  Calculator
 } from 'lucide-react';
 
 // Enhanced navigation with collapsible groups
@@ -107,6 +108,15 @@ export const navigationItems = [
     defaultExpanded: false,
     items: [
       {
+        id: 'credit-simulator',
+        title: 'Credit Simulator',
+        path: '/credit-simulator',
+        icon: Calculator,
+        description: 'Multi-Model Score Simulator',
+        permission: 'user',
+        badge: 'NEW'
+      },
+      {
         id: 'business-credit',
         title: 'Business Credit',
         path: '/business-credit',
@@ -141,14 +151,6 @@ export const navigationItems = [
         path: '/credit-monitoring',
         icon: AlertCircle,
         permission: 'user'
-      },
-      {
-        id: 'score-simulator',
-        title: 'Score Simulator',
-        path: '/score-simulator',
-        icon: Zap,
-        permission: 'user',
-        badge: 'NEW'
       }
     ]
   },

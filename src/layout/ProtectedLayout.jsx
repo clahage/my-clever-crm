@@ -20,6 +20,15 @@ const ProtectedLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const isMobile = windowWidth < 768;
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
@@ -209,9 +218,16 @@ const ProtectedLayout = () => {
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
       {/* Sidebar */}
       <aside
-        className={`${
-          isSidebarOpen ? 'w-64' : 'w-16'
-        } bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 flex flex-col`}
+        className={`bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 flex flex-col`}
+        style={{
+          width: isSidebarOpen ? (isMobile ? '100%' : '280px') : (isMobile ? '64px' : '64px'),
+          position: isMobile ? 'fixed' : 'relative',
+          zIndex: isMobile ? 1200 : 'auto',
+          height: '100vh',
+          left: isSidebarOpen ? 0 : (isMobile ? '-280px' : 0),
+          top: 0,
+          transition: 'width 0.3s, left 0.3s',
+        }}
       >
         {/* Sidebar Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
