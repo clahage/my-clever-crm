@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from '../firebaseConfig';
+import { db, auth } from '../lib/firebase';
 import { Mail, Lock, Eye, EyeOff, AlertCircle, User, Building } from 'lucide-react';
 
 const Register = () => {

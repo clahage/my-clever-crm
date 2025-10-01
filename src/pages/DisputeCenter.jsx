@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { collection, query, orderBy, onSnapshot, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
-import { db } from '../firebaseConfig';
+import { db } from '../lib/firebase';
 import { FileText, Plus, Trash2, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 
 export default function DisputeCenter() {

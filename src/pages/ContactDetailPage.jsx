@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, onSnapshot, collection, updateDoc } from 'firebase/firestore';
-import { db } from '../firebaseConfig';
+import { db } from '../lib/firebase';
 import LeadRevenueDetailWidget from '@/components/LeadRevenueDetailWidget.jsx';
 import { motion } from 'framer-motion';
 import { FaEnvelope, FaUserTie, FaStar, FaTag, FaChartLine, FaArrowLeft, FaCheckCircle, FaFileUpload, FaComments, FaListUl, FaUsers, FaRobot } from 'react-icons/fa';

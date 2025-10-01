@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createClient } from '../services/clientService';
 import { doc, getDoc, updateDoc, addDoc, collection } from 'firebase/firestore';
-import { db } from '../firebaseConfig';
+import { db } from '../lib/firebase';
 
 // ZIP code lookup function
 const lookupZipCode = async (zip) => {

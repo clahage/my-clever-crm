@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { collection, query, orderBy, onSnapshot, deleteDoc, updateDoc, doc, where } from 'firebase/firestore';
-import { db } from '../firebaseConfig';
+import { db } from '../lib/firebase';
 import { 
   UserGroupIcon, 
   PlusIcon,

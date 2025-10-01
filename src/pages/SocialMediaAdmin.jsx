@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { collection, query, where, orderBy, getDocs, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { addDoc } from 'firebase/firestore';
-import { db } from '../firebaseConfig';
+import { db } from '../lib/firebase';
 
 export default function SocialMediaAdmin() {
   const generateQuickResponse = (message) => {

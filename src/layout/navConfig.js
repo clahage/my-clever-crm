@@ -1,3 +1,4 @@
+// navConfig.js - Fixed with proper exports
 import {
   Home,
   Users,
@@ -105,7 +106,14 @@ export const navigationItems = [
     isGroup: true,
     defaultExpanded: false,
     items: [
-      
+      {
+        id: 'business-credit',
+        title: 'Business Credit',
+        path: '/business-credit',
+        icon: Building,
+        permission: 'user',
+        badge: 'PRO'
+      },
       {
         id: 'credit-scores',
         title: 'Credit Scores',
@@ -114,24 +122,24 @@ export const navigationItems = [
         permission: 'user'
       },
       {
-        id: 'disputes',
+        id: 'dispute-letters',
         title: 'Dispute Letters',
-        path: '/disputes',
-        icon: AlertCircle,
+        path: '/dispute-letters',
+        icon: FileText,
         permission: 'user'
       },
       {
         id: 'credit-reports',
         title: 'Credit Reports',
         path: '/credit-reports',
-        icon: FileText,
+        icon: FileSpreadsheet,
         permission: 'user'
       },
       {
         id: 'credit-monitoring',
-        title: 'Credit Monitoring',
+        title: 'Monitoring',
         path: '/credit-monitoring',
-        icon: Shield,
+        icon: AlertCircle,
         permission: 'user'
       },
       {
@@ -139,14 +147,8 @@ export const navigationItems = [
         title: 'Score Simulator',
         path: '/score-simulator',
         icon: Zap,
-        permission: 'user'
-      },
-      {
-        id: 'business-credit',
-        title: 'Business Credit',
-        path: '/business-credit',
-        icon: Building,
-        permission: 'user'
+        permission: 'user',
+        badge: 'NEW'
       }
     ]
   },
@@ -166,14 +168,14 @@ export const navigationItems = [
       },
       {
         id: 'emails',
-        title: 'Email Campaigns',
+        title: 'Emails',
         path: '/emails',
         icon: Mail,
         permission: 'user'
       },
       {
         id: 'sms',
-        title: 'SMS Campaigns',
+        title: 'SMS',
         path: '/sms',
         icon: MessageSquare,
         permission: 'user'
@@ -182,9 +184,8 @@ export const navigationItems = [
         id: 'drip-campaigns',
         title: 'Drip Campaigns',
         path: '/drip-campaigns',
-        icon: GitBranch,
-        permission: 'user',
-        badge: 'NEW'
+        icon: Zap,
+        permission: 'user'
       },
       {
         id: 'templates',
@@ -396,14 +397,14 @@ export const navigationItems = [
         id: 'roles',
         title: 'Roles & Permissions',
         path: '/roles',
-        icon: Key,
+        icon: Shield,
         permission: 'admin'
       },
       {
         id: 'integrations',
         title: 'Integrations',
         path: '/integrations',
-        icon: Database,
+        icon: Zap,
         permission: 'admin'
       },
       {
@@ -431,34 +432,44 @@ export const navigationItems = [
   }
 ];
 
-// Helper function to get flat array (backward compatibility)
-export const getFlatNavigation = () => {
-  return navigationItems.reduce((acc, item) => {
-    if (item.isGroup && item.items) {
-      return [...acc, ...item.items];
-    }
-    return [...acc, item];
-  }, []);
-};
-
-// Helper function to check if user has permission
-export const hasPermission = (item, userRole) => {
-  if (!item.permission) return true;
-  if (userRole === 'admin') return true;
-  return item.permission === 'user';
-};
-
-// Helper function to filter navigation by permissions
+// Helper function to filter navigation by user role
 export const filterNavigationByRole = (items, userRole) => {
-  return items.reduce((acc, item) => {
-    if (item.isGroup && item.items) {
-      const filteredItems = item.items.filter(subItem => hasPermission(subItem, userRole));
+  return items.filter(item => {
+    if (item.isGroup) {
+      // Filter group items
+      const filteredItems = item.items.filter(subItem => {
+        if (subItem.permission === 'admin') {
+          return userRole === 'admin' || userRole === 'masterAdmin';
+        }
+        return true;
+      });
+      
+      // Only include group if it has visible items
       if (filteredItems.length > 0) {
-        return [...acc, { ...item, items: filteredItems }];
+        return { ...item, items: filteredItems };
       }
-    } else if (hasPermission(item, userRole)) {
-      return [...acc, item];
+      return false;
+    } else {
+      // Filter single items
+      if (item.permission === 'admin') {
+        return userRole === 'admin' || userRole === 'masterAdmin';
+      }
+      return true;
     }
-    return acc;
-  }, []);
+  }).map(item => {
+    if (item.isGroup && item.items) {
+      return {
+        ...item,
+        items: item.items.filter(subItem => {
+          if (subItem.permission === 'admin') {
+            return userRole === 'admin' || userRole === 'masterAdmin';
+          }
+          return true;
+        })
+      };
+    }
+    return item;
+  });
 };
+
+export default navigationItems;

@@ -1,7 +1,9 @@
+// App.jsx - Complete version with ErrorBoundary and all routes
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
-import { useAuth } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Layout
 import ProtectedLayout from './layout/ProtectedLayout';
@@ -32,7 +34,7 @@ import ScoreSimulator from './pages/ScoreSimulator';
 import Letters from './pages/Letters';
 import Emails from './pages/Emails';
 import SMS from './pages/SMS';
-import DripCampaigns from './pages/DripCampaigns';  // NEW IMPORT
+import DripCampaigns from './pages/DripCampaigns';
 import Templates from './pages/Templates';
 import CallLogs from './pages/CallLogs';
 import Notifications from './pages/Notifications';
@@ -50,7 +52,7 @@ import Billing from './pages/Billing';
 import Invoices from './pages/Invoices';
 import Products from './pages/Products';
 import Companies from './pages/Companies';
-import Location from './pages/Location';  // NEW IMPORT
+import Location from './pages/Location';
 
 // Scheduling
 import Calendar from './pages/Calendar';
@@ -70,7 +72,7 @@ import Team from './pages/Team';
 import Roles from './pages/Roles';
 import Integrations from './pages/Integrations';
 import Training from './pages/Training';
-import Learn from './pages/Learn';  // NEW IMPORT
+import Learn from './pages/Learn';
 import Support from './pages/Support';
 
 // Protected Route Component
@@ -79,7 +81,7 @@ const ProtectedRoute = ({ children }) => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
@@ -94,11 +96,11 @@ const ProtectedRoute = ({ children }) => {
 
 // Admin Route Component
 const AdminRoute = ({ children }) => {
-  const { user, loading } = useAuth();
+  const { user, userProfile, loading } = useAuth();
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
@@ -108,148 +110,158 @@ const AdminRoute = ({ children }) => {
     return <Navigate to="/login" replace />;
   }
 
-  if (user.role !== 'admin') {
+  if (userProfile?.role !== 'admin' && userProfile?.role !== 'masterAdmin') {
     return <Navigate to="/" replace />;
   }
 
   return children;
 };
 
+// Main App Content Component
+function AppContent() {
+  return (
+    <Routes>
+      {/* Public Routes */}
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+
+      {/* Protected Routes */}
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <ProtectedLayout />
+          </ProtectedRoute>
+        }
+      >
+        {/* Dashboard */}
+        <Route index element={<Home />} />
+        
+        {/* Contacts & CRM */}
+        <Route path="contacts" element={<Contacts />} />
+        <Route path="contacts/:id" element={<ContactDetailPage />} />
+        <Route path="pipeline" element={<Pipeline />} />
+        <Route path="import" element={<ImportCSV />} />
+        <Route path="export" element={<Export />} />
+        <Route path="contact-reports" element={<ContactReports />} />
+        <Route path="segments" element={<Segments />} />
+        
+        {/* Credit Management */}
+        <Route path="business-credit" element={<BusinessCredit />} />
+        <Route path="credit-scores" element={<CreditScores />} />
+        <Route path="dispute-letters" element={<DisputeLetters />} />
+        <Route path="credit-reports" element={<CreditReports />} />
+        <Route path="credit-monitoring" element={<CreditMonitoring />} />
+        <Route path="score-simulator" element={<ScoreSimulator />} />
+        
+        {/* Communication */}
+        <Route path="letters" element={<Letters />} />
+        <Route path="emails" element={<Emails />} />
+        <Route path="sms" element={<SMS />} />
+        <Route path="drip-campaigns" element={<DripCampaigns />} />
+        <Route path="templates" element={<Templates />} />
+        <Route path="call-logs" element={<CallLogs />} />
+        <Route path="notifications" element={<Notifications />} />
+        
+        {/* Documents */}
+        <Route path="documents" element={<Documents />} />
+        <Route path="econtracts" element={<EContracts />} />
+        <Route path="forms" element={<Forms />} />
+        <Route path="document-storage" element={<DocumentStorage />} />
+        
+        {/* Business Tools */}
+        <Route path="companies" element={<Companies />} />
+        <Route path="location" element={<Location />} />
+        <Route path="invoices" element={<Invoices />} />
+        <Route
+          path="affiliates"
+          element={
+            <AdminRoute>
+              <Affiliates />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="billing"
+          element={
+            <AdminRoute>
+              <Billing />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="products"
+          element={
+            <AdminRoute>
+              <Products />
+            </AdminRoute>
+          }
+        />
+        
+        {/* Scheduling */}
+        <Route path="calendar" element={<Calendar />} />
+        <Route path="appointments" element={<Appointments />} />
+        <Route path="tasks" element={<Tasks />} />
+        <Route path="reminders" element={<Reminders />} />
+        
+        {/* Analytics */}
+        <Route path="analytics" element={<Analytics />} />
+        <Route path="reports" element={<Reports />} />
+        <Route path="goals" element={<Goals />} />
+        <Route path="achievements" element={<Achievements />} />
+        
+        {/* Settings & Admin */}
+        <Route path="settings" element={<Settings />} />
+        <Route path="training" element={<Training />} />
+        <Route path="learn" element={<Learn />} />
+        <Route path="support" element={<Support />} />
+        
+        {/* Admin-only Settings */}
+        <Route
+          path="team"
+          element={
+            <AdminRoute>
+              <Team />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="roles"
+          element={
+            <AdminRoute>
+              <Roles />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="integrations"
+          element={
+            <AdminRoute>
+              <Integrations />
+            </AdminRoute>
+          }
+        />
+        
+        {/* Catch all - redirect to home */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Route>
+    </Routes>
+  );
+}
+
+// Main App Component with All Providers and Error Boundary
 function App() {
   return (
-    <Router>
-      <AuthProvider>
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-
-          {/* Protected Routes */}
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <ProtectedLayout />
-              </ProtectedRoute>
-            }
-          >
-            {/* Dashboard */}
-            <Route index element={<Home />} />
-            
-            {/* Contacts & CRM */}
-            <Route path="contacts" element={<Contacts />} />
-            <Route path="pipeline" element={<Pipeline />} />
-            <Route path="contact/:id" element={<ContactDetailPage />} />
-            <Route path="import" element={<ImportCSV />} />
-            <Route path="export" element={<Export />} />
-            <Route path="contact-reports" element={<ContactReports />} />
-            <Route path="segments" element={<Segments />} />
-            
-            {/* Credit Management */}
-            <Route path="business-credit" element={<BusinessCredit />} />
-            <Route path="credit-scores" element={<CreditScores />} />
-            <Route path="disputes" element={<DisputeLetters />} />
-            <Route path="credit-reports" element={<CreditReports />} />
-            <Route path="credit-monitoring" element={<CreditMonitoring />} />
-            <Route path="score-simulator" element={<ScoreSimulator />} />
-            
-            {/* Communication */}
-            <Route path="letters" element={<Letters />} />
-            <Route path="emails" element={<Emails />} />
-            <Route path="sms" element={<SMS />} />
-            <Route path="drip-campaigns" element={<DripCampaigns />} />  {/* NEW ROUTE */}
-            <Route path="templates" element={<Templates />} />
-            <Route path="call-logs" element={<CallLogs />} />
-            <Route path="notifications" element={<Notifications />} />
-            
-            {/* Documents */}
-            <Route path="documents" element={<Documents />} />
-            <Route path="econtracts" element={<EContracts />} />
-            <Route path="forms" element={<Forms />} />
-            <Route path="document-storage" element={<DocumentStorage />} />
-            
-            {/* Business Tools */}
-            <Route path="companies" element={<Companies />} />
-            <Route path="location" element={<Location />} />  {/* NEW ROUTE */}
-            <Route path="invoices" element={<Invoices />} />
-            
-            {/* Admin-only Business Tools */}
-            <Route
-              path="affiliates"
-              element={
-                <AdminRoute>
-                  <Affiliates />
-                </AdminRoute>
-              }
-            />
-            <Route
-              path="billing"
-              element={
-                <AdminRoute>
-                  <Billing />
-                </AdminRoute>
-              }
-            />
-            <Route
-              path="products"
-              element={
-                <AdminRoute>
-                  <Products />
-                </AdminRoute>
-              }
-            />
-            
-            {/* Scheduling */}
-            <Route path="calendar" element={<Calendar />} />
-            <Route path="appointments" element={<Appointments />} />
-            <Route path="tasks" element={<Tasks />} />
-            <Route path="reminders" element={<Reminders />} />
-            
-            {/* Analytics */}
-            <Route path="analytics" element={<Analytics />} />
-            <Route path="reports" element={<Reports />} />
-            <Route path="goals" element={<Goals />} />
-            <Route path="achievements" element={<Achievements />} />
-            
-            {/* Settings & Admin */}
-            <Route path="settings" element={<Settings />} />
-            <Route path="training" element={<Training />} />
-            <Route path="learn" element={<Learn />} />  {/* NEW ROUTE */}
-            <Route path="support" element={<Support />} />
-            
-            {/* Admin-only Settings */}
-            <Route
-              path="team"
-              element={
-                <AdminRoute>
-                  <Team />
-                </AdminRoute>
-              }
-            />
-            <Route
-              path="roles"
-              element={
-                <AdminRoute>
-                  <Roles />
-                </AdminRoute>
-              }
-            />
-            <Route
-              path="integrations"
-              element={
-                <AdminRoute>
-                  <Integrations />
-                </AdminRoute>
-              }
-            />
-            
-            {/* Catch all - redirect to home */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Route>
-        </Routes>
-      </AuthProvider>
-    </Router>
+    <ErrorBoundary>
+      <Router>
+        <ThemeProvider>
+          <AuthProvider>
+            <AppContent />
+          </AuthProvider>
+        </ThemeProvider>
+      </Router>
+    </ErrorBoundary>
   );
 }
 

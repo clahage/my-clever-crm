@@ -1,6 +1,7 @@
 {
   "projects": {
-    "default": "my-clever-crm"
+    "default": "my-clever-crm",
+    "project": "my-clever-crm"
   },
   "targets": {
     "my-clever-crm": {
