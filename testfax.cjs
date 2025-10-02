@@ -3,7 +3,7 @@ console.log('Script starting...');
 const axios = require('axios');
 
 // Your credentials
-const TELNYX_API_KEY = 'KEY0199A1AA458056E4044CF295AF126BBE_bzdNEC61nU4Dfah8ZvUVVy';
+const TELNYX_API_KEY = 'YOUR_TELNYX_API_KEY_HERE';  // Replace with your key
 const FROM_NUMBER = '+16572362242';
 const CONNECTION_ID = '2796875921846437657';
 
