@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Settings as SettingsIcon, User, Bell, Shield, Palette, Globe, Database, Save, Check } from 'lucide-react';
+import { Settings as SettingsIcon, User, Bell, Shield, Palette, Globe, Database, Save, Check, Rocket, Box } from 'lucide-react';
+import InitializeDisputeSystem from '../components/InitializeDisputeSystem';
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState('general');
@@ -47,6 +48,11 @@ const Settings = () => {
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
         <p className="text-gray-600 mt-1">Manage your application preferences and configurations</p>
+      </div>
+
+      {/* Dispute System Initialization Section - Temporary, can be removed after setup */}
+      <div className="mb-6">
+        <InitializeDisputeSystem />
       </div>
 
       <div className="flex gap-6">
@@ -106,6 +112,16 @@ const Settings = () => {
             >
               <Database className="w-5 h-5" />
               Data & Storage
+            </button>
+            {/* New Dispute System Tab */}
+            <button
+              onClick={() => setActiveTab('dispute')}
+              className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left ${
+                activeTab === 'dispute' ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <Rocket className="w-5 h-5" />
+              Dispute System
             </button>
           </nav>
         </div>
@@ -324,9 +340,95 @@ const Settings = () => {
             {activeTab === 'integrations' && (
               <div className="space-y-6">
                 <h2 className="text-lg font-semibold mb-4">Integrations</h2>
-                <div className="text-center py-12">
-                  <Globe className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600">Integration settings coming soon</p>
+                
+                <div className="space-y-4">
+                  {/* Email Integration */}
+                  <div className="border rounded-lg p-4">
+                    <h3 className="font-medium text-gray-900 mb-3">Email (Google Workspace)</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">SMTP Host</label>
+                        <input
+                          type="text"
+                          defaultValue="smtp.gmail.com"
+                          className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          disabled
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">SMTP Port</label>
+                        <input
+                          type="text"
+                          defaultValue="587"
+                          className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          disabled
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">Email</label>
+                        <input
+                          type="email"
+                          placeholder="chris@speedycreditrepair.com"
+                          className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        Configure in .env file. Use Google App Password for authentication.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Fax Integration */}
+                  <div className="border rounded-lg p-4">
+                    <h3 className="font-medium text-gray-900 mb-3">Fax Service (Telnyx)</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">API Key</label>
+                        <input
+                          type="password"
+                          placeholder="Enter Telnyx API Key"
+                          className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">Fax Number</label>
+                        <input
+                          type="tel"
+                          placeholder="+1 (555) 123-4567"
+                          className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">Connection ID</label>
+                        <input
+                          type="text"
+                          placeholder="Telnyx Connection ID"
+                          className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        Telnyx provides reliable fax service without cover pages. Supports high volume.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* OpenAI Integration */}
+                  <div className="border rounded-lg p-4">
+                    <h3 className="font-medium text-gray-900 mb-3">OpenAI API</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">API Key</label>
+                        <input
+                          type="password"
+                          placeholder="sk-..."
+                          className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        Powers AI letter generation and analysis. Configure in .env file.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -334,9 +436,133 @@ const Settings = () => {
             {activeTab === 'data' && (
               <div className="space-y-6">
                 <h2 className="text-lg font-semibold mb-4">Data & Storage</h2>
-                <div className="text-center py-12">
-                  <Database className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600">Data management settings coming soon</p>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="border rounded-lg p-4">
+                    <h3 className="font-medium text-gray-900 mb-2">Database Usage</h3>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Documents</span>
+                        <span className="font-medium">12,543</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Storage Used</span>
+                        <span className="font-medium">2.4 GB</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Collections</span>
+                        <span className="font-medium">24</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="border rounded-lg p-4">
+                    <h3 className="font-medium text-gray-900 mb-2">API Usage</h3>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">OpenAI Calls</span>
+                        <span className="font-medium">1,234</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Fax Sent</span>
+                        <span className="font-medium">456</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Emails Sent</span>
+                        <span className="font-medium">789</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t pt-4">
+                  <h3 className="font-medium text-gray-900 mb-3">Data Management</h3>
+                  <div className="space-y-2">
+                    <button className="w-full text-left px-4 py-2 border rounded hover:bg-gray-50">
+                      Export All Data
+                    </button>
+                    <button className="w-full text-left px-4 py-2 border rounded hover:bg-gray-50">
+                      Backup to Cloud
+                    </button>
+                    <button className="w-full text-left px-4 py-2 border rounded hover:bg-gray-50 text-red-600">
+                      Clear Cache
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'dispute' && (
+              <div className="space-y-6">
+                <h2 className="text-lg font-semibold mb-4">Dispute System Settings</h2>
+                
+                <div className="space-y-4">
+                  <div className="border rounded-lg p-4 bg-blue-50">
+                    <h3 className="font-medium text-gray-900 mb-2">System Status</h3>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        <span className="text-sm">All systems operational</span>
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        Templates: Active | AI: Enabled | Automation: Running
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="border rounded-lg p-4">
+                    <h3 className="font-medium text-gray-900 mb-3">Quick Actions</h3>
+                    <div className="space-y-2">
+                      <button
+                        onClick={() => window.location.href = '/dispute-letters'}
+                        className="w-full text-left px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                      >
+                        Go to Dispute Letters
+                      </button>
+                      <button
+                        onClick={() => window.location.href = '/admin/disputes'}
+                        className="w-full text-left px-4 py-2 border rounded hover:bg-gray-50"
+                      >
+                        Admin Panel
+                      </button>
+                      <button className="w-full text-left px-4 py-2 border rounded hover:bg-gray-50">
+                        View Templates
+                      </button>
+                      <button className="w-full text-left px-4 py-2 border rounded hover:bg-gray-50">
+                        Check API Status
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="border rounded-lg p-4">
+                    <h3 className="font-medium text-gray-900 mb-3">Default Settings</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">Default AI Strategy</label>
+                        <select className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                          <option value="conservative">Conservative</option>
+                          <option value="moderate">Moderate</option>
+                          <option value="aggressive" selected>Aggressive</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">Auto Follow-up Days</label>
+                        <input
+                          type="number"
+                          defaultValue="30"
+                          className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <label className="flex items-center gap-2">
+                        <input type="checkbox" defaultChecked className="text-blue-600" />
+                        <span className="text-sm">Enable automatic response tracking</span>
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input type="checkbox" defaultChecked className="text-blue-600" />
+                        <span className="text-sm">AI-powered template selection</span>
+                      </label>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

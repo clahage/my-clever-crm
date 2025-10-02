@@ -1,4 +1,4 @@
-// App.jsx - Complete version with ErrorBoundary and all routes
+// App.jsx - Complete version with ErrorBoundary and all routes including Dispute Admin
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -74,6 +74,9 @@ import Integrations from './pages/Integrations';
 import Training from './pages/Training';
 import Learn from './pages/Learn';
 import Support from './pages/Support';
+
+// NEW: Dispute Admin Panel
+import DisputeAdminPanel from './pages/admin/DisputeAdminPanel';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -239,6 +242,16 @@ function AppContent() {
           element={
             <AdminRoute>
               <Integrations />
+            </AdminRoute>
+          }
+        />
+        
+        {/* NEW: Dispute System Admin Panel - Admin Only */}
+        <Route
+          path="admin/disputes"
+          element={
+            <AdminRoute>
+              <DisputeAdminPanel />
             </AdminRoute>
           }
         />
