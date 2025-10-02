@@ -139,12 +139,43 @@ export const navigationItems = [
         permission: 'user'
       },
       {
+        id: 'dispute-creation',
+        title: 'Create Dispute',
+        path: '/dispute-creation',
+        icon: FileText,
+        permission: 'user',
+        badge: 'NEW'
+      },
+      {
+        id: 'dispute-status',
+        title: 'Dispute Status',
+        path: '/dispute-status',
+        icon: AlertCircle,
+        permission: 'user'
+      },
+      {
+        id: 'dispute-admin-panel',
+        title: 'Dispute Admin Panel',
+        path: '/admin/dispute-admin-panel',
+        icon: Shield,
+        permission: 'admin'
+      },
+
+      {
+        id: 'dispute-admin-panel',
+        title: 'Dispute Admin Panel',
+        path: '/admin/dispute-admin-panel',
+        icon: Shield,
+        permission: 'admin'
+      },
+      {
         id: 'credit-reports',
         title: 'Credit Reports',
         path: '/credit-reports',
         icon: FileSpreadsheet,
         permission: 'user'
       },
+      
       {
         id: 'credit-monitoring',
         title: 'Monitoring',

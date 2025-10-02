@@ -26,6 +26,8 @@ import Segments from './pages/Segments';
 import BusinessCredit from './pages/BusinessCredit';
 import CreditScores from './pages/CreditScores';
 import DisputeLetters from './pages/DisputeLetters';
+import DisputeCreation from './pages/DisputeCreation';
+import DisputeStatus from './pages/DisputeStatus';  
 import CreditReports from './pages/CreditReports';
 import CreditMonitoring from './pages/CreditMonitoring';
 import CreditSimulator from './pages/CreditSimulator';
@@ -154,6 +156,8 @@ function AppContent() {
         <Route path="business-credit" element={<BusinessCredit />} />
         <Route path="credit-scores" element={<CreditScores />} />
         <Route path="dispute-letters" element={<DisputeLetters />} />
+        <Route path="dispute-creation" element={<DisputeCreation />} />
+        <Route path="dispute-status" element={<DisputeStatus />} />
         <Route path="credit-reports" element={<CreditReports />} />
         <Route path="credit-monitoring" element={<CreditMonitoring />} />
         <Route path="credit-simulator" element={<CreditSimulator />} />

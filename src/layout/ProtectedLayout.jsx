@@ -4,7 +4,7 @@ import { signOut } from 'firebase/auth';
 import { auth, db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { navGroups, filterNavigationByRole } from './navConfig';
+import { navigationItems, filterNavigationByRole } from './navConfig';
 import { 
   Menu, 
   X, 
@@ -20,7 +20,6 @@ import {
   Home
 } from 'lucide-react';
 import { doc, getDoc } from 'firebase/firestore';
-import NotificationCenter from '../components/NotificationCenter';
 
 const ProtectedLayout = () => {
   const { user } = useAuth();
@@ -34,7 +33,7 @@ const ProtectedLayout = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [companyLogo, setCompanyLogo] = useState('/brand/default/speedy_logo_main.png');
+  const [companyLogo, setCompanyLogo] = useState('/logo.png');
   const [companyName, setCompanyName] = useState('SpeedyCreditRepair');
 
   // Load user role and company settings
@@ -53,7 +52,7 @@ const ProtectedLayout = () => {
               const companyDoc = await getDoc(doc(db, 'companies', userData.companyId));
               if (companyDoc.exists()) {
                 const companyData = companyDoc.data();
-                setCompanyLogo(companyData.logo || '/brand/default/speedy_logo_main.png');
+                setCompanyLogo(companyData.logo || '/logo.png');
                 setCompanyName(companyData.name || 'SpeedyCreditRepair');
               }
             }
@@ -83,6 +82,20 @@ const ProtectedLayout = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Auto-expand groups on initial load
+  useEffect(() => {
+    // Expand all groups by default on desktop
+    if (!isMobile && navigationItems) {
+      const initialExpanded = {};
+      navigationItems.forEach(item => {
+        if (item.isGroup) {
+          initialExpanded[item.id] = item.defaultExpanded !== false;
+        }
+      });
+      setExpandedGroups(initialExpanded);
+    }
+  }, [isMobile]);
+
   // Close sidebar on mobile when route changes
   useEffect(() => {
     if (isMobile) {
@@ -106,7 +119,7 @@ const ProtectedLayout = () => {
     }));
   };
 
-  const filteredNavGroups = filterNavigationByRole(navGroups, userRole);
+  const filteredNavItems = filterNavigationByRole(navigationItems, userRole);
 
   const handleNavClick = () => {
     if (isMobile) {
@@ -145,7 +158,7 @@ const ProtectedLayout = () => {
                   className="h-8 w-auto"
                   onError={(e) => {
                     e.target.onerror = null;
-                    e.target.src = '/favicon.svg';
+                    e.target.src = '/favicon.png';
                   }}
                 />
                 <span className="ml-2 text-xl font-semibold text-gray-900 dark:text-white hidden sm:block">
@@ -190,7 +203,23 @@ const ProtectedLayout = () => {
                 
                 {showNotifications && (
                   <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 z-50">
-                    <NotificationCenter />
+                    <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+                        Notifications
+                      </h3>
+                    </div>
+                    <div className="px-4 py-3">
+                      <div className="text-sm text-gray-500 dark:text-gray-400">
+                        <div className="py-2">✓ Dispute sent successfully</div>
+                        <div className="py-2">✓ New client added</div>
+                        <div className="py-2">✓ Report generated</div>
+                      </div>
+                    </div>
+                    <div className="px-4 py-2 border-t border-gray-200 dark:border-gray-700">
+                      <button className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
+                        View all notifications
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -271,63 +300,77 @@ const ProtectedLayout = () => {
         md:translate-x-0 overflow-y-auto
       `}>
         <nav className="p-4 space-y-2">
-          {/* Dashboard Link */}
-          <Link
-            to="/dashboard"
-            onClick={handleNavClick}
-            className={`flex items-center px-3 py-2 rounded-lg transition-colors ${
-              location.pathname === '/dashboard'
-                ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-            }`}
-          >
-            <Home className="h-5 w-5 mr-3" />
-            Dashboard
-          </Link>
-
-          {/* Navigation Groups */}
-          {filteredNavGroups.map((group) => (
-            <div key={group.id} className="mt-4">
-              <button
-                onClick={() => toggleGroup(group.id)}
-                className="flex items-center justify-between w-full px-3 py-2 text-sm font-medium text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
-              >
-                <span>{group.title}</span>
-                {expandedGroups[group.id] ? 
-                  <ChevronDown className="h-4 w-4" /> : 
-                  <ChevronRight className="h-4 w-4" />
-                }
-              </button>
-              
-              {expandedGroups[group.id] && (
-                <div className="mt-1 space-y-1">
-                  {group.items.map((item) => {
-                    const Icon = item.icon;
-                    return (
-                      <Link
-                        key={item.id}
-                        to={item.path}
-                        onClick={handleNavClick}
-                        className={`flex items-center px-9 py-2 rounded-lg transition-colors ${
-                          location.pathname === item.path
-                            ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                        }`}
-                      >
-                        <Icon className="h-4 w-4 mr-3" />
-                        {item.title}
-                        {item.badge && (
-                          <span className="ml-auto px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 rounded-full">
-                            {item.badge}
-                          </span>
-                        )}
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          ))}
+          {/* Navigation Groups - This uses YOUR navConfig.js with ALL items */}
+          {filteredNavItems && filteredNavItems.map((item) => {
+            // Handle single navigation items (non-groups)
+            if (!item.isGroup) {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.id}
+                  to={item.path}
+                  onClick={handleNavClick}
+                  className={`flex items-center px-3 py-2 rounded-lg transition-colors ${
+                    location.pathname === item.path
+                      ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <Icon className="h-5 w-5 mr-3" />
+                  {item.title}
+                  {item.badge && (
+                    <span className="ml-auto px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 rounded-full">
+                      {item.badge}
+                    </span>
+                  )}
+                </Link>
+              );
+            }
+            
+            // Handle navigation groups
+            return (
+              <div key={item.id} className="mt-4">
+                <button
+                  onClick={() => toggleGroup(item.id)}
+                  className="flex items-center justify-between w-full px-3 py-2 text-sm font-medium text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                >
+                  <span>{item.title}</span>
+                  {expandedGroups[item.id] ? 
+                    <ChevronDown className="h-4 w-4" /> : 
+                    <ChevronRight className="h-4 w-4" />
+                  }
+                </button>
+                
+                {expandedGroups[item.id] && item.items && (
+                  <div className="mt-1 space-y-1">
+                    {item.items.map((subItem) => {
+                      const SubIcon = subItem.icon;
+                      return (
+                        <Link
+                          key={subItem.id}
+                          to={subItem.path}
+                          onClick={handleNavClick}
+                          className={`flex items-center px-9 py-2 rounded-lg transition-colors ${
+                            location.pathname === subItem.path
+                              ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                          }`}
+                        >
+                          <SubIcon className="h-4 w-4 mr-3" />
+                          {subItem.title}
+                          {subItem.badge && (
+                            <span className="ml-auto px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 rounded-full">
+                              {subItem.badge}
+                            </span>
+                          )}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </nav>
       </aside>
 
