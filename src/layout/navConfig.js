@@ -133,18 +133,12 @@ export const navigationItems = [
       },
       {
         id: 'dispute-letters',
-        title: 'Dispute Letters',
+        title: 'Dispute Command Center',
         path: '/dispute-letters',
         icon: FileText,
-        permission: 'user'
-      },
-      {
-        id: 'dispute-creation',
-        title: 'Create Dispute',
-        path: '/dispute-creation',
-        icon: FileText,
+        description: 'AI-Powered Disputes with Telnyx Fax',
         permission: 'user',
-        badge: 'NEW'
+        badge: 'FAX'
       },
       {
         id: 'dispute-status',

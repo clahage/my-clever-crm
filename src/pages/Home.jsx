@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { usePermission } from '../usePermission';
@@ -180,46 +179,46 @@ const Home = () => {
         <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600"></div>
         <div className="absolute inset-0 bg-white bg-opacity-5"></div>
         
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center">
-            {/* Logo Area */}
-            <div className="flex items-center justify-center mb-8">
-              <div className="p-6 bg-white/20 rounded-3xl backdrop-blur-sm border border-white/30 shadow-2xl">
-                <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-lg">
-                  <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                </div>
+            {/* Logo Area - FIXED SIZE */}
+            <div className="mb-6">
+              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-3 inline-block">
+                <img 
+                  src="/logo.png" 
+                  alt="Speedy Credit Repair"
+                  className="h-20 w-auto drop-shadow-2xl"
+                />
               </div>
             </div>
             
-            <h1 className="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight">
+            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 leading-tight">
               Speedy Credit Repair
-              <span className="block text-4xl md:text-5xl bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent">
+              <span className="block text-3xl md:text-4xl bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent">
                 CRM Dashboard
               </span>
             </h1>
             
-            <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
+            <p className="text-lg text-white/90 mb-6 max-w-2xl mx-auto">
               Welcome back, <span className="font-bold text-yellow-300">{userProfile?.displayName || user?.email?.split('@')[0] || 'User'}</span>! 
               Transform lives, one credit score at a time.
             </p>
             
             <div className="flex flex-wrap justify-center gap-4">
-              <div className={`px-6 py-3 rounded-full backdrop-blur-sm border border-white/30 ${
+              <div className={`px-4 py-2 rounded-full backdrop-blur-sm border border-white/30 ${
                 isMasterAdmin ? 'bg-red-500/20 text-red-100' : 'bg-white/20 text-white'
               }`}>
-                <span className="font-semibold">🔑 {userProfile?.role || 'user'}</span>
+                <span className="font-semibold text-sm">🔐 {userProfile?.role || 'user'}</span>
               </div>
               
               {isMasterAdmin && (
-                <div className="px-6 py-3 rounded-full bg-gradient-to-r from-yellow-400/20 to-orange-400/20 backdrop-blur-sm border border-yellow-400/30 text-yellow-100">
-                  <span className="font-semibold">⚡ Master Admin</span>
+                <div className="px-4 py-2 rounded-full bg-gradient-to-r from-yellow-400/20 to-orange-400/20 backdrop-blur-sm border border-yellow-400/30 text-yellow-100">
+                  <span className="font-semibold text-sm">⚡ Master Admin</span>
                 </div>
               )}
               
-              <div className="px-6 py-3 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 text-white">
-                <span className="font-semibold">🕒 {currentTime.toLocaleTimeString()}</span>
+              <div className="px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 text-white">
+                <span className="font-semibold text-sm">🕐 {currentTime.toLocaleTimeString()}</span>
               </div>
             </div>
           </div>
@@ -261,7 +260,7 @@ const Home = () => {
           <PremiumStatCard
             title="Monthly Revenue"
             value={`$${(stats.revenue / 1000).toFixed(0)}K`}
-            icon="�"
+            icon="💰"
             gradient="from-orange-500 via-red-500 to-pink-600"
             trend="23"
             subtitle="Record breaking"
@@ -337,7 +336,7 @@ const Home = () => {
             <FeatureCard
               title="Smart Reports"
               description="Automated reporting, business intelligence, and customizable dashboards with export capabilities."
-              icon="�"
+              icon="📈"
               gradient="from-yellow-400 to-orange-600"
               link="#"
               badge="Coming Soon"

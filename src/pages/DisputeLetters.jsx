@@ -22,6 +22,7 @@ import {
   Tab,
   Chip,
   Alert,
+  AlertTitle,
   IconButton,
   Tooltip,
   Dialog,
@@ -312,6 +313,22 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 // PDF Generation
 import html2pdf from 'html2pdf.js';
+
+// TELNYX INTEGRATION - Import the Telnyx service
+import { 
+  sendFax, 
+  getFaxStatus,
+  sendBatchFaxes,
+  cancelFax,
+  listReceivedFaxes
+} from '../services/telnyxFaxService';
+
+// Bureau fax numbers
+const BUREAU_FAX_NUMBERS = {
+  equifax: '+18884197495',
+  experian: '+19729390007', 
+  transunion: '+16109465906'
+};
 
 // OpenAI and Advanced Services
 import { 
@@ -754,31 +771,77 @@ Sent via Certified Mail #[Tracking]`,
     try {
       const q = query(
         collection(db, 'contacts'),
-        where('userId', '==', currentUser.uid),
-        orderBy('createdAt', 'desc')
+        where('userId', '==', currentUser.uid)
       );
       
       const querySnapshot = await getDocs(q);
       const clientsData = [];
       querySnapshot.forEach((doc) => {
         const data = doc.data();
-        // Include all contacts, not just type "client"
         clientsData.push({ 
           id: doc.id, 
           ...data,
-          displayName: data.name || `${data.firstName || ''} ${data.lastName || ''}`.trim() || 'Unnamed Contact'
+          displayName: data.displayName || data.name || `${data.firstName || ''} ${data.lastName || ''}`.trim() || data.email || 'Unnamed Contact'
         });
+      });
+      
+      // Sort by displayName
+      clientsData.sort((a, b) => {
+        const nameA = a.displayName.toLowerCase();
+        const nameB = b.displayName.toLowerCase();
+        if (nameA < nameB) return -1;
+        if (nameA > nameB) return 1;
+        return 0;
       });
       
       setClients(clientsData);
       console.log('Loaded clients:', clientsData.length);
+      
+      if (clientsData.length === 0) {
+        setSnackbar({ 
+          open: true, 
+          message: 'No contacts found. You can add a new client manually.', 
+          severity: 'info' 
+        });
+      }
     } catch (error) {
       console.error('Error loading clients:', error);
-      setSnackbar({ 
-        open: true, 
-        message: 'Error loading clients. Using manual entry.', 
-        severity: 'warning' 
-      });
+      if (error.code === 'failed-precondition') {
+        // Index not ready, try without orderBy
+        try {
+          const q = query(
+            collection(db, 'contacts'),
+            where('userId', '==', currentUser.uid)
+          );
+          const querySnapshot = await getDocs(q);
+          const clientsData = [];
+          querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            clientsData.push({ 
+              id: doc.id, 
+              ...data,
+              displayName: data.displayName || data.name || `${data.firstName || ''} ${data.lastName || ''}`.trim() || data.email || 'Unnamed Contact'
+            });
+          });
+          setClients(clientsData);
+          console.log('Loaded clients (without sort):', clientsData.length);
+        } catch (retryError) {
+          console.error('Error loading clients (retry):', retryError);
+          setClients([]);
+          setSnackbar({ 
+            open: true, 
+            message: 'Could not load contacts. You can still enter client details manually.', 
+            severity: 'warning' 
+          });
+        }
+      } else {
+        setClients([]);
+        setSnackbar({ 
+          open: true, 
+          message: 'Error loading contacts. Using manual entry.', 
+          severity: 'warning' 
+        });
+      }
     }
   };
 
@@ -1510,17 +1573,176 @@ ${content}
     alert(`Mailing Instructions:\n\n1. Print the PDF letter\n2. Print mailing label\n3. ${deliveryMethod === 'certified' ? 'Take to post office for certified mail' : 'Mail via regular post'}\n4. Enter tracking number when available`);
   };
 
-  // Handle fax delivery
+ // Handle fax delivery
   const handleFaxDelivery = async () => {
-    // This would integrate with a fax API service
-    // For demo purposes, we'll simulate it
-    alert(`Fax Instructions:\n\nFax Number: ${faxNumber || 'Not specified'}\n\nThe letter will be faxed to the bureau. You will receive a confirmation.`);
+    setFaxLoading(true);
+    try {
+      // Determine fax number
+      let targetFaxNumber = faxNumber;
+      
+      // If no custom fax number, use bureau fax
+      if (!targetFaxNumber && BUREAU_FAX_NUMBERS[formData.bureau]) {
+        targetFaxNumber = BUREAU_FAX_NUMBERS[formData.bureau];
+      }
+      
+      if (!targetFaxNumber) {
+        throw new Error('No fax number specified');
+      }
+      
+      // Generate PDF as base64
+      setSnackbar({ 
+        open: true, 
+        message: 'Generating PDF for fax...', 
+        severity: 'info' 
+      });
+      
+      const pdfBase64 = await generatePDFBase64();
+      
+      // Send fax via Telnyx using YOUR service
+      setSnackbar({ 
+        open: true, 
+        message: 'Sending fax via Telnyx...', 
+        severity: 'info' 
+      });
+      
+      const faxResult = await sendFax({
+        toNumber: targetFaxNumber,
+        pdfContent: pdfBase64,
+        clientName: formData.clientName,
+        userId: currentUser.uid,
+        letterId: selectedLetter?.id || null,
+        metadata: {
+          bureau: formData.bureau,
+          disputeType: formData.disputeType,
+          accountNumber: formData.accountNumber
+        }
+      });
+      
+      if (faxResult.success) {
+        setFaxStatus({
+          id: faxResult.faxId,
+          status: faxResult.status,
+          sentTo: faxResult.toNumber,
+          pageCount: faxResult.pageCount
+        });
+        
+        // Save fax record to database
+        await addDoc(collection(db, 'faxTransmissions'), {
+          letterId: selectedLetter?.id || null,
+          clientId: formData.clientId,
+          clientName: formData.clientName,
+          bureau: formData.bureau,
+          faxId: faxResult.faxId,
+          toNumber: faxResult.toNumber,
+          status: faxResult.status,
+          sentAt: serverTimestamp(),
+          userId: currentUser.uid,
+          pageCount: faxResult.pageCount,
+          estimatedDelivery: faxResult.estimatedDelivery
+        });
+        
+        setSnackbar({ 
+          open: true, 
+          message: `Fax sent successfully! ID: ${faxResult.faxId}`, 
+          severity: 'success' 
+        });
+        
+        // Start checking fax status
+        checkFaxStatus(faxResult.faxId);
+      } else {
+        throw new Error('Fax transmission failed');
+      }
+    } catch (error) {
+      console.error('Fax error:', error);
+      setSnackbar({ 
+        open: true, 
+        message: `Fax failed: ${error.message}`, 
+        severity: 'error' 
+      });
+    } finally {
+      setFaxLoading(false);
+    }
+  };
+
+  // Check fax status periodically
+  const checkFaxStatus = async (faxId) => {
+    let attempts = 0;
+    const maxAttempts = 10;
+    
+    const checkStatus = async () => {
+      try {
+        const statusResult = await getFaxStatus(faxId);
+        
+        if (statusResult) {
+          setFaxStatus(prev => ({
+            ...prev,
+            status: statusResult.status,
+            completedAt: statusResult.completedAt,
+            failureReason: statusResult.failureReason
+          }));
+          
+          if (statusResult.status === 'delivered') {
+            setSnackbar({ 
+              open: true, 
+              message: 'Fax delivered successfully!', 
+              severity: 'success' 
+            });
+            
+            // Update database
+            const q = query(
+              collection(db, 'faxTransmissions'),
+              where('faxId', '==', faxId)
+            );
+            const snapshot = await getDocs(q);
+            snapshot.forEach(doc => {
+              updateDoc(doc.ref, {
+                status: statusResult.status,
+                deliveredAt: serverTimestamp()
+              });
+            });
+          } else if (statusResult.status === 'failed') {
+            setSnackbar({ 
+              open: true, 
+              message: `Fax failed: ${statusResult.failureReason || 'Unknown error'}`, 
+              severity: 'error' 
+            });
+          } else if (statusResult.status === 'sending' || statusResult.status === 'queued') {
+            // Still processing, check again
+            if (attempts < maxAttempts) {
+              setTimeout(() => {
+                attempts++;
+                checkStatus();
+              }, 10000); // Check every 10 seconds
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error checking fax status:', error);
+      }
+    };
+    
+    // Start checking after 5 seconds
+    setTimeout(checkStatus, 5000);
   };
 
   // Handle email delivery
   const handleEmailDelivery = async () => {
     // This would integrate with email service
-    alert(`Email will be sent to: ${emailSettings.to}\n\nSubject: ${emailSettings.subject}\n\nPDF attached: ${emailSettings.attachPDF ? 'Yes' : 'No'}`);
+    // For now, we'll create a mailto link with the PDF attached
+    const subject = encodeURIComponent(emailSettings.subject || 'Credit Report Dispute');
+    const body = encodeURIComponent(letterContent);
+    const mailto = `mailto:${emailSettings.to}?subject=${subject}&body=${body}`;
+    
+    window.open(mailto);
+    
+    setSnackbar({ 
+      open: true, 
+      message: 'Email client opened. Please attach the PDF manually.', 
+      severity: 'info' 
+    });
+    
+    // Also generate PDF for attachment
+    handleExportPDF();
   };
 
   // Handle portal upload
@@ -1533,7 +1755,15 @@ ${content}
     };
     
     window.open(bureauPortals[formData.bureau], '_blank');
-    alert('The bureau dispute portal has been opened. Please upload your letter there.');
+    
+    setSnackbar({ 
+      open: true, 
+      message: 'Bureau portal opened. Upload your letter there.', 
+      severity: 'info' 
+    });
+    
+    // Generate PDF for upload
+    handleExportPDF();
   };
 
   // Render the main component
@@ -1705,36 +1935,58 @@ ${content}
                     <StepContent>
                       <Grid container spacing={3}>
                         <Grid item xs={12}>
-                          <Autocomplete
-                            options={[
-                              { id: 'manual', displayName: '➕ Manual Entry (New Client)' },
-                              ...clients
-                            ]}
-                            getOptionLabel={(option) => option.displayName || option.name || 'Unnamed'}
-                            renderOption={(props, option) => (
-                              <Box component="li" {...props}>
-                                <ListItemIcon>
-                                  {option.id === 'manual' ? <Plus /> : <User />}
-                                </ListItemIcon>
-                                <ListItemText
-                                  primary={option.displayName || option.name}
-                                  secondary={option.email}
-                                />
-                              </Box>
-                            )}
-                            renderInput={(params) => (
-                              <TextField
-                                {...params}
-                                label="Select Client"
-                                variant="outlined"
-                                fullWidth
-                                helperText={`${clients.length} clients available`}
-                              />
-                            )}
-                            onChange={(e, value) => handleClientSelect(value?.id === 'manual' ? null : value)}
-                            value={selectedClient}
-                          />
-                        </Grid>
+  <Autocomplete
+    options={[
+      { id: 'manual', displayName: '➕ Manual Entry (New Client)', name: 'Manual Entry', email: '' },
+      ...clients.map(client => ({
+        ...client,
+        displayName: client.displayName || client.name || `${client.firstName || ''} ${client.lastName || ''}`.trim() || 'Unnamed Contact'
+      }))
+    ]}
+    getOptionLabel={(option) => {
+      if (!option) return '';
+      if (option.id === 'manual') return '➕ Manual Entry (New Client)';
+      return option.displayName || option.name || 'Unnamed';
+    }}
+    renderOption={(props, option) => {
+      const { key, ...otherProps } = props;
+      return (
+        <Box component="li" key={key} {...otherProps}>
+          <ListItemIcon>
+            {option.id === 'manual' ? <Plus /> : <User />}
+          </ListItemIcon>
+          <ListItemText
+            primary={option.id === 'manual' ? 'Manual Entry (New Client)' : (option.displayName || option.name)}
+            secondary={option.id === 'manual' ? 'Enter client details manually' : option.email}
+          />
+        </Box>
+      );
+    }}
+    renderInput={(params) => (
+      <TextField
+        {...params}
+        label="Select Client"
+        variant="outlined"
+        fullWidth
+        helperText={clients.length > 0 ? `${clients.length} clients available` : 'Loading clients...'}
+      />
+    )}
+    onChange={(e, value) => {
+      if (!value) {
+        handleClientSelect(null);
+      } else if (value.id === 'manual') {
+        handleClientSelect(null);
+      } else {
+        handleClientSelect(value);
+      }
+    }}
+    value={selectedClient}
+    isOptionEqualToValue={(option, value) => {
+      if (!option || !value) return false;
+      return option.id === value.id;
+    }}
+  />
+</Grid>
                         
                         {(!selectedClient || selectedClient?.id === 'manual') && (
                           <>

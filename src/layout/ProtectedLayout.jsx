@@ -1,115 +1,93 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { signOut } from 'firebase/auth';
-import { auth, db } from '../lib/firebase';
+import React, { useState, useEffect } from 'react';
+import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useTheme } from '../contexts/ThemeContext';
-import { navigationItems, filterNavigationByRole } from './navConfig';
 import { 
   Menu, 
   X, 
-  ChevronDown, 
-  ChevronRight,
-  Sun,
+  LogOut, 
+  User, 
+  Sun, 
   Moon,
-  User,
-  LogOut,
-  Settings,
-  Bell,
+  ChevronDown,
+  ChevronRight,
   Search,
-  Home
+  Bell
 } from 'lucide-react';
-import { doc, getDoc } from 'firebase/firestore';
+import { navigationItems, filterNavigationByRole } from './navConfig';
 
 const ProtectedLayout = () => {
-  const { user } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [expandedGroups, setExpandedGroups] = useState({});
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const [userRole, setUserRole] = useState('user');
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [companyLogo, setCompanyLogo] = useState('/logo.png');
-  const [companyName, setCompanyName] = useState('SpeedyCreditRepair');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth >= 768);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
-  // Load user role and company settings
   useEffect(() => {
-    const loadUserData = async () => {
-      if (user) {
-        try {
-          // Get user role
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            setUserRole(userData.role || 'user');
-            
-            // Load company branding if available
-            if (userData.companyId) {
-              const companyDoc = await getDoc(doc(db, 'companies', userData.companyId));
-              if (companyDoc.exists()) {
-                const companyData = companyDoc.data();
-                setCompanyLogo(companyData.logo || '/logo.png');
-                setCompanyName(companyData.name || 'SpeedyCreditRepair');
-              }
-            }
-          }
-        } catch (error) {
-          console.error('Error loading user data:', error);
-        }
-      }
-    };
-    loadUserData();
-  }, [user]);
-
-  // Handle responsive behavior
-  useEffect(() => {
-    const handleResize = () => {
-      const mobile = window.innerWidth < 768;
-      setIsMobile(mobile);
-      if (!mobile) {
-        setIsSidebarOpen(true);
-      } else {
-        setIsSidebarOpen(false);
-      }
-    };
-
-    handleResize();
+    const handleResize = () => setWindowWidth(window.innerWidth);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Auto-expand groups on initial load
+  const isMobile = windowWidth < 768;
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState({});
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredNav, setFilteredNav] = useState([]);
+  const [notificationCount, setNotificationCount] = useState(3); // Example notification count
+
+  // Initialize expanded groups based on defaults and current location
   useEffect(() => {
-    // Expand all groups by default on desktop
-    if (!isMobile && navigationItems) {
-      const initialExpanded = {};
-      navigationItems.forEach(item => {
-        if (item.isGroup) {
-          initialExpanded[item.id] = item.defaultExpanded !== false;
+    const initialExpanded = {};
+    navigationItems.forEach(item => {
+      if (item.isGroup) {
+        // Check if current path is in this group
+        const isCurrentInGroup = item.items?.some(subItem => 
+          location.pathname === subItem.path
+        );
+        initialExpanded[item.id] = item.defaultExpanded || isCurrentInGroup || false;
+      }
+    });
+    setExpandedGroups(initialExpanded);
+  }, [location.pathname]);
+
+  // Filter navigation based on user role and search
+  useEffect(() => {
+    const userRole = user?.role || 'user';
+    let filtered = filterNavigationByRole(navigationItems, userRole);
+    
+    if (searchTerm) {
+      filtered = filtered.reduce((acc, item) => {
+        if (item.isGroup && item.items) {
+          const filteredItems = item.items.filter(subItem =>
+            subItem.title.toLowerCase().includes(searchTerm.toLowerCase())
+          );
+          if (filteredItems.length > 0) {
+            return [...acc, { ...item, items: filteredItems }];
+          }
+        } else if (item.title.toLowerCase().includes(searchTerm.toLowerCase())) {
+          return [...acc, item];
         }
-      });
-      setExpandedGroups(initialExpanded);
+        return acc;
+      }, []);
     }
-  }, [isMobile]);
+    
+    setFilteredNav(filtered);
+  }, [user, searchTerm]);
 
-  // Close sidebar on mobile when route changes
+  // Dark mode effect
   useEffect(() => {
-    if (isMobile) {
-      setIsSidebarOpen(false);
+    const savedMode = localStorage.getItem('darkMode') === 'true';
+    setIsDarkMode(savedMode);
+    if (savedMode) {
+      document.documentElement.classList.add('dark');
     }
-  }, [location, isMobile]);
+  }, []);
 
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      navigate('/login');
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
+  const toggleDarkMode = () => {
+    const newMode = !isDarkMode;
+    setIsDarkMode(newMode);
+    localStorage.setItem('darkMode', newMode.toString());
+    document.documentElement.classList.toggle('dark');
   };
 
   const toggleGroup = (groupId) => {
@@ -119,267 +97,321 @@ const ProtectedLayout = () => {
     }));
   };
 
-  const filteredNavItems = filterNavigationByRole(navigationItems, userRole);
+  const handleNavigation = (item) => {
+    if (item.isGroup) {
+      toggleGroup(item.id);
+    } else {
+      navigate(item.path);
+      // Close sidebar on mobile after navigation
+      if (isMobile) {
+        setIsSidebarOpen(false);
+      }
+    }
+  };
 
-  const handleNavClick = () => {
+  const handleSubmenuNavigation = (subItem) => {
+    navigate(subItem.path);
+    // Close sidebar on mobile after navigation
+    if (isMobile) {
+      setIsSidebarOpen(false);
+    }
+  };
+      
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
+
+  const handleNotificationClick = () => {
+    setNotificationCount(0); // Clear notification count when clicked
+    navigate('/notifications');
+    // Close sidebar on mobile
     if (isMobile) {
       setIsSidebarOpen(false);
     }
   };
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
-      setSearchQuery('');
+  const renderNavItem = (item) => {
+    const isActive = location.pathname === item.path;
+    const Icon = item.icon;
+
+    if (item.isGroup) {
+      const isExpanded = expandedGroups[item.id];
+      const hasActiveChild = item.items?.some(subItem => 
+        location.pathname === subItem.path
+      );
+
+      return (
+        <div key={item.id} className="mb-1">
+          <button
+            onClick={() => handleNavigation(item)}
+            className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${
+              hasActiveChild 
+                ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' 
+                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+            }`}
+          >
+            <div className="flex items-center space-x-3">
+              <Icon className="w-5 h-5" />
+              <span className={`font-medium ${!isSidebarOpen && 'hidden'}`}>
+                {item.title}
+              </span>
+            </div>
+            {isSidebarOpen && (
+              <div className="flex items-center">
+                {item.items && (
+                  <span className="text-xs text-gray-500 dark:text-gray-400 mr-2">
+                    {item.items.length}
+                  </span>
+                )}
+                {isExpanded ? (
+                  <ChevronDown className="w-4 h-4" />
+                ) : (
+                  <ChevronRight className="w-4 h-4" />
+                )}
+              </div>
+            )}
+          </button>
+          
+          {isExpanded && isSidebarOpen && item.items && (
+            <div className="ml-4 mt-1 space-y-1">
+              {item.items.map(subItem => {
+                const SubIcon = subItem.icon;
+                const isSubActive = location.pathname === subItem.path;
+                
+                // Handle special case for Add Contact modal
+                if (subItem.path === '/contacts?status=new') {
+                  return (
+                    <button
+                      key={subItem.id}
+                      onClick={() => {
+                        navigate('/contacts', { state: { openAddModal: true } });
+                        if (isMobile) {
+                          setIsSidebarOpen(false);
+                        }
+                      }}
+                      className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors text-left ${
+                        isSubActive
+                          ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                      }`}
+                    >
+                      <SubIcon className="w-4 h-4" />
+                      <span className="text-sm">{subItem.title}</span>
+                    </button>
+                  );
+                }
+                
+                return (
+                  <Link
+                    key={subItem.id}
+                    to={subItem.path}
+                    onClick={() => {
+                      if (isMobile) {
+                        setIsSidebarOpen(false);
+                      }
+                    }}
+                    className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
+                      isSubActive
+                        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                    }`}
+                  >
+                    <SubIcon className="w-4 h-4" />
+                    <span className="text-sm">{subItem.title}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      );
     }
+
+    return (
+      <Link
+        key={item.id}
+        to={item.path}
+        onClick={() => {
+          if (isMobile) {
+            setIsSidebarOpen(false);
+          }
+        }}
+        className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
+          isActive
+            ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+        }`}
+      >
+        <Icon className="w-5 h-5" />
+        {isSidebarOpen && <span>{item.title}</span>}
+      </Link>
+    );
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
-      <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 fixed top-0 left-0 right-0 z-40">
-        <div className="px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            {/* Left side - Logo and Menu */}
-            <div className="flex items-center">
-              <button
-                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                className="p-2 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 md:hidden"
-              >
-                {isSidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-              </button>
-              
-              {/* Logo */}
-              <Link to="/dashboard" className="flex items-center ml-2 md:ml-0">
-                <img 
-                  src={companyLogo} 
-                  alt={companyName}
-                  className="h-8 w-auto"
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = '/favicon.png';
-                  }}
-                />
-                <span className="ml-2 text-xl font-semibold text-gray-900 dark:text-white hidden sm:block">
-                  {companyName}
-                </span>
-              </Link>
-            </div>
-
-            {/* Center - Search Bar */}
-            <div className="flex-1 max-w-md mx-4 hidden md:block">
-              <form onSubmit={handleSearch} className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </form>
-            </div>
-
-            {/* Right side - User Menu */}
-            <div className="flex items-center space-x-4">
-              {/* Theme Toggle */}
-              <button
-                onClick={toggleTheme}
-                className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-              >
-                {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-              </button>
-
-              {/* Notifications */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowNotifications(!showNotifications)}
-                  className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 relative"
-                >
-                  <Bell className="h-5 w-5" />
-                  <span className="absolute top-0 right-0 h-2 w-2 bg-red-500 rounded-full"></span>
-                </button>
-                
-                {showNotifications && (
-                  <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 z-50">
-                    <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
-                        Notifications
-                      </h3>
-                    </div>
-                    <div className="px-4 py-3">
-                      <div className="text-sm text-gray-500 dark:text-gray-400">
-                        <div className="py-2">✓ Dispute sent successfully</div>
-                        <div className="py-2">✓ New client added</div>
-                        <div className="py-2">✓ Report generated</div>
-                      </div>
-                    </div>
-                    <div className="px-4 py-2 border-t border-gray-200 dark:border-gray-700">
-                      <button className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
-                        View all notifications
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* User Menu */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center space-x-2 p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                >
-                  <div className="h-8 w-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                    <span className="text-white text-sm font-medium">
-                      {user?.email?.charAt(0).toUpperCase() || 'U'}
-                    </span>
-                  </div>
-                  <ChevronDown className="h-4 w-4 hidden sm:block" />
-                </button>
-
-                {showUserMenu && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 z-50">
-                    <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">
-                        {user?.email}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
-                        {userRole}
-                      </p>
-                    </div>
-                    
-                    <Link
-                      to="/profile"
-                      className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                      onClick={() => setShowUserMenu(false)}
-                    >
-                      <User className="h-4 w-4 mr-2" />
-                      Profile
-                    </Link>
-                    
-                    <Link
-                      to="/settings"
-                      className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                      onClick={() => setShowUserMenu(false)}
-                    >
-                      <Settings className="h-4 w-4 mr-2" />
-                      Settings
-                    </Link>
-                    
-                    <hr className="my-2 border-gray-200 dark:border-gray-700" />
-                    
-                    <button
-                      onClick={handleLogout}
-                      className="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700"
-                    >
-                      <LogOut className="h-4 w-4 mr-2" />
-                      Logout
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Mobile Overlay */}
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Mobile overlay when sidebar is open */}
       {isMobile && isSidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-20 md:hidden"
+          className="fixed inset-0 bg-black bg-opacity-50 z-50"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
-
+      
       {/* Sidebar */}
-      <aside className={`
-        fixed top-16 left-0 bottom-0 w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700
-        transform transition-transform duration-200 ease-in-out z-30
-        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-        md:translate-x-0 overflow-y-auto
-      `}>
-        <nav className="p-4 space-y-2">
-          {/* Navigation Groups - This uses YOUR navConfig.js with ALL items */}
-          {filteredNavItems && filteredNavItems.map((item) => {
-            // Handle single navigation items (non-groups)
-            if (!item.isGroup) {
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.id}
-                  to={item.path}
-                  onClick={handleNavClick}
-                  className={`flex items-center px-3 py-2 rounded-lg transition-colors ${
-                    location.pathname === item.path
-                      ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
-                >
-                  <Icon className="h-5 w-5 mr-3" />
-                  {item.title}
-                  {item.badge && (
-                    <span className="ml-auto px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 rounded-full">
-                      {item.badge}
-                    </span>
-                  )}
-                </Link>
-              );
-            }
-            
-            // Handle navigation groups
-            return (
-              <div key={item.id} className="mt-4">
-                <button
-                  onClick={() => toggleGroup(item.id)}
-                  className="flex items-center justify-between w-full px-3 py-2 text-sm font-medium text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
-                >
-                  <span>{item.title}</span>
-                  {expandedGroups[item.id] ? 
-                    <ChevronDown className="h-4 w-4" /> : 
-                    <ChevronRight className="h-4 w-4" />
-                  }
-                </button>
-                
-                {expandedGroups[item.id] && item.items && (
-                  <div className="mt-1 space-y-1">
-                    {item.items.map((subItem) => {
-                      const SubIcon = subItem.icon;
-                      return (
-                        <Link
-                          key={subItem.id}
-                          to={subItem.path}
-                          onClick={handleNavClick}
-                          className={`flex items-center px-9 py-2 rounded-lg transition-colors ${
-                            location.pathname === subItem.path
-                              ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                          }`}
-                        >
-                          <SubIcon className="h-4 w-4 mr-3" />
-                          {subItem.title}
-                          {subItem.badge && (
-                            <span className="ml-auto px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 rounded-full">
-                              {subItem.badge}
-                            </span>
-                          )}
-                        </Link>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+      <aside
+        className={`bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 flex flex-col ${
+          isMobile ? 'fixed z-50' : 'relative'
+        }`}
+        style={{
+          width: isSidebarOpen ? (isMobile ? '280px' : '280px') : '64px',
+          height: '100vh',
+          left: isSidebarOpen || !isMobile ? 0 : '-280px',
+          top: 0,
+          transition: 'left 0.3s, width 0.3s',
+        }}
+      >
+        {/* Sidebar Header */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+          {isSidebarOpen && (
+            <h1 className="text-xl font-bold text-gray-800 dark:text-white">
+              CleverCRM
+            </h1>
+          )}
+          <button
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
+          >
+            {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+        </div>
+
+        {/* Search Bar */}
+        {isSidebarOpen && (
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search menu..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto p-4 space-y-1">
+          {filteredNav.map(item => renderNavItem(item))}
         </nav>
+
+        {/* User Section */}
+        <div className="border-t border-gray-200 dark:border-gray-700 p-4">
+          <div className={`flex items-center ${isSidebarOpen ? 'justify-between' : 'justify-center'}`}>
+            {isSidebarOpen && (
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white">
+                  <User className="w-4 h-4" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {user?.email || 'User'}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {user?.role || 'Member'}
+                  </p>
+                </div>
+              </div>
+            )}
+            <button
+              onClick={handleLogout}
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
+              title="Logout"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
       </aside>
 
       {/* Main Content */}
-      <main className={`pt-16 transition-all duration-200 ${isSidebarOpen && !isMobile ? 'md:ml-64' : ''}`}>
-        <div className="p-4 sm:p-6 lg:p-8">
+      <div className="flex-1 flex flex-col">
+        {/* Top Bar */}
+        <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+          <div className="flex items-center justify-between">
+            {/* Mobile menu button */}
+            {isMobile && !isSidebarOpen && (
+              <button
+                onClick={() => setIsSidebarOpen(true)}
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 mr-4"
+              >
+                <Menu className="w-6 h-6" />
+              </button>
+            )}
+            
+            <h2 className="text-xl font-semibold text-gray-800 dark:text-white">
+              {filteredNav.reduce((title, item) => {
+                if (item.isGroup && item.items) {
+                  const found = item.items.find(subItem => subItem.path === location.pathname);
+                  if (found) return found.title;
+                } else if (item.path === location.pathname) {
+                  return item.title;
+                }
+                return title;
+              }, 'Dashboard')}
+            </h2>
+            
+            <div className="flex items-center space-x-4">
+              {/* Notifications */}
+              <button 
+                onClick={handleNotificationClick}
+                className="relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors"
+                title="View Notifications"
+              >
+                <Bell className="w-5 h-5" />
+                {notificationCount > 0 && (
+                  <>
+                    <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                      {notificationCount}
+                    </span>
+                  </>
+                )}
+              </button>
+              
+              {/* Dark Mode Toggle */}
+              <button
+                onClick={toggleDarkMode}
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors"
+                title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              >
+                {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              </button>
+              
+              {/* Profile Button */}
+              <button
+                onClick={() => navigate('/settings')}
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors"
+                title="Settings"
+              >
+                <User className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        </header>
+
+        {/* Page Content */}
+        <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 p-6">
           <Outlet />
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 };

@@ -1,15 +1,18 @@
+import { useNavigate } from 'react-router-dom';
 import React, { useState, useEffect } from 'react';
 import { collection, query, getDocs, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { ChevronRight, Send, FileText, User, CreditCard, AlertCircle, X, CheckCircle, Clock, RefreshCw } from 'lucide-react';
+import { ChevronRight, Send, FileText, User, CreditCard, AlertCircle, X, CheckCircle, Clock, RefreshCw, Save, ChevronLeft, Plus, Trash2, Search } from 'lucide-react';
 import { sendFax, getFaxStatus } from '../services/telnyxFaxService';
 import { generateLetterWithAI } from '../services/openaiDisputeService';
 import { bureauContacts } from '../data/bureauContacts';
 import { generateDisputeLetter } from '../templates/disputeLetterTemplates';
 
+
 function DisputeCreation() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [clients, setClients] = useState([]);
   const [filteredClients, setFilteredClients] = useState([]);
@@ -144,6 +147,41 @@ function DisputeCreation() {
     // return doc.output('datauristring').split(',')[1];
     
     return testPdfBase64;
+  };
+
+  // Save dispute as draft without sending
+  const saveDraft = async () => {
+    if (!selectedClient || !preview) return;
+    
+    setLoading(true);
+    try {
+      const disputeData = {
+        clientId: selectedClient.id,
+        clientName: `${selectedClient.firstName || ''} ${selectedClient.lastName || ''}`.trim(),
+        clientEmail: selectedClient.email || '',
+        clientPhone: selectedClient.phone || '',
+        disputeItems,
+        selectedBureaus,
+        letterType,
+        strategy,
+        letterContent: preview,
+        status: 'draft',
+        createdAt: serverTimestamp(),
+        createdBy: user?.uid || 'unknown'
+      };
+
+      const docRef = await addDoc(collection(db, 'disputes'), disputeData);
+      
+      setCurrentDispute(docRef);
+      alert('✓ Draft saved successfully! You can send it later from Dispute Status page.');
+      navigate('/dispute-status');
+      
+    } catch (error) {
+      console.error('Error saving draft:', error);
+      alert('Failed to save draft. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const sendDisputes = async () => {
@@ -690,25 +728,37 @@ function DisputeCreation() {
             >
               Back to Edit
             </button>
-            <button
-              onClick={sendDisputes}
-              disabled={loading || !preview}
-              className="px-8 py-3 bg-green-600 text-white rounded-lg font-medium
-                       disabled:bg-gray-300 disabled:cursor-not-allowed
-                       hover:bg-green-700 transition-colors flex items-center"
-            >
-              {loading ? (
-                <>
-                  <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
-                  Sending Disputes...
-                </>
-              ) : (
-                <>
-                  <Send className="w-5 h-5 mr-2" />
-                  Send All Dispute Letters
-                </>
-              )}
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={saveDraft}
+                disabled={loading || !preview}
+                className="px-6 py-3 bg-gray-600 text-white rounded-lg font-medium
+                         disabled:bg-gray-300 disabled:cursor-not-allowed
+                         hover:bg-gray-700 transition-colors flex items-center"
+              >
+                <Save className="w-5 h-5 mr-2" />
+                Save Draft
+              </button>
+              <button
+                onClick={sendDisputes}
+                disabled={loading || !preview}
+                className="px-8 py-3 bg-green-600 text-white rounded-lg font-medium
+                         disabled:bg-gray-300 disabled:cursor-not-allowed
+                         hover:bg-green-700 transition-colors flex items-center"
+              >
+                {loading ? (
+                  <>
+                    <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
+                    Sending Disputes...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-5 h-5 mr-2" />
+                    Send All Dispute Letters
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}
