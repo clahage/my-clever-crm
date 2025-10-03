@@ -73,8 +73,7 @@ import Settings from './pages/Settings';
 import Team from './pages/Team';
 import Roles from './pages/Roles';
 import Integrations from './pages/Integrations';
-import Training from './pages/Training';
-import Learn from './pages/Learn';
+import LearningCenter from './pages/LearningCenter';
 import Support from './pages/Support';
 
 // NEW: Dispute Admin Panel
@@ -220,8 +219,7 @@ function AppContent() {
         
         {/* Settings & Admin */}
         <Route path="settings" element={<Settings />} />
-        <Route path="training" element={<Training />} />
-        <Route path="learn" element={<Learn />} />
+        <Route path="/learning-center" element={<LearningCenter />} />
         <Route path="support" element={<Support />} />
         
         {/* Admin-only Settings */}

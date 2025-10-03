@@ -36,7 +36,8 @@ import {
   AlertCircle,
   Building,
   TrendingUp,
-  Calculator
+  Calculator,
+  GraduationCap
 } from 'lucide-react';
 
 // Enhanced navigation with collapsible groups
@@ -154,14 +155,6 @@ export const navigationItems = [
         icon: Shield,
         permission: 'admin'
       },
-
-      {
-        id: 'dispute-admin-panel',
-        title: 'Dispute Admin Panel',
-        path: '/admin/dispute-admin-panel',
-        icon: Shield,
-        permission: 'admin'
-      },
       {
         id: 'credit-reports',
         title: 'Credit Reports',
@@ -169,7 +162,6 @@ export const navigationItems = [
         icon: FileSpreadsheet,
         permission: 'user'
       },
-      
       {
         id: 'credit-monitoring',
         title: 'Monitoring',
@@ -233,6 +225,38 @@ export const navigationItems = [
         title: 'Notifications',
         path: '/notifications',
         icon: Bell,
+        permission: 'user'
+      }
+    ]
+  },
+  {
+    id: 'learning-group',
+    title: 'Learning & Training',
+    icon: GraduationCap,
+    isGroup: true,
+    defaultExpanded: false,
+    items: [
+      {
+        id: 'learning-center',
+        title: 'Learning Center',
+        path: '/learning-center',
+        icon: BookOpen,
+        permission: 'user',
+        badge: 'NEW',
+        description: 'Courses, certifications, and resources'
+      },
+      {
+        id: 'achievements',
+        title: 'My Achievements',
+        path: '/achievements',
+        icon: Award,
+        permission: 'user'
+      },
+      {
+        id: 'certificates',
+        title: 'My Certificates', 
+        path: '/certificates',
+        icon: Award,
         permission: 'user'
       }
     ]
@@ -389,13 +413,6 @@ export const navigationItems = [
         path: '/goals',
         icon: Target,
         permission: 'user'
-      },
-      {
-        id: 'achievements',
-        title: 'Achievements',
-        path: '/achievements',
-        icon: Award,
-        permission: 'user'
       }
     ]
   },
@@ -433,20 +450,6 @@ export const navigationItems = [
         path: '/integrations',
         icon: Zap,
         permission: 'admin'
-      },
-      {
-        id: 'training',
-        title: 'Training',
-        path: '/training',
-        icon: BookOpen,
-        permission: 'user'
-      },
-      {
-        id: 'learn',
-        title: 'Learning Center',
-        path: '/learn',
-        icon: BookOpen,
-        permission: 'user'
       },
       {
         id: 'support',
