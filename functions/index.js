@@ -719,22 +719,115 @@ exports.aiWebhook = functions.runWith({
 exports.processAIReceptionistCall = functions.firestore
   .document('aiReceptionistCalls/{docId}')
   .onCreate(async (snap, context) => {
-  const data = snap.data();
-  console.log('Function triggered for document:', context.params.docId);
-  console.log('Project ID:', process.env.GCLOUD_PROJECT);
-  console.log('Firebase Config:', process.env.FIREBASE_CONFIG);
-  console.log('Processing new AI call:', context.params.docId);
+    const data = snap.data();
+    const docId = context.params.docId;
+    
+    console.log('Processing new AI call:', docId);
     
     try {
-      console.log('Function triggered successfully!');
-      console.log('Document ID:', context.params.docId);
-      console.log('Data received:', JSON.stringify(data));
-      console.log('Username:', data.username);
-      console.log('Caller:', data.caller);
-      console.log('Would create contact but skipping due to permissions');
-      // Commented out all Firestore write operations for now
+      // Skip if already processed
+      if (data.processed) {
+        console.log('Call already processed, skipping');
+        return null;
+      }
+
+      // Extract caller information from intake forms
+      const callerName = data['Intake Form: May I ask for your full name so I may help you with better accuracy?'] || 
+                        data.name || 'Unknown';
+      const callerEmail = data['Intake Form: Can you say or spell out your email address please?'] || 
+                         data.email || '';
+      const callerPhone = data.caller || '';
+      
+      // Clean up spelled-out email
+      let cleanEmail = callerEmail.toLowerCase()
+        .replace(/\s+at\s+/g, '@')
+        .replace(/\s+dot\s+/g, '.')
+        .replace(/\s+/g, '');
+      
+      console.log('Extracted - Name:', callerName, 'Email:', cleanEmail, 'Phone:', callerPhone);
+      
+      // Basic lead scoring
+      let leadScore = 5;
+      const duration = parseInt(data.duration) || 0;
+      
+      if (duration > 120) leadScore += 2;
+      if (duration > 300) leadScore += 1;
+      if (data.transcript && data.transcript.includes('credit')) leadScore += 1;
+      if (data.transcript && data.transcript.includes('help')) leadScore += 1;
+      
+      const urgencyLevel = duration > 180 ? 'high' : 'medium';
+      
+      // Create contact data
+      const [firstName, ...lastNameParts] = callerName.split(' ');
+      const contactData = {
+        firstName: firstName || '',
+        lastName: lastNameParts.join(' ') || '',
+        fullName: callerName,
+        email: cleanEmail,
+        phone: callerPhone.replace(/\D/g, ''),
+        category: 'lead',
+        leadScore: Math.min(10, leadScore),
+        urgencyLevel: urgencyLevel,
+        source: 'ai-receptionist',
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        lastActivityDate: admin.firestore.FieldValue.serverTimestamp(),
+        notes: `Call duration: ${duration}s\nFrom: ${data.username || 'Unknown'}\nTimestamp: ${data.timestamp}`,
+        lifecycleStatus: 'new',
+        primaryRole: 'lead',
+        roles: ['lead']
+      };
+      
+      // Check for existing contact
+      let existingContact = null;
+      if (callerPhone) {
+        const phoneQuery = await admin.firestore().collection('contacts')
+          .where('phone', '==', contactData.phone)
+          .limit(1)
+          .get();
+        
+        if (!phoneQuery.empty) {
+          existingContact = phoneQuery.docs[0];
+          console.log('Found existing contact:', existingContact.id);
+        }
+      }
+      
+      if (existingContact) {
+        // Update existing contact
+        await existingContact.ref.update({
+          lastActivityDate: admin.firestore.FieldValue.serverTimestamp(),
+          leadScore: contactData.leadScore,
+          urgencyLevel: contactData.urgencyLevel
+        });
+        console.log('Updated existing contact');
+      } else {
+        // CREATE NEW CONTACT - THIS IS THE CRITICAL PART
+        const newContactRef = await admin.firestore().collection('contacts').add(contactData);
+        console.log('Created new contact:', newContactRef.id);
+      }
+      
+      // Mark call as processed
+      await snap.ref.update({
+        processed: true,
+        processedAt: admin.firestore.FieldValue.serverTimestamp(),
+        leadScore: leadScore,
+        category: 'lead',
+        urgencyLevel: urgencyLevel,
+        callerName: callerName
+      });
+      
+      console.log('Successfully processed call and created/updated contact');
+      return { success: true };
+      
     } catch (error) {
-      console.error('Error processing AI call:', error);
-      // Commented out Firestore error update
+      console.error('Error processing call:', error);
+      
+      // Mark as failed
+      await snap.ref.update({
+        processed: false,
+        processingError: error.message,
+        processingAttemptedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+      
+      return null;
     }
   });
