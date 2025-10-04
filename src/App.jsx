@@ -1,4 +1,4 @@
-// App.jsx - Complete version with ErrorBoundary and all routes including Dispute Admin
+// App.jsx - Complete version with ErrorBoundary and all routes
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -47,6 +47,11 @@ import Documents from './pages/Documents';
 import EContracts from './pages/EContracts';
 import Forms from './pages/Forms';
 import DocumentStorage from './pages/DocumentStorage';
+import FullAgreement from './pages/FullAgreement';
+import InformationSheet from './pages/InformationSheet';
+import PowerOfAttorney from './pages/PowerOfAttorney';
+import ACHAuthorization from './pages/ACHAuthorization';
+import AdminAddendumFlow from './pages/AdminAddendumFlow';
 
 // Business Tools
 import Affiliates from './pages/Affiliates';
@@ -72,11 +77,12 @@ import Achievements from './pages/Achievements';
 import Settings from './pages/Settings';
 import Team from './pages/Team';
 import Roles from './pages/Roles';
+import UserRoleManager from './pages/UserRoleManager';
 import Integrations from './pages/Integrations';
 import LearningCenter from './pages/LearningCenter';
 import Support from './pages/Support';
 
-// NEW: Dispute Admin Panel
+// Admin Panels
 import DisputeAdminPanel from './pages/admin/DisputeAdminPanel';
 
 // Protected Route Component
@@ -170,10 +176,15 @@ function AppContent() {
         <Route path="call-logs" element={<CallLogs />} />
         <Route path="notifications" element={<Notifications />} />
         
-        {/* Documents */}
+        {/* Documents & Agreements */}
         <Route path="documents" element={<Documents />} />
         <Route path="econtracts" element={<EContracts />} />
         <Route path="forms" element={<Forms />} />
+        <Route path="full-agreement" element={<FullAgreement />} />
+        <Route path="information-sheet" element={<InformationSheet />} />
+        <Route path="power-of-attorney" element={<PowerOfAttorney />} />
+        <Route path="ach-authorization" element={<ACHAuthorization />} />
+        <Route path="addendums" element={<AdminAddendumFlow />} />
         <Route path="document-storage" element={<DocumentStorage />} />
         
         {/* Business Tools */}
@@ -219,10 +230,10 @@ function AppContent() {
         
         {/* Settings & Admin */}
         <Route path="settings" element={<Settings />} />
-        <Route path="/learning-center" element={<LearningCenter />} />
+        <Route path="learning-center" element={<LearningCenter />} />
         <Route path="support" element={<Support />} />
         
-        {/* Admin-only Settings */}
+        {/* Admin-only Routes */}
         <Route
           path="team"
           element={
@@ -240,6 +251,14 @@ function AppContent() {
           }
         />
         <Route
+          path="user-roles"
+          element={
+            <AdminRoute>
+              <UserRoleManager />
+            </AdminRoute>
+          }
+        />
+        <Route
           path="integrations"
           element={
             <AdminRoute>
@@ -247,8 +266,6 @@ function AppContent() {
             </AdminRoute>
           }
         />
-        
-        {/* NEW: Dispute System Admin Panel - Admin Only */}
         <Route
           path="admin/disputes"
           element={

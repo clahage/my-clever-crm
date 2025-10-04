@@ -290,6 +290,41 @@ export const navigationItems = [
         permission: 'user'
       },
       {
+        id: 'full-agreement',
+        title: 'Full Agreement',
+        path: '/full-agreement',
+        icon: FileText,
+        permission: 'user'
+      },
+      {
+        id: 'information-sheet',
+        title: 'Information Sheet',
+        path: '/information-sheet',
+        icon: FileText,
+        permission: 'user'
+      },
+      {
+        id: 'power-of-attorney',
+        title: 'Power of Attorney',
+        path: '/power-of-attorney',
+        icon: Shield,
+        permission: 'user'
+      },
+      {
+        id: 'ach-authorization',
+        title: 'ACH Authorization',
+        path: '/ach-authorization',
+        icon: CreditCard,
+        permission: 'user'
+      },
+      {
+        id: 'addendums',
+        title: 'Addendums',
+        path: '/addendums',
+        icon: Layers,
+        permission: 'user'
+      },
+      {
         id: 'document-storage',
         title: 'Document Storage',
         path: '/document-storage',
@@ -442,6 +477,13 @@ export const navigationItems = [
         title: 'Roles & Permissions',
         path: '/roles',
         icon: Shield,
+        permission: 'admin'
+      },
+      {
+        id: 'user-roles',
+        title: 'User Role Manager',
+        path: '/user-roles',
+        icon: Users,
         permission: 'admin'
       },
       {
