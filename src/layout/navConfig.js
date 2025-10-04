@@ -473,6 +473,13 @@ export const navigationItems = [
         permission: 'admin'
       },
       {
+        id: 'document-center',
+        title: 'Document Center',
+        path: '/document-center',
+        icon: FileText,
+        badge: { content: 'AI', color: 'secondary' }
+      },
+      {
         id: 'roles',
         title: 'Roles & Permissions',
         path: '/roles',

@@ -23,6 +23,7 @@ import ContactReports from './pages/ContactReports';
 import Segments from './pages/Segments';
 
 // Credit Management
+import DocumentCenter from './pages/DocumentCenter';
 import BusinessCredit from './pages/BusinessCredit';
 import CreditScores from './pages/CreditScores';
 import DisputeLetters from './pages/DisputeLetters';
@@ -158,6 +159,7 @@ function AppContent() {
         <Route path="segments" element={<Segments />} />
         
         {/* Credit Management */}
+        <Route path="document-center" element={<DocumentCenter />} />
         <Route path="business-credit" element={<BusinessCredit />} />
         <Route path="credit-scores" element={<CreditScores />} />
         <Route path="dispute-letters" element={<DisputeLetters />} />
