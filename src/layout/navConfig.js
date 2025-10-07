@@ -506,6 +506,14 @@ export const navigationItems = [
         path: '/support',
         icon: HelpCircle,
         permission: 'user'
+      },
+      // Optional: surface your System Map for admins
+      {
+        id: 'system-map',
+        title: 'System Map',
+        path: '/system-map',
+        icon: Database,
+        permission: 'admin'
       }
     ]
   }

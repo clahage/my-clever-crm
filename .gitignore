@@ -38,6 +38,12 @@ firebaseConfig.js
 .vscode/
 .idea/
 
+# Backups
+backups/
+*_backup_*/
+src_broken_backup_*/
+src_working_backup_*/
+
 # OS
 .DS_Store
 Thumbs.db

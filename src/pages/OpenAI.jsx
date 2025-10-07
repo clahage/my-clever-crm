@@ -1,7 +1,7 @@
+// OpenAI.jsx - AI Receptionist Dashboard
 import React, { useState, useEffect } from 'react';
-console.log('📍 OpenAI page loaded at:', new Date().toISOString());
 import { collection, query, where, orderBy, limit, onSnapshot } from 'firebase/firestore';
-import { db } from '../firebaseConfig';
+import { db } from '../lib/firebase';
 import QuickContactConverter from '../components/QuickContactConverter';
 import HotLeadsWidget from '../components/HotLeadsWidget';
 
@@ -39,24 +39,6 @@ export default function OpenAI() {
 
     return () => unsubscribe();
   }, []);
-
-  // DEBUG: Check if data is real or demo
-  useEffect(() => {
-    const checkDataFreshness = () => {
-      if (recentCalls && recentCalls.length > 0) {
-        const latestCall = recentCalls[0];
-        const callTime = new Date(latestCall.timestamp);
-        const now = new Date();
-        const hoursSinceCall = (now - callTime) / (1000 * 60 * 60);
-
-        console.log('📍 AI RECEPTIONIST CHECK:');
-        console.log('Latest call:', latestCall);
-        console.log('Hours since last call:', hoursSinceCall);
-        console.log('Is this LIVE data?', hoursSinceCall < 24 ? 'YES - Recent!' : 'Possibly old/demo');
-      }
-    };
-    checkDataFreshness();
-  }, [recentCalls]);
 
   return (
     <div className="max-w-7xl mx-auto py-8 px-4">
@@ -150,9 +132,9 @@ export default function OpenAI() {
                 recentCalls.map((call) => (
                   <tr key={call.id} className="border-b hover:bg-gray-50">
                     <td className="p-2 text-sm">
-                      {call.processedAt ? new Date(call.processedAt).toLocaleString() : 'N/A'}
+                      {call.processedAt ? new Date(call.processedAt.toDate ? call.processedAt.toDate() : call.processedAt).toLocaleString() : 'N/A'}
                     </td>
-                    <td className="p-2">{call.username || 'Unknown'}</td>
+                    <td className="p-2">{call.username || call.callerName || 'Unknown'}</td>
                     <td className="p-2">
                       <span className={`px-2 py-1 rounded text-xs font-bold ${
                         call.leadScore >= 8 ? 'bg-red-100 text-red-800' :
@@ -168,16 +150,16 @@ export default function OpenAI() {
                         call.urgencyLevel === 'medium' ? 'bg-yellow-100 text-yellow-800' :
                         'bg-blue-100 text-blue-800'
                       }`}>
-                        {call.urgencyLevel?.toUpperCase()}
+                        {call.urgencyLevel?.toUpperCase() || 'LOW'}
                       </span>
                     </td>
                     <td className="p-2 text-xs">
-                      {call.painPoints?.slice(0, 3).join(', ')}
+                      {call.painPoints?.slice(0, 3).join(', ') || 'None'}
                     </td>
                     <td className="p-2">
-                      <span className="font-bold">{call.conversionProbability}%</span>
+                      <span className="font-bold">{call.conversionProbability || 0}%</span>
                     </td>
-                    <td className="p-2">{call.duration}s</td>
+                    <td className="p-2">{call.duration || 0}s</td>
                   </tr>
                 ))
               )}

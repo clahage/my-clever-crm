@@ -37,11 +37,15 @@ import CreditSimulator from './pages/CreditSimulator';
 import Letters from './pages/Letters';
 import Emails from './pages/Emails';
 import SMS from './pages/SMS';
+import Messages from './pages/Messages';
 import DripCampaigns from './pages/DripCampaigns';
 import Templates from './pages/Templates';
 import CallLogs from './pages/CallLogs';
 import Notifications from './pages/Notifications';
 import Pipeline from './pages/Pipeline';
+
+// AI & Automation
+import OpenAI from './pages/OpenAI';
 
 // Documents
 import Documents from './pages/Documents';
@@ -85,6 +89,9 @@ import Support from './pages/Support';
 
 // Admin Panels
 import DisputeAdminPanel from './pages/admin/DisputeAdminPanel';
+
+// (Optional) System map page you created
+import SystemMap from './pages/SystemMap';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -173,10 +180,15 @@ function AppContent() {
         <Route path="letters" element={<Letters />} />
         <Route path="emails" element={<Emails />} />
         <Route path="sms" element={<SMS />} />
+        <Route path="messages" element={<Messages />} />
         <Route path="drip-campaigns" element={<DripCampaigns />} />
         <Route path="templates" element={<Templates />} />
         <Route path="call-logs" element={<CallLogs />} />
         <Route path="notifications" element={<Notifications />} />
+        
+        {/* AI & Automation */}
+        <Route path="ai-receptionist" element={<OpenAI />} />
+        <Route path="openai" element={<OpenAI />} />
         
         {/* Documents & Agreements */}
         <Route path="documents" element={<Documents />} />
@@ -229,6 +241,9 @@ function AppContent() {
         <Route path="reports" element={<Reports />} />
         <Route path="goals" element={<Goals />} />
         <Route path="achievements" element={<Achievements />} />
+
+        {/* Your system map */}
+        <Route path="system-map" element={<SystemMap />} />
         
         {/* Settings & Admin */}
         <Route path="settings" element={<Settings />} />

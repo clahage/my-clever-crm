@@ -14,19 +14,13 @@ import {
   SpeedDialIcon, Drawer, ListItemButton, Checkbox, FormGroup
 } from '@mui/material';
 import {
-  FileText, Plus, Upload, Download, Send, Eye, Edit, Trash2, Search,
-  Filter, FolderOpen, File, CheckCircle, Clock, AlertCircle, X,
-  Share2, Star, Archive, Printer, MoreVertical, Copy, FolderPlus,
-  FileCheck, Shield, CreditCard, Calendar, Layers, Grid as GridIcon,
-  List as ListIcon, SortAsc, SortDesc, RefreshCw, Mail, Phone,
-  User, Building, DollarSign, Hash, Tag, Link as LinkIcon, History,
-  FileSpreadsheet, Image, Video, Music, Code, Zap, Brain, Sparkles,
-  Target, TrendingUp, BarChart2, PieChart, Activity, Settings,
-  Lock, Unlock, ExternalLink, Maximize2, Minimize2, RotateCw,
-  ChevronDown, ChevronRight, Scissors, Merge, SplitSquare,
-  FileSignature, Users, Bell, BookOpen, MessageSquare, ThumbsUp,
-  ThumbsDown, AlertTriangle, Info, HelpCircle, CheckSquare,
-  ArrowRight, ArrowLeft, Save, XCircle, Percent, Globe
+  FileText, Download, Upload, Eye, TrendingUp, TrendingDown,
+  AlertCircle, CheckCircle, Clock, Search, Filter, X, Plus,
+  RefreshCw, BarChart2, PieChart, Calendar, User, Building2,
+  CreditCard, DollarSign, FileSpreadsheet, Mail, Send, Share2,
+  ArrowUp, ArrowDown, Minus, Info, ExternalLink, History,
+  Target, Zap, Award, Activity, Edit, Trash2, FolderOpen,
+  File, MoreVertical, Tag
 } from 'lucide-react';
 import { collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc, Timestamp, orderBy, getDocs, writeBatch, getDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject, listAll } from 'firebase/storage';
