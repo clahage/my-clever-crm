@@ -766,7 +766,7 @@ const ACHAuthorization = () => {
                       }));
                     }}
                     placeholder="9 digits"
-                    error={authData.bankInfo.routingNumber.length === 9 && !validateRoutingNumber(authData.bankInfo.routingNumber)}
+                    error={Boolean(authData.bankInfo.routingNumber.length === 9 && !validateRoutingNumber(authData.bankInfo.routingNumber))}
                     helperText={authData.bankInfo.routingNumber.length === 9 && !validateRoutingNumber(authData.bankInfo.routingNumber) ? 'Invalid routing number' : ''}
                   />
                 </Grid>
@@ -812,7 +812,7 @@ const ACHAuthorization = () => {
                       ...prev,
                       bankInfo: { ...prev.bankInfo, accountNumberConfirm: e.target.value.replace(/\D/g, '') }
                     }))}
-                    error={authData.bankInfo.accountNumberConfirm && authData.bankInfo.accountNumber !== authData.bankInfo.accountNumberConfirm}
+                    error={Boolean(authData.bankInfo.accountNumberConfirm && authData.bankInfo.accountNumber !== authData.bankInfo.accountNumberConfirm)}
                     helperText={authData.bankInfo.accountNumberConfirm && authData.bankInfo.accountNumber !== authData.bankInfo.accountNumberConfirm ? 'Account numbers must match' : ''}
                   />
                 </Grid>

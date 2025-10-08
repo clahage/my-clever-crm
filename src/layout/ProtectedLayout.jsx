@@ -16,7 +16,16 @@ import {
 import { navigationItems, filterNavigationByRole } from './navConfig';
 
 const ProtectedLayout = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, userProfile } = useAuth();
+
+  // TEMPORARY DEBUG - Remove after testing
+  console.log('=== PROTECTED LAYOUT DEBUG ===');
+  console.log('user:', user);
+  console.log('user.email:', user?.email);
+  console.log('user.role:', user?.role);
+  console.log('userProfile:', userProfile);
+  console.log('userProfile.role:', userProfile?.role);
+  console.log('=== END DEBUG ===');
   const navigate = useNavigate();
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth >= 768);
@@ -52,9 +61,16 @@ const ProtectedLayout = () => {
 
   // Filter navigation based on user role and search
   useEffect(() => {
-    const userRole = user?.role || 'user';
+    const userRole = userProfile?.role || user?.role || 'user';
     let filtered = filterNavigationByRole(navigationItems, userRole);
-    
+    // DEBUG - Remove after confirming it works
+    console.log('🔍 Navigation Filter:', {
+      userRole,
+      userProfile,
+      totalItems: navigationItems.length,
+      filteredItems: filtered.length,
+      adminGroup: filtered.find(i => i.id === 'admin-group')
+    });
     if (searchTerm) {
       filtered = filtered.reduce((acc, item) => {
         if (item.isGroup && item.items) {
@@ -70,9 +86,8 @@ const ProtectedLayout = () => {
         return acc;
       }, []);
     }
-    
     setFilteredNav(filtered);
-  }, [user, searchTerm]);
+  }, [user, userProfile, searchTerm]);
 
   // Dark mode effect
   useEffect(() => {
@@ -325,7 +340,7 @@ const ProtectedLayout = () => {
                     {user?.email || 'User'}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {user?.role || 'Member'}
+                    {userProfile?.role || user?.role || 'Member'}
                   </p>
                 </div>
               </div>

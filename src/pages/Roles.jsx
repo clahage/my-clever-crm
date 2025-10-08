@@ -256,8 +256,10 @@ const Roles = () => {
       if (rolesData.length === 0) {
         const createdRoles = [];
         for (const template of roleTemplates) {
+          // Remove icon before saving to Firestore
+          const { icon, ...templateData } = template;
           const docRef = await addDoc(collection(db, 'roles'), {
-            ...template,
+            ...templateData,
             createdAt: serverTimestamp(),
             createdBy: user?.uid
           });
@@ -323,8 +325,10 @@ const Roles = () => {
     if (!newRole.name.trim()) return;
 
     try {
+      // Don't save icon if it exists in newRole
+      const { icon, ...roleData } = newRole;
       const docRef = await addDoc(collection(db, 'roles'), {
-        ...newRole,
+        ...roleData,
         createdAt: serverTimestamp(),
         createdBy: user?.uid
       });

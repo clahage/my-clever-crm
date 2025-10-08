@@ -40,11 +40,12 @@ export const AuthProvider = ({ children }) => {
     }
     
     // Create user profile in Firestore
-    await setDoc(doc(db, 'users', result.user.uid), {
+    await setDoc(doc(db, 'userProfiles', result.user.uid), {
       uid: result.user.uid,
       email: result.user.email,
       displayName: displayName || 'User',
       role: 'user',
+      permissions: ['read_basic'],
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
@@ -65,28 +66,33 @@ export const AuthProvider = ({ children }) => {
   // Fetch user profile from Firestore
   const fetchUserProfile = async (uid) => {
     try {
-      const docRef = doc(db, 'users', uid);
+      const docRef = doc(db, 'userProfiles', uid);
       const docSnap = await getDoc(docRef);
       
       if (docSnap.exists()) {
-        setUserProfile(docSnap.data());
-        return docSnap.data();
+        const profileData = docSnap.data();
+        console.log('✅ User Profile Loaded:', profileData);
+        console.log('✅ Role:', profileData.role);
+        setUserProfile(profileData);
+        return profileData;
       } else {
+        console.log('⚠️ No profile found, creating new one');
         // Create profile if doesn't exist
         const newProfile = {
           uid: uid,
           email: auth.currentUser?.email,
           displayName: auth.currentUser?.displayName || 'User',
           role: 'user',
+          permissions: ['read_basic'],
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         };
-        await setDoc(doc(db, 'users', uid), newProfile);
+        await setDoc(doc(db, 'userProfiles', uid), newProfile);
         setUserProfile(newProfile);
         return newProfile;
       }
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      console.error('❌ Error fetching user profile:', error);
       return null;
     }
   };

@@ -20,7 +20,10 @@ import {
   CreditCard, DollarSign, FileSpreadsheet, Mail, Send, Share2,
   ArrowUp, ArrowDown, Minus, Info, ExternalLink, History,
   Target, Zap, Award, Activity, Edit, Trash2, FolderOpen,
-  File, MoreVertical, Tag
+  File, MoreVertical, Tag,
+  Brain, Sparkles, Lock, Shield, Layers, Settings,
+  Grid as GridIcon, List as ListIcon, FolderPlus,
+  ChevronDown, ArrowRight, Archive, FileCheck2
 } from 'lucide-react';
 import { collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc, Timestamp, orderBy, getDocs, writeBatch, getDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject, listAll } from 'firebase/storage';
@@ -38,7 +41,7 @@ const DocumentCenter = () => {
 
   // Initialize OpenAI
   const openai = new OpenAI({
-    apiKey: process.env.REACT_APP_OPENAI_API_KEY,
+  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
     dangerouslyAllowBrowser: true
   });
 
@@ -166,7 +169,7 @@ const DocumentCenter = () => {
   const documentTypes = {
     agreement: { 
       label: 'Service Agreement', 
-      icon: FileCheck, 
+  icon: FileCheck2, 
       color: '#10B981', 
       route: '/full-agreement',
       aiProcessable: true,
@@ -206,7 +209,7 @@ const DocumentCenter = () => {
     },
     contract: { 
       label: 'E-Contract', 
-      icon: FileCheck, 
+  icon: FileCheck2, 
       color: '#06B6D4',
       aiProcessable: true,
       requiresReview: true
@@ -248,7 +251,7 @@ const DocumentCenter = () => {
     },
     receipt: {
       label: 'Receipt',
-      icon: FileCheck,
+  icon: FileCheck2,
       color: '#10B981',
       aiProcessable: true,
       requiresReview: false
@@ -274,7 +277,7 @@ const DocumentCenter = () => {
     { 
       id: 'new-agreement', 
       label: 'New Agreement', 
-      icon: FileCheck, 
+      icon: FileCheck2, 
       color: 'success',
       action: () => navigate('/full-agreement')
     },

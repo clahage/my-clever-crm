@@ -243,7 +243,7 @@ function AppContent() {
         <Route path="achievements" element={<Achievements />} />
 
         {/* Your system map */}
-        <Route path="system-map" element={<SystemMap />} />
+  <Route path="system-map" element={<SystemMap />} />
         
         {/* Settings & Admin */}
         <Route path="settings" element={<Settings />} />

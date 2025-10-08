@@ -1,267 +1,499 @@
-// src/pages/SystemMap.jsx
-import React, { useEffect, useMemo, useState } from "react";
-import { Save, RefreshCw, Download, Upload, ExternalLink, ShieldCheck, Database, Link as LinkIcon, CheckCircle2, AlertTriangle, CircleX } from "lucide-react";
+// src/pages/SystemMap.jsx - Fixed version with error handling
+import React, { useMemo, useRef, useState, useEffect, useCallback } from "react";
+import { Database, Search, RefreshCw, ZoomIn, Filter } from 'lucide-react';
 
-// OPTIONAL Firestore sync (safe by default)
-// Uncomment these when you're ready to sync to Firestore
-// import { db } from "../lib/firebase";
-// import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
-
-// ---------- Types & Helpers ----------
-const STATUS = {
-  OK: { key: "ok", label: "OK", color: "bg-emerald-500" },
-  WARN: { key: "warn", label: "Needs Work", color: "bg-amber-500" },
-  TODO: { key: "todo", label: "Todo", color: "bg-rose-500" },
+// Color scheme by layer
+const typeColor = {
+  layout: "#3B82F6",      // blue
+  page: "#10B981",        // emerald
+  component: "#F59E0B",   // amber
+  context: "#8B5CF6",     // violet
+  service: "#EF4444",     // red
+  hook: "#06B6D4",        // cyan
+  lib: "#64748B",         // slate
+  other: "#94A3B8"        // slate-light
 };
 
-const defaultRows = [
-  // ===== Core & Infrastructure =====
-  { id: "core-routing", area: "Core", title: "Routing / App Shell", file: "src/App.jsx", path: "/", owner: "Core", status: "ok", notes: "App boots; routes registered." },
-  { id: "core-protected-layout", area: "Core", title: "ProtectedLayout", file: "src/layout/ProtectedLayout.jsx", path: "-", owner: "Core", status: "ok", notes: "Auth guard & layout wrapper." },
-  { id: "core-sidebar", area: "Core", title: "Sidebar / Navigation", file: "src/layout/Sidebar.jsx + src/layout/navConfig.js", path: "-", owner: "Core", status: "warn", notes: "Sub-menus & groupings to finalize; keep a single source of truth in navConfig.js." },
-  { id: "core-theme", area: "Core", title: "Theme / Dark Mode", file: "src/contexts/ThemeContext.jsx", path: "-", owner: "Core", status: "ok", notes: "Available across pages." },
-  { id: "core-auth", area: "Core", title: "Auth Context", file: "src/contexts/AuthContext.jsx", path: "/login", owner: "Auth", status: "ok", notes: "Using Firebase Auth + context." },
-  { id: "core-firebase", area: "Core", title: "Firebase Config", file: "src/lib/firebase.js", path: "-", owner: "Core", status: "ok", notes: "Standardized imports from ../lib/firebase." },
-
-  // ===== Communications =====
-  { id: "comm-center", area: "Communications", title: "Communications Hub", file: "src/pages/Communications.jsx", path: "/communications", owner: "Comms", status: "warn", notes: "Connect menu + unify Emails / SMS / Messages widgets." },
-  { id: "comm-emails", area: "Communications", title: "Emails", file: "src/pages/Emails.jsx", path: "/communications/emails", owner: "Comms", status: "ok", notes: "Composer + tracking pixels deployed." },
-  { id: "comm-sms", area: "Communications", title: "SMS", file: "src/pages/SMS.jsx", path: "/communications/sms", owner: "Comms", status: "warn", notes: "Wire Telnyx provider + templates." },
-  { id: "comm-messages", area: "Communications", title: "Messages", file: "src/pages/Messages.jsx", path: "/communications/messages", owner: "Comms", status: "ok", notes: "Threads UI in place; connect to contacts." },
-  { id: "comm-drip", area: "Communications", title: "Drip Campaigns", file: "src/pages/DripCampaigns.jsx", path: "/communications/drip", owner: "Comms", status: "warn", notes: "Activate scheduler + pause/resume per lead." },
-
-  // ===== Disputes & Docs =====
-  { id: "dispute-center", area: "Credit & Disputes", title: "Dispute Center", file: "src/pages/DisputeCenter.jsx", path: "/dispute-center", owner: "Credit", status: "ok", notes: "Templates + jsPDF export working." },
-  { id: "e-contracts", area: "Credit & Disputes", title: "E-Contracts", file: "src/pages/EContracts.jsx", path: "/contracts", owner: "Credit", status: "warn", notes: "Stabilized; review analytics & expiry widgets." },
-
-  // ===== Roles, Permissions, Admin =====
-  { id: "roles", area: "Admin", title: "Roles", file: "src/pages/Roles.jsx", path: "/admin/roles", owner: "Admin", status: "ok", notes: "Matrix UI present; verify guards." },
-  { id: "permissions", area: "Admin", title: "Permissions", file: "src/pages/Permissions.jsx", path: "/admin/permissions", owner: "Admin", status: "warn", notes: "Enforce RBAC across routes & components." },
-  { id: "notifications", area: "Admin", title: "Admin Notification Center", file: "src/components/AdminNotificationCenter.jsx", path: "-", owner: "Admin", status: "ok", notes: "Admin queue live; connect actions." },
-
-  // ===== Client & Sales =====
-  { id: "contacts", area: "Client & Sales", title: "Contacts", file: "src/pages/Contacts.jsx", path: "/contacts", owner: "Sales", status: "ok", notes: "Import modal + CSV parsing functional." },
-  { id: "pipeline", area: "Client & Sales", title: "Pipeline", file: "src/pages/Pipeline.jsx", path: "/pipeline", owner: "Sales", status: "warn", notes: "Kanban drag/drop polish." },
-  { id: "progress-portal", area: "Client & Sales", title: "Progress Portal", file: "src/pages/ProgressPortal.jsx", path: "/progress-portal", owner: "CS", status: "ok", notes: "Live updates; add client-facing widgets." },
-
-  // ===== Social & Reviews =====
-  { id: "social-admin", area: "Social & Reviews", title: "Social Media Admin", file: "src/pages/SocialMediaAdmin.jsx", path: "/social-admin", owner: "Marketing", status: "ok", notes: "AI suggested replies; approval workflow." },
-
-  // ===== Integrations =====
-  { id: "idiq", area: "Integrations", title: "IDIQ Credit Data", file: "src/services/idiqService.js", path: "-", owner: "Integrations", status: "warn", notes: "Hook into score simulator & reports." },
-  { id: "telnyx-fax", area: "Integrations", title: "Telnyx Fax", file: "src/services/telnyxFaxService.js", path: "-", owner: "Integrations", status: "todo", notes: "Connect keys + add send/receive UI." },
-
-  // ===== Analytics & Goals =====
-  { id: "reports", area: "Analytics", title: "Reports", file: "src/pages/Reports.jsx", path: "/reports", owner: "Ops", status: "ok", notes: "Tables & charts render; add filters." },
-  { id: "goals", area: "Analytics", title: "Goals / OKRs", file: "src/pages/Goals.jsx", path: "/goals", owner: "Ops", status: "ok", notes: "MUI imports fixed; timeline replaced." },
-
-  // ===== Business Credit & Funding =====
-  { id: "business-credit", area: "Biz Credit & Funding", title: "Business Credit", file: "src/pages/BusinessCredit.jsx", path: "/business-credit", owner: "Biz", status: "warn", notes: "Lessons + vendor tiers; paywall hooks." },
-  { id: "funding-center", area: "Biz Credit & Funding", title: "Loan & Funding Center", file: "src/pages/FundingCenter.jsx", path: "/funding", owner: "Biz", status: "todo", notes: "Prequal form, offers, affiliate hooks." },
+const defaultCategories = [
+  "layout", "page", "component", "context", "service", "hook", "lib", "other"
 ];
 
-const STORAGE_KEY = "systemMap.v1";
+// Hand-curated system architecture graph
+function makeInitialGraph() {
+  const nodes = [
+    // Layout / Navigation
+    { id: "App.jsx", type: "layout" },
+    { id: "ProtectedLayout.jsx", type: "layout" },
+    { id: "Sidebar.jsx", type: "layout" },
+    { id: "Topbar.jsx", type: "layout" },
+    { id: "TopNav.jsx", type: "layout" },
+    { id: "navConfig.js", type: "layout" },
 
-// Group by area for sections
-function groupByArea(rows) {
-  const buckets = {};
-  for (const r of rows) {
-    if (!buckets[r.area]) buckets[r.area] = [];
-    buckets[r.area].push(r);
-  }
-  return buckets;
+    // Contexts
+    { id: "AuthContext.jsx", type: "context" },
+    { id: "NotificationContext.jsx", type: "context" },
+    { id: "ThemeContext.jsx", type: "context" },
+
+    // Lib
+    { id: "lib/firebase.js", type: "lib" },
+
+    // Pages - communications
+    { id: "Communications.jsx", type: "page" },
+    { id: "Emails.jsx", type: "page" },
+    { id: "Messages.jsx", type: "page" },
+    { id: "Notifications.jsx", type: "page" },
+    { id: "SMS.jsx", type: "page" },
+    { id: "DripCampaigns.jsx", type: "page" },
+    { id: "EContracts.jsx", type: "page" },
+    { id: "Contacts.jsx", type: "page" },
+    { id: "DisputeLetters.jsx", type: "page" },
+
+    // Components
+    { id: "ImportContactsModal.jsx", type: "component" },
+    { id: "EmailComposer.jsx", type: "component" },
+    { id: "MessageThread.jsx", type: "component" },
+    { id: "NotificationPanel.jsx", type: "component" },
+
+    // Hooks
+    { id: "useFirestore.js", type: "hook" },
+    { id: "useRealtimeLeads.js", type: "hook" },
+    { id: "useUserManagement.js", type: "hook" },
+
+    // Services
+    { id: "emailTrackingService.js", type: "service" },
+    { id: "firestoreService.js", type: "service" },
+    { id: "openaiService.js", type: "service" },
+    { id: "pdfService.js", type: "service" },
+    { id: "roleService.js", type: "service" },
+
+    // This page
+    { id: "SystemMap.jsx", type: "page" },
+  ];
+
+  const L = (source, target) => ({ source, target });
+
+  const links = [
+    // App wiring
+    L("App.jsx", "ProtectedLayout.jsx"),
+    L("App.jsx", "navConfig.js"),
+    L("ProtectedLayout.jsx", "Sidebar.jsx"),
+    L("ProtectedLayout.jsx", "Topbar.jsx"),
+
+    // Context usage
+    L("App.jsx", "AuthContext.jsx"),
+    L("App.jsx", "ThemeContext.jsx"),
+    L("Communications.jsx", "AuthContext.jsx"),
+    L("Emails.jsx", "AuthContext.jsx"),
+
+    // Firebase
+    L("AuthContext.jsx", "lib/firebase.js"),
+    L("firestoreService.js", "lib/firebase.js"),
+
+    // Communications
+    L("Communications.jsx", "Emails.jsx"),
+    L("Communications.jsx", "Messages.jsx"),
+    L("Emails.jsx", "EmailComposer.jsx"),
+    L("Messages.jsx", "MessageThread.jsx"),
+
+    // Services
+    L("Emails.jsx", "emailTrackingService.js"),
+    L("Contacts.jsx", "useFirestore.js"),
+  ];
+
+  return { nodes, links };
 }
 
-function Badge({ status }) {
-  const s = STATUS[String(status).toUpperCase()] || STATUS.WARN;
-  const Icon =
-    s.key === "ok" ? CheckCircle2 :
-    s.key === "warn" ? AlertTriangle : CircleX;
-  return (
-    <span className={`inline-flex items-center gap-1 text-white text-xs px-2 py-1 rounded ${s.color}`}>
-      <Icon size={14} /> {s.label}
-    </span>
-  );
+function normalizeGraph(raw) {
+  const nodeIds = new Set();
+  const nodes = [];
+  raw.nodes.forEach(n => {
+    if (!nodeIds.has(n.id)) {
+      nodeIds.add(n.id);
+      nodes.push({ id: n.id, type: n.type || "other" });
+    }
+  });
+  const links = raw.links
+    .filter(l => l && l.source && l.target && l.source !== l.target)
+    .map(l => ({ source: l.source, target: l.target }));
+  return { nodes, links };
 }
 
-// ---------- Main Component ----------
-export default function SystemMap() {
-  const [rows, setRows] = useState(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) return JSON.parse(raw);
-    } catch {}
-    return defaultRows;
+// Fallback component if library not available
+const FallbackSystemMap = ({ graphData }) => {
+  const [visibleTypes, setVisibleTypes] = useState(new Set(defaultCategories));
+  
+  const toggleType = (type) => {
+    const next = new Set(visibleTypes);
+    if (next.has(type)) next.delete(type);
+    else next.add(type);
+    setVisibleTypes(next);
+  };
+
+  const filteredNodes = graphData.nodes.filter(n => visibleTypes.has(n.type));
+  const groupedNodes = {};
+  filteredNodes.forEach(n => {
+    if (!groupedNodes[n.type]) groupedNodes[n.type] = [];
+    groupedNodes[n.type].push(n);
   });
 
-  const [filter, setFilter] = useState("all");
-  const grouped = useMemo(() => groupByArea(rows), [rows]);
+  return (
+    <div className="w-full h-full p-6 bg-white dark:bg-gray-900">
+      <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+        <p className="text-sm text-yellow-800 dark:text-yellow-200">
+          <strong>Note:</strong> Install react-force-graph-2d for interactive graph visualization:
+          <code className="ml-2 px-2 py-1 bg-yellow-100 dark:bg-yellow-900/40 rounded">npm install react-force-graph-2d</code>
+        </p>
+      </div>
 
-  // Persist to localStorage
+      <div className="flex flex-wrap gap-2 mb-6">
+        {defaultCategories.map(t => (
+          <button
+            key={t}
+            onClick={() => toggleType(t)}
+            className={`px-3 py-1 rounded border text-sm transition-opacity ${visibleTypes.has(t) ? "" : "opacity-40"}`}
+            style={{ borderColor: typeColor[t], color: typeColor[t] }}
+          >
+            {t} ({graphData.nodes.filter(n => n.type === t).length})
+          </button>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {Object.entries(groupedNodes).map(([type, nodes]) => (
+          <div key={type} className="border rounded-lg p-4 bg-gray-50 dark:bg-gray-800">
+            <h3 className="font-semibold mb-3 flex items-center gap-2" style={{ color: typeColor[type] }}>
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: typeColor[type] }}></div>
+              {type.charAt(0).toUpperCase() + type.slice(1)} ({nodes.length})
+            </h3>
+            <ul className="space-y-1 text-sm">
+              {nodes.map(n => (
+                <li key={n.id} className="text-gray-700 dark:text-gray-300 truncate" title={n.id}>
+                  {n.id}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+        <h4 className="font-semibold mb-2 text-blue-900 dark:text-blue-100">System Statistics</h4>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+          <div>
+            <div className="text-gray-600 dark:text-gray-400">Total Nodes</div>
+            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{graphData.nodes.length}</div>
+          </div>
+          <div>
+            <div className="text-gray-600 dark:text-gray-400">Total Links</div>
+            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{graphData.links.length}</div>
+          </div>
+          <div>
+            <div className="text-gray-600 dark:text-gray-400">Categories</div>
+            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{Object.keys(groupedNodes).length}</div>
+          </div>
+          <div>
+            <div className="text-gray-600 dark:text-gray-400">Avg Connections</div>
+            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+              {(graphData.links.length / graphData.nodes.length).toFixed(1)}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Main component
+export default function SystemMap() {
+  const fgRef = useRef();
+  const [search, setSearch] = useState("");
+  const [visibleTypes, setVisibleTypes] = useState(() => new Set(defaultCategories));
+  const [selected, setSelected] = useState(null);
+  const [charge, setCharge] = useState(-200);
+  const [ForceGraph2D, setForceGraph2D] = useState(null);
+  const [isLoadingGraph, setIsLoadingGraph] = useState(true);
+
+  // Dynamically load the ForceGraph2D component
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(rows));
-    } catch {}
-  }, [rows]);
-
-  const setStatus = (id, next) => {
-    setRows(prev => prev.map(r => r.id === id ? { ...r, status: next } : r));
-  };
-
-  const setNotes = (id, text) => {
-    setRows(prev => prev.map(r => r.id === id ? { ...r, notes: text } : r));
-  };
-
-  const setOwner = (id, text) => {
-    setRows(prev => prev.map(r => r.id === id ? { ...r, owner: text } : r));
-  };
-
-  const resetToDefault = () => setRows(defaultRows);
-
-  const exportJson = () => {
-    const blob = new Blob([JSON.stringify(rows, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = Object.assign(document.createElement("a"), { href: url, download: "system-map.json" });
-    document.body.appendChild(a); a.click(); a.remove();
-    URL.revokeObjectURL(url);
-  };
-
-  const importJson = (file) => {
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = e => {
+    let mounted = true;
+    
+    const loadGraph = async () => {
       try {
-        const data = JSON.parse(e.target.result);
-        if (Array.isArray(data)) setRows(data);
-      } catch {}
+        const module = await import('react-force-graph-2d');
+        if (mounted) {
+          setForceGraph2D(() => module.default);
+          setIsLoadingGraph(false);
+        }
+      } catch (e) {
+        console.warn('react-force-graph-2d not installed');
+        if (mounted) {
+          setIsLoadingGraph(false);
+        }
+      }
     };
-    reader.readAsText(file);
+
+    loadGraph();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const graphData = useMemo(() => {
+    const raw = (typeof window !== "undefined" && window.__CleverCRMGraph) || makeInitialGraph();
+    return normalizeGraph(raw);
+  }, []);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const allowed = new Set(
+      graphData.nodes
+        .filter(n => visibleTypes.has(n.type))
+        .map(n => n.id)
+    );
+
+    const nodes = graphData.nodes.filter(n => {
+      if (!allowed.has(n.id)) return false;
+      if (!q) return true;
+      return n.id.toLowerCase().includes(q);
+    });
+
+    const nodeSet = new Set(nodes.map(n => n.id));
+    const links = graphData.links.filter(
+      l => nodeSet.has(l.source) && nodeSet.has(l.target)
+    );
+
+    return { nodes, links };
+  }, [graphData, visibleTypes, search]);
+
+  const [highlightNodes, setHighlightNodes] = useState(new Set());
+  const [highlightLinks, setHighlightLinks] = useState(new Set());
+
+  const handleNodeHover = useCallback(node => {
+    const newNodes = new Set();
+    const newLinks = new Set();
+    if (node) {
+      filtered.links.forEach(l => {
+        if (l.source.id === node.id) {
+          newNodes.add(l.target.id);
+          newLinks.add(`${l.source.id}->${l.target.id}`);
+        } else if (l.target.id === node.id) {
+          newNodes.add(l.source.id);
+          newLinks.add(`${l.source.id}->${l.target.id}`);
+        }
+      });
+      newNodes.add(node.id);
+    }
+    setHighlightNodes(newNodes);
+    setHighlightLinks(newLinks);
+  }, [filtered.links]);
+
+  const toggleType = (type) => {
+    const next = new Set(visibleTypes);
+    if (next.has(type)) next.delete(type);
+    else next.add(type);
+    setVisibleTypes(next);
   };
 
-  // OPTIONAL Firestore sync (uncomment when ready)
-  // const pullFromFirestore = async () => {
-  //   try {
-  //     const ref = doc(db, "systemMap", "master");
-  //      const snap = await getDoc(ref);
-  //      if (snap.exists()) setRows(snap.data().rows || defaultRows);
-  //   } catch (e) { console.error(e); }
-  // };
-  // const pushToFirestore = async () => {
-  //   try {
-  //     const ref = doc(db, "systemMap", "master");
-  //     await setDoc(ref, { rows, updatedAt: serverTimestamp() }, { merge: true });
-  //     alert("Synced to Firestore");
-  //   } catch (e) { console.error(e); }
-  // };
-
-  const areas = Object.keys(grouped).sort();
-
-  const filteredRows = (list) => {
-    if (filter === "all") return list;
-    return list.filter(r => r.status === filter);
+  const resetView = () => {
+    if (!fgRef.current) return;
+    fgRef.current.zoomToFit(600, 40);
+    setSelected(null);
   };
+
+  useEffect(() => {
+    if (!selected || !fgRef.current || !ForceGraph2D) return;
+    const node = filtered.nodes.find(n => n.id === selected.id);
+    if (!node) return;
+    const t = setTimeout(() => {
+      fgRef.current.centerAt(node.x || 0, node.y || 0, 600);
+      fgRef.current.zoom(2.0, 800);
+    }, 600);
+    return () => clearTimeout(t);
+  }, [selected, filtered.nodes, ForceGraph2D]);
+
+  // Show loading state
+  if (isLoadingGraph) {
+    return (
+      <div className="w-full h-[calc(100vh-12rem)] flex items-center justify-center bg-white dark:bg-gray-900">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading System Map...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If library not available, show fallback
+  if (!ForceGraph2D) {
+    return <FallbackSystemMap graphData={graphData} />;
+  }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold">System Map & Status</h1>
-          <p className="text-sm text-gray-500">Single source of truth for SpeedyCRM modules, pages, and routes.</p>
+    <div className="w-full h-[calc(100vh-12rem)] flex flex-col p-4 gap-3 bg-white dark:bg-gray-900">
+      <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+        <Database className="w-6 h-6 text-blue-500" />
+        <h1 className="text-xl font-bold text-gray-800 dark:text-white">System Architecture Map</h1>
+      </div>
+
+      {/* Toolbar */}
+      <div className="flex flex-wrap items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            className="w-full border rounded-lg px-3 py-2 pl-10 bg-white dark:bg-gray-900 text-gray-800 dark:text-white border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="Search nodes..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={resetToDefault} className="inline-flex items-center gap-2 px-3 py-2 rounded border hover:bg-gray-50">
-            <RefreshCw size={16}/> Reset
-          </button>
-          <button onClick={exportJson} className="inline-flex items-center gap-2 px-3 py-2 rounded border hover:bg-gray-50">
-            <Download size={16}/> Export JSON
-          </button>
-          <label className="inline-flex items-center gap-2 px-3 py-2 rounded border hover:bg-gray-50 cursor-pointer">
-            <Upload size={16}/> Import
-            <input type="file" accept="application/json" className="hidden" onChange={e => importJson(e.target.files?.[0])}/>
-          </label>
-          {/* Uncomment when enabling Firestore */}
-          {/* <button onClick={pullFromFirestore} className="inline-flex items-center gap-2 px-3 py-2 rounded border hover:bg-gray-50">
-            <Database size={16}/> Pull
-          </button>
-          <button onClick={pushToFirestore} className="inline-flex items-center gap-2 px-3 py-2 rounded border hover:bg-gray-50">
-            <ShieldCheck size={16}/> Push
-          </button> */}
-        </div>
+        <button
+          className="flex items-center gap-2 border rounded-lg px-4 py-2 bg-white dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          onClick={resetView}
+          title="Fit to view"
+        >
+          <ZoomIn className="w-4 h-4" />
+          Fit View
+        </button>
+        <label className="flex items-center gap-2">
+          <span className="text-sm text-gray-600 dark:text-gray-400">Force</span>
+          <input
+            type="range"
+            min="-800"
+            max="-50"
+            step="10"
+            value={charge}
+            onChange={(e) => setCharge(parseInt(e.target.value, 10))}
+            className="w-32"
+          />
+        </label>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-2 mb-4">
-        <span className="text-sm text-gray-500">Filter:</span>
-        <button onClick={() => setFilter("all")} className={`px-2 py-1 rounded text-sm border ${filter==="all"?"bg-gray-900 text-white":"hover:bg-gray-50"}`}>All</button>
-        <button onClick={() => setFilter("ok")} className={`px-2 py-1 rounded text-sm border ${filter==="ok"?"bg-gray-900 text-white":"hover:bg-gray-50"}`}>OK</button>
-        <button onClick={() => setFilter("warn")} className={`px-2 py-1 rounded text-sm border ${filter==="warn"?"bg-gray-900 text-white":"hover:bg-gray-50"}`}>Needs Work</button>
-        <button onClick={() => setFilter("todo")} className={`px-2 py-1 rounded text-sm border ${filter==="todo"?"bg-gray-900 text-white":"hover:bg-gray-50"}`}>Todo</button>
+      {/* Type toggles */}
+      <div className="flex flex-wrap gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+        <Filter className="w-5 h-5 text-gray-500" />
+        {defaultCategories.map(t => (
+          <button
+            key={t}
+            onClick={() => toggleType(t)}
+            className={`px-3 py-1 rounded-lg border text-sm font-medium transition-all ${
+              visibleTypes.has(t) 
+                ? "shadow-sm" 
+                : "opacity-40 grayscale"
+            }`}
+            style={{ 
+              borderColor: typeColor[t], 
+              color: typeColor[t],
+              backgroundColor: visibleTypes.has(t) ? `${typeColor[t]}15` : 'transparent'
+            }}
+          >
+            {t}
+          </button>
+        ))}
       </div>
 
-      {/* Legend */}
-      <div className="flex items-center gap-4 mb-6 text-sm">
-        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-emerald-500 inline-block" /> OK</div>
-        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-amber-500 inline-block" /> Needs Work</div>
-        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-rose-500 inline-block" /> Todo</div>
+      {/* Graph */}
+      <div className="flex-1 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-800">
+        {ForceGraph2D && (
+          <ForceGraph2D
+            ref={fgRef}
+            graphData={filtered}
+            nodeId="id"
+            nodeVal={6}
+            nodeColor={(n) => typeColor[n.type] || typeColor.other}
+            nodeCanvasObject={(node, ctx, globalScale) => {
+              const label = node.id;
+              const fontSize = 12/globalScale;
+              ctx.font = `${fontSize}px Sans-Serif`;
+              const textWidth = ctx.measureText(label).width;
+              const bckgDimensions = [textWidth, fontSize].map(n => n + fontSize * 0.2);
+
+              ctx.fillStyle = highlightNodes.has(node.id) ? 'rgba(255, 160, 0, 0.8)' : typeColor[node.type] || typeColor.other;
+              ctx.beginPath();
+              ctx.arc(node.x, node.y, 5, 0, 2 * Math.PI);
+              ctx.fill();
+
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+              ctx.fillRect(node.x - bckgDimensions[0] / 2, node.y + 8, bckgDimensions[0], bckgDimensions[1]);
+
+              ctx.fillStyle = '#000';
+              ctx.fillText(label, node.x, node.y + 8 + fontSize/2);
+            }}
+            linkColor={(l) =>
+              highlightLinks.has(`${l.source.id}->${l.target.id}`) ? "#EF4444" : "#CBD5E1"
+            }
+            linkWidth={(l) =>
+              highlightLinks.has(`${l.source.id}->${l.target.id}`) ? 2 : 1
+            }
+            linkDirectionalParticles={2}
+            linkDirectionalParticleWidth={(l) =>
+              highlightLinks.has(`${l.source.id}->${l.target.id}`) ? 2 : 0
+            }
+            onNodeClick={setSelected}
+            onNodeHover={handleNodeHover}
+            cooldownTicks={60}
+            d3Force={(force) => {
+              force.charge(charge);
+            }}
+            width={undefined}
+            height={undefined}
+          />
+        )}
       </div>
 
-      {/* Sections */}
-      {areas.map(area => (
-        <section key={area} className="mb-8">
-          <h2 className="text-lg font-semibold mb-3">{area}</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-            {filteredRows(grouped[area]).map(row => (
-              <div key={row.id} className="border rounded-lg p-4 bg-white dark:bg-zinc-900">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{row.title}</span>
-                      <Badge status={row.status}/>
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">{row.file}</div>
-                    {row.path && row.path !== "-" &&
-                      <div className="text-xs text-gray-500 flex items-center gap-1 mt-1">
-                        <LinkIcon size={14}/> Route: <code>{row.path}</code>
-                      </div>}
-                  </div>
-                  {row.path && row.path.startsWith("/") && (
-                    <a href={row.path} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded border hover:bg-gray-50" target="_self" rel="noreferrer">
-                      <ExternalLink size={14}/> Open
-                    </a>
-                  )}
-                </div>
-
-                {/* Controls */}
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  <select
-                    className="w-full border rounded px-2 py-1 text-sm"
-                    value={row.status}
-                    onChange={(e) => setStatus(row.id, e.target.value)}
-                  >
-                    <option value="ok">OK</option>
-                    <option value="warn">Needs Work</option>
-                    <option value="todo">Todo</option>
-                  </select>
-                  <input
-                    className="w-full border rounded px-2 py-1 text-sm"
-                    value={row.owner || ""}
-                    placeholder="Owner (e.g. Comms, Admin)"
-                    onChange={(e) => setOwner(row.id, e.target.value)}
-                  />
-                </div>
-
-                <textarea
-                  className="w-full border rounded px-2 py-2 text-sm mt-2 min-h-[70px]"
-                  placeholder="Notes, blockers, next actions…"
-                  value={row.notes || ""}
-                  onChange={(e) => setNotes(row.id, e.target.value)}
-                />
+      {/* Details panel */}
+      <div className="border rounded-lg p-4 text-sm bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+        {selected ? (
+          <div className="flex flex-col gap-2">
+            <div className="font-semibold text-lg text-gray-800 dark:text-white">{selected.id}</div>
+            <div className="text-gray-600 dark:text-gray-400">
+              <span className="font-medium">Type:</span>{" "}
+              <span className="px-2 py-1 rounded text-xs" style={{ 
+                backgroundColor: `${typeColor[selected.type]}20`, 
+                color: typeColor[selected.type] 
+              }}>
+                {selected.type}
+              </span>
+            </div>
+            <div className="mt-2">
+              <span className="font-medium text-gray-700 dark:text-gray-300">Connected to:</span>{" "}
+              <div className="mt-1 flex flex-wrap gap-1">
+                {Array.from(highlightNodes)
+                  .filter(id => id !== selected.id)
+                  .sort()
+                  .map(id => (
+                    <span key={id} className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-xs">
+                      {id}
+                    </span>
+                  ))}
+                {Array.from(highlightNodes).filter(id => id !== selected.id).length === 0 && (
+                  <span className="text-gray-500">None</span>
+                )}
               </div>
-            ))}
+            </div>
+            <div className="mt-3 flex gap-2">
+              <button 
+                className="px-3 py-1 border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" 
+                onClick={() => setSelected(null)}
+              >
+                Clear
+              </button>
+              <button 
+                className="px-3 py-1 border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" 
+                onClick={resetView}
+              >
+                Fit to View
+              </button>
+            </div>
           </div>
-        </section>
-      ))}
+        ) : (
+          <div className="text-gray-600 dark:text-gray-400">
+            💡 <strong>Tip:</strong> Hover over nodes to highlight connections, click to focus. Use type filters to simplify the view.
+          </div>
+        )}
+      </div>
     </div>
   );
 }
