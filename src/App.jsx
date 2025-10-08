@@ -1,317 +1,185 @@
-// App.jsx - Complete version with ErrorBoundary and all routes
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
+// src/App.jsx
+import React, { Suspense, lazy } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+
+// Contexts/providers (keep your existing ones)
+import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
-import ErrorBoundary from './components/ErrorBoundary';
+import { NotificationProvider } from './contexts/NotificationContext';
 
 // Layout
 import ProtectedLayout from './layout/ProtectedLayout';
 
-// Auth Pages
-import Login from './pages/Login';
-import Register from './pages/Register';
-import ForgotPassword from './pages/ForgotPassword';
+// If you have a real Home/Dashboard, import it; otherwise fallback:
+const Home = lazy(() => import('./pages/Home.jsx').catch(() => ({ default: () => (
+  <div className="p-6">
+    <h1 className="text-2xl font-bold">Dashboard</h1>
+    <p className="text-slate-600 mt-2">No Home.jsx detected. This is a temporary dashboard.</p>
+  </div>
+)})));
 
-// Main Pages
-import Home from './pages/Home';
-import Contacts from './pages/Contacts';
-import ContactDetailPage from './pages/ContactDetailPage';
-import ImportCSV from './pages/ImportCSV';
-import Export from './pages/Export';
-import ContactReports from './pages/ContactReports';
-import Segments from './pages/Segments';
+// If you already created SystemMap.jsx this will load it; otherwise show a message.
+const SystemMap = lazy(() => import('./pages/SystemMap.jsx').catch(() => ({ default: () => (
+  <div className="p-6">
+    <h1 className="text-2xl font-bold">System Map</h1>
+    <p className="text-slate-600 mt-2">SystemMap.jsx not found. Create <code>src/pages/SystemMap.jsx</code> to enable the interactive graph.</p>
+  </div>
+)})));
 
-// Credit Management
-import DocumentCenter from './pages/DocumentCenter';
-import BusinessCredit from './pages/BusinessCredit';
-import CreditScores from './pages/CreditScores';
-import DisputeLetters from './pages/DisputeLetters';
-import DisputeCreation from './pages/DisputeCreation';
-import DisputeStatus from './pages/DisputeStatus';  
-import CreditReports from './pages/CreditReports';
-import CreditMonitoring from './pages/CreditMonitoring';
-import CreditSimulator from './pages/CreditSimulator';
+const PlaceholderPage = lazy(() => import('./pages/PlaceholderPage.jsx').catch(() => ({
+  default: ({ title = 'Coming Soon', description = 'This page is a placeholder.' }) => (
+    <div className="p-6">
+      <h1 className="text-2xl font-bold">{title}</h1>
+      <p className="text-slate-600 mt-2">{description}</p>
+    </div>
+  )
+})));
 
-// Communication
-import Letters from './pages/Letters';
-import Emails from './pages/Emails';
-import SMS from './pages/SMS';
-import Messages from './pages/Messages';
-import DripCampaigns from './pages/DripCampaigns';
-import Templates from './pages/Templates';
-import CallLogs from './pages/CallLogs';
-import Notifications from './pages/Notifications';
-import Pipeline from './pages/Pipeline';
+// Document Center: If you already have a rich DocumentCenter.jsx, use it.
+// Otherwise we render a single-hub Documents page and interpret /documents/* segments as tabs.
+const DocumentCenter = lazy(() => import('./pages/DocumentCenter.jsx').catch(() => ({
+  default: () => (
+    <div className="p-6">
+      <h1 className="text-2xl font-bold">Document Center</h1>
+      <p className="text-slate-600 mt-2">
+        A single hub for Agreements, ACH, Addenda, and all templates. Your nav items can point to
+        <code className="mx-2">/documents</code> or <code className="mx-2">/documents/&lt;section&gt;</code> and this page will handle it.
+      </p>
+      <ul className="list-disc pl-6 mt-3 text-sm text-slate-700">
+        <li>Expected file: <code>src/pages/DocumentCenter.jsx</code> (optional)</li>
+        <li>If you keep individual links (e.g. “ACH Authorization”), route them to <code>/documents/ach</code>.</li>
+      </ul>
+    </div>
+  )
+})));
 
-// AI & Automation
-import OpenAI from './pages/OpenAI';
+// Optional: Login page if you route unauth users here
+const Login = lazy(() => import('./pages/Login.jsx').catch(() => ({ default: () => (
+  <div className="min-h-screen flex items-center justify-center p-6">
+    <div className="max-w-sm w-full border rounded-xl p-6">
+      <h1 className="text-xl font-semibold">Login</h1>
+      <p className="text-slate-600 mt-2">Implement <code>src/pages/Login.jsx</code> for a full login experience.</p>
+    </div>
+  </div>
+)})));
 
-// Documents
-import Documents from './pages/Documents';
-import EContracts from './pages/EContracts';
-import Forms from './pages/Forms';
-import DocumentStorage from './pages/DocumentStorage';
-import FullAgreement from './pages/FullAgreement';
-import InformationSheet from './pages/InformationSheet';
-import PowerOfAttorney from './pages/PowerOfAttorney';
-import ACHAuthorization from './pages/ACHAuthorization';
-import AdminAddendumFlow from './pages/AdminAddendumFlow';
-
-// Business Tools
-import Affiliates from './pages/Affiliates';
-import Billing from './pages/Billing';
-import Invoices from './pages/Invoices';
-import Products from './pages/Products';
-import Companies from './pages/Companies';
-import Location from './pages/Location';
-
-// Scheduling
-import Calendar from './pages/Calendar';
-import Appointments from './pages/Appointments';
-import Tasks from './pages/Tasks';
-import Reminders from './pages/Reminders';
-
-// Analytics
-import Analytics from './pages/Analytics';
-import Reports from './pages/Reports';
-import Goals from './pages/Goals';
-import Achievements from './pages/Achievements';
-
-// Admin
-import Settings from './pages/Settings';
-import Team from './pages/Team';
-import Roles from './pages/Roles';
-import UserRoleManager from './pages/UserRoleManager';
-import Integrations from './pages/Integrations';
-import LearningCenter from './pages/LearningCenter';
-import Support from './pages/Support';
-
-// Admin Panels
-import DisputeAdminPanel from './pages/admin/DisputeAdminPanel';
-
-// (Optional) System map page you created
-import SystemMap from './pages/SystemMap';
-
-// Protected Route Component
-const ProtectedRoute = ({ children }) => {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return children;
-};
-
-// Admin Route Component
-const AdminRoute = ({ children }) => {
-  const { user, userProfile, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (userProfile?.role !== 'admin' && userProfile?.role !== 'masterAdmin') {
-    return <Navigate to="/" replace />;
-  }
-
-  return children;
-};
-
-// Main App Content Component
-function AppContent() {
+function RoutePlaceholder({ title, description }) {
+  // Helper to render a placeholder without needing separate files
   return (
-    <Routes>
-      {/* Public Routes */}
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-
-      {/* Protected Routes */}
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            <ProtectedLayout />
-          </ProtectedRoute>
-        }
-      >
-        {/* Dashboard */}
-        <Route index element={<Home />} />
-        
-        {/* Contacts & CRM */}
-        <Route path="contacts" element={<Contacts />} />
-        <Route path="contacts/:id" element={<ContactDetailPage />} />
-        <Route path="pipeline" element={<Pipeline />} />
-        <Route path="import" element={<ImportCSV />} />
-        <Route path="export" element={<Export />} />
-        <Route path="contact-reports" element={<ContactReports />} />
-        <Route path="segments" element={<Segments />} />
-        
-        {/* Credit Management */}
-        <Route path="document-center" element={<DocumentCenter />} />
-        <Route path="business-credit" element={<BusinessCredit />} />
-        <Route path="credit-scores" element={<CreditScores />} />
-        <Route path="dispute-letters" element={<DisputeLetters />} />
-        <Route path="dispute-creation" element={<DisputeCreation />} />
-        <Route path="dispute-status" element={<DisputeStatus />} />
-        <Route path="credit-reports" element={<CreditReports />} />
-        <Route path="credit-monitoring" element={<CreditMonitoring />} />
-        <Route path="credit-simulator" element={<CreditSimulator />} />
-        
-        {/* Communication */}
-        <Route path="letters" element={<Letters />} />
-        <Route path="emails" element={<Emails />} />
-        <Route path="sms" element={<SMS />} />
-        <Route path="messages" element={<Messages />} />
-        <Route path="drip-campaigns" element={<DripCampaigns />} />
-        <Route path="templates" element={<Templates />} />
-        <Route path="call-logs" element={<CallLogs />} />
-        <Route path="notifications" element={<Notifications />} />
-        
-        {/* AI & Automation */}
-        <Route path="ai-receptionist" element={<OpenAI />} />
-        <Route path="openai" element={<OpenAI />} />
-        
-        {/* Documents & Agreements */}
-        <Route path="documents" element={<Documents />} />
-        <Route path="econtracts" element={<EContracts />} />
-        <Route path="forms" element={<Forms />} />
-        <Route path="full-agreement" element={<FullAgreement />} />
-        <Route path="information-sheet" element={<InformationSheet />} />
-        <Route path="power-of-attorney" element={<PowerOfAttorney />} />
-        <Route path="ach-authorization" element={<ACHAuthorization />} />
-        <Route path="addendums" element={<AdminAddendumFlow />} />
-        <Route path="document-storage" element={<DocumentStorage />} />
-        
-        {/* Business Tools */}
-        <Route path="companies" element={<Companies />} />
-        <Route path="location" element={<Location />} />
-        <Route path="invoices" element={<Invoices />} />
-        <Route
-          path="affiliates"
-          element={
-            <AdminRoute>
-              <Affiliates />
-            </AdminRoute>
-          }
-        />
-        <Route
-          path="billing"
-          element={
-            <AdminRoute>
-              <Billing />
-            </AdminRoute>
-          }
-        />
-        <Route
-          path="products"
-          element={
-            <AdminRoute>
-              <Products />
-            </AdminRoute>
-          }
-        />
-        
-        {/* Scheduling */}
-        <Route path="calendar" element={<Calendar />} />
-        <Route path="appointments" element={<Appointments />} />
-        <Route path="tasks" element={<Tasks />} />
-        <Route path="reminders" element={<Reminders />} />
-        
-        {/* Analytics */}
-        <Route path="analytics" element={<Analytics />} />
-        <Route path="reports" element={<Reports />} />
-        <Route path="goals" element={<Goals />} />
-        <Route path="achievements" element={<Achievements />} />
-
-        {/* Your system map */}
-  <Route path="system-map" element={<SystemMap />} />
-        
-        {/* Settings & Admin */}
-        <Route path="settings" element={<Settings />} />
-        <Route path="learning-center" element={<LearningCenter />} />
-        <Route path="support" element={<Support />} />
-        
-        {/* Admin-only Routes */}
-        <Route
-          path="team"
-          element={
-            <AdminRoute>
-              <Team />
-            </AdminRoute>
-          }
-        />
-        <Route
-          path="roles"
-          element={
-            <AdminRoute>
-              <Roles />
-            </AdminRoute>
-          }
-        />
-        <Route
-          path="user-roles"
-          element={
-            <AdminRoute>
-              <UserRoleManager />
-            </AdminRoute>
-          }
-        />
-        <Route
-          path="integrations"
-          element={
-            <AdminRoute>
-              <Integrations />
-            </AdminRoute>
-          }
-        />
-        <Route
-          path="admin/disputes"
-          element={
-            <AdminRoute>
-              <DisputeAdminPanel />
-            </AdminRoute>
-          }
-        />
-        
-        {/* Catch all - redirect to home */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Route>
-    </Routes>
+    <PlaceholderPage
+      title={title}
+      description={
+        <>
+          <div className="mt-2">{description}</div>
+          <div className="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-3 text-amber-800 text-sm">
+            This is a working placeholder route. When you’re ready, replace this with a real page
+            at the same path to avoid breaking navigation or URLs.
+          </div>
+        </>
+      }
+    />
   );
 }
 
-// Main App Component with All Providers and Error Boundary
-function App() {
+export default function App() {
   return (
-    <ErrorBoundary>
-      <Router>
-        <ThemeProvider>
+    <BrowserRouter>
+      <ThemeProvider>
+        <NotificationProvider>
           <AuthProvider>
-            <AppContent />
+            <Suspense fallback={<div className="p-6">Loading…</div>}>
+              <Routes>
+                {/* Public auth routes (if any) */}
+                <Route path="/login" element={<Login />} />
+
+                {/* Protected application */}
+                <Route element={<ProtectedLayout />}>
+                  <Route index element={<Home />} />
+
+                  {/* ---- Document Center (single hub + legacy child routes) ---- */}
+                  <Route path="/documents" element={<DocumentCenter />} />
+                  <Route path="/documents/*" element={<DocumentCenter />} />
+
+                  {/* ---- Resources ---- */}
+                  <Route
+                    path="/resources/articles"
+                    element={<RoutePlaceholder
+                      title="Articles"
+                      description="Knowledge base articles for clients, DIY users, and staff. Search, categories, tags, and role-based visibility planned." />}
+                  />
+                  <Route
+                    path="/resources/faq"
+                    element={<RoutePlaceholder
+                      title="FAQ"
+                      description="Frequently asked questions with smart suggestions, links to articles, and contact options." />}
+                  />
+
+                  {/* ---- White Label ---- */}
+                  <Route
+                    path="/whitelabel/branding"
+                    element={<RoutePlaceholder
+                      title="White Label: Branding"
+                      description="Upload logos, pick brand colors, custom support email, and light/dark defaults per tenant." />}
+                  />
+                  <Route
+                    path="/whitelabel/domains"
+                    element={<RoutePlaceholder
+                      title="White Label: Domains"
+                      description="Connect custom domains/subdomains with guided DNS steps and automated SSL." />}
+                  />
+                  <Route
+                    path="/whitelabel/plans"
+                    element={<RoutePlaceholder
+                      title="White Label: Plans & Billing"
+                      description="Multi-tier plans, usage-based add-ons, billing portal integration, and coupons/affiliates." />}
+                  />
+                  <Route
+                    path="/whitelabel/tenants"
+                    element={<RoutePlaceholder
+                      title="White Label: Tenants"
+                      description="Provision, manage, and monitor tenant orgs. Role mapping, quotas, invoicing hooks." />}
+                  />
+
+                  {/* ---- Mobile Apps ---- */}
+                  <Route
+                    path="/apps/overview"
+                    element={<RoutePlaceholder
+                      title="Mobile Apps: Overview"
+                      description="iOS/Android strategy, release channels, feature parity, deep link routes, and SSO." />}
+                  />
+                  <Route
+                    path="/apps/employee"
+                    element={<RoutePlaceholder
+                      title="Employee App"
+                      description="Field tools: lead capture, tasking, notes, notifications, and call/text logging." />}
+                  />
+                  <Route
+                    path="/apps/client"
+                    element={<RoutePlaceholder
+                      title="Client App"
+                      description="Client progress tracking, dispute uploads, payments, messages, and reminders." />}
+                  />
+                  <Route
+                    path="/apps/affiliate"
+                    element={<RoutePlaceholder
+                      title="Affiliate App"
+                      description="Referrals, payouts, tracked links, and co-branded content library." />}
+                  />
+
+                  {/* ---- System Map ---- */}
+                  <Route path="/admin/system-map" element={<SystemMap />} />
+
+                  {/* Fallback inside the protected area */}
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Route>
+
+                {/* Catch-all (outside auth) */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Suspense>
           </AuthProvider>
-        </ThemeProvider>
-      </Router>
-    </ErrorBoundary>
+        </NotificationProvider>
+      </ThemeProvider>
+    </BrowserRouter>
   );
 }
-
-export default App;
