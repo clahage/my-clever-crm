@@ -22,8 +22,8 @@ export const NotificationProvider = ({ children }) => {
   useEffect(() => {
     let unsub = null;
     async function subscribeUrgentContacts() {
-      const { collection, query, where, onSnapshot } = await import('firebase/firestore');
-      const { db } = await import('../firebaseConfig');
+  const { collection, query, where, onSnapshot } = await import('firebase/firestore');
+  const { db } = await import('../lib/firebase');
       const now = new Date();
       const q = query(
         collection(db, 'contacts'),

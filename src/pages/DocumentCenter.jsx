@@ -472,8 +472,8 @@ Document text:
 ${documentText.substring(0, 3000)}...`
         }],
         temperature: 0.3,
-        max_tokens: 500,
-        response_format: { type: "json_object" }
+        max_tokens: 500
+        // response_format removed
       });
 
       return JSON.parse(response.choices[0].message.content);
@@ -543,8 +543,8 @@ Available documents: ${JSON.stringify(documents.map(d => ({
 Return an array of document IDs that match this search, considering semantic meaning. Return as JSON array of IDs.`
         }],
         temperature: 0.3,
-        max_tokens: 200,
-        response_format: { type: "json_object" }
+        max_tokens: 200
+        // response_format removed
       });
 
       const results = JSON.parse(semanticResponse.choices[0].message.content);
@@ -636,8 +636,8 @@ ${documentText}
 Return as JSON with fields: insights (array), risks (array), compliance (array), recommendations (array)`
         }],
         temperature: 0.5,
-        max_tokens: 800,
-        response_format: { type: "json_object" }
+        max_tokens: 800
+        // response_format removed
       });
 
       const analysis = JSON.parse(response.choices[0].message.content);
@@ -690,8 +690,8 @@ Provide:
 Return as JSON with these fields as arrays.`
         }],
         temperature: 0.6,
-        max_tokens: 600,
-        response_format: { type: "json_object" }
+        max_tokens: 600
+        // response_format removed
       });
 
       const insights = JSON.parse(response.choices[0].message.content);

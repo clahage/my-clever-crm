@@ -22,7 +22,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import openaiService from '../services/openaiService';
+import openaiService from '../services/openAIService';
 
 const ContactDetailPage = () => {
   const { id } = useParams();

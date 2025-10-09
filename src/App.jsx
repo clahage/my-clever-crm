@@ -1,185 +1,917 @@
-// src/App.jsx
-import React, { Suspense, lazy } from 'react';
+// src/App.jsx - SpeedyCRM Complete Application Router
+import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { ThemeProvider } from '@/contexts/ThemeContext';
+import { NotificationProvider } from '@/contexts/NotificationContext';
+import ProtectedLayout from '@/layout/ProtectedLayout';
 
-// Contexts/providers (keep your existing ones)
-import { AuthProvider } from './contexts/AuthContext';
-import { ThemeProvider } from './contexts/ThemeContext';
-import { NotificationProvider } from './contexts/NotificationContext';
-
-// Layout
-import ProtectedLayout from './layout/ProtectedLayout';
-
-// If you have a real Home/Dashboard, import it; otherwise fallback:
-const Home = lazy(() => import('./pages/Home.jsx').catch(() => ({ default: () => (
-  <div className="p-6">
-    <h1 className="text-2xl font-bold">Dashboard</h1>
-    <p className="text-slate-600 mt-2">No Home.jsx detected. This is a temporary dashboard.</p>
-  </div>
-)})));
-
-// If you already created SystemMap.jsx this will load it; otherwise show a message.
-const SystemMap = lazy(() => import('./pages/SystemMap.jsx').catch(() => ({ default: () => (
-  <div className="p-6">
-    <h1 className="text-2xl font-bold">System Map</h1>
-    <p className="text-slate-600 mt-2">SystemMap.jsx not found. Create <code>src/pages/SystemMap.jsx</code> to enable the interactive graph.</p>
-  </div>
-)})));
-
-const PlaceholderPage = lazy(() => import('./pages/PlaceholderPage.jsx').catch(() => ({
-  default: ({ title = 'Coming Soon', description = 'This page is a placeholder.' }) => (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold">{title}</h1>
-      <p className="text-slate-600 mt-2">{description}</p>
-    </div>
-  )
-})));
-
-// Document Center: If you already have a rich DocumentCenter.jsx, use it.
-// Otherwise we render a single-hub Documents page and interpret /documents/* segments as tabs.
-const DocumentCenter = lazy(() => import('./pages/DocumentCenter.jsx').catch(() => ({
-  default: () => (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold">Document Center</h1>
-      <p className="text-slate-600 mt-2">
-        A single hub for Agreements, ACH, Addenda, and all templates. Your nav items can point to
-        <code className="mx-2">/documents</code> or <code className="mx-2">/documents/&lt;section&gt;</code> and this page will handle it.
-      </p>
-      <ul className="list-disc pl-6 mt-3 text-sm text-slate-700">
-        <li>Expected file: <code>src/pages/DocumentCenter.jsx</code> (optional)</li>
-        <li>If you keep individual links (e.g. “ACH Authorization”), route them to <code>/documents/ach</code>.</li>
-      </ul>
-    </div>
-  )
-})));
-
-// Optional: Login page if you route unauth users here
-const Login = lazy(() => import('./pages/Login.jsx').catch(() => ({ default: () => (
-  <div className="min-h-screen flex items-center justify-center p-6">
-    <div className="max-w-sm w-full border rounded-xl p-6">
-      <h1 className="text-xl font-semibold">Login</h1>
-      <p className="text-slate-600 mt-2">Implement <code>src/pages/Login.jsx</code> for a full login experience.</p>
+// ============================================================================
+// LOADING COMPONENT
+// ============================================================================
+const LoadingFallback = () => (
+  <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto mb-4"></div>
+      <p className="text-gray-600 dark:text-gray-400 text-lg">Loading...</p>
     </div>
   </div>
-)})));
+);
 
-function RoutePlaceholder({ title, description }) {
-  // Helper to render a placeholder without needing separate files
-  return (
-    <PlaceholderPage
-      title={title}
-      description={
-        <>
-          <div className="mt-2">{description}</div>
-          <div className="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-3 text-amber-800 text-sm">
-            This is a working placeholder route. When you’re ready, replace this with a real page
-            at the same path to avoid breaking navigation or URLs.
+// ============================================================================
+// ERROR BOUNDARY
+// ============================================================================
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('Error Boundary Caught:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 p-4">
+          <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+            <div className="text-center">
+              <div className="text-red-500 text-6xl mb-4">⚠️</div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                Oops! Something went wrong
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
+                {this.state.error?.message || 'An unexpected error occurred'}
+              </p>
+              <button
+                onClick={() => window.location.reload()}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Reload Page
+              </button>
+            </div>
           </div>
-        </>
-      }
-    />
-  );
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
 }
 
-export default function App() {
+// ============================================================================
+// LAZY LOADED PAGES
+// ============================================================================
+
+// Auth Pages
+const Login = lazy(() => import('@/pages/Login'));
+const Register = lazy(() => import('@/pages/Register'));
+const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'));
+
+// Dashboard
+const Dashboard = lazy(() => import('@/pages/Dashboard'));
+
+// Contacts & CRM
+const Contacts = lazy(() => import('@/pages/Contacts'));
+const Pipeline = lazy(() => import('@/pages/Pipeline'));
+const ContactImport = lazy(() => import('@/pages/ContactImport'));
+const ContactExport = lazy(() => import('@/pages/ContactExport'));
+const ContactReports = lazy(() => import('@/pages/ContactReports'));
+const Segments = lazy(() => import('@/pages/Segments'));
+
+// Credit Management
+const CreditSimulator = lazy(() => import('@/pages/CreditSimulator'));
+const BusinessCredit = lazy(() => import('@/pages/BusinessCredit'));
+const CreditScores = lazy(() => import('@/pages/CreditScores'));
+const DisputeLetters = lazy(() => import('@/pages/DisputeLetters'));
+const DisputeStatus = lazy(() => import('@/pages/DisputeStatus'));
+const DisputeAdminPanel = lazy(() => import('@/pages/admin/DisputeAdminPanel'));
+const CreditReports = lazy(() => import('@/pages/CreditReports'));
+const CreditMonitoring = lazy(() => import('@/pages/CreditMonitoring'));
+
+// Communication
+const Letters = lazy(() => import('@/pages/Letters'));
+const Emails = lazy(() => import('@/pages/Emails'));
+const SMS = lazy(() => import('@/pages/SMS'));
+const DripCampaigns = lazy(() => import('@/pages/DripCampaigns'));
+const Templates = lazy(() => import('@/pages/Templates'));
+const CallLogs = lazy(() => import('@/pages/CallLogs'));
+const Notifications = lazy(() => import('@/pages/Notifications'));
+
+// Learning & Training
+const LearningCenter = lazy(() => import('@/pages/LearningCenter'));
+const Achievements = lazy(() => import('@/pages/Achievements'));
+const Certificates = lazy(() => import('@/pages/Certificates'));
+
+// Documents
+const Documents = lazy(() => import('@/pages/Documents'));
+const EContracts = lazy(() => import('@/pages/EContracts'));
+const Forms = lazy(() => import('@/pages/Forms'));
+const FullAgreement = lazy(() => import('@/pages/FullAgreement'));
+const InformationSheet = lazy(() => import('@/pages/InformationSheet'));
+const PowerOfAttorney = lazy(() => import('@/pages/PowerOfAttorney'));
+const ACHAuthorization = lazy(() => import('@/pages/ACHAuthorization'));
+const Addendums = lazy(() => import('@/pages/Addendums'));
+const DocumentStorage = lazy(() => import('@/pages/DocumentStorage'));
+
+// Business Tools
+const Companies = lazy(() => import('@/pages/Companies'));
+const Location = lazy(() => import('@/pages/Location'));
+const Invoices = lazy(() => import('@/pages/Invoices'));
+const Affiliates = lazy(() => import('@/pages/Affiliates'));
+const Billing = lazy(() => import('@/pages/Billing'));
+const Products = lazy(() => import('@/pages/Products'));
+
+// Scheduling
+const Calendar = lazy(() => import('@/pages/Calendar'));
+const Appointments = lazy(() => import('@/pages/Appointments'));
+const Tasks = lazy(() => import('@/pages/Tasks'));
+const Reminders = lazy(() => import('@/pages/Reminders'));
+
+// Analytics & Reports
+const Analytics = lazy(() => import('@/pages/Analytics'));
+const Reports = lazy(() => import('@/pages/Reports'));
+const Goals = lazy(() => import('@/pages/Goals'));
+
+// Resources
+const ResourcesArticles = lazy(() => import('@/pages/resources/Articles'));
+const ResourcesFAQ = lazy(() => import('@/pages/resources/FAQ'));
+
+// Mobile Apps
+const AppsOverview = lazy(() => import('@/pages/apps/Overview'));
+const AppsEmployee = lazy(() => import('@/pages/apps/Employee'));
+const AppsClient = lazy(() => import('@/pages/apps/Client'));
+const AppsAffiliate = lazy(() => import('@/pages/apps/Affiliate'));
+
+// Administration
+const Settings = lazy(() => import('@/pages/Settings'));
+const Team = lazy(() => import('@/pages/Team'));
+const DocumentCenter = lazy(() => import('@/pages/DocumentCenter'));
+const Roles = lazy(() => import('@/pages/Roles'));
+const UserRoles = lazy(() => import('@/pages/UserRoles'));
+const Integrations = lazy(() => import('@/pages/Integrations'));
+const Support = lazy(() => import('@/pages/Support'));
+const SystemMap = lazy(() => import('@/pages/SystemMap'));
+
+// White Label
+const WhiteLabelBranding = lazy(() => import('@/pages/whitelabel/Branding'));
+const WhiteLabelDomains = lazy(() => import('@/pages/whitelabel/Domains'));
+const WhiteLabelPlans = lazy(() => import('@/pages/whitelabel/Plans'));
+const WhiteLabelTenants = lazy(() => import('@/pages/whitelabel/Tenants'));
+
+// ============================================================================
+// PROTECTED ROUTE WRAPPER
+// ============================================================================
+const ProtectedRoute = ({ children, requiredRole = null }) => {
+  const { currentUser, userProfile, loading } = useAuth();
+
+  if (loading) {
+    return <LoadingFallback />;
+  }
+
+  if (!currentUser) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Check role if required
+  if (requiredRole) {
+    const userRole = userProfile?.role || currentUser?.role || 'user';
+    const allowedRoles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
+    
+    // Master admin can access everything
+    if (userRole === 'masterAdmin') {
+      return <>{children}</>;
+    }
+
+    // Admin can access admin routes
+    if (allowedRoles.includes('admin') && userRole === 'admin') {
+      return <>{children}</>;
+    }
+
+    // User role check
+    if (allowedRoles.includes('user')) {
+      return <>{children}</>;
+    }
+
+    // Unauthorized
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="text-center">
+          <div className="text-6xl mb-4">🔒</div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+            Access Denied
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            You don't have permission to access this page.
+          </p>
+          <a
+            href="/"
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-block"
+          >
+            Go to Dashboard
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+};
+
+// ============================================================================
+// PUBLIC ROUTE (redirects if already logged in)
+// ============================================================================
+const PublicRoute = ({ children }) => {
+  const { currentUser, loading } = useAuth();
+
+  if (loading) {
+    return <LoadingFallback />;
+  }
+
+  if (currentUser) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+// ============================================================================
+// APP CONTENT (ROUTES)
+// ============================================================================
+const AppContent = () => {
   return (
-    <BrowserRouter>
-      <ThemeProvider>
-        <NotificationProvider>
-          <AuthProvider>
-            <Suspense fallback={<div className="p-6">Loading…</div>}>
-              <Routes>
-                {/* Public auth routes (if any) */}
-                <Route path="/login" element={<Login />} />
-
-                {/* Protected application */}
-                <Route element={<ProtectedLayout />}>
-                  <Route index element={<Home />} />
-
-                  {/* ---- Document Center (single hub + legacy child routes) ---- */}
-                  <Route path="/documents" element={<DocumentCenter />} />
-                  <Route path="/documents/*" element={<DocumentCenter />} />
-
-                  {/* ---- Resources ---- */}
-                  <Route
-                    path="/resources/articles"
-                    element={<RoutePlaceholder
-                      title="Articles"
-                      description="Knowledge base articles for clients, DIY users, and staff. Search, categories, tags, and role-based visibility planned." />}
-                  />
-                  <Route
-                    path="/resources/faq"
-                    element={<RoutePlaceholder
-                      title="FAQ"
-                      description="Frequently asked questions with smart suggestions, links to articles, and contact options." />}
-                  />
-
-                  {/* ---- White Label ---- */}
-                  <Route
-                    path="/whitelabel/branding"
-                    element={<RoutePlaceholder
-                      title="White Label: Branding"
-                      description="Upload logos, pick brand colors, custom support email, and light/dark defaults per tenant." />}
-                  />
-                  <Route
-                    path="/whitelabel/domains"
-                    element={<RoutePlaceholder
-                      title="White Label: Domains"
-                      description="Connect custom domains/subdomains with guided DNS steps and automated SSL." />}
-                  />
-                  <Route
-                    path="/whitelabel/plans"
-                    element={<RoutePlaceholder
-                      title="White Label: Plans & Billing"
-                      description="Multi-tier plans, usage-based add-ons, billing portal integration, and coupons/affiliates." />}
-                  />
-                  <Route
-                    path="/whitelabel/tenants"
-                    element={<RoutePlaceholder
-                      title="White Label: Tenants"
-                      description="Provision, manage, and monitor tenant orgs. Role mapping, quotas, invoicing hooks." />}
-                  />
-
-                  {/* ---- Mobile Apps ---- */}
-                  <Route
-                    path="/apps/overview"
-                    element={<RoutePlaceholder
-                      title="Mobile Apps: Overview"
-                      description="iOS/Android strategy, release channels, feature parity, deep link routes, and SSO." />}
-                  />
-                  <Route
-                    path="/apps/employee"
-                    element={<RoutePlaceholder
-                      title="Employee App"
-                      description="Field tools: lead capture, tasking, notes, notifications, and call/text logging." />}
-                  />
-                  <Route
-                    path="/apps/client"
-                    element={<RoutePlaceholder
-                      title="Client App"
-                      description="Client progress tracking, dispute uploads, payments, messages, and reminders." />}
-                  />
-                  <Route
-                    path="/apps/affiliate"
-                    element={<RoutePlaceholder
-                      title="Affiliate App"
-                      description="Referrals, payouts, tracked links, and co-branded content library." />}
-                  />
-
-                  {/* ---- System Map ---- */}
-                  <Route path="/admin/system-map" element={<SystemMap />} />
-
-                  {/* Fallback inside the protected area */}
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Route>
-
-                {/* Catch-all (outside auth) */}
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
+    <Routes>
+      {/* Public Routes */}
+      <Route
+        path="/login"
+        element={
+          <PublicRoute>
+            <Suspense fallback={<LoadingFallback />}>
+              <Login />
             </Suspense>
+          </PublicRoute>
+        }
+      />
+      <Route
+        path="/register"
+        element={
+          <PublicRoute>
+            <Suspense fallback={<LoadingFallback />}>
+              <Register />
+            </Suspense>
+          </PublicRoute>
+        }
+      />
+      <Route
+        path="/forgot-password"
+        element={
+          <PublicRoute>
+            <Suspense fallback={<LoadingFallback />}>
+              <ForgotPassword />
+            </Suspense>
+          </PublicRoute>
+        }
+      />
+
+      {/* Protected Routes */}
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <ProtectedLayout />
+          </ProtectedRoute>
+        }
+      >
+        {/* Dashboard */}
+        <Route
+          index
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <Dashboard />
+            </Suspense>
+          }
+        />
+
+        {/* Contacts & CRM */}
+        <Route
+          path="contacts"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <Contacts />
+            </Suspense>
+          }
+        />
+        <Route
+          path="pipeline"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <Pipeline />
+            </Suspense>
+          }
+        />
+        <Route
+          path="import"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <ContactImport />
+            </Suspense>
+          }
+        />
+        <Route
+          path="export"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <ContactExport />
+            </Suspense>
+          }
+        />
+        <Route
+          path="contact-reports"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <ContactReports />
+            </Suspense>
+          }
+        />
+        <Route
+          path="segments"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <Segments />
+            </Suspense>
+          }
+        />
+
+        {/* Credit Management */}
+        <Route
+          path="credit-simulator"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <CreditSimulator />
+            </Suspense>
+          }
+        />
+        <Route
+          path="business-credit"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <BusinessCredit />
+            </Suspense>
+          }
+        />
+        <Route
+          path="credit-scores"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <CreditScores />
+            </Suspense>
+          }
+        />
+        <Route
+          path="dispute-letters"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <DisputeLetters />
+            </Suspense>
+          }
+        />
+        <Route
+          path="dispute-status"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <DisputeStatus />
+            </Suspense>
+          }
+        />
+        <Route
+          path="admin/dispute-admin-panel"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <Suspense fallback={<LoadingFallback />}>
+                <DisputeAdminPanel />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="credit-reports"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <CreditReports />
+            </Suspense>
+          }
+        />
+        <Route
+          path="credit-monitoring"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <CreditMonitoring />
+            </Suspense>
+          }
+        />
+
+        {/* Communication */}
+        <Route
+          path="letters"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <Letters />
+            </Suspense>
+          }
+        />
+        <Route
+          path="emails"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <Emails />
+            </Suspense>
+          }
+        />
+        <Route
+          path="sms"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <SMS />
+            </Suspense>
+          }
+        />
+        <Route
+          path="drip-campaigns"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <DripCampaigns />
+            </Suspense>
+          }
+        />
+        <Route
+          path="templates"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <Templates />
+            </Suspense>
+          }
+        />
+        <Route
+          path="call-logs"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <CallLogs />
+            </Suspense>
+          }
+        />
+        <Route
+          path="notifications"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <Notifications />
+            </Suspense>
+          }
+        />
+
+        {/* Learning & Training */}
+        <Route
+          path="learning-center"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <LearningCenter />
+            </Suspense>
+          }
+        />
+        <Route
+          path="achievements"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <Achievements />
+            </Suspense>
+          }
+        />
+        <Route
+          path="certificates"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <Certificates />
+            </Suspense>
+          }
+        />
+
+        {/* Documents */}
+        <Route
+          path="documents"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <Documents />
+            </Suspense>
+          }
+        />
+        <Route
+          path="econtracts"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <EContracts />
+            </Suspense>
+          }
+        />
+        <Route
+          path="forms"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <Forms />
+            </Suspense>
+          }
+        />
+        <Route
+          path="full-agreement"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <FullAgreement />
+            </Suspense>
+          }
+        />
+        <Route
+          path="information-sheet"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <InformationSheet />
+            </Suspense>
+          }
+        />
+        <Route
+          path="power-of-attorney"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <PowerOfAttorney />
+            </Suspense>
+          }
+        />
+        <Route
+          path="ach-authorization"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <ACHAuthorization />
+            </Suspense>
+          }
+        />
+        <Route
+          path="addendums"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <Addendums />
+            </Suspense>
+          }
+        />
+        <Route
+          path="document-storage"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <DocumentStorage />
+            </Suspense>
+          }
+        />
+
+        {/* Business Tools */}
+        <Route
+          path="companies"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <Companies />
+            </Suspense>
+          }
+        />
+        <Route
+          path="location"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <Location />
+            </Suspense>
+          }
+        />
+        <Route
+          path="invoices"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <Invoices />
+            </Suspense>
+          }
+        />
+        <Route
+          path="affiliates"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <Suspense fallback={<LoadingFallback />}>
+                <Affiliates />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="billing"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <Suspense fallback={<LoadingFallback />}>
+                <Billing />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="products"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <Suspense fallback={<LoadingFallback />}>
+                <Products />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Scheduling */}
+        <Route
+          path="calendar"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <Calendar />
+            </Suspense>
+          }
+        />
+        <Route
+          path="appointments"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <Appointments />
+            </Suspense>
+          }
+        />
+        <Route
+          path="tasks"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <Tasks />
+            </Suspense>
+          }
+        />
+        <Route
+          path="reminders"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <Reminders />
+            </Suspense>
+          }
+        />
+
+        {/* Analytics & Reports */}
+        <Route
+          path="analytics"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <Analytics />
+            </Suspense>
+          }
+        />
+        <Route
+          path="reports"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <Reports />
+            </Suspense>
+          }
+        />
+        <Route
+          path="goals"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <Goals />
+            </Suspense>
+          }
+        />
+
+        {/* Resources */}
+        <Route
+          path="resources/articles"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <ResourcesArticles />
+            </Suspense>
+          }
+        />
+        <Route
+          path="resources/faq"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <ResourcesFAQ />
+            </Suspense>
+          }
+        />
+
+        {/* Mobile Apps */}
+        <Route
+          path="apps/overview"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <Suspense fallback={<LoadingFallback />}>
+                <AppsOverview />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="apps/employee"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <Suspense fallback={<LoadingFallback />}>
+                <AppsEmployee />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="apps/client"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <Suspense fallback={<LoadingFallback />}>
+                <AppsClient />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="apps/affiliate"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <Suspense fallback={<LoadingFallback />}>
+                <AppsAffiliate />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Administration */}
+        <Route
+          path="settings"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <Settings />
+            </Suspense>
+          }
+        />
+        <Route
+          path="team"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <Suspense fallback={<LoadingFallback />}>
+                <Team />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="document-center"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <DocumentCenter />
+            </Suspense>
+          }
+        />
+        <Route
+          path="roles"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <Suspense fallback={<LoadingFallback />}>
+                <Roles />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="user-roles"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <Suspense fallback={<LoadingFallback />}>
+                <UserRoles />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="integrations"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <Suspense fallback={<LoadingFallback />}>
+                <Integrations />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="support"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <Support />
+            </Suspense>
+          }
+        />
+        <Route
+          path="system-map"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <Suspense fallback={<LoadingFallback />}>
+                <SystemMap />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* White Label */}
+        <Route
+          path="whitelabel/branding"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <Suspense fallback={<LoadingFallback />}>
+                <WhiteLabelBranding />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="whitelabel/domains"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <Suspense fallback={<LoadingFallback />}>
+                <WhiteLabelDomains />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="whitelabel/plans"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <Suspense fallback={<LoadingFallback />}>
+                <WhiteLabelPlans />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="whitelabel/tenants"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <Suspense fallback={<LoadingFallback />}>
+                <WhiteLabelTenants />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* 404 - Not Found */}
+        <Route
+          path="*"
+          element={
+            <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
+              <div className="text-center">
+                <div className="text-6xl mb-4">🔍</div>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                  Page Not Found
+                </h1>
+                <p className="text-gray-600 dark:text-gray-400 mb-4">
+                  The page you're looking for doesn't exist.
+                </p>
+                <a
+                  href="/"
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-block"
+                >
+                  Go to Dashboard
+                </a>
+              </div>
+            </div>
+          }
+        />
+      </Route>
+    </Routes>
+  );
+};
+
+// ============================================================================
+// MAIN APP COMPONENT
+// ============================================================================
+function App() {
+  return (
+    <ErrorBoundary>
+      <BrowserRouter>
+        <ThemeProvider>
+          <AuthProvider>
+            <NotificationProvider>
+              <AppContent />
+            </NotificationProvider>
           </AuthProvider>
-        </NotificationProvider>
-      </ThemeProvider>
-    </BrowserRouter>
+        </ThemeProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
+
+export default App;
