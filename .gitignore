@@ -12,9 +12,9 @@ node_modules/
 /dist
 
 # Sensitive files - NEVER commit these!
-*.json
 *-key.json
 *-admin-key.json
+*admin*.json
 .env
 .env.local
 .env.development.local
@@ -48,12 +48,8 @@ src_working_backup_*/
 .DS_Store
 Thumbs.db
 
-# Keep these JSON files
+# Keep these
 !package.json
 !package-lock.json
 !tsconfig.json
 !jsconfig.json
-backups/
-backup.config.json firebase.json package.json package-lock.json
-*-key.json
-*admin*.json

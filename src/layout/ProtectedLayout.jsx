@@ -44,21 +44,39 @@ const ProtectedLayout = () => {
   const [filteredNav, setFilteredNav] = useState([]);
   const [notificationCount, setNotificationCount] = useState(3); // Example notification count
 
-  // Initialize expanded groups based on defaults and current location
-  useEffect(() => {
-    const initialExpanded = {};
-    navigationItems.forEach(item => {
-      if (item.isGroup) {
-        // Check if current path is in this group
-        const isCurrentInGroup = item.items?.some(subItem => 
-          location.pathname === subItem.path
-        );
-        initialExpanded[item.id] = item.defaultExpanded || isCurrentInGroup || false;
-      }
-    });
-    setExpandedGroups(initialExpanded);
-  }, [location.pathname]);
+  // Initialize expanded groups ONLY on mount, not on every route change
+useEffect(() => {
+  const initialExpanded = {};
+  navigationItems.forEach(item => {
+    if (item.isGroup) {
+      // ONLY expand if current path is in this group
+      // IGNORE defaultExpanded to prevent auto-expansion
+      const isCurrentInGroup = item.items?.some(subItem => 
+        location.pathname === subItem.path
+      );
+      initialExpanded[item.id] = isCurrentInGroup;
+    }
+  });
+  setExpandedGroups(initialExpanded);
+}, []); // CHANGED: Empty dependency array - only run on mount!
 
+// Separate effect to handle route changes - only expand group containing current route
+useEffect(() => {
+  navigationItems.forEach(item => {
+    if (item.isGroup) {
+      const isCurrentInGroup = item.items?.some(subItem => 
+        location.pathname === subItem.path
+      );
+      if (isCurrentInGroup) {
+        // Only expand the group that contains the current path
+        setExpandedGroups(prev => ({
+          ...prev,
+          [item.id]: true
+        }));
+      }
+    }
+  });
+}, [location.pathname]); // This runs on route change
   // Filter navigation based on user role and search
   useEffect(() => {
     const userRole = userProfile?.role || user?.role || 'user';

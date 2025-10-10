@@ -5,6 +5,8 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import ProtectedLayout from '@/layout/ProtectedLayout';
+import CreditAnalysisEngine from '@/pages/CreditAnalysisEngine';
+import PredictiveAnalytics from '@/pages/PredictiveAnalytics';
 
 // ============================================================================
 // LOADING COMPONENT
@@ -75,6 +77,18 @@ const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'));
 
 // Dashboard
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
+const ClientDashboard = lazy(() => import('@/pages/ClientPortal/ClientDashboard'));
+
+
+// NEW: Admin Portal (Enhanced)
+const Portal = lazy(() => import('@/pages/Portal'));
+
+// NEW: Credit Report Workflow
+const CreditReportWorkflow = lazy(() => import('@/pages/CreditReportWorkflow'));
+
+// NEW: AI Review System
+const AIReviewDashboard = lazy(() => import('@/pages/AIReviewDashboard'));
+const AIReviewEditor = lazy(() => import('@/components/AIReviewEditor'));
 
 // Contacts & CRM
 const Contacts = lazy(() => import('@/pages/Contacts'));
@@ -277,6 +291,52 @@ const AppContent = () => {
           </PublicRoute>
         }
       />
+      {/* ============================================ */}
+{/* NEW: ADMIN PORTAL & AI REVIEW SYSTEM       */}
+{/* ============================================ */}
+<Route
+  path="portal"
+  element={
+    <ProtectedRoute requiredRole="admin">
+      <Suspense fallback={<LoadingFallback />}>
+        <Portal />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+<Route
+  path="credit-report-workflow"
+  element={
+    <ProtectedRoute requiredRole="admin">
+      <Suspense fallback={<LoadingFallback />}>
+        <CreditReportWorkflow />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+<Route
+  path="admin/ai-reviews"
+  element={
+    <ProtectedRoute requiredRole="admin">
+      <Suspense fallback={<LoadingFallback />}>
+        <AIReviewDashboard />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+<Route
+  path="admin/ai-reviews/:reviewId"
+  element={
+    <ProtectedRoute requiredRole="admin">
+      <Suspense fallback={<LoadingFallback />}>
+        <AIReviewEditor />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
 
       {/* Protected Routes */}
       <Route
@@ -296,7 +356,14 @@ const AppContent = () => {
             </Suspense>
           }
         />
-
+        <Route
+  path="client"
+  element={
+    <Suspense fallback={<LoadingFallback />}>
+      <ClientDashboard />
+    </Suspense>
+  }
+/>
         {/* Contacts & CRM */}
         <Route
           path="contacts"
@@ -414,6 +481,30 @@ const AppContent = () => {
             </Suspense>
           }
         />
+
+        {/* ============================================ */}
+{/* AI INTELLIGENCE - NEW SECTION */}
+{/* ============================================ */}
+<Route
+  path="credit-analysis"
+  element={
+    <ProtectedRoute requiredRole="admin">
+      <Suspense fallback={<LoadingFallback />}>
+        <CreditAnalysisEngine />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="predictive-analytics"
+  element={
+    <ProtectedRoute requiredRole="admin">
+      <Suspense fallback={<LoadingFallback />}>
+        <PredictiveAnalytics />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
 
         {/* Communication */}
         <Route

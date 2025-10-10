@@ -1,5 +1,5 @@
 // src/layout/navConfig.js
-// Complete, structured navigation with role filtering + new groups (Resources, White Label, Mobile Apps)
+// Complete navigation with Portal, Credit Workflow, and AI Reviews
 
 import {
   // core
@@ -26,19 +26,20 @@ import {
   // misc UI / utilities
   MapPin, AlertCircle,
 
-  // NEW (for your requested sections)
+  // White Label & Mobile
   Palette, Brush, Smartphone, Info,
 
-  // fix: missing icon
-  Briefcase
-} from 'lucide-react';
+  // AI Tools
+  Brain, Sparkles,
 
-/**
- * Permission semantics:
- * - omit `permission`: visible to all authenticated users
- * - 'user'            : visible to all authenticated users (explicit)
- * - 'admin'           : only for 'admin' and 'masterAdmin'
- */
+  // Business
+  Briefcase,
+  
+  // NEW: Portal & Workflow
+  LayoutDashboard,
+  FileUp,
+  ClipboardCheck
+} from 'lucide-react';
 
 export const navigationItems = [
   // --- Dashboard -------------------------------------------------------------
@@ -50,13 +51,46 @@ export const navigationItems = [
     permission: 'user'
   },
 
+  // === NEW: ADMIN COMMAND CENTER =============================================
+  {
+    id: 'admin-portal',
+    title: '🎯 Admin Portal',
+    path: '/portal',
+    icon: LayoutDashboard,
+    permission: 'admin',
+    badge: 'NEW',
+    description: '6-tab command center for complete system control'
+  },
+
+  // === NEW: CREDIT REPORT WORKFLOW ===========================================
+  {
+    id: 'credit-workflow',
+    title: 'Credit Report Workflow',
+    path: '/credit-report-workflow',
+    icon: FileUp,
+    permission: 'admin',
+    badge: 'NEW',
+    description: 'IDIQ API, Manual Entry, PDF Upload'
+  },
+
+  // === NEW: AI REVIEW SYSTEM =================================================
+  {
+    id: 'ai-reviews',
+    title: 'AI Review Dashboard',
+    path: '/admin/ai-reviews',
+    icon: Brain,
+    permission: 'admin',
+    badge: 'AI',
+    description: 'Review, approve, and send AI-generated credit analysis'
+  },
+
   // --- Contacts & CRM --------------------------------------------------------
   {
     id: 'contacts-group',
     title: 'Contacts & CRM',
     icon: Users,
     isGroup: true,
-    defaultExpanded: true,
+    defaultExpanded: false, // Changed from true to false!
     items: [
       { id: 'contacts',        title: 'All Contacts',      path: '/contacts',          icon: List,          permission: 'user' },
       { id: 'pipeline',        title: 'Pipeline',          path: '/pipeline',          icon: GitBranch,     permission: 'user', badge: 'NEW' },
@@ -83,6 +117,36 @@ export const navigationItems = [
       { id: 'dispute-admin-panel', title: 'Dispute Admin Panel',    path: '/admin/dispute-admin-panel', icon: Settings,  permission: 'admin' },
       { id: 'credit-reports',      title: 'Credit Reports',         path: '/credit-reports',        icon: FileSpreadsheet, permission: 'user' },
       { id: 'credit-monitoring',   title: 'Monitoring',             path: '/credit-monitoring',     icon: AlertCircle,   permission: 'user' }
+    ]
+  },
+
+  // === AI Intelligence =======================================================
+  {
+    id: 'ai-intelligence-group',
+    title: '🧠 AI Intelligence',
+    icon: Brain,
+    isGroup: true,
+    defaultExpanded: false,
+    permission: 'admin',
+    items: [
+      { 
+        id: 'credit-analysis', 
+        title: 'Credit Analysis Engine', 
+        path: '/credit-analysis', 
+        icon: Brain, 
+        permission: 'admin',
+        badge: 'AI',
+        description: 'AI-powered credit analysis and predictions'
+      },
+      { 
+        id: 'predictive-analytics', 
+        title: 'Predictive Analytics', 
+        path: '/predictive-analytics', 
+        icon: TrendingUp, 
+        permission: 'admin',
+        badge: 'NEW',
+        description: 'Revenue forecasting and churn prediction'
+      }
     ]
   },
 
@@ -184,7 +248,7 @@ export const navigationItems = [
     ]
   },
 
-  // === NEW: Resources (user-visible) ========================================
+  // --- Resources -------------------------------------------------------------
   {
     id: 'resources-group',
     title: 'Resources',
@@ -198,7 +262,7 @@ export const navigationItems = [
     ]
   },
 
-  // === NEW: Mobile Apps (admin) =============================================
+  // --- Mobile Apps -----------------------------------------------------------
   {
     id: 'mobile-apps-group',
     title: 'Mobile Apps',
@@ -224,7 +288,7 @@ export const navigationItems = [
     items: [
       { id: 'settings',     title: 'Settings',         path: '/settings',        icon: Settings, permission: 'user' },
       { id: 'team',         title: 'Team Management',  path: '/team',            icon: Users,    permission: 'admin' },
-      { id: 'document-center', title: 'Document Center', path: '/document-center', icon: FileText, badge: { content: 'AI', color: 'secondary' } },
+      { id: 'document-center', title: 'Document Center', path: '/document-center', icon: FileText, permission: 'user', badge: 'AI' },
       { id: 'roles',        title: 'Roles & Permissions', path: '/roles',        icon: Settings, permission: 'admin' },
       { id: 'user-roles',   title: 'User Role Manager',  path: '/user-roles',    icon: Users,    permission: 'admin' },
       { id: 'integrations', title: 'Integrations',     path: '/integrations',    icon: Zap,      permission: 'admin' },
@@ -233,8 +297,7 @@ export const navigationItems = [
     ]
   },
 
-  // === NEW: White Label (admin) =============================================
-  // Keeping as its own top-level group (cleaner; easy to hide by role)
+  // --- White Label -----------------------------------------------------------
   {
     id: 'white-label-group',
     title: 'White Label',
@@ -252,17 +315,13 @@ export const navigationItems = [
 ];
 
 /**
- * Role-aware view of navigation without mutating source.
- * - Preserves item order
- * - Applies group-level and item-level permission rules
- * - Returns a deep-cloned, filtered structure safe for rendering
+ * Role-aware view of navigation
  */
 export function filterNavigationByRole(items, userRole = 'user') {
   const canSee = (perm) => {
-    if (!perm) return true; // no restriction
-    if (perm === 'user') return true; // any authenticated user
+    if (!perm) return true;
+    if (perm === 'user') return true;
     if (perm === 'admin') return userRole === 'admin' || userRole === 'masterAdmin';
-    // allow arrays like ['admin', 'masterAdmin'] if you ever add them
     if (Array.isArray(perm)) return perm.includes(userRole);
     return false;
   };
