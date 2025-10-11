@@ -1,18 +1,89 @@
-﻿const functions = require('firebase-functions');
-const admin = require('firebase-admin');
-const cors = require('cors')({ origin: true }); // Primary CORS declaration
+﻿// functions/index.js - Firebase Cloud Functions for SpeedyCRM
+// VERSION: 2.0 - Enhanced with better error handling and organization
+// Last Updated: 2025-10-11
 
-// Initialize admin
+const functions = require('firebase-functions');
+const admin = require('firebase-admin');
+const cors = require('cors')({ origin: true });
+const fetch = require('node-fetch');
+const { OpenAI } = require('openai');
+
+// ============================================
+// FIREBASE ADMIN INITIALIZATION
+// ============================================
+// ✅ Simple auto-authentication - No serviceAccountKey.json needed!
 if (!admin.apps.length) {
   admin.initializeApp();
+  console.log('✅ Firebase Admin initialized successfully');
+}
+
+// ============================================
+// CONFIGURATION
+// ============================================
+
+// Master Admin UID (for secure operations)
+const MASTER_ADMIN_UID = "BgTAnHE4zMOLr4ZhBqCBfFb3h6D3";
+
+// IDIQ API Configuration
+const IDIQ_CONFIG = {
+  STAGE_BASE_URL: 'https://api-stage.identityiq.com/pif-service/',
+  PROD_BASE_URL: 'https://api.identityiq.com/pif-service/',
+  OFFER_CODE: process.env.IDIQ_OFFER_CODE || '4312869N',
+  PLAN_CODE: process.env.IDIQ_PLAN_CODE || 'PLAN03B'
+};
+
+const IDIQ_ENV = process.env.IDIQ_ENV || "stage";
+const IDIQ_PARTNER_TOKEN_PATH = process.env.IDIQ_PARTNER_TOKEN_PATH;
+
+// Allowed origins for CORS
+const ALLOW_ORIGINS = new Set([
+  "https://my-clever-crm--preview-auth-mba1x04f.web.app",
+  "https://my-clever-crm.web.app",
+  "https://my-clever-crm.firebaseapp.com",
+  "https://myclevercrm.com", // Added your custom domain
+  "http://localhost:5173",
+  "http://localhost:3000"
+]);
+
+// ============================================
+// UTILITY FUNCTIONS
+// ============================================
+
+/**
+ * Set CORS headers for HTTP functions
+ */
+function setCors(req, res) {
+  const origin = req.headers.origin;
+  if (origin && ALLOW_ORIGINS.has(origin)) {
+    res.set("Access-Control-Allow-Origin", origin);
+    res.set("Vary", "Origin");
+  } else {
+    res.set("Access-Control-Allow-Origin", "*");
+  }
+  res.set("Access-Control-Allow-Headers", "content-type, authorization");
+  res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.set("Access-Control-Max-Age", "3600");
+}
+
+/**
+ * Handle CORS preflight requests
+ */
+function handlePreflight(req, res) {
+  if (req.method === 'OPTIONS') {
+    setCors(req, res);
+    res.status(204).send('');
+    return true;
+  }
+  return false;
 }
 
 // ============================================
 // EMAIL TRACKING FUNCTIONS
 // ============================================
 
-// Email Open Tracking Pixel Endpoint
-// EXPLICITLY SET INVOKER TO PUBLIC to resolve deployment IAM error
+/**
+ * Track email opens via 1x1 tracking pixel
+ */
 exports.trackEmailOpen = functions.runWith({
   invoker: 'public'
 }).https.onRequest(async (req, res) => {
@@ -24,7 +95,8 @@ exports.trackEmailOpen = functions.runWith({
   }
 
   try {
-    const trackingQuery = await admin.firestore().collection('emailTracking')
+    const trackingQuery = await admin.firestore()
+      .collection('emailTracking')
       .where('trackingId', '==', trackingId)
       .limit(1)
       .get();
@@ -41,15 +113,20 @@ exports.trackEmailOpen = functions.runWith({
       });
       
       if (trackingData.emailId) {
-        await admin.firestore().collection('emails').doc(trackingData.emailId).update({
-          opened: true,
-          openedAt: trackingData.openedAt || admin.firestore.FieldValue.serverTimestamp(),
-          openCount: admin.firestore.FieldValue.increment(1)
-        });
+        await admin.firestore()
+          .collection('emails')
+          .doc(trackingData.emailId)
+          .update({
+            opened: true,
+            openedAt: trackingData.openedAt || admin.firestore.FieldValue.serverTimestamp(),
+            openCount: admin.firestore.FieldValue.increment(1)
+          });
       }
+      
+      console.log(`✅ Email opened: ${trackingId}`);
     }
   } catch (error) {
-    console.error('Error tracking email open:', error);
+    console.error('❌ Error tracking email open:', error);
   }
   
   // Return 1x1 transparent pixel
@@ -67,8 +144,9 @@ exports.trackEmailOpen = functions.runWith({
   res.end(pixel);
 });
 
-// Email Link Click Tracking
-// EXPLICITLY SET INVOKER TO PUBLIC to resolve deployment IAM error
+/**
+ * Track email link clicks
+ */
 exports.trackEmailClick = functions.runWith({
   invoker: 'public'
 }).https.onRequest(async (req, res) => {
@@ -82,7 +160,8 @@ exports.trackEmailClick = functions.runWith({
   }
 
   try {
-    const trackingQuery = await admin.firestore().collection('emailTracking')
+    const trackingQuery = await admin.firestore()
+      .collection('emailTracking')
       .where('trackingId', '==', trackingId)
       .limit(1)
       .get();
@@ -98,16 +177,19 @@ exports.trackEmailClick = functions.runWith({
         lastClickedAt: admin.firestore.FieldValue.serverTimestamp(),
         lastClickedLink: destinationUrl
       });
+      
+      console.log(`✅ Email clicked: ${trackingId} → ${destinationUrl}`);
     }
   } catch (error) {
-    console.error('Error tracking email click:', error);
+    console.error('❌ Error tracking email click:', error);
   }
   
   res.redirect(destinationUrl);
 });
 
-// Website Visitor Tracking
-// EXPLICITLY SET INVOKER TO PUBLIC to resolve deployment IAM error
+/**
+ * Track website visitor events
+ */
 exports.trackWebsite = functions.runWith({
   invoker: 'public'
 }).https.onRequest(async (req, res) => {
@@ -130,65 +212,34 @@ exports.trackWebsite = functions.runWith({
       
       res.json({ success: true });
     } catch (error) {
-      console.error('Error tracking website visitor:', error);
+      console.error('❌ Error tracking website visitor:', error);
       res.status(500).json({ error: 'Failed to track' });
     }
   });
 });
 
 // ============================================
-// IDIQ FUNCTIONS (Credential/Auth Helpers)
+// IDIQ INTEGRATION FUNCTIONS
 // ============================================
 
-const fetch = require('node-fetch');
-const { OpenAI } = require('openai');
-
-// Allowlist of front-end origins that may call our HTTP function (preview + prod + localhost)
-const ALLOW_ORIGINS = new Set([
-  "https://my-clever-crm--preview-auth-mba1x04f.web.app",
-  "https://my-clever-crm.web.app",
-  "https://my-clever-crm.firebaseapp.com",
-  "http://localhost:5173",
-  "http://localhost:3000"
-]);
-
-function setCors(req, res) {
-  const origin = req.headers.origin;
-  // Reflect allowed origin (or fall back to wildcard if origin is absent)
-  if (origin && ALLOW_ORIGINS.has(origin)) {
-    res.set("Access-Control-Allow-Origin", origin);
-    res.set("Vary", "Origin");
-  } else {
-    res.set("Access-Control-Allow-Origin", "*");
-  }
-  res.set("Access-Control-Allow-Headers", "content-type, authorization");
-  res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.set("Access-Control-Max-Age", "3600");
-}
-
-// IDIQ API Configuration
-const IDIQ_CONFIG = {
-  STAGE_BASE_URL: 'https://api-stage.identityiq.com/pif-service/',
-  PROD_BASE_URL: 'https://api.identityiq.com/pif-service/',
-  OFFER_CODE: process.env.IDIQ_OFFER_CODE || '4312869N',
-  PLAN_CODE: process.env.IDIQ_PLAN_CODE || 'PLAN03B'
-};
-
-const IDIQ_ENV = process.env.IDIQ_ENV || "stage"; // "stage" | "prod"
-const IDIQ_PARTNER_TOKEN_PATH = process.env.IDIQ_PARTNER_TOKEN_PATH;
-
+/**
+ * Get IDIQ Partner Token
+ */
 exports.getIDIQPartnerToken = functions.https.onRequest(async (req, res) => {
   setCors(req, res);
-  if (req.method === "OPTIONS") {
-    // Preflight
-    return res.status(204).send(""); // 204 No Content is ideal for preflight
-  }
+  if (handlePreflight(req, res)) return;
+
   try {
-  const partnerId = process.env.IDIQ_PARTNER_ID || functions.config().idiq?.partner_id || '';
-  const partnerSecret = process.env.IDIQ_PARTNER_SECRET || functions.config().idiq?.partner_secret || '';
-    if (!partnerId || !partnerSecret) throw new Error("Missing IDIQ credentials");
+    const partnerId = process.env.IDIQ_PARTNER_ID || functions.config().idiq?.partner_id || '';
+    const partnerSecret = process.env.IDIQ_PARTNER_SECRET || functions.config().idiq?.partner_secret || '';
+    
+    if (!partnerId || !partnerSecret) {
+      throw new Error("Missing IDIQ credentials");
+    }
+
     const idiqEnv = IDIQ_ENV;
     const base = idiqEnv === "prod" ? IDIQ_CONFIG.PROD_BASE_URL : IDIQ_CONFIG.STAGE_BASE_URL;
+    
     let candidates;
     if (IDIQ_PARTNER_TOKEN_PATH) {
       candidates = [base.replace(/\/+$/, "") + "/" + IDIQ_PARTNER_TOKEN_PATH.replace(/^\/+/, "")];
@@ -209,53 +260,43 @@ exports.getIDIQPartnerToken = functions.https.onRequest(async (req, res) => {
 
     let last = { status: 0, raw: "", url: "", parsed: null };
     let all404 = true;
+
     for (const fullUrl of candidates) {
-      // Use correct capitalization for the request body
       const requestBody = {
         partnerId: partnerId,
         partnerSecret: partnerSecret
       };
-      // Log request details (partially masked)
-      console.log('IDIQ Request Details:', {
+
+      console.log('🔍 IDIQ Request:', {
         url: fullUrl,
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: {
-          partnerId: partnerId.substring(0, 4) + '***',
-          partnerSecret: 'LENGTH:' + partnerSecret.length
-        }
+        partnerId: partnerId.substring(0, 4) + '***',
+        secretLength: partnerSecret.length
       });
-      // Optionally add extra headers if required by IDIQ
-      const extraHeaders = {};
-      // Uncomment and set if needed:
-      // extraHeaders['API-Version'] = '1.0';
-      // extraHeaders['X-Partner-ID'] = partnerId;
-      // extraHeaders['Authorization'] = `Bearer ${partnerSecret}`;
+
       const r = await fetch(fullUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Accept": "application/json",
-          ...extraHeaders
+          "Accept": "application/json"
         },
         body: JSON.stringify(requestBody),
       });
+
       const raw = await r.text();
-      // Log response details
-      console.log('IDIQ Response:', {
-        status: r.status,
-        statusText: r.statusText,
-        headers: Object.fromEntries(r.headers.entries()),
-        body: raw
-      });
       let data = null;
-      try { data = raw ? JSON.parse(raw) : null; } catch { /* non-JSON */ }
+      
+      try {
+        data = raw ? JSON.parse(raw) : null;
+      } catch (e) {
+        console.error('❌ Non-JSON response:', raw.substring(0, 200));
+      }
+
       last = { status: r.status, raw, url: fullUrl, parsed: data };
-      // Success shape (token present)
+
       const token = data?.token || data?.access_token || data?.partnerToken;
+      
       if (r.ok && token) {
+        console.log('✅ IDIQ Token received successfully');
         return res.status(200).json({
           success: true,
           token,
@@ -264,6 +305,7 @@ exports.getIDIQPartnerToken = functions.https.onRequest(async (req, res) => {
           environment: idiqEnv
         });
       }
+
       if (r.status !== 404) all404 = false;
       if (r.status === 404) continue;
       break;
@@ -276,51 +318,65 @@ exports.getIDIQPartnerToken = functions.https.onRequest(async (req, res) => {
       vendorRaw: (last.raw || "").slice(0, 500),
       environment: idiqEnv
     };
+
     if (all404) {
       errorResponse.suggestion = "Try setting IDIQ_ENV=prod to test production endpoints";
     }
-    console.error("[IDIQ partner-token] failed", last.status, last.url, last.raw?.slice(0, 500));
+
+    console.error('❌ IDIQ token failed:', last.status, last.url);
     return res.status(502).json(errorResponse);
+
   } catch (error) {
-    console.error('IDIQ partner token error:', error);
+    console.error('❌ IDIQ partner token error:', error);
     res.status(500).json({ error: error.message, environment: IDIQ_ENV });
   }
 });
 
-// Callable: getIDIQPartnerTokenCallable
+/**
+ * Get IDIQ Partner Token (Callable version)
+ */
 exports.getIDIQPartnerTokenCallable = functions.https.onCall(async (data, context) => {
   const partnerId = process.env.IDIQ_PARTNER_ID || functions.config().idiq?.partner_id || '';
   const partnerSecret = process.env.IDIQ_PARTNER_SECRET || functions.config().idiq?.partner_secret || '';
-  if (!partnerId || !partnerSecret) throw new functions.https.HttpsError("failed-precondition", "Missing IDIQ credentials");
+  
+  if (!partnerId || !partnerSecret) {
+    throw new functions.https.HttpsError("failed-precondition", "Missing IDIQ credentials");
+  }
+
   try {
     const response = await fetch(`${IDIQ_CONFIG.STAGE_BASE_URL}v1/enrollment/partner-token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ partnerId, partnerSecret })
     });
+
     const result = await response.json();
-    if (response.status === 200) {
-      return { success: true, token: result.accessToken, expiresIn: result.expiresIn };
+
+    if (response.ok) {
+      return {
+        success: true,
+        token: result.accessToken,
+        expiresIn: result.expiresIn
+      };
     } else {
       throw new functions.https.HttpsError("internal", result.message || 'Unknown error');
     }
   } catch (error) {
-    console.error('IDIQ partner token error:', error);
+    console.error('❌ IDIQ token error:', error);
     throw new functions.https.HttpsError("internal", error.message);
   }
 });
 
-// Enroll Member in IDIQ
+/**
+ * Enroll Member in IDIQ
+ */
 exports.enrollIDIQMember = functions.https.onRequest(async (req, res) => {
-  res.set('Access-Control-Allow-Origin', '*');
-  res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  if (req.method === 'OPTIONS') {
-    res.status(200).send('');
-    return;
-  }
+  setCors(req, res);
+  if (handlePreflight(req, res)) return;
+
   try {
     const { partnerToken, memberData } = req.body;
+
     const enrollmentData = {
       birthDate: memberData.birthDate,
       email: memberData.email,
@@ -335,6 +391,7 @@ exports.enrollIDIQMember = functions.https.onRequest(async (req, res) => {
       state: memberData.state,
       zip: memberData.zip
     };
+
     const response = await fetch(`${IDIQ_CONFIG.STAGE_BASE_URL}v1/enrollment/enroll`, {
       method: 'POST',
       headers: {
@@ -343,220 +400,228 @@ exports.enrollIDIQMember = functions.https.onRequest(async (req, res) => {
       },
       body: JSON.stringify(enrollmentData)
     });
-    if (response.status === 200) {
+
+    if (response.ok) {
+      console.log('✅ Member enrolled:', memberData.email);
       res.json({ success: true, message: 'Member enrolled successfully' });
     } else {
       const error = await response.json();
+      console.error('❌ Enrollment failed:', error);
       res.status(500).json({ error: error.message || 'Unknown error' });
     }
   } catch (error) {
-    console.error('IDIQ enrollment error:', error);
+    console.error('❌ IDIQ enrollment error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Get Member Token
+/**
+ * Get Member Token
+ */
 exports.getIDIQMemberToken = functions.https.onRequest(async (req, res) => {
-  res.set('Access-Control-Allow-Origin', '*');
-  res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  if (req.method === 'OPTIONS') {
-    res.status(200).send('');
-    return;
-  }
+  setCors(req, res);
+  if (handlePreflight(req, res)) return;
+
   try {
     const { partnerToken, memberEmail } = req.body;
+
     const response = await fetch(`${IDIQ_CONFIG.STAGE_BASE_URL}v1/enrollment/partner-member-token`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${partnerToken}`
       },
-      body: JSON.stringify({ memberEmail: memberEmail })
+      body: JSON.stringify({ memberEmail })
     });
+
     const result = await response.json();
-    if (response.status === 200) {
-      res.json({ success: true, memberToken: result.accessToken, expiresIn: result.expiresIn });
+
+    if (response.ok) {
+      res.json({
+        success: true,
+        memberToken: result.accessToken,
+        expiresIn: result.expiresIn
+      });
     } else {
       res.status(500).json({ error: result.message || 'Unknown error' });
     }
   } catch (error) {
-    console.error('IDIQ member token error:', error);
+    console.error('❌ IDIQ member token error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Get Verification Questions
+/**
+ * Get Verification Questions
+ */
 exports.getVerificationQuestions = functions.https.onRequest(async (req, res) => {
-  res.set('Access-Control-Allow-Origin', '*');
-  res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  if (req.method === 'OPTIONS') {
-    res.status(200).send('');
-    return;
-  }
+  setCors(req, res);
+  if (handlePreflight(req, res)) return;
+
   try {
     const { memberToken } = req.body;
+
     const response = await fetch(`${IDIQ_CONFIG.STAGE_BASE_URL}v1/enrollment/verification-questions`, {
       method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${memberToken}`
-      }
+      headers: { 'Authorization': `Bearer ${memberToken}` }
     });
+
     const result = await response.json();
-    if (response.status === 200 && result.isSuccess) {
+
+    if (response.ok && result.isSuccess) {
       res.json({ success: true, questions: result.questions });
     } else {
       res.status(500).json({ error: result.message || 'Unknown error' });
     }
   } catch (error) {
-    console.error('IDIQ verification questions error:', error);
+    console.error('❌ IDIQ verification questions error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Submit Verification Answers
+/**
+ * Submit Verification Answers
+ */
 exports.submitVerificationAnswers = functions.https.onRequest(async (req, res) => {
-  res.set('Access-Control-Allow-Origin', '*');
-  res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  if (req.method === 'OPTIONS') {
-    res.status(200).send('');
-    return;
-  }
+  setCors(req, res);
+  if (handlePreflight(req, res)) return;
+
   try {
     const { memberToken, answers } = req.body;
+
     const response = await fetch(`${IDIQ_CONFIG.STAGE_BASE_URL}v1/enrollment/verification-questions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${memberToken}`
       },
-      body: JSON.stringify({ answers: answers })
+      body: JSON.stringify({ answers })
     });
+
     const result = await response.json();
-    if (response.status === 200) {
+
+    if (response.ok) {
       res.json({ success: true, verificationResult: result });
     } else {
       res.status(500).json({ error: result.message || 'Unknown error' });
     }
   } catch (error) {
-    console.error('IDIQ verification error:', error);
+    console.error('❌ IDIQ verification error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Generate IDIQ Dashboard URL
+/**
+ * Generate IDIQ Dashboard URL
+ */
 exports.getIDIQDashboardURL = functions.https.onRequest(async (req, res) => {
-  res.set('Access-Control-Allow-Origin', '*');
-  res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  if (req.method === 'OPTIONS') {
-    res.status(200).send('');
-    return;
-  }
+  setCors(req, res);
+  if (handlePreflight(req, res)) return;
+
   try {
     const { memberToken } = req.body;
     const dashboardURL = `https://gcpstage.identityiq.com/?Token=${memberToken}&isMobileApp=false&redirect=Dashboard.aspx`;
-    res.json({ success: true, dashboardURL: dashboardURL });
+    res.json({ success: true, dashboardURL });
   } catch (error) {
-    console.error('IDIQ dashboard URL error:', error);
+    console.error('❌ IDIQ dashboard URL error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Get Credit Score
+/**
+ * Get Credit Score
+ */
 exports.getIDIQCreditScore = functions.https.onRequest(async (req, res) => {
-  res.set('Access-Control-Allow-Origin', '*');
-  res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  if (req.method === 'OPTIONS') {
-    res.status(200).send('');
-    return;
-  }
+  setCors(req, res);
+  if (handlePreflight(req, res)) return;
+
   try {
     const { memberToken } = req.body;
+
     const response = await fetch(`${IDIQ_CONFIG.STAGE_BASE_URL}v1/credit-score`, {
       method: 'GET',
       headers: { 'Authorization': `Bearer ${memberToken}` }
     });
+
     const result = await response.json();
-    if (response.status === 200) {
+
+    if (response.ok) {
       res.json({ success: true, score: result.score, date: result.date });
     } else {
       res.status(500).json({ error: 'Failed to retrieve credit score' });
     }
   } catch (error) {
-    console.error('IDIQ credit score error:', error);
+    console.error('❌ IDIQ credit score error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Get Quick View Report
+/**
+ * Get Quick View Report
+ */
 exports.getIDIQQuickViewReport = functions.https.onRequest(async (req, res) => {
-  res.set('Access-Control-Allow-Origin', '*');
-  res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  if (req.method === 'OPTIONS') {
-    res.status(200).send('');
-    return;
-  }
+  setCors(req, res);
+  if (handlePreflight(req, res)) return;
+
   try {
     const { memberToken } = req.body;
+
     const response = await fetch(`${IDIQ_CONFIG.STAGE_BASE_URL}v1/quick-view-report`, {
       method: 'GET',
       headers: { 'Authorization': `Bearer ${memberToken}` }
     });
+
     const result = await response.json();
-    if (response.status === 200) {
+
+    if (response.ok) {
       res.json({ success: true, reportData: result });
     } else {
       res.status(500).json({ error: 'Failed to retrieve quick view report' });
     }
   } catch (error) {
-    console.error('IDIQ quick view report error:', error);
+    console.error('❌ IDIQ quick view report error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Get Full Credit Report
+/**
+ * Get Full Credit Report
+ */
 exports.getIDIQCreditReport = functions.https.onRequest(async (req, res) => {
-  res.set('Access-Control-Allow-Origin', '*');
-  res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  if (req.method === 'OPTIONS') {
-    res.status(200).send('');
-    return;
-  }
+  setCors(req, res);
+  if (handlePreflight(req, res)) return;
+
   try {
     const { memberToken } = req.body;
+
     const response = await fetch(`${IDIQ_CONFIG.STAGE_BASE_URL}v1/credit-report`, {
       method: 'GET',
       headers: { 'Authorization': `Bearer ${memberToken}` }
     });
+
     const result = await response.json();
-    if (response.status === 200) {
+
+    if (response.ok) {
       res.json({ success: true, reportData: result });
     } else {
       res.status(500).json({ error: 'Failed to retrieve credit report' });
     }
   } catch (error) {
-    console.error('IDIQ credit report error:', error);
+    console.error('❌ IDIQ credit report error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Submit Dispute
+/**
+ * Submit Dispute
+ */
 exports.submitIDIQDispute = functions.https.onRequest(async (req, res) => {
-  res.set('Access-Control-Allow-Origin', '*');
-  res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  if (req.method === 'OPTIONS') {
-    res.status(200).send('');
-    return;
-  }
+  setCors(req, res);
+  if (handlePreflight(req, res)) return;
+
   try {
     const { memberToken, disputeData } = req.body;
+
     const response = await fetch(`${IDIQ_CONFIG.STAGE_BASE_URL}v1/dispute/submit`, {
       method: 'POST',
       headers: {
@@ -565,138 +630,159 @@ exports.submitIDIQDispute = functions.https.onRequest(async (req, res) => {
       },
       body: JSON.stringify(disputeData)
     });
+
     const result = await response.json();
-    if (response.status === 200) {
+
+    if (response.ok) {
       res.json({ success: true, disputeResult: result });
     } else {
       res.status(500).json({ error: 'Failed to submit dispute' });
     }
   } catch (error) {
-    console.error('IDIQ dispute submission error:', error);
+    console.error('❌ IDIQ dispute submission error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Get Dispute Status
+/**
+ * Get Dispute Status
+ */
 exports.getIDIQDisputeStatus = functions.https.onRequest(async (req, res) => {
-  res.set('Access-Control-Allow-Origin', '*');
-  res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  if (req.method === 'OPTIONS') {
-    res.status(200).send('');
-    return;
-  }
+  setCors(req, res);
+  if (handlePreflight(req, res)) return;
+
   try {
     const { memberToken, disputeId } = req.body;
+
     const response = await fetch(`${IDIQ_CONFIG.STAGE_BASE_URL}v1/dispute/${disputeId}/status`, {
       method: 'GET',
       headers: { 'Authorization': `Bearer ${memberToken}` }
     });
+
     const result = await response.json();
-    if (response.status === 200) {
+
+    if (response.ok) {
       res.json({ success: true, disputeStatus: result });
     } else {
       res.status(500).json({ error: 'Failed to get dispute status' });
     }
   } catch (error) {
-    console.error('IDIQ dispute status error:', error);
+    console.error('❌ IDIQ dispute status error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Test Function
-exports.testFunction = functions.runWith({
-  invoker: 'public'
-}).https.onRequest((req, res) => {
-  res.set('Access-Control-Allow-Origin', '*');
-  res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.set('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') {
-    res.status(204).send('');
-    return;
-  }
-  res.json({ 
-    status: 'success', 
-    message: 'Firebase Functions are working!',
-    timestamp: new Date().toISOString()
-  });
-});
+// ============================================
+// ADMIN FUNCTIONS
+// ============================================
 
-// Replace with MY UID (I can get it from auth.currentUser.uid in console)
-const MASTER_ADMIN_UID = "BgTAnHE4zMOLr4ZhBqCBfFb3h6D3";
-
+/**
+ * Set User Custom Claims (Master Admin Only)
+ */
 exports.setUserClaims = functions.https.onCall(async (data, context) => {
-  // CORS is handled automatically for onCall functions by Firebase
-  if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "Sign in first.");
-  if (context.auth.uid !== MASTER_ADMIN_UID) throw new functions.https.HttpsError("permission-denied", "Admins only.");
+  if (!context.auth) {
+    throw new functions.https.HttpsError("unauthenticated", "Sign in first.");
+  }
+
+  if (context.auth.uid !== MASTER_ADMIN_UID) {
+    throw new functions.https.HttpsError("permission-denied", "Master admin access required.");
+  }
 
   const { email, claims } = data;
-  if (!email || !claims) throw new functions.https.HttpsError("invalid-argument", "Provide email + claims.");
 
-  const user = await admin.auth().getUserByEmail(email);
-  await admin.auth().setCustomUserClaims(user.uid, claims);
-  return { ok: true, uid: user.uid, claims };
+  if (!email || !claims) {
+    throw new functions.https.HttpsError("invalid-argument", "Provide email and claims.");
+  }
+
+  try {
+    const user = await admin.auth().getUserByEmail(email);
+    await admin.auth().setCustomUserClaims(user.uid, claims);
+    
+    console.log(`✅ Claims set for ${email}:`, claims);
+    return { ok: true, uid: user.uid, claims };
+  } catch (error) {
+    console.error('❌ Error setting claims:', error);
+    throw new functions.https.HttpsError("internal", error.message);
+  }
 });
 
-// AI Receptionist Lead Scoring Endpoint
+// ============================================
+// AI RECEPTIONIST FUNCTIONS
+// ============================================
+
+/**
+ * AI Lead Scoring
+ */
 exports.scoreLead = functions.https.onRequest(async (req, res) => {
   setCors(req, res);
-  if (req.method === 'OPTIONS') return res.status(204).send('');
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Use POST' });
+  if (handlePreflight(req, res)) return;
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Use POST' });
+  }
+
   try {
     const { lead } = req.body;
+
     if (!lead || !lead.transcript) {
       return res.status(400).json({ error: 'Missing lead transcript' });
     }
-    // Use OpenAI to analyze transcript and score lead
-    const apiKey = functions.config().openai?.key;
-    if (!apiKey) return res.status(500).json({ error: 'Missing OpenAI key in functions config (openai.key)' });
+
+    const apiKey = functions.config().openai?.key || process.env.OPENAI_API_KEY;
+    
+    if (!apiKey) {
+      return res.status(500).json({ error: 'Missing OpenAI API key' });
+    }
+
     const client = new OpenAI({ apiKey });
-    const prompt = `Analyze this transcript and score the lead from 0-100 for sales readiness.\nTranscript:\n${lead.transcript}`;
+
+    const prompt = `Analyze this call transcript and score the lead from 0-100 for sales readiness.\nTranscript:\n${lead.transcript}`;
+
     const completion = await client.chat.completions.create({
-      model: 'gpt-4.1-mini',
+      model: 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: 'You are a lead scoring expert.' },
+        { role: 'system', content: 'You are a lead scoring expert. Analyze transcripts and provide a numerical score from 0-100.' },
         { role: 'user', content: prompt }
       ],
       temperature: 0.3,
       max_tokens: 100,
     });
+
     const text = completion.choices?.[0]?.message?.content ?? '';
-    // Try to extract score from response
     const score = parseInt(text.match(/\d+/)?.[0] || '50', 10);
-    return res.status(200).json({ score, raw: text });
-  } catch (err) {
-    console.error('Lead scoring error', err);
-    return res.status(500).json({ error: 'Failed to score lead', detail: err.message || String(err) });
+
+    console.log(`✅ Lead scored: ${score}/100`);
+    return res.status(200).json({ score, analysis: text });
+
+  } catch (error) {
+    console.error('❌ Lead scoring error:', error);
+    return res.status(500).json({ error: 'Failed to score lead', detail: error.message });
   }
 });
 
-// MyAIFrontDesk Webhook Handler
+/**
+ * MyAIFrontDesk Webhook Handler
+ */
 exports.aiWebhook = functions.runWith({
   invoker: 'public'
 }).https.onRequest(async (req, res) => {
-  // Add CORS headers
-  res.set('Access-Control-Allow-Origin', '*');
-  res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.set('Access-Control-Allow-Headers', 'Content-Type');
-  // Handle preflight requests
-  if (req.method === 'OPTIONS') {
-    res.status(204).send('');
-    return;
-  }
-  console.log('MyAIFrontDesk webhook received at:', new Date().toISOString());
-  console.log('Request body:', JSON.stringify(req.body));
+  setCors(req, res);
+  if (handlePreflight(req, res)) return;
+
+  console.log('📞 AI Receptionist webhook received:', new Date().toISOString());
+
   try {
-    // Create the aiReceptionistCalls collection if it doesn't exist
-    // and add the webhook data
-    const docRef = await admin.firestore().collection('aiReceptionistCalls').add({
-      ...req.body,
-      receivedAt: admin.firestore.FieldValue.serverTimestamp(),
-      processed: false
-    });
-    console.log('Webhook data saved with ID:', docRef.id);
-    // Also create a lead if name or email exists
+    const docRef = await admin.firestore()
+      .collection('aiReceptionistCalls')
+      .add({
+        ...req.body,
+        receivedAt: admin.firestore.FieldValue.serverTimestamp(),
+        processed: false
+      });
+
+    console.log('✅ Webhook saved:', docRef.id);
+
+    // Create lead if contact info exists
     if (req.body.name || req.body.email) {
       await admin.firestore().collection('contacts').add({
         name: req.body.name || 'Unknown',
@@ -706,47 +792,51 @@ exports.aiWebhook = functions.runWith({
         source: 'AI Receptionist',
         createdAt: admin.firestore.FieldValue.serverTimestamp()
       });
-      console.log('Lead created in contacts');
+      
+      console.log('✅ Lead created');
     }
+
     res.status(200).json({ success: true, id: docRef.id });
+
   } catch (error) {
-    console.error('Webhook error:', error);
+    console.error('❌ Webhook error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Process AI Receptionist Calls into Contacts (Keep this at the end)
+/**
+ * Process AI Receptionist Calls (Firestore Trigger)
+ */
 exports.processAIReceptionistCall = functions.firestore
   .document('aiReceptionistCalls/{docId}')
   .onCreate(async (snap, context) => {
     const data = snap.data();
     const docId = context.params.docId;
     
-    console.log('Processing new AI call:', docId);
+    console.log('🔄 Processing AI call:', docId);
     
     try {
-      // Skip if already processed
       if (data.processed) {
-        console.log('Call already processed, skipping');
+        console.log('⏭️ Already processed, skipping');
         return null;
       }
 
-      // Extract caller information from intake forms
+      // Extract caller info
       const callerName = data['Intake Form: May I ask for your full name so I may help you with better accuracy?'] || 
                         data.name || 'Unknown';
       const callerEmail = data['Intake Form: Can you say or spell out your email address please?'] || 
                          data.email || '';
       const callerPhone = data.caller || '';
       
-      // Clean up spelled-out email
+      // Clean email
       let cleanEmail = callerEmail.toLowerCase()
         .replace(/\s+at\s+/g, '@')
         .replace(/\s+dot\s+/g, '.')
         .replace(/\s+/g, '');
       
-      console.log('Extracted - Name:', callerName, 'Email:', cleanEmail, 'Phone:', callerPhone);
+      console.log('📋 Extracted - Name:', callerName, 'Email:', cleanEmail, 'Phone:', callerPhone);
       
-      // Basic lead scoring
+      // Calculate lead score
       let leadScore = 5;
       const duration = parseInt(data.duration) || 0;
       
@@ -767,7 +857,7 @@ exports.processAIReceptionistCall = functions.firestore
         phone: callerPhone.replace(/\D/g, ''),
         category: 'lead',
         leadScore: Math.min(10, leadScore),
-        urgencyLevel: urgencyLevel,
+        urgencyLevel,
         source: 'ai-receptionist',
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         lastActivityDate: admin.firestore.FieldValue.serverTimestamp(),
@@ -779,49 +869,50 @@ exports.processAIReceptionistCall = functions.firestore
       
       // Check for existing contact
       let existingContact = null;
+      
       if (callerPhone) {
-        const phoneQuery = await admin.firestore().collection('contacts')
+        const phoneQuery = await admin.firestore()
+          .collection('contacts')
           .where('phone', '==', contactData.phone)
           .limit(1)
           .get();
         
         if (!phoneQuery.empty) {
           existingContact = phoneQuery.docs[0];
-          console.log('Found existing contact:', existingContact.id);
+          console.log('👤 Found existing contact:', existingContact.id);
         }
       }
       
       if (existingContact) {
-        // Update existing contact
         await existingContact.ref.update({
           lastActivityDate: admin.firestore.FieldValue.serverTimestamp(),
           leadScore: contactData.leadScore,
           urgencyLevel: contactData.urgencyLevel
         });
-        console.log('Updated existing contact');
+        console.log('✅ Updated existing contact');
       } else {
-        // CREATE NEW CONTACT - THIS IS THE CRITICAL PART
-        const newContactRef = await admin.firestore().collection('contacts').add(contactData);
-        console.log('Created new contact:', newContactRef.id);
+        const newContactRef = await admin.firestore()
+          .collection('contacts')
+          .add(contactData);
+        console.log('✅ Created new contact:', newContactRef.id);
       }
       
-      // Mark call as processed
+      // Mark as processed
       await snap.ref.update({
         processed: true,
         processedAt: admin.firestore.FieldValue.serverTimestamp(),
-        leadScore: leadScore,
+        leadScore,
         category: 'lead',
-        urgencyLevel: urgencyLevel,
-        callerName: callerName
+        urgencyLevel,
+        callerName
       });
       
-      console.log('Successfully processed call and created/updated contact');
+      console.log('✅ Successfully processed call');
       return { success: true };
       
     } catch (error) {
-      console.error('Error processing call:', error);
+      console.error('❌ Error processing call:', error);
       
-      // Mark as failed
       await snap.ref.update({
         processed: false,
         processingError: error.message,
@@ -831,3 +922,26 @@ exports.processAIReceptionistCall = functions.firestore
       return null;
     }
   });
+
+// ============================================
+// TEST FUNCTION
+// ============================================
+
+/**
+ * Simple test endpoint to verify functions are working
+ */
+exports.testFunction = functions.runWith({
+  invoker: 'public'
+}).https.onRequest((req, res) => {
+  setCors(req, res);
+  if (handlePreflight(req, res)) return;
+
+  res.json({ 
+    status: 'success', 
+    message: '✅ Firebase Functions are working perfectly!',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'production'
+  });
+});
+
+console.log('🚀 SpeedyCRM Functions loaded successfully!');
