@@ -63,3 +63,5 @@ Thumbs.db
 !package-lock.json
 !tsconfig.json
 !jsconfig.json
+functions/serviceAccountKey.json
+serviceAccountKey.json
