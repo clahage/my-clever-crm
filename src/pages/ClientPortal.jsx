@@ -12,6 +12,16 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 
+// MUI Timeline (from @mui/lab)
+import Timeline from '@mui/lab/Timeline';
+import TimelineItem from '@mui/lab/TimelineItem';
+import TimelineSeparator from '@mui/lab/TimelineSeparator';
+import TimelineConnector from '@mui/lab/TimelineConnector';
+import TimelineContent from '@mui/lab/TimelineContent';
+import TimelineOppositeContent from '@mui/lab/TimelineOppositeContent';
+import TimelineDot from '@mui/lab/TimelineDot';
+
+
 // Material-UI Components
 import {
   Box, Paper, Typography, Button, TextField, IconButton, Grid, Card,

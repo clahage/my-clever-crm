@@ -1,104 +1,100 @@
-// src/pages/SystemMap.jsx - Fixed version with error handling
+// src/pages/SystemMap.jsx - AUTO-UPDATING System Architecture Map
+// VERSION: 2.0 - Added Auto-Scan Feature
 import React, { useMemo, useRef, useState, useEffect, useCallback } from "react";
-import { Database, Search, RefreshCw, ZoomIn, Filter } from 'lucide-react';
+import { Database, Search, RefreshCw, ZoomIn, Filter, Download, Upload } from 'lucide-react';
 
-// Color scheme by layer
+// Color scheme
 const typeColor = {
-  layout: "#3B82F6",      // blue
-  page: "#10B981",        // emerald
-  component: "#F59E0B",   // amber
-  context: "#8B5CF6",     // violet
-  service: "#EF4444",     // red
-  hook: "#06B6D4",        // cyan
-  lib: "#64748B",         // slate
-  other: "#94A3B8"        // slate-light
+  layout: "#3B82F6",
+  page: "#10B981",
+  component: "#F59E0B",
+  context: "#8B5CF6",
+  service: "#EF4444",
+  hook: "#06B6D4",
+  lib: "#64748B",
+  other: "#94A3B8"
 };
 
 const defaultCategories = [
   "layout", "page", "component", "context", "service", "hook", "lib", "other"
 ];
 
-// Hand-curated system architecture graph
-function makeInitialGraph() {
-  const nodes = [
-    // Layout / Navigation
-    { id: "App.jsx", type: "layout" },
-    { id: "ProtectedLayout.jsx", type: "layout" },
-    { id: "Sidebar.jsx", type: "layout" },
-    { id: "Topbar.jsx", type: "layout" },
-    { id: "TopNav.jsx", type: "layout" },
-    { id: "navConfig.js", type: "layout" },
+// ============================================================================
+// AUTO-GENERATE GRAPH FROM APP.JSX
+// ============================================================================
+function autoGenerateGraph() {
+  const nodes = [];
+  const links = [];
+  const nodeSet = new Set();
 
-    // Contexts
-    { id: "AuthContext.jsx", type: "context" },
-    { id: "NotificationContext.jsx", type: "context" },
-    { id: "ThemeContext.jsx", type: "context" },
+  const addNode = (id, type) => {
+    if (!nodeSet.has(id)) {
+      nodeSet.add(id);
+      nodes.push({ id, type });
+    }
+  };
 
-    // Lib
-    { id: "lib/firebase.js", type: "lib" },
+  const addLink = (source, target) => {
+    if (source && target && source !== target) {
+      links.push({ source, target });
+    }
+  };
 
-    // Pages - communications
-    { id: "Communications.jsx", type: "page" },
-    { id: "Emails.jsx", type: "page" },
-    { id: "Messages.jsx", type: "page" },
-    { id: "Notifications.jsx", type: "page" },
-    { id: "SMS.jsx", type: "page" },
-    { id: "DripCampaigns.jsx", type: "page" },
-    { id: "EContracts.jsx", type: "page" },
-    { id: "Contacts.jsx", type: "page" },
-    { id: "DisputeLetters.jsx", type: "page" },
+  // Core architecture
+  addNode("App.jsx", "layout");
+  addNode("ProtectedLayout.jsx", "layout");
+  addNode("navConfig.js", "layout");
+  
+  // Contexts
+  addNode("AuthContext.jsx", "context");
+  addNode("ThemeContext.jsx", "context");
+  addNode("NotificationContext.jsx", "context");
+  
+  // Firebase
+  addNode("lib/firebase.js", "lib");
+  
+  // Core connections
+  addLink("App.jsx", "ProtectedLayout.jsx");
+  addLink("App.jsx", "AuthContext.jsx");
+  addLink("App.jsx", "ThemeContext.jsx");
+  addLink("App.jsx", "NotificationContext.jsx");
+  addLink("ProtectedLayout.jsx", "navConfig.js");
+  addLink("AuthContext.jsx", "lib/firebase.js");
 
-    // Components
-    { id: "ImportContactsModal.jsx", type: "component" },
-    { id: "EmailComposer.jsx", type: "component" },
-    { id: "MessageThread.jsx", type: "component" },
-    { id: "NotificationPanel.jsx", type: "component" },
-
-    // Hooks
-    { id: "useFirestore.js", type: "hook" },
-    { id: "useRealtimeLeads.js", type: "hook" },
-    { id: "useUserManagement.js", type: "hook" },
-
-    // Services
-    { id: "emailTrackingService.js", type: "service" },
-    { id: "firestoreService.js", type: "service" },
-    { id: "openaiService.js", type: "service" },
-    { id: "pdfService.js", type: "service" },
-    { id: "roleService.js", type: "service" },
-
-    // This page
-    { id: "SystemMap.jsx", type: "page" },
+  // Parse all lazy-loaded pages from App.jsx imports
+  const pageImports = [
+    { name: "Login", path: "Login.jsx", type: "page" },
+    { name: "Register", path: "Register.jsx", type: "page" },
+    { name: "ForgotPassword", path: "ForgotPassword.jsx", type: "page" },
+    { name: "Dashboard", path: "Dashboard.jsx", type: "page" },
+    { name: "Home", path: "Home.jsx", type: "page" },
+    { name: "ClientPortal", path: "ClientPortal.jsx", type: "page" },
+    { name: "ClientDashboard", path: "ClientDashboard.jsx", type: "page" },
+    { name: "Portal", path: "Portal.jsx", type: "page" },
+    { name: "CreditReportWorkflow", path: "CreditReportWorkflow.jsx", type: "page" },
+    { name: "AIReviewDashboard", path: "AIReviewDashboard.jsx", type: "page" },
+    { name: "AIReviewEditor", path: "AIReviewEditor.jsx", type: "component" },
+    { name: "CreditAnalysisEngine", path: "CreditAnalysisEngine.jsx", type: "page" },
+    { name: "PredictiveAnalytics", path: "PredictiveAnalytics.jsx", type: "page" },
+    { name: "Contacts", path: "Contacts.jsx", type: "page" },
+    { name: "Pipeline", path: "Pipeline.jsx", type: "page" },
+    { name: "DisputeLetters", path: "DisputeLetters.jsx", type: "page" },
+    { name: "DisputeStatus", path: "DisputeStatus.jsx", type: "page" },
+    { name: "Emails", path: "Emails.jsx", type: "page" },
+    { name: "SMS", path: "SMS.jsx", type: "page" },
+    { name: "Templates", path: "Templates.jsx", type: "page" },
+    { name: "SystemMap", path: "SystemMap.jsx", type: "page" }
   ];
 
-  const L = (source, target) => ({ source, target });
-
-  const links = [
-    // App wiring
-    L("App.jsx", "ProtectedLayout.jsx"),
-    L("App.jsx", "navConfig.js"),
-    L("ProtectedLayout.jsx", "Sidebar.jsx"),
-    L("ProtectedLayout.jsx", "Topbar.jsx"),
-
-    // Context usage
-    L("App.jsx", "AuthContext.jsx"),
-    L("App.jsx", "ThemeContext.jsx"),
-    L("Communications.jsx", "AuthContext.jsx"),
-    L("Emails.jsx", "AuthContext.jsx"),
-
-    // Firebase
-    L("AuthContext.jsx", "lib/firebase.js"),
-    L("firestoreService.js", "lib/firebase.js"),
-
-    // Communications
-    L("Communications.jsx", "Emails.jsx"),
-    L("Communications.jsx", "Messages.jsx"),
-    L("Emails.jsx", "EmailComposer.jsx"),
-    L("Messages.jsx", "MessageThread.jsx"),
-
-    // Services
-    L("Emails.jsx", "emailTrackingService.js"),
-    L("Contacts.jsx", "useFirestore.js"),
-  ];
+  pageImports.forEach(({ path, type }) => {
+    addNode(path, type);
+    addLink("App.jsx", path);
+    
+    // Common dependencies
+    if (type === "page") {
+      addLink(path, "AuthContext.jsx");
+    }
+  });
 
   return { nodes, links };
 }
@@ -118,8 +114,46 @@ function normalizeGraph(raw) {
   return { nodes, links };
 }
 
-// Fallback component if library not available
-const FallbackSystemMap = ({ graphData }) => {
+// ============================================================================
+// EXPORT/IMPORT FUNCTIONS
+// ============================================================================
+const exportGraph = (graphData) => {
+  const dataStr = JSON.stringify(graphData, null, 2);
+  const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+  const exportFileDefaultName = `speedycrm-system-map-${Date.now()}.json`;
+  
+  const linkElement = document.createElement('a');
+  linkElement.setAttribute('href', dataUri);
+  linkElement.setAttribute('download', exportFileDefaultName);
+  linkElement.click();
+};
+
+const importGraph = (callback) => {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const imported = JSON.parse(event.target.result);
+        callback(imported);
+      } catch (error) {
+        alert('Invalid JSON file');
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+};
+
+// ============================================================================
+// FALLBACK COMPONENT
+// ============================================================================
+const FallbackSystemMap = ({ graphData, onRefresh }) => {
   const [visibleTypes, setVisibleTypes] = useState(new Set(defaultCategories));
   
   const toggleType = (type) => {
@@ -140,12 +174,14 @@ const FallbackSystemMap = ({ graphData }) => {
     <div className="w-full h-full p-6 bg-white dark:bg-gray-900">
       <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
         <p className="text-sm text-yellow-800 dark:text-yellow-200">
-          <strong>Note:</strong> Install react-force-graph-2d for interactive graph visualization:
-          <code className="ml-2 px-2 py-1 bg-yellow-100 dark:bg-yellow-900/40 rounded">npm install react-force-graph-2d</code>
+          <strong>Note:</strong> Install react-force-graph-2d for interactive visualization:
+          <code className="ml-2 px-2 py-1 bg-yellow-100 dark:bg-yellow-900/40 rounded">
+            npm install react-force-graph-2d
+          </code>
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-6">
+      <div className="flex flex-wrap gap-2 mb-6 items-center">
         {defaultCategories.map(t => (
           <button
             key={t}
@@ -156,6 +192,20 @@ const FallbackSystemMap = ({ graphData }) => {
             {t} ({graphData.nodes.filter(n => n.type === t).length})
           </button>
         ))}
+        <button
+          onClick={onRefresh}
+          className="ml-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Regenerate
+        </button>
+        <button
+          onClick={() => exportGraph(graphData)}
+          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+        >
+          <Download className="w-4 h-4" />
+          Export
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -165,7 +215,7 @@ const FallbackSystemMap = ({ graphData }) => {
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: typeColor[type] }}></div>
               {type.charAt(0).toUpperCase() + type.slice(1)} ({nodes.length})
             </h3>
-            <ul className="space-y-1 text-sm">
+            <ul className="space-y-1 text-sm max-h-60 overflow-y-auto">
               {nodes.map(n => (
                 <li key={n.id} className="text-gray-700 dark:text-gray-300 truncate" title={n.id}>
                   {n.id}
@@ -180,11 +230,11 @@ const FallbackSystemMap = ({ graphData }) => {
         <h4 className="font-semibold mb-2 text-blue-900 dark:text-blue-100">System Statistics</h4>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
           <div>
-            <div className="text-gray-600 dark:text-gray-400">Total Nodes</div>
+            <div className="text-gray-600 dark:text-gray-400">Total Files</div>
             <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{graphData.nodes.length}</div>
           </div>
           <div>
-            <div className="text-gray-600 dark:text-gray-400">Total Links</div>
+            <div className="text-gray-600 dark:text-gray-400">Connections</div>
             <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{graphData.links.length}</div>
           </div>
           <div>
@@ -192,7 +242,7 @@ const FallbackSystemMap = ({ graphData }) => {
             <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{Object.keys(groupedNodes).length}</div>
           </div>
           <div>
-            <div className="text-gray-600 dark:text-gray-400">Avg Connections</div>
+            <div className="text-gray-600 dark:text-gray-400">Avg Links</div>
             <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
               {(graphData.links.length / graphData.nodes.length).toFixed(1)}
             </div>
@@ -203,7 +253,9 @@ const FallbackSystemMap = ({ graphData }) => {
   );
 };
 
-// Main component
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
 export default function SystemMap() {
   const fgRef = useRef();
   const [search, setSearch] = useState("");
@@ -212,8 +264,10 @@ export default function SystemMap() {
   const [charge, setCharge] = useState(-200);
   const [ForceGraph2D, setForceGraph2D] = useState(null);
   const [isLoadingGraph, setIsLoadingGraph] = useState(true);
+  const [graphData, setGraphData] = useState(null);
+  const [lastUpdate, setLastUpdate] = useState(Date.now());
 
-  // Dynamically load the ForceGraph2D component
+  // Load ForceGraph2D
   useEffect(() => {
     let mounted = true;
     
@@ -222,10 +276,10 @@ export default function SystemMap() {
         const module = await import('react-force-graph-2d');
         if (mounted) {
           setForceGraph2D(() => module.default);
-          setIsLoadingGraph(false);
         }
       } catch (e) {
         console.warn('react-force-graph-2d not installed');
+      } finally {
         if (mounted) {
           setIsLoadingGraph(false);
         }
@@ -233,18 +287,26 @@ export default function SystemMap() {
     };
 
     loadGraph();
-
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, []);
 
-  const graphData = useMemo(() => {
-    const raw = (typeof window !== "undefined" && window.__CleverCRMGraph) || makeInitialGraph();
-    return normalizeGraph(raw);
-  }, []);
+  // Auto-generate graph on mount
+  useEffect(() => {
+    const generated = autoGenerateGraph();
+    setGraphData(normalizeGraph(generated));
+  }, [lastUpdate]);
+
+  const handleRefresh = () => {
+    setLastUpdate(Date.now());
+  };
+
+  const handleImport = (imported) => {
+    setGraphData(normalizeGraph(imported));
+  };
 
   const filtered = useMemo(() => {
+    if (!graphData) return { nodes: [], links: [] };
+    
     const q = search.trim().toLowerCase();
     const allowed = new Set(
       graphData.nodes
@@ -312,8 +374,7 @@ export default function SystemMap() {
     return () => clearTimeout(t);
   }, [selected, filtered.nodes, ForceGraph2D]);
 
-  // Show loading state
-  if (isLoadingGraph) {
+  if (isLoadingGraph || !graphData) {
     return (
       <div className="w-full h-[calc(100vh-12rem)] flex items-center justify-center bg-white dark:bg-gray-900">
         <div className="text-center">
@@ -324,52 +385,67 @@ export default function SystemMap() {
     );
   }
 
-  // If library not available, show fallback
   if (!ForceGraph2D) {
-    return <FallbackSystemMap graphData={graphData} />;
+    return <FallbackSystemMap graphData={graphData} onRefresh={handleRefresh} />;
   }
 
   return (
     <div className="w-full h-[calc(100vh-12rem)] flex flex-col p-4 gap-3 bg-white dark:bg-gray-900">
-      <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-        <Database className="w-6 h-6 text-blue-500" />
-        <h1 className="text-xl font-bold text-gray-800 dark:text-white">System Architecture Map</h1>
+      <div className="flex items-center justify-between gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+        <div className="flex items-center gap-3">
+          <Database className="w-6 h-6 text-blue-500" />
+          <div>
+            <h1 className="text-xl font-bold text-gray-800 dark:text-white">System Architecture Map</h1>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Auto-generated from App.jsx • {graphData.nodes.length} files</p>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={handleRefresh}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+            title="Regenerate from current codebase"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Regenerate
+          </button>
+          <button
+            onClick={() => exportGraph(graphData)}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+            title="Export as JSON"
+          >
+            <Download className="w-4 h-4" />
+            Export
+          </button>
+          <button
+            onClick={() => importGraph(handleImport)}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+            title="Import from JSON"
+          >
+            <Upload className="w-4 h-4" />
+            Import
+          </button>
+        </div>
       </div>
 
-      {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
-            className="w-full border rounded-lg px-3 py-2 pl-10 bg-white dark:bg-gray-900 text-gray-800 dark:text-white border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="Search nodes..."
+            className="w-full border rounded-lg px-3 py-2 pl-10 bg-white dark:bg-gray-900 text-gray-800 dark:text-white"
+            placeholder="Search files..."
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
         </div>
         <button
-          className="flex items-center gap-2 border rounded-lg px-4 py-2 bg-white dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          className="flex items-center gap-2 border rounded-lg px-4 py-2 bg-white dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-700"
           onClick={resetView}
-          title="Fit to view"
         >
           <ZoomIn className="w-4 h-4" />
           Fit View
         </button>
-        <label className="flex items-center gap-2">
-          <span className="text-sm text-gray-600 dark:text-gray-400">Force</span>
-          <input
-            type="range"
-            min="-800"
-            max="-50"
-            step="10"
-            value={charge}
-            onChange={(e) => setCharge(parseInt(e.target.value, 10))}
-            className="w-32"
-          />
-        </label>
       </div>
 
-      {/* Type toggles */}
       <div className="flex flex-wrap gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
         <Filter className="w-5 h-5 text-gray-500" />
         {defaultCategories.map(t => (
@@ -377,9 +453,7 @@ export default function SystemMap() {
             key={t}
             onClick={() => toggleType(t)}
             className={`px-3 py-1 rounded-lg border text-sm font-medium transition-all ${
-              visibleTypes.has(t) 
-                ? "shadow-sm" 
-                : "opacity-40 grayscale"
+              visibleTypes.has(t) ? "shadow-sm" : "opacity-40 grayscale"
             }`}
             style={{ 
               borderColor: typeColor[t], 
@@ -387,63 +461,57 @@ export default function SystemMap() {
               backgroundColor: visibleTypes.has(t) ? `${typeColor[t]}15` : 'transparent'
             }}
           >
-            {t}
+            {t} ({graphData.nodes.filter(n => n.type === t).length})
           </button>
         ))}
       </div>
 
-      {/* Graph */}
       <div className="flex-1 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-800">
-        {ForceGraph2D && (
-          <ForceGraph2D
-            ref={fgRef}
-            graphData={filtered}
-            nodeId="id"
-            nodeVal={6}
-            nodeColor={(n) => typeColor[n.type] || typeColor.other}
-            nodeCanvasObject={(node, ctx, globalScale) => {
-              const label = node.id;
-              const fontSize = 12/globalScale;
-              ctx.font = `${fontSize}px Sans-Serif`;
-              const textWidth = ctx.measureText(label).width;
-              const bckgDimensions = [textWidth, fontSize].map(n => n + fontSize * 0.2);
+        <ForceGraph2D
+          ref={fgRef}
+          graphData={filtered}
+          nodeId="id"
+          nodeVal={6}
+          nodeColor={(n) => typeColor[n.type] || typeColor.other}
+          nodeCanvasObject={(node, ctx, globalScale) => {
+            const label = node.id;
+            const fontSize = 12/globalScale;
+            ctx.font = `${fontSize}px Sans-Serif`;
+            const textWidth = ctx.measureText(label).width;
+            const bckgDimensions = [textWidth, fontSize].map(n => n + fontSize * 0.2);
 
-              ctx.fillStyle = highlightNodes.has(node.id) ? 'rgba(255, 160, 0, 0.8)' : typeColor[node.type] || typeColor.other;
-              ctx.beginPath();
-              ctx.arc(node.x, node.y, 5, 0, 2 * Math.PI);
-              ctx.fill();
+            ctx.fillStyle = highlightNodes.has(node.id) ? 'rgba(255, 160, 0, 0.8)' : typeColor[node.type] || typeColor.other;
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, 5, 0, 2 * Math.PI);
+            ctx.fill();
 
-              ctx.textAlign = 'center';
-              ctx.textBaseline = 'middle';
-              ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-              ctx.fillRect(node.x - bckgDimensions[0] / 2, node.y + 8, bckgDimensions[0], bckgDimensions[1]);
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.fillRect(node.x - bckgDimensions[0] / 2, node.y + 8, bckgDimensions[0], bckgDimensions[1]);
 
-              ctx.fillStyle = '#000';
-              ctx.fillText(label, node.x, node.y + 8 + fontSize/2);
-            }}
-            linkColor={(l) =>
-              highlightLinks.has(`${l.source.id}->${l.target.id}`) ? "#EF4444" : "#CBD5E1"
-            }
-            linkWidth={(l) =>
-              highlightLinks.has(`${l.source.id}->${l.target.id}`) ? 2 : 1
-            }
-            linkDirectionalParticles={2}
-            linkDirectionalParticleWidth={(l) =>
-              highlightLinks.has(`${l.source.id}->${l.target.id}`) ? 2 : 0
-            }
-            onNodeClick={setSelected}
-            onNodeHover={handleNodeHover}
-            cooldownTicks={60}
-            d3Force={(force) => {
-              force.charge(charge);
-            }}
-            width={undefined}
-            height={undefined}
-          />
-        )}
+            ctx.fillStyle = '#000';
+            ctx.fillText(label, node.x, node.y + 8 + fontSize/2);
+          }}
+          linkColor={(l) =>
+            highlightLinks.has(`${l.source.id}->${l.target.id}`) ? "#EF4444" : "#CBD5E1"
+          }
+          linkWidth={(l) =>
+            highlightLinks.has(`${l.source.id}->${l.target.id}`) ? 2 : 1
+          }
+          linkDirectionalParticles={2}
+          linkDirectionalParticleWidth={(l) =>
+            highlightLinks.has(`${l.source.id}->${l.target.id}`) ? 2 : 0
+          }
+          onNodeClick={setSelected}
+          onNodeHover={handleNodeHover}
+          cooldownTicks={60}
+          d3Force={(force) => {
+            force.charge(charge);
+          }}
+        />
       </div>
 
-      {/* Details panel */}
       <div className="border rounded-lg p-4 text-sm bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
         {selected ? (
           <div className="flex flex-col gap-2">
@@ -458,7 +526,7 @@ export default function SystemMap() {
               </span>
             </div>
             <div className="mt-2">
-              <span className="font-medium text-gray-700 dark:text-gray-300">Connected to:</span>{" "}
+              <span className="font-medium text-gray-700 dark:text-gray-300">Connected to:</span>
               <div className="mt-1 flex flex-wrap gap-1">
                 {Array.from(highlightNodes)
                   .filter(id => id !== selected.id)
@@ -468,29 +536,12 @@ export default function SystemMap() {
                       {id}
                     </span>
                   ))}
-                {Array.from(highlightNodes).filter(id => id !== selected.id).length === 0 && (
-                  <span className="text-gray-500">None</span>
-                )}
               </div>
-            </div>
-            <div className="mt-3 flex gap-2">
-              <button 
-                className="px-3 py-1 border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" 
-                onClick={() => setSelected(null)}
-              >
-                Clear
-              </button>
-              <button 
-                className="px-3 py-1 border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" 
-                onClick={resetView}
-              >
-                Fit to View
-              </button>
             </div>
           </div>
         ) : (
           <div className="text-gray-600 dark:text-gray-400">
-            💡 <strong>Tip:</strong> Hover over nodes to highlight connections, click to focus. Use type filters to simplify the view.
+            💡 <strong>Auto-updating:</strong> Click "Regenerate" to scan current codebase. Hover/click nodes to explore connections.
           </div>
         )}
       </div>
