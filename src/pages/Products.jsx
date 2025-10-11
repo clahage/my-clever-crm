@@ -48,9 +48,9 @@ import {
   FolderOpen, Archive, Clock, AlertCircle, CheckCircle,
   // Features
   Image as ImageIcon, FileText, Link as LinkIcon, Share2,
-  Bell, Calendar, Users, Target, Award, Sparkles, Crown, Mail,
+  Bell, Calendar, Users, Target, Award, Crown, Mail,
   // AI & Smart Features
-  Bot, Brain, Lightbulb, Wand2, Sparkles as Magic, Cpu,
+  Bot, Brain, Lightbulb, Wand2, Sparkles, Cpu,
   // Tools
   Move, Maximize2, Minimize2, Info, HelpCircle, ExternalLink,
   // Status
@@ -2226,6 +2226,36 @@ const Products = () => {
             >
               Export
             </Button>
+            <Button
+              variant="outlined"
+              startIcon={<Sparkles />}
+              onClick={async () => {
+                if (!confirm('Load 12 sample credit repair products into Firestore?\n\nThis will add them to your database.')) return;
+                
+                setSaving(true);
+                try {
+                  const { seedCreditRepairProducts } = await import('@/utils/seedProducts');
+                  const results = await seedCreditRepairProducts(user.uid);
+                  
+                  showNotification(
+                    `✅ Loaded ${results.success.length} products! ${results.errors.length} errors.`, 
+                    'success'
+                  );
+                } catch (error) {
+                  console.error('Seed error:', error);
+                  showNotification('Error loading sample data', 'error');
+                } finally {
+                  setSaving(false);
+                }
+              }}
+              disabled={saving}
+              sx={{ 
+                bgcolor: 'secondary.light',
+                '&:hover': { bgcolor: 'secondary.main', color: 'white' }
+              }}
+            >
+              Load Sample Products
+            </Button>
             <ButtonGroup variant="contained">
               <Button
                 startIcon={<Plus />}
@@ -2359,7 +2389,6 @@ const Products = () => {
             icon={<BarChart3 size={18} />} 
             iconPosition="start" 
           />
-          {/* 🎯 PREMIUM FEATURE TABS */}
           <Tab 
             label={
               <Badge badgeContent="PRO" color="error" sx={{ '& .MuiBadge-badge': { fontSize: '0.6rem', height: 16, minWidth: 16 } }}>

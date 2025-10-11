@@ -316,6 +316,7 @@ const AppContent = () => {
         <Route path="business-credit" element={<Suspense fallback={<LoadingFallback />}><BusinessCredit /></Suspense>} />
         <Route path="credit-scores" element={<Suspense fallback={<LoadingFallback />}><CreditScores /></Suspense>} />
         <Route path="dispute-letters" element={<Suspense fallback={<LoadingFallback />}><DisputeLetters /></Suspense>} />
+        <Route path="dispute-center" element={<Navigate to="/dispute-letters" replace />} />
         <Route path="dispute-status" element={<Suspense fallback={<LoadingFallback />}><DisputeStatus /></Suspense>} />
         <Route path="admin/dispute-admin-panel" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><DisputeAdminPanel /></Suspense></ProtectedRoute>} />
         <Route path="credit-reports" element={<Suspense fallback={<LoadingFallback />}><CreditReports /></Suspense>} />
