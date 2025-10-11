@@ -8,6 +8,10 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import ProtectedLayout from '@/layout/ProtectedLayout';
 
+// Existing imports...
+import Products from '@/pages/Products';
+
+
 // ============================================================================
 // LOADING COMPONENT
 // ============================================================================
@@ -178,7 +182,7 @@ const Location = lazy(() => import('@/pages/Location'));
 const Invoices = lazy(() => import('@/pages/Invoices'));
 const Affiliates = lazy(() => import('@/pages/Affiliates'));
 const Billing = lazy(() => import('@/pages/Billing'));
-const Products = lazy(() => import('@/pages/Products'));
+const PaymentSuccess = lazy(() => import('@/pages/PaymentSuccess'));
 const Calendar = lazy(() => import('@/pages/Calendar'));
 const Appointments = lazy(() => import('@/pages/Appointments'));
 const Tasks = lazy(() => import('@/pages/Tasks'));
@@ -343,6 +347,7 @@ const AppContent = () => {
         <Route path="companies" element={<Suspense fallback={<LoadingFallback />}><Companies /></Suspense>} />
         <Route path="location" element={<Suspense fallback={<LoadingFallback />}><Location /></Suspense>} />
         <Route path="invoices" element={<Suspense fallback={<LoadingFallback />}><Invoices /></Suspense>} />
+        <Route path="payment-success" element={<Suspense fallback={<LoadingFallback />}><PaymentSuccess /></Suspense>} />
         <Route path="affiliates" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><Affiliates /></Suspense></ProtectedRoute>} />
         <Route path="billing" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><Billing /></Suspense></ProtectedRoute>} />
         <Route path="products" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><Products /></Suspense></ProtectedRoute>} />

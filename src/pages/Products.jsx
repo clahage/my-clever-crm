@@ -1603,6 +1603,52 @@ const Products = () => {
   const ProductCard = ({ product }) => {
     const TierIcon = product.tier ? getTierIcon(product.tier) : Package;
     const tierColor = product.tier ? getTierColor(product.tier) : '#3B82F6';
+    const [purchasing, setPurchasing] = useState(false);
+
+    const handleBuyNow = async (e) => {
+      e.stopPropagation();
+      setPurchasing(true);
+      
+      try {
+        // Call Firebase Function to create Stripe checkout
+        const response = await fetch(
+          'https://us-central1-my-clever-crm.cloudfunctions.net/createStripeCheckout',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              productId: product.id,
+              productName: product.name,
+              amount: Math.round(product.pricing.basePrice * 100), // Convert to cents
+              currency: 'usd',
+              userId: user.uid
+            })
+          }
+        );
+
+        const { sessionId, error } = await response.json();
+
+        if (error) {
+          throw new Error(error);
+        }
+
+        // Redirect to Stripe Checkout
+        const stripe = await import('@stripe/stripe-js').then(m => 
+          m.loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
+        );
+        const stripeInstance = await stripe;
+        
+        const result = await stripeInstance.redirectToCheckout({ sessionId });
+        
+        if (result.error) {
+          throw new Error(result.error.message);
+        }
+      } catch (error) {
+        console.error('Checkout error:', error);
+        showNotification(error.message || 'Payment error. Please try again.', 'error');
+        setPurchasing(false);
+      }
+    };
 
     return (
       <Card
@@ -1739,6 +1785,34 @@ const Products = () => {
               </Typography>
             )}
           </Box>
+
+          {/* ⭐ BUY NOW BUTTON - PROMINENT PLACEMENT ⭐ */}
+          <Button
+            variant="contained"
+            color="success"
+            fullWidth
+            size="large"
+            startIcon={purchasing ? <CircularProgress size={16} color="inherit" /> : <ShoppingCart size={18} />}
+            onClick={handleBuyNow}
+            disabled={purchasing || product.availability?.status !== 'active'}
+            sx={{ 
+              mb: 2,
+              py: 1.5,
+              fontWeight: 'bold',
+              fontSize: '1rem',
+              background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                transform: 'translateY(-2px)',
+                boxShadow: 4
+              },
+              '&:disabled': {
+                background: '#D1D5DB'
+              }
+            }}
+          >
+            {purchasing ? 'Processing...' : 'Buy Now'}
+          </Button>
 
           {/* Features Preview */}
           {product.features && product.features.length > 0 && (
