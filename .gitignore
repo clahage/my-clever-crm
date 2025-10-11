@@ -65,3 +65,12 @@ Thumbs.db
 !jsconfig.json
 functions/serviceAccountKey.json
 serviceAccountKey.json
+serviceAccountKey.json
+
+# ============================================
+# Firebase Service Account Keys - NEVER COMMIT!
+# ============================================
+serviceAccountKey.json
+**/serviceAccountKey.json
+firebase-adminsdk-*.json
+*-firebase-adminsdk-*.json
