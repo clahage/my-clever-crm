@@ -62,6 +62,17 @@ export const navigationItems = [
     description: '6-tab command center for complete system control'
   },
 
+  // === NEW: CLIENT PORTAL =====================================================
+  {
+  id: 'client-portal',
+  title: '👤 Client Portal',
+  path: '/client-portal',
+  icon: LayoutDashboard,
+  permission: 'user', // Or 'admin' if you want admin-only
+  badge: 'NEW',
+  description: 'Client progress dashboard with scores, disputes, payments'
+},
+
   // === NEW: CREDIT REPORT WORKFLOW ===========================================
   {
     id: 'credit-workflow',

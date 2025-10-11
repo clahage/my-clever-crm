@@ -7,6 +7,7 @@ import { NotificationProvider } from '@/contexts/NotificationContext';
 import ProtectedLayout from '@/layout/ProtectedLayout';
 import CreditAnalysisEngine from '@/pages/CreditAnalysisEngine';
 import PredictiveAnalytics from '@/pages/PredictiveAnalytics';
+import ClientPortal from '@/pages/ClientPortal';
 
 // ============================================================================
 // LOADING COMPONENT
@@ -260,6 +261,7 @@ const PublicRoute = ({ children }) => {
 const AppContent = () => {
   return (
     <Routes>
+      <Route path="/client-portal" element={<ClientPortal />} />
       {/* Public Routes */}
       <Route
         path="/login"

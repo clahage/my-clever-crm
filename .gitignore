@@ -29,10 +29,20 @@ firebase-debug.log
 firebase-debug.*.log
 *.log
 
-# Firebase
-.firebase/
-firebase-admin-*.json
-firebaseConfig.js
+# Firebase secrets
+functions/serviceAccountKey.json
+serviceAccountKey.json
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!firebase.json
+!.firebaserc
+
+# Environment files
+.env
+.env.local
+.env.production
 
 # IDE
 .vscode/
