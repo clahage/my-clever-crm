@@ -310,7 +310,10 @@ const AppContent = () => {
         <Route path="admin/ai-reviews/:reviewId" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><AIReviewEditor /></Suspense></ProtectedRoute>} />
         <Route path="credit-analysis" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><CreditAnalysisEngine /></Suspense></ProtectedRoute>} />
         <Route path="predictive-analytics" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><PredictiveAnalytics /></Suspense></ProtectedRoute>} />
+        
+        {/* CONTACTS ROUTE - This should work */}
         <Route path="contacts" element={<Suspense fallback={<LoadingFallback />}><Contacts /></Suspense>} />
+        
         <Route path="pipeline" element={<Suspense fallback={<LoadingFallback />}><Pipeline /></Suspense>} />
         <Route path="import" element={<Suspense fallback={<LoadingFallback />}><ContactImport /></Suspense>} />
         <Route path="export" element={<Suspense fallback={<LoadingFallback />}><ContactExport /></Suspense>} />
@@ -377,6 +380,7 @@ const AppContent = () => {
         <Route path="whitelabel/plans" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><WhiteLabelPlans /></Suspense></ProtectedRoute>} />
         <Route path="whitelabel/tenants" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><WhiteLabelTenants /></Suspense></ProtectedRoute>} />
         
+        {/* 404 - NOT FOUND */}
         <Route path="*" element={
           <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 dark:from-gray-900 dark:to-purple-900">
             <div className="text-center max-w-md p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl">
@@ -384,7 +388,10 @@ const AppContent = () => {
               <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">404</h1>
               <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">Page Not Found</h2>
               <p className="text-gray-600 dark:text-gray-400 mb-6">The page you're looking for doesn't exist or has been moved.</p>
-              <button onClick={() => window.location.href = '/'} className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-lg hover:shadow-xl transform hover:scale-105">
+              <button 
+                onClick={() => window.location.href = '/'} 
+                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-lg hover:shadow-xl transform hover:scale-105"
+              >
                 🏠 Go to Dashboard
               </button>
             </div>

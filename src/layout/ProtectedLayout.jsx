@@ -1,7 +1,7 @@
 // src/layout/ProtectedLayout.jsx
-// COMPLETE PROTECTED LAYOUT WITH INTEGRATED SIDEBAR
-// VERSION: 2.0 - FIXED COLLAPSE BEHAVIOR & AUTO-EXPAND ISSUES
-// LAST UPDATED: 2025-10-11
+// PROTECTED LAYOUT WITH ACCORDION NAVIGATION
+// VERSION: 3.0 - ACCORDION BEHAVIOR + ROLE-BASED FILTERING
+// LAST UPDATED: 2025-10-12
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
@@ -27,11 +27,17 @@ import {
   ExternalLink,
   HelpCircle,
   MessageSquare,
-  FileText,
-  TrendingUp,
-  Activity
+  Eye,
+  Handshake,
+  UserPlus,
+  Users as UsersIcon
 } from 'lucide-react';
-import { navigationItems, filterNavigationByRole } from './navConfig';
+import { 
+  navigationItems, 
+  filterNavigationByRole, 
+  getMobileNavigation,
+  ROLES 
+} from './navConfig';
 
 // ============================================================================
 // PROTECTED LAYOUT COMPONENT
@@ -43,7 +49,6 @@ const ProtectedLayout = () => {
 
   // ===== STATE MANAGEMENT =====
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
-    // Persistent sidebar state from localStorage
     const saved = localStorage.getItem('sidebarOpen');
     return saved !== null ? JSON.parse(saved) : window.innerWidth >= 768;
   });
@@ -54,10 +59,11 @@ const ProtectedLayout = () => {
     return saved === 'true';
   });
   
-  const [expandedGroups, setExpandedGroups] = useState(() => {
-    // Load expanded groups from localStorage
-    const saved = localStorage.getItem('expandedGroups');
-    return saved ? JSON.parse(saved) : {};
+  // ACCORDION BEHAVIOR: Only ONE group can be expanded at a time
+  const [expandedGroupId, setExpandedGroupId] = useState(() => {
+    // Load last expanded group from localStorage
+    const saved = localStorage.getItem('expandedGroupId');
+    return saved || null;
   });
   
   const [searchTerm, setSearchTerm] = useState('');
@@ -65,6 +71,12 @@ const ProtectedLayout = () => {
   const [notificationCount, setNotificationCount] = useState(3);
   const [showQuickActions, setShowQuickActions] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+
+  // Determine if mobile
+  const isMobile = windowWidth < 768;
+
+  // Get user role
+  const userRole = userProfile?.role || user?.role || 'user';
 
   // ===== WINDOW RESIZE HANDLER =====
   useEffect(() => {
@@ -87,10 +99,12 @@ const ProtectedLayout = () => {
     localStorage.setItem('sidebarOpen', JSON.stringify(isSidebarOpen));
   }, [isSidebarOpen]);
 
-  // ===== PERSIST EXPANDED GROUPS =====
+  // ===== PERSIST EXPANDED GROUP =====
   useEffect(() => {
-    localStorage.setItem('expandedGroups', JSON.stringify(expandedGroups));
-  }, [expandedGroups]);
+    if (expandedGroupId) {
+      localStorage.setItem('expandedGroupId', expandedGroupId);
+    }
+  }, [expandedGroupId]);
 
   // ===== DARK MODE EFFECT =====
   useEffect(() => {
@@ -103,9 +117,9 @@ const ProtectedLayout = () => {
     }
   }, [isDarkMode]);
 
-  // ===== AUTO-EXPAND CURRENT ROUTE'S GROUP =====
+  // ===== AUTO-EXPAND CURRENT ROUTE'S GROUP (Only on route change) =====
   useEffect(() => {
-    // Find and expand only the group containing the current route
+    // Find the group containing the current route
     navigationItems.forEach(item => {
       if (item.isGroup && item.items) {
         const isCurrentInGroup = item.items.some(subItem => 
@@ -113,11 +127,8 @@ const ProtectedLayout = () => {
           location.pathname.startsWith(subItem.path + '/')
         );
         
-        if (isCurrentInGroup && !expandedGroups[item.id]) {
-          setExpandedGroups(prev => ({
-            ...prev,
-            [item.id]: true
-          }));
+        if (isCurrentInGroup) {
+          setExpandedGroupId(item.id);
         }
       }
     });
@@ -125,11 +136,11 @@ const ProtectedLayout = () => {
 
   // ===== FILTER NAVIGATION BY ROLE AND SEARCH =====
   useEffect(() => {
-    const userRole = userProfile?.role || user?.role || 'user';
-    let filtered = filterNavigationByRole(navigationItems, userRole);
+    let filtered = filterNavigationByRole(navigationItems, userRole, isMobile);
 
-    console.log('🔍 Navigation Filter:', {
+    console.log('🔐 Navigation Filter:', {
       userRole,
+      isMobile,
       totalItems: navigationItems.length,
       filteredItems: filtered.length
     });
@@ -157,22 +168,17 @@ const ProtectedLayout = () => {
     }
 
     setFilteredNav(filtered);
-  }, [user, userProfile, searchTerm]);
-
-  // ===== HELPER: IS MOBILE =====
-  const isMobile = windowWidth < 768;
+  }, [user, userProfile, searchTerm, userRole, isMobile]);
 
   // ===== HELPER: TOGGLE DARK MODE =====
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
   };
 
-  // ===== HELPER: TOGGLE GROUP =====
+  // ===== HELPER: TOGGLE GROUP (ACCORDION BEHAVIOR) =====
   const toggleGroup = (groupId) => {
-    setExpandedGroups(prev => ({
-      ...prev,
-      [groupId]: !prev[groupId]
-    }));
+    // ACCORDION: If clicking the already-open group, close it. Otherwise, open the new group.
+    setExpandedGroupId(prev => prev === groupId ? null : groupId);
   };
 
   // ===== HELPER: HANDLE NAVIGATION =====
@@ -218,25 +224,41 @@ const ProtectedLayout = () => {
 
   // ===== HELPER: GET USER ROLE BADGE =====
   const getUserRoleBadge = () => {
-    const role = userProfile?.role || user?.role || 'user';
+    const roleInfo = ROLES[userRole] || ROLES.user;
+    const RoleIcon = roleInfo.icon;
     
-    const badges = {
-      masterAdmin: { icon: <Crown className="w-3 h-3" />, color: 'bg-yellow-500', label: 'Master Admin' },
-      admin: { icon: <Shield className="w-3 h-3" />, color: 'bg-red-500', label: 'Admin' },
-      user: { icon: <User className="w-3 h-3" />, color: 'bg-blue-500', label: 'User' },
-      client: { icon: <User className="w-3 h-3" />, color: 'bg-green-500', label: 'Client' }
+    const colorMap = {
+      yellow: 'bg-yellow-500',
+      red: 'bg-red-500',
+      purple: 'bg-purple-500',
+      blue: 'bg-blue-500',
+      green: 'bg-green-500',
+      orange: 'bg-orange-500',
+      cyan: 'bg-cyan-500',
+      gray: 'bg-gray-500'
     };
 
-    return badges[role] || badges.user;
+    return {
+      icon: <RoleIcon className="w-3 h-3" />,
+      color: colorMap[roleInfo.color] || 'bg-blue-500',
+      label: roleInfo.label
+    };
   };
 
   // ===== HELPER: GET QUICK ACTIONS =====
-  const quickActions = [
-    { label: 'New Contact', icon: <User className="w-4 h-4" />, path: '/contacts?action=new' },
-    { label: 'Send Dispute', icon: <FileText className="w-4 h-4" />, path: '/dispute-letters' },
-    { label: 'View Reports', icon: <TrendingUp className="w-4 h-4" />, path: '/reports' },
-    { label: 'Analytics', icon: <Activity className="w-4 h-4" />, path: '/analytics' }
-  ];
+  const quickActions = useMemo(() => {
+    const baseActions = [
+      { label: 'New Contact', icon: <User className="w-4 h-4" />, path: '/contacts?action=new', roles: ['user', 'manager', 'admin', 'masterAdmin'] },
+      { label: 'Send Dispute', icon: <MessageSquare className="w-4 h-4" />, path: '/dispute-letters', roles: ['user', 'manager', 'admin', 'masterAdmin', 'client'] },
+      { label: 'View Reports', icon: <Eye className="w-4 h-4" />, path: '/reports', roles: ['manager', 'admin', 'masterAdmin'] },
+      { label: 'My Portal', icon: <User className="w-4 h-4" />, path: '/client-portal', roles: ['client', 'prospect'] }
+    ];
+
+    // Filter actions by role
+    return baseActions.filter(action => 
+      !action.roles || action.roles.includes(userRole)
+    );
+  }, [userRole]);
 
   // ===== RENDER NAVIGATION ITEM =====
   const renderNavItem = (item) => {
@@ -244,7 +266,8 @@ const ProtectedLayout = () => {
     const Icon = item.icon;
 
     if (item.isGroup) {
-      const isExpanded = expandedGroups[item.id];
+      // ACCORDION: Only this group is expanded if its ID matches expandedGroupId
+      const isExpanded = expandedGroupId === item.id;
       const hasActiveChild = item.items?.some(subItem => 
         location.pathname === subItem.path ||
         location.pathname.startsWith(subItem.path + '/')
@@ -291,7 +314,7 @@ const ProtectedLayout = () => {
             )}
           </button>
           
-          {/* SUBMENU */}
+          {/* SUBMENU - Only shown if expanded */}
           {isExpanded && isSidebarOpen && item.items && (
             <div className="ml-4 mt-1 space-y-1 animate-in slide-in-from-top-2 duration-200">
               {item.items.map(subItem => {
@@ -320,6 +343,9 @@ const ProtectedLayout = () => {
                         subItem.badge === 'NEW' ? 'bg-green-500 text-white' :
                         subItem.badge === 'AI' ? 'bg-purple-500 text-white' :
                         subItem.badge === 'PRO' ? 'bg-yellow-500 text-white' :
+                        subItem.badge === 'FREE' ? 'bg-blue-500 text-white' :
+                        subItem.badge === 'FAX' ? 'bg-cyan-500 text-white' :
+                        subItem.badge === 'ADMIN' ? 'bg-red-500 text-white' :
                         'bg-blue-500 text-white'
                       }`}>
                         {subItem.badge}
@@ -358,6 +384,7 @@ const ProtectedLayout = () => {
               <span className={`px-1.5 py-0.5 text-xs font-bold rounded ${
                 item.badge === 'NEW' ? 'bg-green-500 text-white' :
                 item.badge === 'AI' ? 'bg-purple-500 text-white' :
+                item.badge === 'ADMIN' ? 'bg-red-500 text-white' :
                 'bg-blue-500 text-white'
               }`}>
                 {item.badge}
@@ -459,7 +486,7 @@ const ProtectedLayout = () => {
         )}
 
         {/* QUICK ACTIONS */}
-        {isSidebarOpen && (
+        {isSidebarOpen && quickActions.length > 0 && (
           <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
             <button
               onClick={() => setShowQuickActions(!showQuickActions)}
@@ -715,7 +742,7 @@ const ProtectedLayout = () => {
       </div>
 
       {/* CUSTOM SCROLLBAR STYLES */}
-      <style jsx global>{`
+      <style>{`
         .custom-scrollbar::-webkit-scrollbar {
           width: 6px;
         }
