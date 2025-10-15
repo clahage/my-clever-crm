@@ -1,5 +1,6 @@
 // src/pages/Dashboard.jsx
 import React, { useState, useEffect } from 'react';
+import DailyPriorities from '@/components/laurie/DailyPriorities';
 import {
   Users, TrendingUp, DollarSign, Activity, CreditCard, Target, Clock,
   FileText, CheckCircle, XCircle, AlertCircle, Calendar, Mail, Phone,
@@ -175,7 +176,7 @@ const Dashboard = () => {
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      {/* Header */}
+  {/* Header */}
       <div className="flex justify-between items-start mb-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
@@ -216,7 +217,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Notifications Panel */}
+            {/* Notifications Panel */}
       {showNotifications && (
         <div className="mb-6 bg-white rounded-lg border p-4">
           <div className="flex justify-between items-center mb-3">

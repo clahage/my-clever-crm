@@ -1,8 +1,11 @@
-// lib/firebase.js - Consolidated Firebase configuration
+// src/lib/firebase.js
+// Firebase configuration and initialization
+
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
+import { getFunctions } from 'firebase/functions';
 import { getAnalytics } from 'firebase/analytics';
 
 const firebaseConfig = {
@@ -22,12 +25,13 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
+export const functions = getFunctions(app);
 
-// Initialize Analytics only in production and if measurement ID exists
+// Initialize Analytics (only in browser, not in SSR)
 let analytics = null;
-if (typeof window !== 'undefined' && firebaseConfig.measurementId) {
+if (typeof window !== 'undefined') {
   analytics = getAnalytics(app);
 }
-
 export { analytics };
+
 export default app;

@@ -1,4 +1,27 @@
-﻿// functions/index.js - Firebase Cloud Functions for SpeedyCRM
+﻿// ============================================
+// AI Receptionist Webhook
+const { receiveAIReceptionistCall, reprocessAIReceptionistCall } = require('./webhooks/aiReceptionistReceiver');
+exports.receiveAIReceptionistCall = receiveAIReceptionistCall;
+exports.reprocessAIReceptionistCall = reprocessAIReceptionistCall;
+
+// Notifications
+const { sendMorningSummary } = require('./automation/notificationService');
+exports.sendMorningSummary = sendMorningSummary;
+
+// Zelle Payments
+const {
+  reportZellePayment,
+  confirmZellePayment,
+  markZelleNotReceived,
+  getPendingZellePayments,
+  sendZelleConfirmationReminders
+} = require('./payments/zelleHandler');
+exports.reportZellePayment = reportZellePayment;
+exports.confirmZellePayment = confirmZellePayment;
+exports.markZelleNotReceived = markZelleNotReceived;
+exports.getPendingZellePayments = getPendingZellePayments;
+exports.sendZelleConfirmationReminders = sendZelleConfirmationReminders;
+// functions/index.js - Firebase Cloud Functions for SpeedyCRM
 // VERSION: 2.0 - Enhanced with better error handling and organization
 // Last Updated: 2025-10-11
 
@@ -925,81 +948,80 @@ exports.processAIReceptionistCall = functions.firestore
 
   // functions/index.js - Add this new function
 
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-
-exports.createStripeCheckout = functions.https.onRequest(async (req, res) => {
-  setCors(req, res);
-  if (handlePreflight(req, res)) return;
-
-  try {
-    const { productId, productName, amount, currency, userId } = req.body;
-
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: [{
-        price_data: {
-          currency: currency || 'usd',
-          product_data: {
-            name: productName,
-          },
-          unit_amount: amount, // Amount in cents
-        },
-        quantity: 1,
-      }],
-      mode: 'payment',
-      success_url: `${req.headers.origin}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.headers.origin}/products`,
-      metadata: {
-        productId,
-        userId
-      }
-    });
-
-    res.json({ sessionId: session.id });
-  } catch (error) {
-    console.error('Stripe checkout error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
+// const stripe = require('stripe'); // REMOVED - Stripe doesn't allow credit repair
+// exports.createStripeCheckout = functions.https.onRequest(async (req, res) => {
+//   setCors(req, res);
+//   if (handlePreflight(req, res)) return;
+//
+//   try {
+//     const { productId, productName, amount, currency, userId } = req.body;
+//
+//     // const session = await stripe.checkout.sessions.create({
+//     //   payment_method_types: ['card'],
+//     //   line_items: [{
+//     //     price_data: {
+//     //       currency: currency || 'usd',
+//     //       product_data: {
+//     //         name: productName,
+//     //       },
+//     //       unit_amount: amount, // Amount in cents
+//     //     },
+//     //     quantity: 1,
+//     //   }],
+//     //   mode: 'payment',
+//     //   success_url: `${req.headers.origin}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+//     //   cancel_url: `${req.headers.origin}/products`,
+//     //   metadata: {
+//     //     productId,
+//     //     userId
+//     //   }
+//     // });
+//
+//     // res.json({ sessionId: session.id });
+//   } catch (error) {
+//     console.error('Stripe checkout error:', error);
+//     res.status(500).json({ error: error.message });
+//   }
+// });
 
 // Webhook to handle successful payments
-exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
-  const sig = req.headers['stripe-signature'];
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
-  try {
-    const event = stripe.webhooks.constructEvent(req.rawBody, sig, webhookSecret);
-
-    if (event.type === 'checkout.session.completed') {
-      const session = event.data.object;
-      
-      // Record the purchase in Firestore
-      await admin.firestore().collection('purchases').add({
-        userId: session.metadata.userId,
-        productId: session.metadata.productId,
-        amount: session.amount_total / 100,
-        currency: session.currency,
-        stripeSessionId: session.id,
-        status: 'completed',
-        createdAt: admin.firestore.FieldValue.serverTimestamp()
-      });
-
-      // Update product analytics
-      const productRef = admin.firestore().collection('products').doc(session.metadata.productId);
-      await productRef.update({
-        'analytics.purchases': admin.firestore.FieldValue.increment(1),
-        'analytics.revenue': admin.firestore.FieldValue.increment(session.amount_total / 100)
-      });
-
-      console.log('✅ Purchase recorded:', session.id);
-    }
-
-    res.json({ received: true });
-  } catch (error) {
-    console.error('Webhook error:', error);
-    res.status(400).send(`Webhook Error: ${error.message}`);
-  }
-});
+// exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
+//   const sig = req.headers['stripe-signature'];
+//   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+//
+//   try {
+//     const event = stripe.webhooks.constructEvent(req.rawBody, sig, webhookSecret);
+//
+//     if (event.type === 'checkout.session.completed') {
+//       const session = event.data.object;
+//       
+//       // Record the purchase in Firestore
+//       await admin.firestore().collection('purchases').add({
+//         userId: session.metadata.userId,
+//         productId: session.metadata.productId,
+//         amount: session.amount_total / 100,
+//         currency: session.currency,
+//         stripeSessionId: session.id,
+//         status: 'completed',
+//         createdAt: admin.firestore.FieldValue.serverTimestamp()
+//       });
+//
+//       // Update product analytics
+//       const productRef = admin.firestore().collection('products').doc(session.metadata.productId);
+//       await productRef.update({
+//         'analytics.purchases': admin.firestore.FieldValue.increment(1),
+//         'analytics.revenue': admin.firestore.FieldValue.increment(session.amount_total / 100)
+//       });
+//
+//       console.log('✅ Purchase recorded:', session.id);
+//     }
+//
+//     res.json({ received: true });
+//   } catch (error) {
+//     console.error('Webhook error:', error);
+//     res.status(400).send(`Webhook Error: ${error.message}`);
+//   }
+// });
 
 // ============================================
 // TEST FUNCTION

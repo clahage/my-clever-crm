@@ -72,7 +72,8 @@ import {
   BarElement, ArcElement, RadialLinearScale, Title, Tooltip as ChartTooltip,
   Legend, Filler
 } from 'chart.js';
-import { Line, Bar, Doughnut, Radar } from 'react-chartjs-2';
+
+import ZellePaymentOption from '@/components/payments/ZellePaymentOption';
 
 ChartJS.register(
   CategoryScale, LinearScale, PointElement, LineElement, BarElement,
@@ -3133,6 +3134,16 @@ const ClientPortal = () => {
     )}
   </Box>
 </Popover>
+{/* Payment Section */}
+<Box sx={{ mb: 4 }}>
+  <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>Make a Payment</Typography>
+  <ZellePaymentOption 
+    amountDue={99}
+    clientNumber="1234"
+    clientId={user?.uid}
+    onSuccess={() => alert('Payment reported!')}
+  />
+</Box>
 {/* ========== INSERT SECTION 3 HERE ========== */}
 {/* Referrals, Messages, Settings tabs + All Dialogs will go here */}
 
