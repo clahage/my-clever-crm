@@ -138,7 +138,7 @@ const ProtectedLayout = () => {
   useEffect(() => {
     let filtered = filterNavigationByRole(navigationItems, userRole, isMobile);
 
-    console.log('🔐 Navigation Filter:', {
+    console.debug && console.debug('🔐 Navigation Filter:', {
       userRole,
       isMobile,
       totalItems: navigationItems.length,

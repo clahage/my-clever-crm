@@ -74,6 +74,7 @@ import {
 } from 'chart.js';
 
 import ZellePaymentOption from '@/components/payments/ZellePaymentOption';
+import { Line } from 'recharts';
 
 ChartJS.register(
   CategoryScale, LinearScale, PointElement, LineElement, BarElement,
@@ -808,8 +809,23 @@ const ClientPortal = () => {
     });
     const scoreIncrease = bureauCount > 0 ? Math.round(totalIncrease / bureauCount) : 0;
 
-    const daysActive = clientData?.joinedAt 
-      ? Math.floor((Date.now() - clientData.joinedAt.toMillis()) / (1000 * 60 * 60 * 24))
+    // joinedAt can be a Firestore Timestamp, an object with seconds, or a serverTimestamp() sentinel
+    // which does not have toMillis() on the client immediately after addDoc. Guard against that.
+    const joinedAt = clientData?.joinedAt;
+    let joinedMs = null;
+    if (joinedAt) {
+      if (typeof joinedAt.toMillis === 'function') {
+        joinedMs = joinedAt.toMillis();
+      } else if (typeof joinedAt.seconds === 'number') {
+        joinedMs = joinedAt.seconds * 1000;
+      } else {
+        // serverTimestamp() or unknown shape — don't compute daysActive yet
+        joinedMs = null;
+      }
+    }
+
+    const daysActive = joinedMs
+      ? Math.floor((Date.now() - joinedMs) / (1000 * 60 * 60 * 24))
       : 0;
 
     const completionRate = totalDisputes > 0 

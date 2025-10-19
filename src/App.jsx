@@ -115,7 +115,7 @@ const SmartRedirect = () => {
 
   const userRole = userProfile?.role || currentUser?.role || 'user';
   
-  console.log('🎯 Smart Redirect:', { userRole, userProfile });
+  console.debug && console.debug('🎯 Smart Redirect:', { userRole, userProfile });
 
   if (userRole === 'masterAdmin' || userRole === 'admin') {
     return <Navigate to="/dashboard" replace />;
@@ -227,7 +227,7 @@ const ProtectedRoute = ({ children, requiredRole = null }) => {
     const userRole = userProfile?.role || currentUser?.role || 'user';
     const allowedRoles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
     
-    console.log('🔒 Protected Route Check:', { userRole, allowedRoles, requiredRole });
+  console.debug && console.debug('🔒 Protected Route Check:', { userRole, allowedRoles, requiredRole });
 
     if (userRole === 'masterAdmin') {
       return <>{children}</>;

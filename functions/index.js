@@ -253,8 +253,8 @@ exports.getIDIQPartnerToken = functions.https.onRequest(async (req, res) => {
   if (handlePreflight(req, res)) return;
 
   try {
-    const partnerId = process.env.IDIQ_PARTNER_ID || functions.config().idiq?.partner_id || '';
-    const partnerSecret = process.env.IDIQ_PARTNER_SECRET || functions.config().idiq?.partner_secret || '';
+    const partnerId = process.env.IDIQ_PARTNER_ID || '';
+    const partnerSecret = process.env.IDIQ_PARTNER_SECRET || '';
     
     if (!partnerId || !partnerSecret) {
       throw new Error("Missing IDIQ credentials");
@@ -751,7 +751,7 @@ exports.scoreLead = functions.https.onRequest(async (req, res) => {
       return res.status(400).json({ error: 'Missing lead transcript' });
     }
 
-    const apiKey = functions.config().openai?.key || process.env.OPENAI_API_KEY;
+    const apiKey = process.env.OPENAI_API_KEY;
     
     if (!apiKey) {
       return res.status(500).json({ error: 'Missing OpenAI API key' });
@@ -784,7 +784,7 @@ exports.scoreLead = functions.https.onRequest(async (req, res) => {
 });
 
 /**
- * MyAIFrontDesk Webhook Handler
+ * MyAIFrontDesk Webhook Handler - Enhanced with full processing
  */
 exports.aiWebhook = functions.runWith({
   invoker: 'public'
@@ -795,28 +795,40 @@ exports.aiWebhook = functions.runWith({
   console.log('📞 AI Receptionist webhook received:', new Date().toISOString());
 
   try {
+    // Save to aiReceptionistCalls collection
     const docRef = await admin.firestore()
       .collection('aiReceptionistCalls')
       .add({
         ...req.body,
         receivedAt: admin.firestore.FieldValue.serverTimestamp(),
-        processed: false
+        processed: false,
+        source: 'ai-receptionist-public'
       });
 
     console.log('✅ Webhook saved:', docRef.id);
 
-    // Create lead if contact info exists
-    if (req.body.name || req.body.email) {
-      await admin.firestore().collection('contacts').add({
-        name: req.body.name || 'Unknown',
-        email: req.body.email || '',
-        phone: req.body.caller || '',
-        category: 'lead',
-        source: 'AI Receptionist',
-        createdAt: admin.firestore.FieldValue.serverTimestamp()
+    // Trigger async processing using the sophisticated pipeline
+    try {
+      const { processAICallAsync } = require('./webhooks/callProcessor');
+      processAICallAsync(docRef.id, req.body).catch(err => {
+        console.error('❌ Error in async processing:', err);
       });
+    } catch (err) {
+      console.log('⚠️ Advanced processing not available, using basic processing');
       
-      console.log('✅ Lead created');
+      // Fallback to basic processing
+      if (req.body.name || req.body.email) {
+        await admin.firestore().collection('contacts').add({
+          name: req.body.name || 'Unknown',
+          email: req.body.email || '',
+          phone: req.body.caller || '',
+          category: 'lead',
+          source: 'AI Receptionist',
+          createdAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        
+        console.log('✅ Basic lead created');
+      }
     }
 
     res.status(200).json({ success: true, id: docRef.id });
@@ -945,83 +957,6 @@ exports.processAIReceptionistCall = functions.firestore
       return null;
     }
   });
-
-  // functions/index.js - Add this new function
-
-// const stripe = require('stripe'); // REMOVED - Stripe doesn't allow credit repair
-// exports.createStripeCheckout = functions.https.onRequest(async (req, res) => {
-//   setCors(req, res);
-//   if (handlePreflight(req, res)) return;
-//
-//   try {
-//     const { productId, productName, amount, currency, userId } = req.body;
-//
-//     // const session = await stripe.checkout.sessions.create({
-//     //   payment_method_types: ['card'],
-//     //   line_items: [{
-//     //     price_data: {
-//     //       currency: currency || 'usd',
-//     //       product_data: {
-//     //         name: productName,
-//     //       },
-//     //       unit_amount: amount, // Amount in cents
-//     //     },
-//     //     quantity: 1,
-//     //   }],
-//     //   mode: 'payment',
-//     //   success_url: `${req.headers.origin}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-//     //   cancel_url: `${req.headers.origin}/products`,
-//     //   metadata: {
-//     //     productId,
-//     //     userId
-//     //   }
-//     // });
-//
-//     // res.json({ sessionId: session.id });
-//   } catch (error) {
-//     console.error('Stripe checkout error:', error);
-//     res.status(500).json({ error: error.message });
-//   }
-// });
-
-// Webhook to handle successful payments
-// exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
-//   const sig = req.headers['stripe-signature'];
-//   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-//
-//   try {
-//     const event = stripe.webhooks.constructEvent(req.rawBody, sig, webhookSecret);
-//
-//     if (event.type === 'checkout.session.completed') {
-//       const session = event.data.object;
-//       
-//       // Record the purchase in Firestore
-//       await admin.firestore().collection('purchases').add({
-//         userId: session.metadata.userId,
-//         productId: session.metadata.productId,
-//         amount: session.amount_total / 100,
-//         currency: session.currency,
-//         stripeSessionId: session.id,
-//         status: 'completed',
-//         createdAt: admin.firestore.FieldValue.serverTimestamp()
-//       });
-//
-//       // Update product analytics
-//       const productRef = admin.firestore().collection('products').doc(session.metadata.productId);
-//       await productRef.update({
-//         'analytics.purchases': admin.firestore.FieldValue.increment(1),
-//         'analytics.revenue': admin.firestore.FieldValue.increment(session.amount_total / 100)
-//       });
-//
-//       console.log('✅ Purchase recorded:', session.id);
-//     }
-//
-//     res.json({ received: true });
-//   } catch (error) {
-//     console.error('Webhook error:', error);
-//     res.status(400).send(`Webhook Error: ${error.message}`);
-//   }
-// });
 
 // ============================================
 // TEST FUNCTION

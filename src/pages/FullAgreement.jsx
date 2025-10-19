@@ -1,1416 +1,3431 @@
-// src/pages/FullAgreement.jsx - Complete Credit Repair Service Agreement
-import React, { useState, useEffect, useRef } from 'react';
-import {
-  Box, Paper, Typography, Button, TextField, Grid, Divider, Alert, Snackbar,
-  Card, CardContent, FormControl, FormControlLabel, Checkbox, Radio, RadioGroup,
-  Stack, IconButton, Dialog, DialogTitle, DialogContent, DialogActions,
-  List, ListItem, ListItemText, InputAdornment, Chip, Stepper, Step, StepLabel,
-  Accordion, AccordionSummary, AccordionDetails, LinearProgress, Autocomplete
-} from '@mui/material';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import {
-  FileText, Download, Send, CheckCircle, Edit, Trash2, Eye, Calendar,
-  User, Mail, Phone, MapPin, DollarSign, CreditCard, Shield, AlertCircle,
-  Save, Printer, ChevronDown, X, Check
-} from 'lucide-react';
-import { 
-  collection, addDoc, updateDoc, doc, query, where, getDocs,
-  serverTimestamp, getDoc
-} from 'firebase/firestore';
-import { db } from '../lib/firebase';
-import { useAuth } from '../contexts/AuthContext';
-import { format } from 'date-fns';
-import SignatureCanvas from 'react-signature-canvas';
+// FullAgreement.jsx - Comprehensive Credit Repair Service Agreement
+// Enterprise-grade agreement with all terms, pricing, guarantees, and legal provisions
 
-const FullAgreement = () => {
-  const { currentUser } = useAuth();
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import {
+  Box,
+  Card,
+  CardContent,
+  CardActions,
+  CardHeader,
+  Paper,
+  Typography,
+  TextField,
+  Button,
+  IconButton,
+  Grid,
+  Divider,
+  Chip,
+  Avatar,
+  Alert,
+  AlertTitle,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  ListItemAvatar,
+  ListItemSecondaryAction,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  FormControlLabel,
+  Checkbox,
+  Switch,
+  Radio,
+  RadioGroup,
+  Tabs,
+  Tab,
+  CircularProgress,
+  LinearProgress,
+  Stepper,
+  Step,
+  StepLabel,
+  StepContent,
+  StepButton,
+  InputAdornment,
+  Tooltip,
+  Badge,
+  Stack,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  AccordionActions,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TablePagination,
+  ToggleButton,
+  ToggleButtonGroup,
+  Timeline,
+  TimelineItem,
+  TimelineSeparator,
+  TimelineConnector,
+  TimelineContent,
+  TimelineDot,
+  TimelineOppositeContent,
+  Backdrop,
+  SpeedDial,
+  SpeedDialIcon,
+  SpeedDialAction,
+  Collapse,
+  Fade,
+  Zoom,
+  Slide,
+  Grow,
+  Snackbar,
+  Rating,
+  Breadcrumbs,
+  Link,
+  Drawer,
+  AppBar,
+  Toolbar,
+  Container,
+  ButtonGroup
+} from '@mui/material';
+import {
+  Description,
+  Assignment,
+  Gavel,
+  AttachMoney,
+  CreditCard,
+  AccountBalance,
+  CheckCircle,
+  Cancel,
+  Warning,
+  Info,
+  Error,
+  Security,
+  VerifiedUser,
+  Policy,
+  BusinessCenter,
+  Handshake,
+  DocumentScanner,
+  Receipt,
+  RequestQuote,
+  PriceCheck,
+  MoneyOff,
+  Payment,
+  Payments,
+  PaymentsOutlined,
+  CreditScore,
+  TrendingUp,
+  Timeline as TimelineIcon,
+  DateRange,
+  CalendarToday,
+  Schedule,
+  Timer,
+  AccessTime,
+  History,
+  Update,
+  Autorenew,
+  Loop,
+  Cached,
+  Save,
+  Send,
+  Print,
+  Download,
+  Upload,
+  Share,
+  Email,
+  Phone,
+  Person,
+  People,
+  Group,
+  Business,
+  Home,
+  LocationOn,
+  Flag,
+  Star,
+  StarBorder,
+  Favorite,
+  FavoriteBorder,
+  ThumbUp,
+  ThumbDown,
+  Done,
+  DoneAll,
+  DoneOutline,
+  Close,
+  Clear,
+  Delete,
+  Edit,
+  Add,
+  Remove,
+  ExpandMore,
+  ExpandLess,
+  ChevronRight,
+  ChevronLeft,
+  NavigateNext,
+  NavigateBefore,
+  MoreVert,
+  MoreHoriz,
+  Settings,
+  Tune,
+  Build,
+  Extension,
+  Widgets,
+  Dashboard,
+  Assessment,
+  Analytics,
+  Insights,
+  TipsAndUpdates,
+  Lightbulb,
+  AutoAwesome,
+  Psychology,
+  School,
+  MenuBook,
+  LibraryBooks,
+  Article,
+  Newspaper,
+  Feed,
+  RssFeed,
+  Forum,
+  QuestionAnswer,
+  LiveHelp,
+  SupportAgent,
+  ContactSupport,
+  Help,
+  HelpOutline,
+  HelpCenter,
+  NotListedLocation,
+  Quiz,
+  FactCheck,
+  Rule,
+  Balance,
+  Scale,
+  GavelOutlined,
+  PolicyOutlined,
+  PrivacyTip,
+  Shield,
+  AdminPanelSettings,
+  SupervisorAccount,
+  ManageAccounts,
+  BadgeOutlined,
+  WorkOutline,
+  WorkHistory,
+  Engineering,
+  Construction,
+  Handyman,
+  CleaningServices,
+  Plumbing,
+  ElectricalServices,
+  HomeRepairService,
+  MedicalServices,
+  HealthAndSafety,
+  Coronavirus,
+  LocalHospital,
+  EmergencyShare,
+  ReportProblem,
+  NewReleases,
+  Announcement,
+  Campaign,
+  NotificationImportant,
+  CircleNotifications,
+  NotificationsActive,
+  NotificationAdd,
+  MarkEmailRead,
+  ForwardToInbox,
+  MarkChatRead,
+  Unsubscribe,
+  CancelScheduleSend,
+  EventAvailable,
+  EventBusy,
+  EventNote,
+  EventRepeat,
+  PermContactCalendar,
+  DateRangeOutlined,
+  TodayOutlined,
+  EventOutlined,
+  AlarmOn,
+  AlarmOff,
+  Alarm,
+  AlarmAdd,
+  Snooze,
+  WatchLater,
+  MoreTime,
+  Timelapse,
+  TimerOff,
+  Timer3,
+  Timer10,
+  HourglassEmpty,
+  HourglassFull,
+  HourglassTop,
+  HourglassBottom,
+  PendingActions,
+  PendingOutlined,
+  RunningWithErrors,
+  CloudDone,
+  CloudSync,
+  CloudOff,
+  CloudQueue,
+  CloudUpload,
+  CloudDownload,
+  CloudCircle,
+  Backup,
+  SettingsBackupRestore,
+  RestoreFromTrash,
+  RestorePage,
+  HistoryEdu,
+  HistoryToggleOff,
+  UpdateDisabled,
+  SystemUpdate,
+  SystemUpdateAlt,
+  SecurityUpdate,
+  SecurityUpdateGood,
+  SecurityUpdateWarning
+} from '@mui/icons-material';
+import SignatureCanvas from 'react-signature-canvas';
+import { useForm, Controller, useFieldArray, useWatch } from 'react-hook-form';
+import { doc, setDoc, getDoc, updateDoc, collection, serverTimestamp, query, where, getDocs, addDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '@/lib/firebase';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNotification } from '@/contexts/NotificationContext';
+import { format, formatDistanceToNow, addMonths, addDays, differenceInDays, differenceInMonths, isBefore, isAfter } from 'date-fns';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
+import QRCode from 'qrcode';
+
+// Service Packages
+const SERVICE_PACKAGES = {
+  basic: {
+    name: 'Basic Credit Repair',
+    price: 99.99,
+    setupFee: 99,
+    duration: 6,
+    features: [
+      'Credit report analysis',
+      'Up to 5 dispute letters per month',
+      'Credit monitoring',
+      'Email support',
+      'Monthly progress reports'
+    ],
+    guarantees: [
+      '30-day money back guarantee',
+      'Minimum 10 point score improvement'
+    ]
+  },
+  professional: {
+    name: 'Professional Credit Restoration',
+    price: 149.99,
+    setupFee: 149,
+    duration: 6,
+    features: [
+      'Everything in Basic',
+      'Unlimited dispute letters',
+      'Creditor negotiations',
+      'Debt validation assistance',
+      'Identity theft recovery',
+      'Phone & email support',
+      'Bi-weekly progress reports'
+    ],
+    guarantees: [
+      '60-day money back guarantee',
+      'Minimum 35 point score improvement',
+      'Guaranteed dispute responses'
+    ]
+  },
+  premium: {
+    name: 'Premium Credit Transformation',
+    price: 299.99,
+    setupFee: 199,
+    duration: 12,
+    features: [
+      'Everything in Professional',
+      'Dedicated account manager',
+      'Legal team consultation',
+      'Cease and desist letters',
+      'Credit building strategies',
+      'Financial planning consultation',
+      '24/7 priority support',
+      'Weekly progress reports',
+      'Credit education resources'
+    ],
+    guarantees: [
+      '90-day money back guarantee',
+      'Minimum 50 point score improvement',
+      'Guaranteed results or full refund',
+      'Legal protection coverage'
+    ]
+  },
+  enterprise: {
+    name: 'Enterprise Solution',
+    price: 'Custom',
+    setupFee: 'Custom',
+    duration: 12,
+    features: [
+      'Everything in Premium',
+      'White-label options',
+      'API access',
+      'Bulk processing',
+      'Custom reporting',
+      'Dedicated success team',
+      'SLA guarantees',
+      'Custom integrations'
+    ],
+    guarantees: [
+      'Custom SLA',
+      'Performance-based pricing available',
+      'Dedicated legal team'
+    ]
+  }
+};
+
+// Payment Methods
+const PAYMENT_METHODS = [
+  { id: 'credit_card', label: 'Credit Card', icon: <CreditCard /> },
+  { id: 'debit_card', label: 'Debit Card', icon: <Payment /> },
+  { id: 'ach', label: 'Bank Transfer (ACH)', icon: <AccountBalance /> },
+  { id: 'paypal', label: 'PayPal', icon: <Payments /> },
+  { id: 'check', label: 'Check', icon: <Receipt /> },
+  { id: 'wire', label: 'Wire Transfer', icon: <PaymentsOutlined /> }
+];
+
+// Agreement Sections
+const AGREEMENT_SECTIONS = [
+  'Services',
+  'Pricing & Payment',
+  'Term & Cancellation',
+  'Guarantees',
+  'Client Obligations',
+  'Company Obligations',
+  'Dispute Process',
+  'Confidentiality',
+  'Liability',
+  'Legal Provisions'
+];
+
+// Cancellation Reasons
+const CANCELLATION_REASONS = [
+  'Service completed successfully',
+  'Moving to different provider',
+  'Financial constraints',
+  'Not seeing expected results',
+  'No longer need service',
+  'Other'
+];
+
+const FullAgreement = ({
+  clientId = null,
+  mode = 'create', // 'create', 'edit', 'view', 'sign', 'renew', 'cancel'
+  existingAgreementId = null,
+  onComplete,
+  requireCosigner = false,
+  allowCustomTerms = false
+}) => {
+  const { user } = useAuth();
+  const { showSuccess, showError, showInfo, showWarning } = useNotification();
+  
+  // Form setup
+  const { control, handleSubmit, watch, setValue, getValues, reset, formState: { errors, isDirty } } = useForm({
+    defaultValues: {
+      // Client Information
+      clientName: '',
+      clientEmail: '',
+      clientPhone: '',
+      clientAddress: '',
+      clientCity: '',
+      clientState: '',
+      clientZip: '',
+      clientDOB: '',
+      clientSSN: '',
+      
+      // Co-signer Information (if required)
+      cosignerName: '',
+      cosignerEmail: '',
+      cosignerPhone: '',
+      cosignerRelation: '',
+      
+      // Service Details
+      packageType: 'professional',
+      customPackage: null,
+      startDate: new Date().toISOString().split('T')[0],
+      endDate: '',
+      autoRenew: true,
+      renewalTerm: 6,
+      
+      // Pricing
+      monthlyFee: 149.99,
+      setupFee: 149,
+      discount: 0,
+      discountType: 'percentage', // 'percentage' or 'fixed'
+      promotionCode: '',
+      totalAmount: 0,
+      
+      // Payment
+      paymentMethod: 'credit_card',
+      billingCycle: 'monthly', // 'monthly', 'quarterly', 'semi-annual', 'annual'
+      paymentDueDate: 1, // Day of month
+      autopayEnabled: true,
+      
+      // Payment Details
+      cardNumber: '',
+      cardName: '',
+      cardExpiry: '',
+      cardCVV: '',
+      bankName: '',
+      routingNumber: '',
+      accountNumber: '',
+      accountType: 'checking',
+      
+      // Guarantees
+      acceptedGuarantees: [],
+      customGuarantees: [],
+      moneyBackPeriod: 60,
+      minimumScoreImprovement: 35,
+      
+      // Terms Acceptance
+      acceptServiceTerms: false,
+      acceptPrivacyPolicy: false,
+      acceptBillingTerms: false,
+      acceptDisputeProcess: false,
+      acceptLiability: false,
+      acceptAll: false,
+      
+      // Additional Options
+      addCreditMonitoring: true,
+      addIdentityProtection: false,
+      addFinancialCounseling: false,
+      addLegalConsultation: false,
+      addRushService: false,
+      
+      // Custom Terms (if allowed)
+      customTerms: '',
+      specialRequests: '',
+      internalNotes: '',
+      
+      // Signatures
+      clientSignature: '',
+      clientSignDate: '',
+      cosignerSignature: '',
+      cosignerSignDate: '',
+      companyRepSignature: '',
+      companyRepName: '',
+      companyRepTitle: '',
+      companyRepDate: '',
+      
+      // Agreement Metadata
+      agreementNumber: '',
+      version: '2.0',
+      status: 'draft',
+      createdAt: '',
+      modifiedAt: '',
+      executedAt: '',
+      expiresAt: '',
+      renewedFrom: '',
+      cancelledAt: '',
+      cancellationReason: '',
+      cancellationNotes: ''
+    }
+  });
+  
+  // Watch form values
+  const watchedPackage = watch('packageType');
+  const watchedBillingCycle = watch('billingCycle');
+  const watchedDiscount = watch('discount');
+  const watchedDiscountType = watch('discountType');
+  const watchedAddOns = watch(['addCreditMonitoring', 'addIdentityProtection', 'addFinancialCounseling', 'addLegalConsultation', 'addRushService']);
+  const watchedAcceptAll = watch('acceptAll');
+  
+  // State
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [contacts, setContacts] = useState([]);
-  const [agreements, setAgreements] = useState([]);
-  const [viewDialogOpen, setViewDialogOpen] = useState(false);
-  const [selectedAgreement, setSelectedAgreement] = useState(null);
-  const signaturePad = useRef(null);
-  const initialsSignature1 = useRef(null);
-  const initialsSignature2 = useRef(null);
-  const initialsSignature3 = useRef(null);
-
-  // Agreement Data
-  const [agreementData, setAgreementData] = useState({
-    // Client Information
-    client: {
-      firstName: '',
-      lastName: '',
-      email: '',
-      phone: '',
-      address: '',
-      city: '',
-      state: '',
-      zip: '',
-      dateOfBirth: null,
-      ssn: ''
-    },
+  const [saving, setSaving] = useState(false);
+  const [agreementId, setAgreementId] = useState(existingAgreementId);
+  const [signatureDialogOpen, setSignatureDialogOpen] = useState(false);
+  const [currentSignatureField, setCurrentSignatureField] = useState(null);
+  const [signatures, setSignatures] = useState({});
+  const [expandedSection, setExpandedSection] = useState('Services');
+  const [showPreview, setShowPreview] = useState(false);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [processingPayment, setProcessingPayment] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState(null);
+  const [agreementHistory, setAgreementHistory] = useState([]);
+  const [amendments, setAmendments] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [validationErrors, setValidationErrors] = useState({});
+  const [qrCode, setQrCode] = useState('');
+  const [pdfUrl, setPdfUrl] = useState('');
+  const [emailSent, setEmailSent] = useState(false);
+  const [ipAddress, setIpAddress] = useState('');
+  const [userAgent, setUserAgent] = useState('');
+  const [geolocation, setGeolocation] = useState(null);
+  
+  // Refs
+  const signaturePadRef = useRef();
+  const agreementRef = useRef();
+  const printRef = useRef();
+  
+  // Calculate pricing
+  const calculatePricing = useMemo(() => {
+    const selectedPackage = SERVICE_PACKAGES[watchedPackage];
+    if (!selectedPackage) return { monthly: 0, setup: 0, addOns: 0, discount: 0, total: 0 };
     
-    // Service Selection
-    services: {
-      package: 'standard', // basic, standard, premium
-      addOns: [],
-      duration: '6', // months
-      customServices: []
-    },
+    let monthlyBase = selectedPackage.price === 'Custom' ? watch('monthlyFee') : selectedPackage.price;
+    let setupBase = selectedPackage.setupFee === 'Custom' ? watch('setupFee') : selectedPackage.setupFee;
     
-    // Pricing
-    pricing: {
-      setupFee: 99,
-      monthlyFee: 99,
-      discount: 0,
-      totalMonthly: 99,
-      totalContract: 0,
-      paymentPlan: 'monthly' // monthly, quarterly, annual
-    },
+    // Add-on pricing
+    let addOnsMonthly = 0;
+    if (watch('addCreditMonitoring')) addOnsMonthly += 19.99;
+    if (watch('addIdentityProtection')) addOnsMonthly += 14.99;
+    if (watch('addFinancialCounseling')) addOnsMonthly += 49.99;
+    if (watch('addLegalConsultation')) addOnsMonthly += 99.99;
+    if (watch('addRushService')) addOnsMonthly += 29.99;
     
-    // Payment Information
-    payment: {
-      method: 'credit_card', // credit_card, ach, check
-      cardLastFour: '',
-      bankLastFour: '',
-      billingDate: 1, // day of month
-      autoRenew: true
-    },
+    // Calculate discount
+    let discountAmount = 0;
+    if (watchedDiscount > 0) {
+      if (watchedDiscountType === 'percentage') {
+        discountAmount = (monthlyBase + addOnsMonthly) * (watchedDiscount / 100);
+      } else {
+        discountAmount = watchedDiscount;
+      }
+    }
     
-    // Agreement Terms
-    terms: {
-      servicePeriod: '6 months',
-      cancellationPolicy: 'standard',
-      refundPolicy: 'standard',
-      disputeResolution: 'arbitration',
-      governingLaw: 'California'
-    },
+    // Billing cycle adjustment
+    let cycleMultiplier = 1;
+    let cycleDiscount = 0;
+    switch (watchedBillingCycle) {
+      case 'quarterly':
+        cycleMultiplier = 3;
+        cycleDiscount = 0.05; // 5% discount
+        break;
+      case 'semi-annual':
+        cycleMultiplier = 6;
+        cycleDiscount = 0.10; // 10% discount
+        break;
+      case 'annual':
+        cycleMultiplier = 12;
+        cycleDiscount = 0.15; // 15% discount
+        break;
+    }
     
-    // Legal Acknowledgements
-    acknowledgements: {
-      crraCompliance: false,
-      noGuarantees: false,
-      rightToCancel: false,
-      privacyPolicy: false,
-      termsOfService: false,
-      electronicSignature: false,
-      truthfulInformation: false
-    },
+    const monthlyTotal = monthlyBase + addOnsMonthly - discountAmount;
+    const cycleTotal = monthlyTotal * cycleMultiplier * (1 - cycleDiscount);
+    const firstPayment = setupBase + cycleTotal;
     
-    // Initials (for important clauses)
-    initials: {
-      section1: '', // CRRA disclosure
-      section2: '', // No guarantees
-      section3: '', // Cancellation rights
-      clientInitials: '',
-      date: null
-    },
+    return {
+      monthly: monthlyBase,
+      setup: setupBase,
+      addOns: addOnsMonthly,
+      discount: discountAmount,
+      cycleDiscount: cycleTotal * cycleDiscount,
+      monthlyTotal,
+      cycleTotal,
+      firstPayment,
+      savings: cycleTotal * cycleDiscount
+    };
+  }, [watchedPackage, watchedBillingCycle, watchedDiscount, watchedDiscountType, watchedAddOns]);
+  
+  // Load existing agreement
+  useEffect(() => {
+    if (existingAgreementId) {
+      loadAgreement();
+    } else {
+      generateAgreementNumber();
+    }
     
-    // Signatures
-    signatures: {
-      clientSignature: '',
-      clientSignatureDate: null,
-      companySignature: '',
-      companySignatureDate: null,
-      witnessSignature: '',
-      witnessName: '',
-      witnessDate: null
-    },
+    // Get user environment
+    getUserEnvironment();
+  }, [existingAgreementId]);
+  
+  // Generate QR code when agreement is created
+  useEffect(() => {
+    if (agreementId) {
+      generateQRCode();
+    }
+  }, [agreementId]);
+  
+  // Handle accept all checkbox
+  useEffect(() => {
+    if (watchedAcceptAll) {
+      setValue('acceptServiceTerms', true);
+      setValue('acceptPrivacyPolicy', true);
+      setValue('acceptBillingTerms', true);
+      setValue('acceptDisputeProcess', true);
+      setValue('acceptLiability', true);
+    }
+  }, [watchedAcceptAll]);
+  
+  const getUserEnvironment = async () => {
+    // Get IP address
+    try {
+      const response = await fetch('https://api.ipify.org?format=json');
+      const data = await response.json();
+      setIpAddress(data.ip);
+    } catch (error) {
+      console.error('Error fetching IP:', error);
+    }
     
-    // Status
-    status: 'draft', // draft, pending_signature, signed, active, cancelled
-    contactId: null,
-    agreementNumber: '',
-    effectiveDate: null,
-    expirationDate: null
-  });
-
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'info'
-  });
-
+    // Get user agent
+    setUserAgent(navigator.userAgent);
+    
+    // Get geolocation
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setGeolocation({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy
+          });
+        },
+        (error) => {
+          console.log('Geolocation denied');
+        }
+      );
+    }
+  };
+  
+  const generateAgreementNumber = () => {
+    const timestamp = Date.now().toString(36).toUpperCase();
+    const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const agreementNum = `AGR-${timestamp}-${random}`;
+    setValue('agreementNumber', agreementNum);
+  };
+  
+  const generateQRCode = async () => {
+    try {
+      const verificationUrl = `${window.location.origin}/verify/agreement/${agreementId}`;
+      const qrDataUrl = await QRCode.toDataURL(verificationUrl, {
+        width: 200,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      });
+      setQrCode(qrDataUrl);
+    } catch (error) {
+      console.error('Error generating QR code:', error);
+    }
+  };
+  
+  const loadAgreement = async () => {
+    try {
+      setLoading(true);
+      const docRef = doc(db, 'agreements', existingAgreementId);
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        reset(data);
+        setAgreementId(docSnap.id);
+        setSignatures(data.signatures || {});
+        
+        // Load related data
+        await loadAgreementHistory();
+        await loadAmendments();
+        
+        showSuccess('Agreement loaded successfully');
+      } else {
+        showError('Agreement not found');
+      }
+    } catch (error) {
+      console.error('Error loading agreement:', error);
+      showError('Failed to load agreement');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const loadAgreementHistory = async () => {
+    try {
+      const q = query(
+        collection(db, 'agreementHistory'),
+        where('agreementId', '==', existingAgreementId)
+      );
+      const querySnapshot = await getDocs(q);
+      const history = [];
+      querySnapshot.forEach((doc) => {
+        history.push({ id: doc.id, ...doc.data() });
+      });
+      setAgreementHistory(history.sort((a, b) => b.timestamp - a.timestamp));
+    } catch (error) {
+      console.error('Error loading history:', error);
+    }
+  };
+  
+  const loadAmendments = async () => {
+    try {
+      const q = query(
+        collection(db, 'amendments'),
+        where('agreementId', '==', existingAgreementId)
+      );
+      const querySnapshot = await getDocs(q);
+      const amends = [];
+      querySnapshot.forEach((doc) => {
+        amends.push({ id: doc.id, ...doc.data() });
+      });
+      setAmendments(amends.sort((a, b) => b.createdAt - a.createdAt));
+    } catch (error) {
+      console.error('Error loading amendments:', error);
+    }
+  };
+  
+  const validateStep = (stepIndex) => {
+    const errors = {};
+    const data = getValues();
+    
+    switch (stepIndex) {
+      case 0: // Client Information
+        if (!data.clientName) errors.clientName = 'Name is required';
+        if (!data.clientEmail) errors.clientEmail = 'Email is required';
+        if (!data.clientPhone) errors.clientPhone = 'Phone is required';
+        if (!data.clientAddress) errors.clientAddress = 'Address is required';
+        if (!data.clientCity) errors.clientCity = 'City is required';
+        if (!data.clientState) errors.clientState = 'State is required';
+        if (!data.clientZip) errors.clientZip = 'ZIP code is required';
+        if (!data.clientDOB) errors.clientDOB = 'Date of birth is required';
+        if (!data.clientSSN) errors.clientSSN = 'SSN is required';
+        
+        if (requireCosigner) {
+          if (!data.cosignerName) errors.cosignerName = 'Co-signer name is required';
+          if (!data.cosignerEmail) errors.cosignerEmail = 'Co-signer email is required';
+          if (!data.cosignerPhone) errors.cosignerPhone = 'Co-signer phone is required';
+          if (!data.cosignerRelation) errors.cosignerRelation = 'Relationship is required';
+        }
+        break;
+        
+      case 1: // Service Selection
+        if (!data.packageType) errors.packageType = 'Package selection is required';
+        if (!data.startDate) errors.startDate = 'Start date is required';
+        break;
+        
+      case 2: // Payment Information
+        if (!data.paymentMethod) errors.paymentMethod = 'Payment method is required';
+        
+        if (data.paymentMethod === 'credit_card' || data.paymentMethod === 'debit_card') {
+          if (!data.cardNumber) errors.cardNumber = 'Card number is required';
+          if (!data.cardName) errors.cardName = 'Cardholder name is required';
+          if (!data.cardExpiry) errors.cardExpiry = 'Expiry date is required';
+          if (!data.cardCVV) errors.cardCVV = 'CVV is required';
+        }
+        
+        if (data.paymentMethod === 'ach') {
+          if (!data.bankName) errors.bankName = 'Bank name is required';
+          if (!data.routingNumber) errors.routingNumber = 'Routing number is required';
+          if (!data.accountNumber) errors.accountNumber = 'Account number is required';
+        }
+        break;
+        
+      case 3: // Terms Review
+        if (!data.acceptServiceTerms) errors.acceptServiceTerms = 'Must accept service terms';
+        if (!data.acceptPrivacyPolicy) errors.acceptPrivacyPolicy = 'Must accept privacy policy';
+        if (!data.acceptBillingTerms) errors.acceptBillingTerms = 'Must accept billing terms';
+        if (!data.acceptDisputeProcess) errors.acceptDisputeProcess = 'Must accept dispute process';
+        if (!data.acceptLiability) errors.acceptLiability = 'Must accept liability terms';
+        break;
+        
+      case 4: // Signatures
+        if (!signatures.client) errors.clientSignature = 'Client signature is required';
+        if (requireCosigner && !signatures.cosigner) errors.cosignerSignature = 'Co-signer signature is required';
+        break;
+    }
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+  
+  const handleNext = () => {
+    if (validateStep(activeStep)) {
+      setActiveStep(prev => prev + 1);
+      saveProgress();
+    } else {
+      showError('Please complete all required fields');
+    }
+  };
+  
+  const handleBack = () => {
+    setActiveStep(prev => prev - 1);
+  };
+  
+  const saveProgress = async () => {
+    if (!isDirty) return;
+    
+    try {
+      setSaving(true);
+      const formData = getValues();
+      
+      const dataToSave = {
+        ...formData,
+        signatures,
+        lastModified: serverTimestamp(),
+        modifiedBy: user.uid,
+        currentStep: activeStep,
+        pricing: calculatePricing
+      };
+      
+      if (agreementId) {
+        await updateDoc(doc(db, 'agreements', agreementId), dataToSave);
+      } else {
+        const docRef = await addDoc(collection(db, 'agreements'), {
+          ...dataToSave,
+          createdAt: serverTimestamp(),
+          createdBy: user.uid,
+          status: 'draft'
+        });
+        setAgreementId(docRef.id);
+      }
+      
+      // Add to history
+      await addDoc(collection(db, 'agreementHistory'), {
+        agreementId: agreementId || docRef.id,
+        action: 'progress_saved',
+        step: activeStep,
+        timestamp: serverTimestamp(),
+        userId: user.uid
+      });
+      
+      showInfo('Progress saved');
+    } catch (error) {
+      console.error('Error saving progress:', error);
+      showError('Failed to save progress');
+    } finally {
+      setSaving(false);
+    }
+  };
+  
+  const openSignatureDialog = (field) => {
+    setCurrentSignatureField(field);
+    setSignatureDialogOpen(true);
+  };
+  
+  const handleSignatureSave = () => {
+    if (signaturePadRef.current && !signaturePadRef.current.isEmpty()) {
+      const signatureData = signaturePadRef.current.toDataURL();
+      const signatureInfo = {
+        signature: signatureData,
+        timestamp: new Date().toISOString(),
+        ipAddress,
+        userAgent,
+        geolocation,
+        signedBy: currentSignatureField === 'client' ? getValues('clientName') : 
+                  currentSignatureField === 'cosigner' ? getValues('cosignerName') :
+                  getValues('companyRepName')
+      };
+      
+      setSignatures(prev => ({
+        ...prev,
+        [currentSignatureField]: signatureInfo
+      }));
+      
+      setValue(`${currentSignatureField}Signature`, signatureData);
+      setValue(`${currentSignatureField}SignDate`, new Date().toISOString());
+      
+      setSignatureDialogOpen(false);
+      showSuccess('Signature captured');
+    } else {
+      showError('Please provide a signature');
+    }
+  };
+  
+  const handleSignatureClear = () => {
+    if (signaturePadRef.current) {
+      signaturePadRef.current.clear();
+    }
+  };
+  
+  const processPayment = async () => {
+    setProcessingPayment(true);
+    try {
+      // Simulate payment processing
+      // In production, integrate with payment gateway (Stripe, PayPal, etc.)
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Record payment
+      await addDoc(collection(db, 'payments'), {
+        agreementId,
+        amount: calculatePricing.firstPayment,
+        type: 'setup_and_first_payment',
+        method: getValues('paymentMethod'),
+        status: 'completed',
+        processedAt: serverTimestamp(),
+        clientId: clientId || user.uid
+      });
+      
+      setPaymentStatus('success');
+      showSuccess('Payment processed successfully');
+      return true;
+    } catch (error) {
+      console.error('Payment error:', error);
+      setPaymentStatus('failed');
+      showError('Payment failed. Please try again.');
+      return false;
+    } finally {
+      setProcessingPayment(false);
+    }
+  };
+  
+  const generatePDF = async () => {
+    try {
+      setLoading(true);
+      const element = printRef.current;
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        logging: false,
+        useCORS: true
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+      
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = pageWidth - 20;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      let heightLeft = imgHeight;
+      let position = 10;
+      
+      // Add first page
+      pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+      
+      // Add additional pages if needed
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+      
+      // Add QR code
+      if (qrCode) {
+        pdf.addImage(qrCode, 'PNG', pageWidth - 40, 10, 30, 30);
+      }
+      
+      // Save PDF
+      const pdfBlob = pdf.output('blob');
+      
+      // Upload to storage
+      const storageRef = ref(storage, `agreements/${agreementId}/agreement_${Date.now()}.pdf`);
+      const uploadResult = await uploadBytes(storageRef, pdfBlob);
+      const downloadURL = await getDownloadURL(uploadResult.ref);
+      
+      setPdfUrl(downloadURL);
+      
+      // Update agreement with PDF URL
+      await updateDoc(doc(db, 'agreements', agreementId), {
+        pdfUrl: downloadURL,
+        pdfGeneratedAt: serverTimestamp()
+      });
+      
+      // Download PDF
+      pdf.save(`Agreement_${getValues('agreementNumber')}_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+      
+      showSuccess('PDF generated successfully');
+      return downloadURL;
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      showError('Failed to generate PDF');
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const sendAgreementEmail = async (pdfUrl) => {
+    try {
+      const emailData = {
+        to: getValues('clientEmail'),
+        cc: requireCosigner ? getValues('cosignerEmail') : null,
+        template: {
+          name: 'agreement-executed',
+          data: {
+            clientName: getValues('clientName'),
+            agreementNumber: getValues('agreementNumber'),
+            packageName: SERVICE_PACKAGES[getValues('packageType')].name,
+            monthlyFee: calculatePricing.monthlyTotal,
+            startDate: getValues('startDate'),
+            pdfUrl: pdfUrl || pdfUrl
+          }
+        }
+      };
+      
+      await addDoc(collection(db, 'mail'), emailData);
+      
+      setEmailSent(true);
+      showSuccess('Agreement sent via email');
+    } catch (error) {
+      console.error('Error sending email:', error);
+      showError('Failed to send email');
+    }
+  };
+  
+  const executeAgreement = async () => {
+    try {
+      setLoading(true);
+      
+      // Validate all steps
+      for (let i = 0; i <= 4; i++) {
+        if (!validateStep(i)) {
+          setActiveStep(i);
+          showError('Please complete all required fields');
+          return;
+        }
+      }
+      
+      // Process payment
+      const paymentSuccess = await processPayment();
+      if (!paymentSuccess) {
+        return;
+      }
+      
+      // Generate PDF
+      const pdfUrl = await generatePDF();
+      
+      // Update agreement status
+      const executionData = {
+        ...getValues(),
+        signatures,
+        status: 'executed',
+        executedAt: serverTimestamp(),
+        executedBy: user.uid,
+        pdfUrl,
+        ipAddress,
+        userAgent,
+        geolocation,
+        pricing: calculatePricing
+      };
+      
+      await updateDoc(doc(db, 'agreements', agreementId), executionData);
+      
+      // Create client record if new
+      if (!clientId) {
+        await addDoc(collection(db, 'clients'), {
+          name: getValues('clientName'),
+          email: getValues('clientEmail'),
+          phone: getValues('clientPhone'),
+          agreementId,
+          packageType: getValues('packageType'),
+          status: 'active',
+          createdAt: serverTimestamp(),
+          createdBy: user.uid
+        });
+      }
+      
+      // Send notifications
+      await sendAgreementEmail(pdfUrl);
+      
+      // Add to history
+      await addDoc(collection(db, 'agreementHistory'), {
+        agreementId,
+        action: 'executed',
+        timestamp: serverTimestamp(),
+        userId: user.uid,
+        details: {
+          clientName: getValues('clientName'),
+          package: getValues('packageType'),
+          amount: calculatePricing.firstPayment
+        }
+      });
+      
+      showSuccess('Agreement executed successfully!');
+      
+      if (onComplete) {
+        onComplete({
+          agreementId,
+          ...executionData
+        });
+      }
+    } catch (error) {
+      console.error('Error executing agreement:', error);
+      showError('Failed to execute agreement');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const handleRenewAgreement = async () => {
+    try {
+      setLoading(true);
+      
+      // Create renewal agreement
+      const renewalData = {
+        ...getValues(),
+        renewedFrom: agreementId,
+        startDate: format(new Date(), 'yyyy-MM-dd'),
+        endDate: format(addMonths(new Date(), getValues('renewalTerm')), 'yyyy-MM-dd'),
+        status: 'draft',
+        createdAt: serverTimestamp(),
+        createdBy: user.uid
+      };
+      
+      const renewalRef = await addDoc(collection(db, 'agreements'), renewalData);
+      
+      // Update current agreement
+      await updateDoc(doc(db, 'agreements', agreementId), {
+        renewedTo: renewalRef.id,
+        renewedAt: serverTimestamp(),
+        status: 'renewed'
+      });
+      
+      showSuccess('Agreement renewed successfully');
+      
+      // Navigate to new agreement
+      if (onComplete) {
+        onComplete({
+          action: 'renewed',
+          newAgreementId: renewalRef.id
+        });
+      }
+    } catch (error) {
+      console.error('Error renewing agreement:', error);
+      showError('Failed to renew agreement');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const handleCancelAgreement = async (reason, notes) => {
+    try {
+      setLoading(true);
+      
+      await updateDoc(doc(db, 'agreements', agreementId), {
+        status: 'cancelled',
+        cancelledAt: serverTimestamp(),
+        cancelledBy: user.uid,
+        cancellationReason: reason,
+        cancellationNotes: notes
+      });
+      
+      // Add to history
+      await addDoc(collection(db, 'agreementHistory'), {
+        agreementId,
+        action: 'cancelled',
+        timestamp: serverTimestamp(),
+        userId: user.uid,
+        details: {
+          reason,
+          notes
+        }
+      });
+      
+      showSuccess('Agreement cancelled');
+      
+      if (onComplete) {
+        onComplete({
+          action: 'cancelled',
+          agreementId
+        });
+      }
+    } catch (error) {
+      console.error('Error cancelling agreement:', error);
+      showError('Failed to cancel agreement');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   const steps = [
     'Client Information',
     'Service Selection',
-    'Pricing & Payment',
-    'Terms & Conditions',
-    'Legal Disclosures',
-    'Signatures & Submit'
+    'Payment Information',
+    'Terms Review',
+    'Signatures'
   ];
-
-  const servicePackages = {
-    basic: {
-      name: 'Basic Package',
-      price: 79,
-      setupFee: 0,
-      features: [
-        'Monthly credit report review',
-        'Up to 5 dispute items per month',
-        'Email support',
-        'Educational resources',
-        'Progress tracking dashboard'
-      ]
-    },
-    standard: {
-      name: 'Standard Package',
-      price: 99,
-      setupFee: 99,
-      features: [
-        'Tri-bureau credit monitoring',
-        'Unlimited dispute items',
-        'Priority email & phone support',
-        'Personalized action plan',
-        'Monthly progress reports',
-        'Credit score simulator',
-        'Debt validation letters'
-      ]
-    },
-    premium: {
-      name: 'Premium Package',
-      price: 149,
-      setupFee: 149,
-      features: [
-        'Everything in Standard, plus:',
-        'Dedicated credit specialist',
-        '24/7 support',
-        'Expedited dispute processing',
-        'Identity theft protection',
-        'Credit building tools',
-        'Goodwill letter assistance',
-        'Free consultation calls'
-      ]
-    }
-  };
-
-  const addOnServices = [
-    { id: 'expedited', name: 'Expedited Processing', price: 50 },
-    { id: 'identity_theft', name: 'Identity Theft Resolution', price: 75 },
-    { id: 'business_credit', name: 'Business Credit Building', price: 100 },
-    { id: 'tax_lien', name: 'Tax Lien Assistance', price: 200 },
-    { id: 'bankruptcy', name: 'Bankruptcy Consultation', price: 150 }
-  ];
-
-  // Load contacts
-  const loadContacts = async () => {
-    try {
-      const q = query(
-        collection(db, 'contacts'),
-        where('userId', '==', currentUser.uid)
-      );
-      
-      const querySnapshot = await getDocs(q);
-      const contactsData = [];
-      
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        contactsData.push({
-          id: doc.id,
-          ...data,
-          displayName: data.name || `${data.firstName || ''} ${data.lastName || ''}`.trim()
-        });
-      });
-      
-      setContacts(contactsData);
-    } catch (error) {
-      console.error('Error loading contacts:', error);
-    }
-  };
-
-  // Load existing agreements
-  const loadAgreements = async () => {
-    try {
-      const q = query(
-        collection(db, 'serviceAgreements'),
-        where('userId', '==', currentUser.uid)
-      );
-      
-      const querySnapshot = await getDocs(q);
-      const agreementsData = [];
-      
-      querySnapshot.forEach((doc) => {
-        agreementsData.push({
-          id: doc.id,
-          ...doc.data()
-        });
-      });
-      
-      setAgreements(agreementsData);
-    } catch (error) {
-      console.error('Error loading agreements:', error);
-    }
-  };
-
-  useEffect(() => {
-    if (currentUser) {
-      loadContacts();
-      loadAgreements();
-    }
-  }, [currentUser]);
-
-  // Calculate total pricing
-  useEffect(() => {
-    const packagePrice = servicePackages[agreementData.services.package].price;
-    const setupFee = servicePackages[agreementData.services.package].setupFee;
-    
-    let addOnTotal = 0;
-    agreementData.services.addOns.forEach(addOnId => {
-      const addOn = addOnServices.find(a => a.id === addOnId);
-      if (addOn) addOnTotal += addOn.price;
-    });
-
-    const monthlyTotal = packagePrice + addOnTotal;
-    const duration = parseInt(agreementData.services.duration);
-    const contractTotal = setupFee + (monthlyTotal * duration);
-
-    setAgreementData(prev => ({
-      ...prev,
-      pricing: {
-        ...prev.pricing,
-        setupFee,
-        monthlyFee: packagePrice,
-        totalMonthly: monthlyTotal,
-        totalContract: contractTotal
-      }
-    }));
-  }, [agreementData.services]);
-
-  // Generate agreement number
-  const generateAgreementNumber = () => {
-    const date = new Date();
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-    return `SCR-${year}${month}-${random}`;
-  };
-
-  // Form validation
-  const validateStep = (step) => {
-    switch (step) {
-      case 0: // Client Info
-        return agreementData.client.firstName && agreementData.client.lastName &&
-               agreementData.client.email && agreementData.client.phone;
-      
-      case 1: // Services
-        return agreementData.services.package && agreementData.services.duration;
-      
-      case 2: // Payment
-        return agreementData.payment.method;
-      
-      case 3: // Terms
-        return true;
-      
-      case 4: // Disclosures
-        return Object.values(agreementData.acknowledgements).every(v => v === true) &&
-               agreementData.initials.section1 && agreementData.initials.section2 &&
-               agreementData.initials.section3;
-      
-      case 5: // Signatures
-        return agreementData.signatures.clientSignature &&
-               agreementData.acknowledgements.electronicSignature;
-      
-      default:
-        return true;
-    }
-  };
-
-  const handleNext = () => {
-    if (validateStep(activeStep)) {
-      setActiveStep((prev) => prev + 1);
-    } else {
-      showSnackbar('Please complete all required fields', 'warning');
-    }
-  };
-
-  const handleBack = () => {
-    setActiveStep((prev) => prev - 1);
-  };
-
-  // Clear signature
-  const clearSignature = () => {
-    if (signaturePad.current) {
-      signaturePad.current.clear();
-      setAgreementData(prev => ({
-        ...prev,
-        signatures: { ...prev.signatures, clientSignature: '' }
-      }));
-    }
-  };
-
-  // Save signature
-  const saveSignature = () => {
-    if (signaturePad.current && !signaturePad.current.isEmpty()) {
-      const signature = signaturePad.current.toDataURL();
-      setAgreementData(prev => ({
-        ...prev,
-        signatures: {
-          ...prev.signatures,
-          clientSignature: signature,
-          clientSignatureDate: new Date()
-        }
-      }));
-      showSnackbar('Signature captured', 'success');
-    } else {
-      showSnackbar('Please provide a signature', 'warning');
-    }
-  };
-
-  // Save initials
-  const saveInitials = (sectionRef, section) => {
-    if (sectionRef.current && !sectionRef.current.isEmpty()) {
-      const initials = sectionRef.current.toDataURL();
-      setAgreementData(prev => ({
-        ...prev,
-        initials: {
-          ...prev.initials,
-          [section]: initials,
-          date: new Date()
-        }
-      }));
-    }
-  };
-
-  // Save as draft
-  const handleSaveDraft = async () => {
-    setLoading(true);
-    try {
-      const draftData = {
-        ...agreementData,
-        userId: currentUser.uid,
-        status: 'draft',
-        updatedAt: serverTimestamp()
-      };
-
-      if (agreementData.id) {
-        await updateDoc(doc(db, 'serviceAgreements', agreementData.id), draftData);
-        showSnackbar('Draft updated successfully', 'success');
-      } else {
-        const agreementNumber = generateAgreementNumber();
-        const docRef = await addDoc(collection(db, 'serviceAgreements'), {
-          ...draftData,
-          agreementNumber,
-          createdAt: serverTimestamp()
-        });
-        setAgreementData(prev => ({ 
-          ...prev, 
-          id: docRef.id,
-          agreementNumber
-        }));
-        showSnackbar('Draft saved successfully', 'success');
-      }
-      
-      loadAgreements();
-    } catch (error) {
-      console.error('Error saving draft:', error);
-      showSnackbar('Error saving draft', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Submit agreement
-  const handleSubmit = async () => {
-    if (!validateStep(5)) {
-      showSnackbar('Please complete all required fields', 'warning');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const effectiveDate = new Date();
-      const expirationDate = new Date();
-      expirationDate.setMonth(expirationDate.getMonth() + parseInt(agreementData.services.duration));
-
-      const submissionData = {
-        ...agreementData,
-        userId: currentUser.uid,
-        status: 'signed',
-        effectiveDate,
-        expirationDate,
-        signatures: {
-          ...agreementData.signatures,
-          companySignature: 'auto-signed',
-          companySignatureDate: new Date()
-        },
-        completedAt: serverTimestamp()
-      };
-
-      if (!agreementData.agreementNumber) {
-        submissionData.agreementNumber = generateAgreementNumber();
-      }
-
-      if (agreementData.id) {
-        await updateDoc(doc(db, 'serviceAgreements', agreementData.id), submissionData);
-      } else {
-        await addDoc(collection(db, 'serviceAgreements'), {
-          ...submissionData,
-          createdAt: serverTimestamp()
-        });
-      }
-
-      // Create/update contact
-      if (agreementData.contactId) {
-        await updateDoc(doc(db, 'contacts', agreementData.contactId), {
-          firstName: agreementData.client.firstName,
-          lastName: agreementData.client.lastName,
-          email: agreementData.client.email,
-          phone: agreementData.client.phone,
-          status: 'active',
-          updatedAt: serverTimestamp()
-        });
-      }
-
-      showSnackbar('Agreement signed successfully!', 'success');
-      
-      setTimeout(() => {
-        setActiveStep(0);
-        loadAgreements();
-      }, 2000);
-      
-    } catch (error) {
-      console.error('Error submitting agreement:', error);
-      showSnackbar('Error submitting agreement', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const showSnackbar = (message, severity = 'info') => {
-    setSnackbar({ open: true, message, severity });
-  };
-
-  // Render step content
-  const renderStepContent = (step) => {
-    switch (step) {
-      case 0: // Client Information
-        return (
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <Alert severity="info">
-                Enter the client's information exactly as it appears on their ID
-              </Alert>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <TextField
-                label="First Name"
-                required
-                fullWidth
-                value={agreementData.client.firstName}
-                onChange={(e) => setAgreementData(prev => ({
-                  ...prev,
-                  client: { ...prev.client, firstName: e.target.value }
-                }))}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                label="Last Name"
-                required
-                fullWidth
-                value={agreementData.client.lastName}
-                onChange={(e) => setAgreementData(prev => ({
-                  ...prev,
-                  client: { ...prev.client, lastName: e.target.value }
-                }))}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <TextField
-                label="Email"
-                required
-                fullWidth
-                type="email"
-                value={agreementData.client.email}
-                onChange={(e) => setAgreementData(prev => ({
-                  ...prev,
-                  client: { ...prev.client, email: e.target.value }
-                }))}
-                InputProps={{
-                  startAdornment: <Mail size={18} style={{ marginRight: 8 }} />
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                label="Phone"
-                required
-                fullWidth
-                value={agreementData.client.phone}
-                onChange={(e) => setAgreementData(prev => ({
-                  ...prev,
-                  client: { ...prev.client, phone: e.target.value }
-                }))}
-                InputProps={{
-                  startAdornment: <Phone size={18} style={{ marginRight: 8 }} />
-                }}
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <TextField
-                label="Street Address"
-                fullWidth
-                value={agreementData.client.address}
-                onChange={(e) => setAgreementData(prev => ({
-                  ...prev,
-                  client: { ...prev.client, address: e.target.value }
-                }))}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={5}>
-              <TextField
-                label="City"
-                fullWidth
-                value={agreementData.client.city}
-                onChange={(e) => setAgreementData(prev => ({
-                  ...prev,
-                  client: { ...prev.client, city: e.target.value }
-                }))}
-              />
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <TextField
-                label="State"
-                fullWidth
-                value={agreementData.client.state}
-                onChange={(e) => setAgreementData(prev => ({
-                  ...prev,
-                  client: { ...prev.client, state: e.target.value }
-                }))}
-              />
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <TextField
-                label="ZIP Code"
-                fullWidth
-                value={agreementData.client.zip}
-                onChange={(e) => setAgreementData(prev => ({
-                  ...prev,
-                  client: { ...prev.client, zip: e.target.value }
-                }))}
-              />
-            </Grid>
-          </Grid>
-        );
-
-      case 1: // Service Selection
-        return (
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <Typography variant="h6" gutterBottom>Select Service Package</Typography>
-            </Grid>
-
-            {Object.entries(servicePackages).map(([key, pkg]) => (
-              <Grid item xs={12} md={4} key={key}>
-                <Card 
-                  variant="outlined"
-                  sx={{ 
-                    cursor: 'pointer',
-                    border: agreementData.services.package === key ? 2 : 1,
-                    borderColor: agreementData.services.package === key ? 'primary.main' : 'divider'
-                  }}
-                  onClick={() => setAgreementData(prev => ({
-                    ...prev,
-                    services: { ...prev.services, package: key }
-                  }))}
-                >
-                  <CardContent>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                      <Typography variant="h6">{pkg.name}</Typography>
-                      {agreementData.services.package === key && (
-                        <CheckCircle size={24} color="#10B981" />
-                      )}
-                    </Box>
-                    
-                    <Typography variant="h4" color="primary" gutterBottom>
-                      ${pkg.price}<Typography component="span" variant="body2">/mo</Typography>
-                    </Typography>
-                    
-                    {pkg.setupFee > 0 && (
-                      <Typography variant="body2" color="text.secondary" gutterBottom>
-                        ${pkg.setupFee} setup fee
-                      </Typography>
-                    )}
-                    
-                    <Divider sx={{ my: 2 }} />
-                    
-                    <List dense>
-                      {pkg.features.map((feature, index) => (
-                        <ListItem key={index} disableGutters>
-                          <Check size={16} style={{ marginRight: 8, color: '#10B981' }} />
-                          <Typography variant="body2">{feature}</Typography>
-                        </ListItem>
-                      ))}
-                    </List>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-
-            <Grid item xs={12}>
-              <Divider />
-              <Typography variant="h6" sx={{ mt: 3, mb: 2 }}>Add-On Services</Typography>
-            </Grid>
-
-            {addOnServices.map((addOn) => (
-              <Grid item xs={12} md={6} key={addOn.id}>
-                <Card variant="outlined">
-                  <CardContent>
-                    <FormControlLabel
-                      control={
-                        <Checkbox
-                          checked={agreementData.services.addOns.includes(addOn.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setAgreementData(prev => ({
-                                ...prev,
-                                services: {
-                                  ...prev.services,
-                                  addOns: [...prev.services.addOns, addOn.id]
-                                }
-                              }));
-                            } else {
-                              setAgreementData(prev => ({
-                                ...prev,
-                                services: {
-                                  ...prev.services,
-                                  addOns: prev.services.addOns.filter(id => id !== addOn.id)
-                                }
-                              }));
-                            }
-                          }}
-                        />
-                      }
-                      label={
-                        <Box>
-                          <Typography variant="body1">{addOn.name}</Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            +${addOn.price}/month
-                          </Typography>
-                        </Box>
-                      }
-                    />
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <TextField
-                  select
-                  label="Contract Duration"
-                  value={agreementData.services.duration}
-                  onChange={(e) => setAgreementData(prev => ({
-                    ...prev,
-                    services: { ...prev.services, duration: e.target.value }
-                  }))}
-                  SelectProps={{ native: true }}
-                >
-                  <option value="3">3 Months</option>
-                  <option value="6">6 Months</option>
-                  <option value="12">12 Months</option>
-                  <option value="18">18 Months</option>
-                  <option value="24">24 Months</option>
-                </TextField>
-              </FormControl>
-            </Grid>
-          </Grid>
-        );
-
-      case 2: // Pricing & Payment
-        return (
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>Price Summary</Typography>
-                  
-                  <Box sx={{ mt: 2 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                      <Typography>Setup Fee:</Typography>
-                      <Typography fontWeight={600}>${agreementData.pricing.setupFee}</Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                      <Typography>Monthly Service Fee:</Typography>
-                      <Typography fontWeight={600}>${agreementData.pricing.monthlyFee}</Typography>
-                    </Box>
-                    
-                    {agreementData.services.addOns.length > 0 && (
-                      <Box sx={{ ml: 2, mb: 1 }}>
-                        {agreementData.services.addOns.map(addOnId => {
-                          const addOn = addOnServices.find(a => a.id === addOnId);
-                          return (
-                            <Box key={addOnId} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                              <Typography variant="body2" color="text.secondary">
-                                + {addOn.name}
-                              </Typography>
-                              <Typography variant="body2">${addOn.price}</Typography>
-                            </Box>
-                          );
-                        })}
-                      </Box>
-                    )}
-                    
-                    <Divider sx={{ my: 2 }} />
-                    
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                      <Typography variant="h6">Total Monthly:</Typography>
-                      <Typography variant="h6" color="primary">
-                        ${agreementData.pricing.totalMonthly}
-                      </Typography>
-                    </Box>
-                    
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="body2" color="text.secondary">
-                        Total Contract Value ({agreementData.services.duration} months):
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        ${agreementData.pricing.totalContract}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid item xs={12}>
-              <Typography variant="h6" gutterBottom>Payment Method</Typography>
-            </Grid>
-
-            <Grid item xs={12}>
-              <RadioGroup
-                value={agreementData.payment.method}
-                onChange={(e) => setAgreementData(prev => ({
-                  ...prev,
-                  payment: { ...prev.payment, method: e.target.value }
-                }))}
-              >
-                <FormControlLabel
-                  value="credit_card"
-                  control={<Radio />}
-                  label={
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <CreditCard size={20} />
-                      <Typography>Credit/Debit Card</Typography>
-                    </Box>
-                  }
-                />
-                <FormControlLabel
-                  value="ach"
-                  control={<Radio />}
-                  label={
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <DollarSign size={20} />
-                      <Typography>Bank Account (ACH)</Typography>
-                    </Box>
-                  }
-                />
-              </RadioGroup>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <TextField
-                  select
-                  label="Billing Date"
-                  value={agreementData.payment.billingDate}
-                  onChange={(e) => setAgreementData(prev => ({
-                    ...prev,
-                    payment: { ...prev.payment, billingDate: parseInt(e.target.value) }
-                  }))}
-                  SelectProps={{ native: true }}
-                  helperText="Day of month for recurring billing"
-                >
-                  {Array.from({ length: 28 }, (_, i) => i + 1).map(day => (
-                    <option key={day} value={day}>{day}</option>
-                  ))}
-                </TextField>
-              </FormControl>
-            </Grid>
-
-            <Grid item xs={12}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={agreementData.payment.autoRenew}
-                    onChange={(e) => setAgreementData(prev => ({
-                      ...prev,
-                      payment: { ...prev.payment, autoRenew: e.target.checked }
-                    }))}
-                  />
-                }
-                label="Auto-renew subscription at the end of contract period"
-              />
-            </Grid>
-          </Grid>
-        );
-
-      case 3: // Terms & Conditions
-        return (
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <Alert severity="warning">
-                Please read these terms carefully before proceeding
-              </Alert>
-            </Grid>
-
-            <Grid item xs={12}>
-              <Accordion defaultExpanded>
-                <AccordionSummary expandIcon={<ChevronDown />}>
-                  <Typography variant="h6">Service Terms</Typography>
-                </AccordionSummary>
-                <AccordionDetails>
-                  <Typography variant="body2" paragraph>
-                    <strong>1. Services Provided:</strong> We will analyze your credit reports, identify negative items, 
-                    and dispute inaccurate, unverifiable, or outdated information with credit bureaus on your behalf.
-                  </Typography>
-                  <Typography variant="body2" paragraph>
-                    <strong>2. Service Period:</strong> This agreement is valid for {agreementData.services.duration} months 
-                    from the effective date. Services will continue month-to-month unless either party provides written notice 
-                    of cancellation at least 30 days in advance.
-                  </Typography>
-                  <Typography variant="body2" paragraph>
-                    <strong>3. Client Responsibilities:</strong> You agree to provide accurate information, respond to requests 
-                    promptly, and notify us of any changes to your credit reports.
-                  </Typography>
-                </AccordionDetails>
-              </Accordion>
-            </Grid>
-
-            <Grid item xs={12}>
-              <Accordion>
-                <AccordionSummary expandIcon={<ChevronDown />}>
-                  <Typography variant="h6">Cancellation & Refund Policy</Typography>
-                </AccordionSummary>
-                <AccordionDetails>
-                  <Typography variant="body2" paragraph>
-                    <strong>Right to Cancel:</strong> You have the right to cancel this contract within 3 business days 
-                    from signing for a full refund of any fees paid.
-                  </Typography>
-                  <Typography variant="body2" paragraph>
-                    <strong>After 3-Day Period:</strong> Setup fees are non-refundable. Monthly fees are refundable on 
-                    a pro-rata basis if you cancel mid-month with 30 days written notice.
-                  </Typography>
-                  <Typography variant="body2" paragraph>
-                    <strong>Cancellation Process:</strong> To cancel, send written notice via email or certified mail to 
-                    our billing department.
-                  </Typography>
-                </AccordionDetails>
-              </Accordion>
-            </Grid>
-
-            <Grid item xs={12}>
-              <Accordion>
-                <AccordionSummary expandIcon={<ChevronDown />}>
-                  <Typography variant="h6">Payment Terms</Typography>
-                </AccordionSummary>
-                <AccordionDetails>
-                  <Typography variant="body2" paragraph>
-                    <strong>Billing:</strong> You authorize us to charge your payment method on the {agreementData.payment.billingDate}
-                    {agreementData.payment.billingDate === 1 ? 'st' : agreementData.payment.billingDate === 2 ? 'nd' : 
-                      agreementData.payment.billingDate === 3 ? 'rd' : 'th'} of each month.
-                  </Typography>
-                  <Typography variant="body2" paragraph>
-                    <strong>Failed Payments:</strong> If payment fails, services may be suspended until payment is received. 
-                    A $25 fee may apply for failed payment attempts.
-                  </Typography>
-                  <Typography variant="body2" paragraph>
-                    <strong>Price Changes:</strong> We reserve the right to change prices with 30 days written notice.
-                  </Typography>
-                </AccordionDetails>
-              </Accordion>
-            </Grid>
-
-            <Grid item xs={12}>
-              <Accordion>
-                <AccordionSummary expandIcon={<ChevronDown />}>
-                  <Typography variant="h6">Dispute Resolution</Typography>
-                </AccordionSummary>
-                <AccordionDetails>
-                  <Typography variant="body2" paragraph>
-                    Any disputes arising from this agreement shall be resolved through binding arbitration in accordance 
-                    with the rules of the American Arbitration Association. The arbitration shall take place in 
-                    {agreementData.terms.governingLaw}.
-                  </Typography>
-                </AccordionDetails>
-              </Accordion>
-            </Grid>
-          </Grid>
-        );
-
-      case 4: // Legal Disclosures
-        return (
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <Alert severity="error" icon={<AlertCircle />}>
-                <Typography variant="subtitle2" gutterBottom>
-                  IMPORTANT LEGAL DISCLOSURES - Please read and initial each section
-                </Typography>
-              </Alert>
-            </Grid>
-
-            {/* CRRA Compliance */}
-            <Grid item xs={12}>
-              <Card variant="outlined">
-                <CardContent>
-                  <Typography variant="subtitle1" gutterBottom fontWeight={600}>
-                    Credit Repair Organizations Act (CRRA) Disclosure
-                  </Typography>
-                  <Typography variant="body2" paragraph>
-                    You have the right to dispute inaccurate information in your credit report yourself, 
-                    at no cost, by contacting the credit bureaus directly. You may obtain a free copy of 
-                    your credit report from AnnualCreditReport.com or by calling 1-877-322-8228.
-                  </Typography>
-                  <Typography variant="body2" paragraph>
-                    No credit repair company can legally remove accurate and timely negative information 
-                    from your credit report. Any company that tells you they can is lying.
-                  </Typography>
-                  
-                  <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Box sx={{ border: 1, borderColor: 'divider', p: 1, width: 200, height: 60 }}>
-                      <SignatureCanvas
-                        ref={initialsSignature1}
-                        canvasProps={{ width: 180, height: 40 }}
-                        onEnd={() => saveInitials(initialsSignature1, 'section1')}
-                      />
-                    </Box>
-                    <Box>
-                      <Typography variant="caption">Initial here</Typography>
-                      <Button 
-                        size="small" 
-                        onClick={() => initialsSignature1.current?.clear()}
-                      >
-                        Clear
-                      </Button>
-                    </Box>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            {/* No Guarantees */}
-            <Grid item xs={12}>
-              <Card variant="outlined">
-                <CardContent>
-                  <Typography variant="subtitle1" gutterBottom fontWeight={600}>
-                    No Guarantees of Results
-                  </Typography>
-                  <Typography variant="body2" paragraph>
-                    We cannot and do not guarantee specific results or score improvements. Results vary 
-                    based on individual circumstances, the accuracy of information being disputed, and 
-                    responses from credit bureaus and furnishers.
-                  </Typography>
-                  <Typography variant="body2" paragraph>
-                    Credit repair is a process that typically takes 3-6 months or longer. Some items may 
-                    not be removable if they are accurate and verified.
-                  </Typography>
-                  
-                  <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Box sx={{ border: 1, borderColor: 'divider', p: 1, width: 200, height: 60 }}>
-                      <SignatureCanvas
-                        ref={initialsSignature2}
-                        canvasProps={{ width: 180, height: 40 }}
-                        onEnd={() => saveInitials(initialsSignature2, 'section2')}
-                      />
-                    </Box>
-                    <Box>
-                      <Typography variant="caption">Initial here</Typography>
-                      <Button 
-                        size="small" 
-                        onClick={() => initialsSignature2.current?.clear()}
-                      >
-                        Clear
-                      </Button>
-                    </Box>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            {/* Cancellation Rights */}
-            <Grid item xs={12}>
-              <Card variant="outlined">
-                <CardContent>
-                  <Typography variant="subtitle1" gutterBottom fontWeight={600}>
-                    Your Cancellation Rights
-                  </Typography>
-                  <Typography variant="body2" paragraph>
-                    <strong>3-Day Right to Cancel:</strong> You may cancel this contract without penalty or 
-                    obligation within 3 business days from the date you sign this agreement.
-                  </Typography>
-                  <Typography variant="body2" paragraph>
-                    To cancel, send written notice to: [Company Address] or email: cancel@company.com
-                  </Typography>
-                  <Typography variant="body2" paragraph>
-                    If you cancel within 3 business days, any fees you paid will be refunded within 10 business days.
-                  </Typography>
-                  
-                  <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Box sx={{ border: 1, borderColor: 'divider', p: 1, width: 200, height: 60 }}>
-                      <SignatureCanvas
-                        ref={initialsSignature3}
-                        canvasProps={{ width: 180, height: 40 }}
-                        onEnd={() => saveInitials(initialsSignature3, 'section3')}
-                      />
-                    </Box>
-                    <Box>
-                      <Typography variant="caption">Initial here</Typography>
-                      <Button 
-                        size="small" 
-                        onClick={() => initialsSignature3.current?.clear()}
-                      >
-                        Clear
-                      </Button>
-                    </Box>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            {/* Acknowledgements Checkboxes */}
-            <Grid item xs={12}>
-              <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                Required Acknowledgements
-              </Typography>
-            </Grid>
-
-            <Grid item xs={12}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={agreementData.acknowledgements.crraCompliance}
-                    onChange={(e) => setAgreementData(prev => ({
-                      ...prev,
-                      acknowledgements: { ...prev.acknowledgements, crraCompliance: e.target.checked }
-                    }))}
-                  />
-                }
-                label="I have read and understand the CRRA disclosure"
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={agreementData.acknowledgements.noGuarantees}
-                    onChange={(e) => setAgreementData(prev => ({
-                      ...prev,
-                      acknowledgements: { ...prev.acknowledgements, noGuarantees: e.target.checked }
-                    }))}
-                  />
-                }
-                label="I understand there are no guarantees of specific results"
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={agreementData.acknowledgements.rightToCancel}
-                    onChange={(e) => setAgreementData(prev => ({
-                      ...prev,
-                      acknowledgements: { ...prev.acknowledgements, rightToCancel: e.target.checked }
-                    }))}
-                  />
-                }
-                label="I understand my right to cancel within 3 business days"
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={agreementData.acknowledgements.privacyPolicy}
-                    onChange={(e) => setAgreementData(prev => ({
-                      ...prev,
-                      acknowledgements: { ...prev.acknowledgements, privacyPolicy: e.target.checked }
-                    }))}
-                  />
-                }
-                label="I have read and agree to the Privacy Policy"
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={agreementData.acknowledgements.termsOfService}
-                    onChange={(e) => setAgreementData(prev => ({
-                      ...prev,
-                      acknowledgements: { ...prev.acknowledgements, termsOfService: e.target.checked }
-                    }))}
-                  />
-                }
-                label="I have read and agree to the Terms of Service"
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={agreementData.acknowledgements.truthfulInformation}
-                    onChange={(e) => setAgreementData(prev => ({
-                      ...prev,
-                      acknowledgements: { ...prev.acknowledgements, truthfulInformation: e.target.checked }
-                    }))}
-                  />
-                }
-                label="I certify that all information provided is truthful and accurate"
-              />
-            </Grid>
-          </Grid>
-        );
-
-      case 5: // Signatures
-        return (
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <Alert severity="success">
-                You're almost done! Please review and sign below.
-              </Alert>
-            </Grid>
-
-            <Grid item xs={12}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>Agreement Summary</Typography>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} md={6}>
-                      <Typography variant="body2" color="text.secondary">Client Name</Typography>
-                      <Typography variant="body1">
-                        {agreementData.client.firstName} {agreementData.client.lastName}
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <Typography variant="body2" color="text.secondary">Agreement Number</Typography>
-                      <Typography variant="body1">
-                        {agreementData.agreementNumber || 'Will be generated'}
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <Typography variant="body2" color="text.secondary">Service Package</Typography>
-                      <Typography variant="body1">
-                        {servicePackages[agreementData.services.package].name}
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <Typography variant="body2" color="text.secondary">Monthly Payment</Typography>
-                      <Typography variant="body1">
-                        ${agreementData.pricing.totalMonthly}
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <Typography variant="body2" color="text.secondary">Contract Duration</Typography>
-                      <Typography variant="body1">
-                        {agreementData.services.duration} months
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <Typography variant="body2" color="text.secondary">Total Contract Value</Typography>
-                      <Typography variant="body1">
-                        ${agreementData.pricing.totalContract}
-                      </Typography>
-                    </Grid>
-                  </Grid>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid item xs={12}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={agreementData.acknowledgements.electronicSignature}
-                    onChange={(e) => setAgreementData(prev => ({
-                      ...prev,
-                      acknowledgements: { ...prev.acknowledgements, electronicSignature: e.target.checked }
-                    }))}
-                  />
-                }
-                label="I agree to use electronic signature and that it has the same legal effect as a handwritten signature"
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <Typography variant="h6" gutterBottom>Client Signature</Typography>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                Sign in the box below using your mouse or touchscreen
-              </Typography>
-              
-              <Box sx={{ 
-                border: 2, 
-                borderColor: 'divider', 
-                borderRadius: 1,
-                p: 2,
-                backgroundColor: 'background.paper'
-              }}>
-                <SignatureCanvas
-                  ref={signaturePad}
-                  canvasProps={{ 
-                    width: 600, 
-                    height: 200,
-                    style: { width: '100%', height: 'auto' }
-                  }}
-                />
-              </Box>
-              
-              <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
-                <Button variant="outlined" onClick={clearSignature}>
-                  Clear Signature
-                </Button>
-                <Button variant="contained" onClick={saveSignature}>
-                  Accept Signature
-                </Button>
-              </Stack>
-
-              {agreementData.signatures.clientSignature && (
-                <Alert severity="success" sx={{ mt: 2 }}>
-                  <CheckCircle size={18} /> Signature captured successfully
-                </Alert>
-              )}
-            </Grid>
-
-            <Grid item xs={12}>
-              <Typography variant="caption" color="text.secondary">
-                By signing this agreement, you acknowledge that you have read, understood, and agree to all terms 
-                and conditions outlined in this service agreement. You confirm that all information provided is 
-                accurate and complete.
-              </Typography>
-            </Grid>
-          </Grid>
-        );
-
-      default:
-        return null;
-    }
-  };
-
+  
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+        <CircularProgress size={60} />
+      </Box>
+    );
+  }
+  
   return (
-    <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Box sx={{ p: 3 }}>
-        {/* Header */}
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h4" fontWeight={600} gutterBottom>
-            Service Agreement
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Credit Repair Services Contract
-          </Typography>
-        </Box>
-
-        {/* Recent Agreements */}
-        {agreements.length > 0 && (
-          <Card sx={{ mb: 3 }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>Recent Agreements</Typography>
-              <List dense>
-                {agreements.slice(0, 3).map((agreement) => (
-                  <ListItem
-                    key={agreement.id}
-                    secondaryAction={
-                      <Chip 
-                        label={agreement.status} 
-                        size="small"
-                        color={agreement.status === 'signed' ? 'success' : 'default'}
-                      />
-                    }
-                  >
-                    <ListItemText
-                      primary={`${agreement.client?.firstName} ${agreement.client?.lastName}`}
-                      secondary={`${agreement.agreementNumber} - ${
-                        agreement.createdAt ? format(agreement.createdAt.toDate(), 'MM/dd/yyyy') : ''
-                      }`}
-                    />
-                  </ListItem>
-                ))}
-              </List>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Main Agreement Form */}
-        <Paper sx={{ p: 4 }}>
-          {/* Stepper */}
-          <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
-            {steps.map((label) => (
+    <Box sx={{ maxWidth: 1400, mx: 'auto', p: 3 }}>
+      {/* Header */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Box display="flex" justifyContent="space-between" alignItems="center">
+            <Box display="flex" alignItems="center" gap={2}>
+              <Avatar sx={{ bgcolor: 'primary.main', width: 56, height: 56 }}>
+                <Gavel />
+              </Avatar>
+              <Box>
+                <Typography variant="h5" fontWeight="bold">
+                  Service Agreement
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Agreement #{watch('agreementNumber')}
+                </Typography>
+              </Box>
+            </Box>
+            
+            <Box display="flex" gap={2} alignItems="center">
+              <Chip
+                icon={watch('status') === 'executed' ? <CheckCircle /> : <Schedule />}
+                label={watch('status')?.toUpperCase() || 'DRAFT'}
+                color={watch('status') === 'executed' ? 'success' : 'default'}
+              />
+              <IconButton onClick={() => setShowPreview(true)}>
+                <Visibility />
+              </IconButton>
+              <IconButton onClick={generatePDF} disabled={!agreementId}>
+                <Download />
+              </IconButton>
+              <IconButton onClick={() => sendAgreementEmail(pdfUrl)} disabled={!emailSent}>
+                <Email />
+              </IconButton>
+            </Box>
+          </Box>
+          
+          {/* Progress Bar */}
+          <LinearProgress 
+            variant="determinate" 
+            value={(activeStep / (steps.length - 1)) * 100}
+            sx={{ mt: 2, height: 6, borderRadius: 3 }}
+          />
+        </CardContent>
+      </Card>
+      
+      {/* Pricing Summary (Always Visible) */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Grid container spacing={3} alignItems="center">
+            <Grid item xs={12} sm={6} md={2}>
+              <Box textAlign="center">
+                <Typography variant="caption" color="text.secondary">Package</Typography>
+                <Typography variant="h6">
+                  {SERVICE_PACKAGES[watchedPackage]?.name.split(' ')[0]}
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12} sm={6} md={2}>
+              <Box textAlign="center">
+                <Typography variant="caption" color="text.secondary">Monthly</Typography>
+                <Typography variant="h6">
+                  ${calculatePricing.monthlyTotal.toFixed(2)}
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12} sm={6} md={2}>
+              <Box textAlign="center">
+                <Typography variant="caption" color="text.secondary">Setup Fee</Typography>
+                <Typography variant="h6">
+                  ${calculatePricing.setup}
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12} sm={6} md={2}>
+              <Box textAlign="center">
+                <Typography variant="caption" color="text.secondary">Cycle Total</Typography>
+                <Typography variant="h6">
+                  ${calculatePricing.cycleTotal.toFixed(2)}
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12} sm={6} md={2}>
+              <Box textAlign="center">
+                <Typography variant="caption" color="text.secondary">Savings</Typography>
+                <Typography variant="h6" color="success.main">
+                  ${calculatePricing.savings.toFixed(2)}
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12} sm={6} md={2}>
+              <Box textAlign="center">
+                <Typography variant="caption" color="text.secondary">Due Today</Typography>
+                <Typography variant="h5" color="primary">
+                  ${calculatePricing.firstPayment.toFixed(2)}
+                </Typography>
+              </Box>
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+      
+      {/* Main Stepper */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Stepper activeStep={activeStep} alternativeLabel>
+            {steps.map((label, index) => (
               <Step key={label}>
                 <StepLabel>{label}</StepLabel>
               </Step>
             ))}
           </Stepper>
-
-          {/* Step Content */}
-          <Box sx={{ minHeight: 400 }}>
-            {renderStepContent(activeStep)}
-          </Box>
-
-          {/* Navigation */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
-            <Button
-              disabled={activeStep === 0}
-              onClick={handleBack}
-            >
-              Back
-            </Button>
-
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <Button
-                variant="outlined"
-                onClick={handleSaveDraft}
-                startIcon={<Save size={18} />}
-                disabled={loading}
-              >
-                Save Draft
-              </Button>
-
-              {activeStep === steps.length - 1 ? (
-                <Button
-                  variant="contained"
-                  onClick={handleSubmit}
-                  startIcon={<Send size={18} />}
-                  disabled={loading || !validateStep(5)}
+        </CardContent>
+      </Card>
+      
+      {/* Step Content */}
+      <Card>
+        <CardContent sx={{ minHeight: 400 }}>
+          {/* Step 0: Client Information */}
+          {activeStep === 0 && (
+            <Box>
+              <Typography variant="h6" gutterBottom>
+                Client Information
+              </Typography>
+              <Divider sx={{ mb: 3 }} />
+              
+              <Grid container spacing={3}>
+                <Grid item xs={12} sm={6}>
+                  <Controller
+                    name="billingCycle"
+                    control={control}
+                    render={({ field }) => (
+                      <FormControl fullWidth>
+                        <InputLabel>Billing Cycle</InputLabel>
+                        <Select
+                          {...field}
+                          label="Billing Cycle"
+                        >
+                          <MenuItem value="monthly">Monthly</MenuItem>
+                          <MenuItem value="quarterly">Quarterly (5% discount)</MenuItem>
+                          <MenuItem value="semi-annual">Semi-Annual (10% discount)</MenuItem>
+                          <MenuItem value="annual">Annual (15% discount)</MenuItem>
+                        </Select>
+                      </FormControl>
+                    )}
+                  />
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <Controller
+                    name="autoRenew"
+                    control={control}
+                    render={({ field }) => (
+                      <FormControlLabel
+                        control={<Switch {...field} checked={field.value} />}
+                        label="Auto-Renewal Enabled"
+                      />
+                    )}
+                  />
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <Controller
+                    name="promotionCode"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        fullWidth
+                        label="Promotion Code (Optional)"
+                        InputProps={{
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <Button size="small">Apply</Button>
+                            </InputAdornment>
+                          )
+                        }}
+                      />
+                    )}
+                  />
+                </Grid>
+              </Grid>
+            </Box>
+          )}
+          
+          {/* Step 2: Payment Information */}
+          {activeStep === 2 && (
+            <Box>
+              <Typography variant="h6" gutterBottom>
+                Payment Information
+              </Typography>
+              <Divider sx={{ mb: 3 }} />
+              
+              <Alert severity="info" sx={{ mb: 3 }}>
+                <AlertTitle>Secure Payment</AlertTitle>
+                Your payment information is encrypted and processed securely. We never store your full card details.
+              </Alert>
+              
+              <Controller
+                name="paymentMethod"
+                control={control}
+                rules={{ required: 'Payment method is required' }}
+                render={({ field }) => (
+                  <Grid container spacing={2} sx={{ mb: 3 }}>
+                    {PAYMENT_METHODS.map((method) => (
+                      <Grid item xs={6} sm={4} md={2} key={method.id}>
+                        <Paper
+                          sx={{
+                            p: 2,
+                            textAlign: 'center',
+                            cursor: 'pointer',
+                            border: 2,
+                            borderColor: field.value === method.id ? 'primary.main' : 'divider',
+                            '&:hover': {
+                              borderColor: 'primary.main',
+                              bgcolor: 'action.hover'
+                            }
+                          }}
+                          onClick={() => field.onChange(method.id)}
+                        >
+                          <Box display="flex" flexDirection="column" alignItems="center">
+                            {method.icon}
+                            <Typography variant="caption" sx={{ mt: 1 }}>
+                              {method.label}
+                            </Typography>
+                          </Box>
+                        </Paper>
+                      </Grid>
+                    ))}
+                  </Grid>
+                )}
+              />
+              
+              {/* Credit/Debit Card Fields */}
+              {(watch('paymentMethod') === 'credit_card' || watch('paymentMethod') === 'debit_card') && (
+                <Grid container spacing={3}>
+                  <Grid item xs={12}>
+                    <Controller
+                      name="cardNumber"
+                      control={control}
+                      rules={{ required: 'Card number is required' }}
+                      render={({ field }) => (
+                        <TextField
+                          {...field}
+                          fullWidth
+                          label="Card Number"
+                          placeholder="1234 5678 9012 3456"
+                          error={Boolean(errors.cardNumber)}
+                          helperText={errors.cardNumber?.message}
+                          InputProps={{
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <CreditCard />
+                              </InputAdornment>
+                            )
+                          }}
+                        />
+                      )}
+                    />
+                  </Grid>
+                  
+                  <Grid item xs={12}>
+                    <Controller
+                      name="cardName"
+                      control={control}
+                      rules={{ required: 'Cardholder name is required' }}
+                      render={({ field }) => (
+                        <TextField
+                          {...field}
+                          fullWidth
+                          label="Cardholder Name"
+                          placeholder="As it appears on card"
+                          error={Boolean(errors.cardName)}
+                          helperText={errors.cardName?.message}
+                        />
+                      )}
+                    />
+                  </Grid>
+                  
+                  <Grid item xs={12} sm={6}>
+                    <Controller
+                      name="cardExpiry"
+                      control={control}
+                      rules={{ required: 'Expiry date is required' }}
+                      render={({ field }) => (
+                        <TextField
+                          {...field}
+                          fullWidth
+                          label="Expiry Date"
+                          placeholder="MM/YY"
+                          error={Boolean(errors.cardExpiry)}
+                          helperText={errors.cardExpiry?.message}
+                        />
+                      )}
+                    />
+                  </Grid>
+                  
+                  <Grid item xs={12} sm={6}>
+                    <Controller
+                      name="cardCVV"
+                      control={control}
+                      rules={{ required: 'CVV is required' }}
+                      render={({ field }) => (
+                        <TextField
+                          {...field}
+                          fullWidth
+                          label="CVV"
+                          placeholder="123"
+                          error={Boolean(errors.cardCVV)}
+                          helperText={errors.cardCVV?.message}
+                          InputProps={{
+                            endAdornment: (
+                              <InputAdornment position="end">
+                                <Tooltip title="3-digit code on back of card">
+                                  <Help />
+                                </Tooltip>
+                              </InputAdornment>
+                            )
+                          }}
+                        />
+                      )}
+                    />
+                  </Grid>
+                </Grid>
+              )}
+              
+              {/* ACH Bank Transfer Fields */}
+              {watch('paymentMethod') === 'ach' && (
+                <Grid container spacing={3}>
+                  <Grid item xs={12}>
+                    <Controller
+                      name="bankName"
+                      control={control}
+                      rules={{ required: 'Bank name is required' }}
+                      render={({ field }) => (
+                        <TextField
+                          {...field}
+                          fullWidth
+                          label="Bank Name"
+                          error={Boolean(errors.bankName)}
+                          helperText={errors.bankName?.message}
+                          InputProps={{
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <AccountBalance />
+                              </InputAdornment>
+                            )
+                          }}
+                        />
+                      )}
+                    />
+                  </Grid>
+                  
+                  <Grid item xs={12} sm={6}>
+                    <Controller
+                      name="routingNumber"
+                      control={control}
+                      rules={{ required: 'Routing number is required' }}
+                      render={({ field }) => (
+                        <TextField
+                          {...field}
+                          fullWidth
+                          label="Routing Number"
+                          placeholder="9 digits"
+                          error={Boolean(errors.routingNumber)}
+                          helperText={errors.routingNumber?.message}
+                        />
+                      )}
+                    />
+                  </Grid>
+                  
+                  <Grid item xs={12} sm={6}>
+                    <Controller
+                      name="accountNumber"
+                      control={control}
+                      rules={{ required: 'Account number is required' }}
+                      render={({ field }) => (
+                        <TextField
+                          {...field}
+                          fullWidth
+                          label="Account Number"
+                          error={Boolean(errors.accountNumber)}
+                          helperText={errors.accountNumber?.message}
+                        />
+                      )}
+                    />
+                  </Grid>
+                  
+                  <Grid item xs={12}>
+                    <Controller
+                      name="accountType"
+                      control={control}
+                      render={({ field }) => (
+                        <RadioGroup {...field} row>
+                          <FormControlLabel value="checking" control={<Radio />} label="Checking" />
+                          <FormControlLabel value="savings" control={<Radio />} label="Savings" />
+                        </RadioGroup>
+                      )}
+                    />
+                  </Grid>
+                </Grid>
+              )}
+              
+              {/* Billing Settings */}
+              <Typography variant="h6" gutterBottom sx={{ mt: 4 }}>
+                Billing Settings
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
+              
+              <Grid container spacing={3}>
+                <Grid item xs={12} sm={6}>
+                  <Controller
+                    name="paymentDueDate"
+                    control={control}
+                    render={({ field }) => (
+                      <FormControl fullWidth>
+                        <InputLabel>Payment Due Date</InputLabel>
+                        <Select
+                          {...field}
+                          label="Payment Due Date"
+                        >
+                          <MenuItem value={1}>1st of month</MenuItem>
+                          <MenuItem value={5}>5th of month</MenuItem>
+                          <MenuItem value={10}>10th of month</MenuItem>
+                          <MenuItem value={15}>15th of month</MenuItem>
+                          <MenuItem value={20}>20th of month</MenuItem>
+                          <MenuItem value={25}>25th of month</MenuItem>
+                        </Select>
+                      </FormControl>
+                    )}
+                  />
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <Controller
+                    name="autopayEnabled"
+                    control={control}
+                    render={({ field }) => (
+                      <FormControlLabel
+                        control={<Switch {...field} checked={field.value} />}
+                        label="Enable AutoPay"
+                      />
+                    )}
+                  />
+                </Grid>
+              </Grid>
+            </Box>
+          )}
+          
+          {/* Step 3: Terms Review */}
+          {activeStep === 3 && (
+            <Box>
+              <Typography variant="h6" gutterBottom>
+                Terms & Conditions Review
+              </Typography>
+              <Divider sx={{ mb: 3 }} />
+              
+              <Alert severity="warning" sx={{ mb: 3 }}>
+                <AlertTitle>Important</AlertTitle>
+                Please carefully review all terms and conditions before accepting. These form a legally binding agreement.
+              </Alert>
+              
+              {/* Agreement Sections */}
+              {AGREEMENT_SECTIONS.map((section) => (
+                <Accordion
+                  key={section}
+                  expanded={expandedSection === section}
+                  onChange={() => setExpandedSection(expandedSection === section ? null : section)}
+                  sx={{ mb: 2 }}
                 >
-                  Submit Agreement
-                </Button>
-              ) : (
-                <Button
-                  variant="contained"
-                  onClick={handleNext}
-                >
-                  Next
-                </Button>
+                  <AccordionSummary expandIcon={<ExpandMore />}>
+                    <Typography variant="subtitle1" fontWeight="bold">
+                      {section}
+                    </Typography>
+                  </AccordionSummary>
+                  <AccordionDetails>
+                    <Box sx={{ maxHeight: 300, overflow: 'auto' }}>
+                      {section === 'Services' && (
+                        <>
+                          <Typography paragraph>
+                            Speedy Credit Repair LLC ("Company") agrees to provide credit repair services 
+                            as outlined in the selected service package. Services include but are not limited to:
+                          </Typography>
+                          <List>
+                            {SERVICE_PACKAGES[watch('packageType')].features.map((feature, idx) => (
+                              <ListItem key={idx}>
+                                <ListItemIcon>
+                                  <CheckCircle color="success" />
+                                </ListItemIcon>
+                                <ListItemText primary={feature} />
+                              </ListItem>
+                            ))}
+                          </List>
+                        </>
+                      )}
+                      
+                      {section === 'Pricing & Payment' && (
+                        <>
+                          <Typography paragraph>
+                            Client agrees to pay the following fees:
+                          </Typography>
+                          <Table size="small">
+                            <TableBody>
+                              <TableRow>
+                                <TableCell>Monthly Service Fee</TableCell>
+                                <TableCell align="right">${calculatePricing.monthlyTotal.toFixed(2)}</TableCell>
+                              </TableRow>
+                              <TableRow>
+                                <TableCell>One-Time Setup Fee</TableCell>
+                                <TableCell align="right">${calculatePricing.setup}</TableCell>
+                              </TableRow>
+                              <TableRow>
+                                <TableCell>Billing Cycle</TableCell>
+                                <TableCell align="right">{watch('billingCycle')}</TableCell>
+                              </TableRow>
+                              <TableRow>
+                                <TableCell>Total Due Today</TableCell>
+                                <TableCell align="right">
+                                  <strong>${calculatePricing.firstPayment.toFixed(2)}</strong>
+                                </TableCell>
+                              </TableRow>
+                            </TableBody>
+                          </Table>
+                          <Typography paragraph sx={{ mt: 2 }}>
+                            Payments are processed on the {watch('paymentDueDate')}th of each month.
+                            Late payments may result in service suspension.
+                          </Typography>
+                        </>
+                      )}
+                      
+                      {section === 'Term & Cancellation' && (
+                        <>
+                          <Typography paragraph>
+                            This agreement begins on {watch('startDate')} and continues on a 
+                            month-to-month basis until cancelled by either party.
+                          </Typography>
+                          <Typography paragraph>
+                            <strong>Cancellation Policy:</strong> Either party may cancel this agreement 
+                            with 5 days written notice. Cancellations are effective at the end of the 
+                            current billing period. No refunds for partial months.
+                          </Typography>
+                          <Typography paragraph>
+                            <strong>Auto-Renewal:</strong> {watch('autoRenew') ? 'Enabled' : 'Disabled'}. 
+                            Services will {watch('autoRenew') ? 'automatically' : 'not'} renew at the 
+                            end of each billing period.
+                          </Typography>
+                        </>
+                      )}
+                      
+                      {section === 'Guarantees' && (
+                        <>
+                          <Typography paragraph>
+                            <strong>Our Guarantees:</strong>
+                          </Typography>
+                          <List>
+                            {SERVICE_PACKAGES[watch('packageType')].guarantees.map((guarantee, idx) => (
+                              <ListItem key={idx}>
+                                <ListItemIcon>
+                                  <VerifiedUser color="primary" />
+                                </ListItemIcon>
+                                <ListItemText primary={guarantee} />
+                              </ListItem>
+                            ))}
+                          </List>
+                          <Typography paragraph sx={{ mt: 2 }}>
+                            Results vary based on individual circumstances. While we guarantee our 
+                            service quality, specific credit score improvements depend on various factors 
+                            beyond our control.
+                          </Typography>
+                        </>
+                      )}
+                      
+                      {section === 'Client Obligations' && (
+                        <>
+                          <Typography paragraph>
+                            Client agrees to:
+                          </Typography>
+                          <List>
+                            <ListItem>
+                              <ListItemText primary="Provide accurate and complete information" />
+                            </ListItem>
+                            <ListItem>
+                              <ListItemText primary="Promptly respond to requests for documentation" />
+                            </ListItem>
+                            <ListItem>
+                              <ListItemText primary="Maintain current contact information" />
+                            </ListItem>
+                            <ListItem>
+                              <ListItemText primary="Make timely payments as agreed" />
+                            </ListItem>
+                            <ListItem>
+                              <ListItemText primary="Not engage in fraudulent or illegal activities" />
+                            </ListItem>
+                          </List>
+                        </>
+                      )}
+                      
+                      {section === 'Company Obligations' && (
+                        <>
+                          <Typography paragraph>
+                            Company agrees to:
+                          </Typography>
+                          <List>
+                            <ListItem>
+                              <ListItemText primary="Provide services as described in the service package" />
+                            </ListItem>
+                            <ListItem>
+                              <ListItemText primary="Maintain confidentiality of client information" />
+                            </ListItem>
+                            <ListItem>
+                              <ListItemText primary="Comply with all applicable laws and regulations" />
+                            </ListItem>
+                            <ListItem>
+                              <ListItemText primary="Provide regular updates on progress" />
+                            </ListItem>
+                            <ListItem>
+                              <ListItemText primary="Respond to client inquiries within 48 business hours" />
+                            </ListItem>
+                          </List>
+                        </>
+                      )}
+                      
+                      {section === 'Dispute Process' && (
+                        <>
+                          <Typography paragraph>
+                            Company will dispute inaccurate, incomplete, or unverifiable information 
+                            on client's credit reports with credit bureaus, creditors, and collection agencies.
+                          </Typography>
+                          <Typography paragraph>
+                            <strong>Process:</strong>
+                          </Typography>
+                          <List>
+                            <ListItem>
+                              <List
+                    name="clientName"
+                    control={control}
+                    rules={{ required: 'Name is required' }}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        fullWidth
+                        label="Full Name"
+                        error={Boolean(errors.clientName || validationErrors.clientName)}
+                        helperText={errors.clientName?.message || validationErrors.clientName}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Person />
+                            </InputAdornment>
+                          )
+                        }}
+                      />
+                    )}
+                  />
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <Controller
+                    name="clientEmail"
+                    control={control}
+                    rules={{ 
+                      required: 'Email is required',
+                      pattern: {
+                        value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                        message: 'Invalid email address'
+                      }
+                    }}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        fullWidth
+                        label="Email Address"
+                        type="email"
+                        error={Boolean(errors.clientEmail || validationErrors.clientEmail)}
+                        helperText={errors.clientEmail?.message || validationErrors.clientEmail}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Email />
+                            </InputAdornment>
+                          )
+                        }}
+                      />
+                    )}
+                  />
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <Controller
+                    name="clientPhone"
+                    control={control}
+                    rules={{ required: 'Phone is required' }}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        fullWidth
+                        label="Phone Number"
+                        error={Boolean(errors.clientPhone || validationErrors.clientPhone)}
+                        helperText={errors.clientPhone?.message || validationErrors.clientPhone}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Phone />
+                            </InputAdornment>
+                          )
+                        }}
+                      />
+                    )}
+                  />
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <Controller
+                    name="clientDOB"
+                    control={control}
+                    rules={{ required: 'Date of birth is required' }}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        fullWidth
+                        label="Date of Birth"
+                        type="date"
+                        InputLabelProps={{ shrink: true }}
+                        error={Boolean(errors.clientDOB || validationErrors.clientDOB)}
+                        helperText={errors.clientDOB?.message || validationErrors.clientDOB}
+                      />
+                    )}
+                  />
+                </Grid>
+                
+                <Grid item xs={12}>
+                  <Controller
+                    name="clientAddress"
+                    control={control}
+                    rules={{ required: 'Address is required' }}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        fullWidth
+                        label="Street Address"
+                        error={Boolean(errors.clientAddress || validationErrors.clientAddress)}
+                        helperText={errors.clientAddress?.message || validationErrors.clientAddress}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Home />
+                            </InputAdornment>
+                          )
+                        }}
+                      />
+                    )}
+                  />
+                </Grid>
+                
+                <Grid item xs={12} sm={4}>
+                  <Controller
+                    name="clientCity"
+                    control={control}
+                    rules={{ required: 'City is required' }}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        fullWidth
+                        label="City"
+                        error={Boolean(errors.clientCity || validationErrors.clientCity)}
+                        helperText={errors.clientCity?.message || validationErrors.clientCity}
+                      />
+                    )}
+                  />
+                </Grid>
+                
+                <Grid item xs={12} sm={4}>
+                  <Controller
+                    name="clientState"
+                    control={control}
+                    rules={{ required: 'State is required' }}
+                    render={({ field }) => (
+                      <FormControl fullWidth error={Boolean(errors.clientState || validationErrors.clientState)}>
+                        <InputLabel>State</InputLabel>
+                        <Select
+                          {...field}
+                          label="State"
+                        >
+                          <MenuItem value="">Select State</MenuItem>
+                          <MenuItem value="CA">California</MenuItem>
+                          <MenuItem value="TX">Texas</MenuItem>
+                          <MenuItem value="FL">Florida</MenuItem>
+                          <MenuItem value="NY">New York</MenuItem>
+                          {/* Add all states */}
+                        </Select>
+                      </FormControl>
+                    )}
+                  />
+                </Grid>
+                
+                <Grid item xs={12} sm={4}>
+                  <Controller
+                    name="clientZip"
+                    control={control}
+                    rules={{ required: 'ZIP code is required' }}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        fullWidth
+                        label="ZIP Code"
+                        error={Boolean(errors.clientZip || validationErrors.clientZip)}
+                        helperText={errors.clientZip?.message || validationErrors.clientZip}
+                      />
+                    )}
+                  />
+                </Grid>
+                
+                <Grid item xs={12}>
+                  <Controller
+                    name="clientSSN"
+                    control={control}
+                    rules={{ 
+                      required: 'SSN is required',
+                      pattern: {
+                        value: /^\d{3}-\d{2}-\d{4}$/,
+                        message: 'Format: XXX-XX-XXXX'
+                      }
+                    }}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        fullWidth
+                        label="Social Security Number"
+                        placeholder="XXX-XX-XXXX"
+                        error={Boolean(errors.clientSSN || validationErrors.clientSSN)}
+                        helperText={errors.clientSSN?.message || validationErrors.clientSSN}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Security />
+                            </InputAdornment>
+                          )
+                        }}
+                      />
+                    )}
+                  />
+                </Grid>
+                
+                {/* Co-signer Section (if required) */}
+                {requireCosigner && (
+                  <>
+                    <Grid item xs={12}>
+                      <Divider sx={{ my: 2 }}>
+                        <Chip label="Co-signer Information" />
+                      </Divider>
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                      <Controller
+                        name="cosignerName"
+                        control={control}
+                        rules={{ required: requireCosigner ? 'Co-signer name is required' : false }}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="Co-signer Full Name"
+                            error={Boolean(errors.cosignerName)}
+                            helperText={errors.cosignerName?.message}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                      <Controller
+                        name="cosignerRelation"
+                        control={control}
+                        rules={{ required: requireCosigner ? 'Relationship is required' : false }}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="Relationship to Client"
+                            error={Boolean(errors.cosignerRelation)}
+                            helperText={errors.cosignerRelation?.message}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                      <Controller
+                        name="cosignerEmail"
+                        control={control}
+                        rules={{ 
+                          required: requireCosigner ? 'Co-signer email is required' : false,
+                          pattern: {
+                            value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                            message: 'Invalid email address'
+                          }
+                        }}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="Co-signer Email"
+                            type="email"
+                            error={Boolean(errors.cosignerEmail)}
+                            helperText={errors.cosignerEmail?.message}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                      <Controller
+                        name="cosignerPhone"
+                        control={control}
+                        rules={{ required: requireCosigner ? 'Co-signer phone is required' : false }}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="Co-signer Phone"
+                            error={Boolean(errors.cosignerPhone)}
+                            helperText={errors.cosignerPhone?.message}
+                          />
+                        )}
+                      />
+                    </Grid>
+                  </>
+                )}
+              </Grid>
+            </Box>
+          )}
+          
+          {/* Step 1: Service Selection */}
+          {activeStep === 1 && (
+            <Box>
+              <Typography variant="h6" gutterBottom>
+                Service Selection
+              </Typography>
+              <Divider sx={{ mb: 3 }} />
+              
+              <Controller
+                name="packageType"
+                control={control}
+                rules={{ required: 'Package selection is required' }}
+                render={({ field }) => (
+                  <Grid container spacing={3}>
+                    {Object.entries(SERVICE_PACKAGES).map(([key, pkg]) => (
+                      <Grid item xs={12} sm={6} md={3} key={key}>
+                        <Card
+                          sx={{
+                            border: 2,
+                            borderColor: field.value === key ? 'primary.main' : 'divider',
+                            cursor: 'pointer',
+                            transition: 'all 0.3s',
+                            '&:hover': {
+                              borderColor: 'primary.main',
+                              transform: 'translateY(-4px)',
+                              boxShadow: 3
+                            }
+                          }}
+                          onClick={() => field.onChange(key)}
+                        >
+                          <CardContent>
+                            <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
+                              <Typography variant="h6" gutterBottom>
+                                {pkg.name}
+                              </Typography>
+                              {field.value === key && (
+                                <CheckCircle color="primary" />
+                              )}
+                            </Box>
+                            
+                            <Typography variant="h4" color="primary" gutterBottom>
+                              {pkg.price === 'Custom' ? 'Custom' : `$${pkg.price}`}
+                              {pkg.price !== 'Custom' && (
+                                <Typography variant="caption" color="text.secondary">
+                                  /month
+                                </Typography>
+                              )}
+                            </Typography>
+                            
+                            <Typography variant="body2" color="text.secondary" gutterBottom>
+                              Setup: {pkg.setupFee === 'Custom' ? 'Custom' : `$${pkg.setupFee}`}
+                            </Typography>
+                            
+                            <Divider sx={{ my: 2 }} />
+                            
+                            <Typography variant="subtitle2" gutterBottom>
+                              Features:
+                            </Typography>
+                            <List dense>
+                              {pkg.features.slice(0, 5).map((feature, idx) => (
+                                <ListItem key={idx} sx={{ px: 0 }}>
+                                  <ListItemIcon sx={{ minWidth: 30 }}>
+                                    <CheckCircle fontSize="small" color="success" />
+                                  </ListItemIcon>
+                                  <ListItemText 
+                                    primary={<Typography variant="caption">{feature}</Typography>} 
+                                  />
+                                </ListItem>
+                              ))}
+                            </List>
+                            
+                            {pkg.features.length > 5 && (
+                              <Typography variant="caption" color="primary" sx={{ cursor: 'pointer' }}>
+                                +{pkg.features.length - 5} more features
+                              </Typography>
+                            )}
+                          </CardContent>
+                        </Card>
+                      </Grid>
+                    ))}
+                  </Grid>
+                )}
+              />
+              
+              {/* Add-ons Section */}
+              <Typography variant="h6" gutterBottom sx={{ mt: 4 }}>
+                Additional Services
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
+              
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <Controller
+                    name="addCreditMonitoring"
+                    control={control}
+                    render={({ field }) => (
+                      <FormControlLabel
+                        control={<Checkbox {...field} checked={field.value} />}
+                        label={
+                          <Box>
+                            <Typography variant="body1">
+                              Credit Monitoring (+$19.99/mo)
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Real-time alerts for credit changes
+                            </Typography>
+                          </Box>
+                        }
+                      />
+                    )}
+                  />
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <Controller
+                    name="addIdentityProtection"
+                    control={control}
+                    render={({ field }) => (
+                      <FormControlLabel
+                        control={<Checkbox {...field} checked={field.value} />}
+                        label={
+                          <Box>
+                            <Typography variant="body1">
+                              Identity Protection (+$14.99/mo)
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Monitor for identity theft and fraud
+                            </Typography>
+                          </Box>
+                        }
+                      />
+                    )}
+                  />
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <Controller
+                    name="addFinancialCounseling"
+                    control={control}
+                    render={({ field }) => (
+                      <FormControlLabel
+                        control={<Checkbox {...field} checked={field.value} />}
+                        label={
+                          <Box>
+                            <Typography variant="body1">
+                              Financial Counseling (+$49.99/mo)
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Monthly sessions with financial advisor
+                            </Typography>
+                          </Box>
+                        }
+                      />
+                    )}
+                  />
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <Controller
+                    name="addLegalConsultation"
+                    control={control}
+                    render={({ field }) => (
+                      <FormControlLabel
+                        control={<Checkbox {...field} checked={field.value} />}
+                        label={
+                          <Box>
+                            <Typography variant="body1">
+                              Legal Consultation (+$99.99/mo)
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Access to credit repair attorneys
+                            </Typography>
+                          </Box>
+                        }
+                      />
+                    )}
+                  />
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <Controller
+                    name="addRushService"
+                    control={control}
+                    render={({ field }) => (
+                      <FormControlLabel
+                        control={<Checkbox {...field} checked={field.value} />}
+                        label={
+                          <Box>
+                            <Typography variant="body1">
+                              Rush Service (+$29.99/mo)
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Priority processing and support
+                            </Typography>
+                          </Box>
+                        }
+                      />
+                    )}
+                  />
+                </Grid>
+              </Grid>
+              
+              {/* Term Selection */}
+              <Typography variant="h6" gutterBottom sx={{ mt: 4 }}>
+                Service Terms
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
+              
+              <Grid container spacing={3}>
+                <Grid item xs={12} sm={6}>
+                  <Controller
+                    name="startDate"
+                    control={control}
+                    rules={{ required: 'Start date is required' }}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        fullWidth
+                        label="Service Start Date"
+                        type="date"
+                        InputLabelProps={{ shrink: true }}
+                        error={Boolean(errors.startDate)}
+                        helperText={errors.startDate?.message}
+                      />
+                    )}
+                  />
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                    <Controller
+                      name="duration"
+                    control={control}
+                    render={({ field }) => (
+                      <FormControl fullWidth>
+                        <InputLabel>Contract Duration</InputLabel>
+                        <Select
+                          {...field}
+                          label="Contract Duration"
+                        >
+                          <MenuItem value={3}>3 Months</MenuItem>
+                          <MenuItem value={6}>6 Months</MenuItem>
+                          <MenuItem value={12}>12 Months</MenuItem>
+                          <MenuItem value={24}>24 Months</MenuItem>
+                        </Select>
+                      </FormControl>
+                    )}
+                  />
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <Controller
+                    name="autoRenew"
+                    control={control}
+                    render={({ field }) => (
+                      <FormControlLabel
+                        control={<Switch {...field} checked={field.value} />}
+                        label="Auto-Renewal"
+                      />
+                    )}
+                  />
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <Controller
+                    name="renewalTerm"
+                    control={control}
+                    render={({ field }) => (
+                      <FormControl fullWidth disabled={!watch('autoRenew')}>
+                        <InputLabel>Renewal Term</InputLabel>
+                        <Select
+                          {...field}
+                          label="Renewal Term"
+                        >
+                          <MenuItem value={3}>3 Months</MenuItem>
+                          <MenuItem value={6}>6 Months</MenuItem>
+                          <MenuItem value={12}>12 Months</MenuItem>
+                        </Select>
+                      </FormControl>
+                    )}
+                  />
+                </Grid>
+              </Grid>
+            </Box>
+          )}
+          
+          {/* Complete Step 3: Terms Review - Continuing from dispute process */}
+          {activeStep === 3 && expandedSection === 'Dispute Process' && (
+            <Box sx={{ p: 2 }}>
+              <Typography paragraph>
+                1. Initial credit report analysis and dispute identification
+              </Typography>
+              <Typography paragraph>
+                2. Preparation and submission of dispute letters
+              </Typography>
+              <Typography paragraph>
+                3. Follow-up with credit bureaus and furnishers
+              </Typography>
+              <Typography paragraph>
+                4. Re-investigation requests as needed
+              </Typography>
+              <Typography paragraph>
+                5. Escalation to regulatory agencies if necessary
+              </Typography>
+              <Typography paragraph>
+                <strong>Timeline:</strong> Credit bureaus have 30-45 days to investigate disputes. 
+                Full process may take 3-6 months depending on complexity.
+              </Typography>
+            </Box>
+          )}
+          
+          {activeStep === 3 && expandedSection === 'Confidentiality' && (
+            <Box sx={{ p: 2 }}>
+              <Typography paragraph>
+                All client information, including but not limited to personal data, financial information, 
+                credit reports, and communications, will be kept strictly confidential.
+              </Typography>
+              <Typography paragraph>
+                Company will not share, sell, or disclose client information to third parties without 
+                explicit written consent, except as required by law or necessary to provide services.
+              </Typography>
+              <Typography paragraph>
+                Client data is protected using industry-standard security measures including encryption, 
+                secure storage, and access controls.
+              </Typography>
+            </Box>
+          )}
+          
+          {activeStep === 3 && expandedSection === 'Liability' && (
+            <Box sx={{ p: 2 }}>
+              <Typography paragraph>
+                <strong>Limitation of Liability:</strong> Company's total liability shall not exceed 
+                the total fees paid by client in the preceding 12 months.
+              </Typography>
+              <Typography paragraph>
+                Company is not liable for:
+              </Typography>
+              <List>
+                <ListItem>
+                  <ListItemText primary="Actions or inactions of credit bureaus, creditors, or collection agencies" />
+                </ListItem>
+                <ListItem>
+                  <ListItemText primary="Changes in credit scores due to factors outside our control" />
+                </ListItem>
+                <ListItem>
+                  <ListItemText primary="Consequences of client providing false or incomplete information" />
+                </ListItem>
+                <ListItem>
+                  <ListItemText primary="Indirect, incidental, or consequential damages" />
+                </ListItem>
+              </List>
+            </Box>
+          )}
+          
+          {activeStep === 3 && expandedSection === 'Legal Provisions' && (
+            <Box sx={{ p: 2 }}>
+              <Typography paragraph>
+                <strong>Governing Law:</strong> This agreement shall be governed by the laws of 
+                the State of California.
+              </Typography>
+              <Typography paragraph>
+                <strong>Arbitration:</strong> Any disputes arising from this agreement shall be 
+                resolved through binding arbitration under AAA rules.
+              </Typography>
+              <Typography paragraph>
+                <strong>Severability:</strong> If any provision is found unenforceable, the 
+                remaining provisions shall continue in full force.
+              </Typography>
+              <Typography paragraph>
+                <strong>Entire Agreement:</strong> This constitutes the entire agreement between 
+                parties and supersedes all prior agreements.
+              </Typography>
+              <Typography paragraph>
+                <strong>Amendments:</strong> Any modifications must be in writing and signed by 
+                both parties.
+              </Typography>
+            </Box>
+          )}
+          
+          {/* Terms Acceptance Checkboxes */}
+          {activeStep === 3 && (
+            <Box sx={{ mt: 4 }}>
+              <Typography variant="h6" gutterBottom>
+                Accept Terms
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
+              
+              <Stack spacing={2}>
+                <Controller
+                  name="acceptServiceTerms"
+                  control={control}
+                  rules={{ required: 'You must accept the service terms' }}
+                  render={({ field }) => (
+                    <FormControlLabel
+                      control={<Checkbox {...field} checked={field.value} />}
+                      label="I accept the Service Terms"
+                      sx={{ 
+                        border: validationErrors.acceptServiceTerms ? '1px solid red' : 'none',
+                        p: 1,
+                        borderRadius: 1
+                      }}
+                    />
+                  )}
+                />
+                
+                <Controller
+                  name="acceptPrivacyPolicy"
+                  control={control}
+                  rules={{ required: 'You must accept the privacy policy' }}
+                  render={({ field }) => (
+                    <FormControlLabel
+                      control={<Checkbox {...field} checked={field.value} />}
+                      label="I accept the Privacy Policy"
+                      sx={{ 
+                        border: validationErrors.acceptPrivacyPolicy ? '1px solid red' : 'none',
+                        p: 1,
+                        borderRadius: 1
+                      }}
+                    />
+                  )}
+                />
+                
+                <Controller
+                  name="acceptBillingTerms"
+                  control={control}
+                  rules={{ required: 'You must accept the billing terms' }}
+                  render={({ field }) => (
+                    <FormControlLabel
+                      control={<Checkbox {...field} checked={field.value} />}
+                      label="I accept the Billing Terms"
+                      sx={{ 
+                        border: validationErrors.acceptBillingTerms ? '1px solid red' : 'none',
+                        p: 1,
+                        borderRadius: 1
+                      }}
+                    />
+                  )}
+                />
+                
+                <Controller
+                  name="acceptDisputeProcess"
+                  control={control}
+                  rules={{ required: 'You must accept the dispute process' }}
+                  render={({ field }) => (
+                    <FormControlLabel
+                      control={<Checkbox {...field} checked={field.value} />}
+                      label="I understand the Dispute Process"
+                      sx={{ 
+                        border: validationErrors.acceptDisputeProcess ? '1px solid red' : 'none',
+                        p: 1,
+                        borderRadius: 1
+                      }}
+                    />
+                  )}
+                />
+                
+                <Controller
+                  name="acceptLiability"
+                  control={control}
+                  rules={{ required: 'You must accept the liability terms' }}
+                  render={({ field }) => (
+                    <FormControlLabel
+                      control={<Checkbox {...field} checked={field.value} />}
+                      label="I accept the Liability Terms"
+                      sx={{ 
+                        border: validationErrors.acceptLiability ? '1px solid red' : 'none',
+                        p: 1,
+                        borderRadius: 1
+                      }}
+                    />
+                  )}
+                />
+                
+                <Divider />
+                
+                <Controller
+                  name="acceptAll"
+                  control={control}
+                  render={({ field }) => (
+                    <FormControlLabel
+                      control={
+                        <Checkbox 
+                          {...field} 
+                          checked={field.value}
+                          color="primary"
+                        />
+                      }
+                      label={
+                        <Typography fontWeight="bold">
+                          I accept all terms and conditions
+                        </Typography>
+                      }
+                      sx={{ bgcolor: 'action.hover', p: 1, borderRadius: 1 }}
+                    />
+                  )}
+                />
+              </Stack>
+            </Box>
+          )}
+          
+          {/* Step 4: Signatures */}
+          {activeStep === 4 && (
+            <Box>
+              <Typography variant="h6" gutterBottom>
+                Electronic Signatures
+              </Typography>
+              <Divider sx={{ mb: 3 }} />
+              
+              <Alert severity="info" sx={{ mb: 3 }}>
+                <AlertTitle>Legal Electronic Signature</AlertTitle>
+                By signing below, you acknowledge that you have read, understood, and agree to be 
+                bound by all terms and conditions of this agreement. Electronic signatures are 
+                legally binding under the ESIGN Act.
+              </Alert>
+              
+              {/* Client Signature */}
+              <Paper sx={{ p: 3, mb: 3 }}>
+                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                  Client Signature
+                </Typography>
+                
+                <Box display="flex" alignItems="center" gap={2} mb={2}>
+                  {signatures.client ? (
+                    <Box sx={{ border: '1px solid', borderColor: 'divider', p: 2, borderRadius: 1 }}>
+                      <img 
+                        src={signatures.client.signature} 
+                        alt="Client Signature" 
+                        style={{ maxHeight: 60 }}
+                      />
+                      <Typography variant="caption" display="block" sx={{ mt: 1 }}>
+                        Signed on: {format(new Date(signatures.client.timestamp), 'MMM dd, yyyy hh:mm a')}
+                      </Typography>
+                      <Typography variant="caption" display="block">
+                        IP: {signatures.client.ipAddress}
+                      </Typography>
+                    </Box>
+                  ) : (
+                    <Button
+                      variant="outlined"
+                      size="large"
+                      startIcon={<Edit />}
+                      onClick={() => openSignatureDialog('client')}
+                      sx={{ minHeight: 80, minWidth: 200 }}
+                    >
+                      Click to Sign
+                    </Button>
+                  )}
+                  
+                  {signatures.client && (
+                    <IconButton onClick={() => {
+                      setSignatures(prev => ({ ...prev, client: null }));
+                      setValue('clientSignature', '');
+                    }}>
+                      <Clear />
+                    </IconButton>
+                  )}
+                </Box>
+                
+                <TextField
+                  fullWidth
+                  label="Print Name"
+                  value={watch('clientName')}
+                  disabled
+                  sx={{ mb: 2 }}
+                />
+                
+                <TextField
+                  fullWidth
+                  label="Date"
+                  value={signatures.client ? format(new Date(signatures.client.timestamp), 'MM/dd/yyyy') : ''}
+                  disabled
+                />
+              </Paper>
+              
+              {/* Co-signer Signature (if required) */}
+              {requireCosigner && (
+                <Paper sx={{ p: 3, mb: 3 }}>
+                  <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                    Co-signer Signature
+                  </Typography>
+                  
+                  <Box display="flex" alignItems="center" gap={2} mb={2}>
+                    {signatures.cosigner ? (
+                      <Box sx={{ border: '1px solid', borderColor: 'divider', p: 2, borderRadius: 1 }}>
+                        <img 
+                          src={signatures.cosigner.signature} 
+                          alt="Co-signer Signature" 
+                          style={{ maxHeight: 60 }}
+                        />
+                        <Typography variant="caption" display="block" sx={{ mt: 1 }}>
+                          Signed on: {format(new Date(signatures.cosigner.timestamp), 'MMM dd, yyyy hh:mm a')}
+                        </Typography>
+                        <Typography variant="caption" display="block">
+                          IP: {signatures.cosigner.ipAddress}
+                        </Typography>
+                      </Box>
+                    ) : (
+                      <Button
+                        variant="outlined"
+                        size="large"
+                        startIcon={<Edit />}
+                        onClick={() => openSignatureDialog('cosigner')}
+                        sx={{ minHeight: 80, minWidth: 200 }}
+                      >
+                        Click to Sign
+                      </Button>
+                    )}
+                    
+                    {signatures.cosigner && (
+                      <IconButton onClick={() => {
+                        setSignatures(prev => ({ ...prev, cosigner: null }));
+                        setValue('cosignerSignature', '');
+                      }}>
+                        <Clear />
+                      </IconButton>
+                    )}
+                  </Box>
+                  
+                  <TextField
+                    fullWidth
+                    label="Print Name"
+                    value={watch('cosignerName')}
+                    disabled
+                    sx={{ mb: 2 }}
+                  />
+                  
+                  <TextField
+                    fullWidth
+                    label="Date"
+                    value={signatures.cosigner ? format(new Date(signatures.cosigner.timestamp), 'MM/dd/yyyy') : ''}
+                    disabled
+                  />
+                </Paper>
+              )}
+              
+              {/* Company Representative Signature */}
+              <Paper sx={{ p: 3 }}>
+                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                  Company Representative
+                </Typography>
+                
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6}>
+                    <Controller
+                      name="companyRepName"
+                      control={control}
+                      render={({ field }) => (
+                        <TextField
+                          {...field}
+                          fullWidth
+                          label="Representative Name"
+                          defaultValue={user?.displayName || ''}
+                        />
+                      )}
+                    />
+                  </Grid>
+                  
+                  <Grid item xs={12} sm={6}>
+                    <Controller
+                      name="companyRepTitle"
+                      control={control}
+                      render={({ field }) => (
+                        <TextField
+                          {...field}
+                          fullWidth
+                          label="Title"
+                          defaultValue="Credit Repair Specialist"
+                        />
+                      )}
+                    />
+                  </Grid>
+                </Grid>
+              </Paper>
+              
+              {/* Verification QR Code */}
+              {qrCode && (
+                <Box textAlign="center" mt={3}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Agreement Verification Code
+                  </Typography>
+                  <img src={qrCode} alt="Verification QR Code" />
+                  <Typography variant="caption" display="block">
+                    Scan to verify authenticity
+                  </Typography>
+                </Box>
               )}
             </Box>
+          )}
+        </CardContent>
+        
+        {/* Navigation Buttons */}
+        <CardActions sx={{ justifyContent: 'space-between', p: 2 }}>
+          <Button
+            disabled={activeStep === 0}
+            onClick={handleBack}
+            startIcon={<NavigateBefore />}
+          >
+            Previous
+          </Button>
+          
+          <Box display="flex" gap={2}>
+            <Button
+              variant="outlined"
+              onClick={saveProgress}
+              disabled={saving}
+              startIcon={saving ? <CircularProgress size={20} /> : <Save />}
+            >
+              Save Progress
+            </Button>
+            
+            {activeStep < steps.length - 1 ? (
+              <Button
+                variant="contained"
+                onClick={handleNext}
+                endIcon={<NavigateNext />}
+              >
+                Next
+              </Button>
+            ) : (
+              <Button
+                variant="contained"
+                color="success"
+                onClick={executeAgreement}
+                disabled={loading || !validateStep(4)}
+                startIcon={loading ? <CircularProgress size={20} /> : <CheckCircle />}
+              >
+                Execute Agreement
+              </Button>
+            )}
           </Box>
-
-          {loading && <LinearProgress sx={{ mt: 2 }} />}
-        </Paper>
-
-        {/* Snackbar */}
-        <Snackbar
-          open={snackbar.open}
-          autoHideDuration={6000}
-          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
-        >
-          <Alert severity={snackbar.severity}>
-            {snackbar.message}
+        </CardActions>
+      </Card>
+      
+      {/* History Timeline (for existing agreements) */}
+      {agreementHistory.length > 0 && (
+        <Card sx={{ mt: 3 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Agreement History
+            </Typography>
+            <Timeline>
+              {agreementHistory.map((event, index) => (
+                <TimelineItem key={event.id}>
+                  <TimelineOppositeContent color="text.secondary">
+                    {format(event.timestamp.toDate(), 'MMM dd, yyyy hh:mm a')}
+                  </TimelineOppositeContent>
+                  <TimelineSeparator>
+                    <TimelineDot color={
+                      event.action === 'executed' ? 'success' :
+                      event.action === 'cancelled' ? 'error' :
+                      'primary'
+                    }>
+                      {event.action === 'executed' ? <CheckCircle /> :
+                       event.action === 'cancelled' ? <Cancel /> :
+                       event.action === 'renewed' ? <Autorenew /> :
+                       <Update />}
+                    </TimelineDot>
+                    {index < agreementHistory.length - 1 && <TimelineConnector />}
+                  </TimelineSeparator>
+                  <TimelineContent>
+                    <Typography variant="subtitle2">
+                      {event.action.replace('_', ' ').toUpperCase()}
+                    </Typography>
+                    {event.details && (
+                      <Typography variant="body2" color="text.secondary">
+                        {JSON.stringify(event.details)}
+                      </Typography>
+                    )}
+                  </TimelineContent>
+                </TimelineItem>
+              ))}
+            </Timeline>
+          </CardContent>
+        </Card>
+      )}
+      
+      {/* Signature Dialog */}
+      <Dialog
+        open={signatureDialogOpen}
+        onClose={() => setSignatureDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          Electronic Signature
+        </DialogTitle>
+        <DialogContent>
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Please sign in the box below using your mouse or touch screen
           </Alert>
-        </Snackbar>
-      </Box>
-    </LocalizationProvider>
+          
+          <Paper 
+            sx={{ 
+              border: '2px dashed', 
+              borderColor: 'divider',
+              borderRadius: 1,
+              overflow: 'hidden'
+            }}
+          >
+            <SignatureCanvas
+              ref={signaturePadRef}
+              penColor="black"
+              canvasProps={{
+                width: 500,
+                height: 200,
+                className: 'signature-canvas',
+                style: { width: '100%', height: '200px' }
+              }}
+            />
+          </Paper>
+          
+          <Box display="flex" justifyContent="space-between" mt={2}>
+            <Button
+              onClick={handleSignatureClear}
+              startIcon={<Clear />}
+            >
+              Clear
+            </Button>
+            <Typography variant="caption" color="text.secondary">
+              Sign above
+            </Typography>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setSignatureDialogOpen(false)}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSignatureSave}
+            variant="contained"
+            startIcon={<Check />}
+          >
+            Accept Signature
+          </Button>
+        </DialogActions>
+      </Dialog>
+      
+      {/* Preview Dialog */}
+      <Dialog
+        open={showPreview}
+        onClose={() => setShowPreview(false)}
+        fullScreen
+      >
+        <AppBar position="relative">
+          <Toolbar>
+            <IconButton
+              edge="start"
+              color="inherit"
+              onClick={() => setShowPreview(false)}
+            >
+              <Close />
+            </IconButton>
+            <Typography variant="h6" sx={{ ml: 2, flex: 1 }}>
+              Agreement Preview
+            </Typography>
+            <Button color="inherit" onClick={generatePDF}>
+              Download PDF
+            </Button>
+          </Toolbar>
+        </AppBar>
+        
+        <Container sx={{ mt: 3, mb: 3 }} ref={printRef}>
+          {/* Agreement Header */}
+          <Paper sx={{ p: 3, mb: 3 }}>
+            <Box textAlign="center">
+              <Typography variant="h4" gutterBottom>
+                CREDIT REPAIR SERVICE AGREEMENT
+              </Typography>
+              <Typography variant="h6" color="text.secondary">
+                Agreement Number: {watch('agreementNumber')}
+              </Typography>
+              <Typography variant="body1">
+                Date: {format(new Date(), 'MMMM dd, yyyy')}
+              </Typography>
+            </Box>
+          </Paper>
+          
+          {/* Parties */}
+          <Paper sx={{ p: 3, mb: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              PARTIES
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+            
+            <Grid container spacing={2}>
+              <Grid item xs={6}>
+                <Typography variant="subtitle2" gutterBottom>
+                  SERVICE PROVIDER:
+                </Typography>
+                <Typography>
+                  Speedy Credit Repair LLC<br />
+                  123 Main Street<br />
+                  Los Angeles, CA 90001<br />
+                  Phone: (555) 123-4567<br />
+                  Email: support@speedycreditrepair.com
+                </Typography>
+              </Grid>
+              
+              <Grid item xs={6}>
+                <Typography variant="subtitle2" gutterBottom>
+                  CLIENT:
+                </Typography>
+                <Typography>
+                  {watch('clientName')}<br />
+                  {watch('clientAddress')}<br />
+                  {watch('clientCity')}, {watch('clientState')} {watch('clientZip')}<br />
+                  Phone: {watch('clientPhone')}<br />
+                  Email: {watch('clientEmail')}
+                </Typography>
+              </Grid>
+            </Grid>
+            
+            {requireCosigner && watch('cosignerName') && (
+              <>
+                <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
+                  CO-SIGNER:
+                </Typography>
+                <Typography>
+                  {watch('cosignerName')}<br />
+                  Relationship: {watch('cosignerRelation')}<br />
+                  Phone: {watch('cosignerPhone')}<br />
+                  Email: {watch('cosignerEmail')}
+                </Typography>
+              </>
+            )}
+          </Paper>
+          
+          {/* Services */}
+          <Paper sx={{ p: 3, mb: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              SERVICES
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+            
+            <Typography variant="subtitle1" gutterBottom>
+              Package: {SERVICE_PACKAGES[watch('packageType')].name}
+            </Typography>
+            
+            <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
+              Included Services:
+            </Typography>
+            <List>
+              {SERVICE_PACKAGES[watch('packageType')].features.map((feature, idx) => (
+                <ListItem key={idx}>
+                  <ListItemIcon>
+                    <CheckCircle color="success" />
+                  </ListItemIcon>
+                  <ListItemText primary={feature} />
+                </ListItem>
+              ))}
+            </List>
+            
+            {(watch('addCreditMonitoring') || watch('addIdentityProtection') || 
+              watch('addFinancialCounseling') || watch('addLegalConsultation') || 
+              watch('addRushService')) && (
+              <>
+                <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
+                  Additional Services:
+                </Typography>
+                <List>
+                  {watch('addCreditMonitoring') && (
+                    <ListItem>
+                      <ListItemIcon><CheckCircle color="primary" /></ListItemIcon>
+                      <ListItemText primary="Credit Monitoring (+$19.99/mo)" />
+                    </ListItem>
+                  )}
+                  {watch('addIdentityProtection') && (
+                    <ListItem>
+                      <ListItemIcon><CheckCircle color="primary" /></ListItemIcon>
+                      <ListItemText primary="Identity Protection (+$14.99/mo)" />
+                    </ListItem>
+                  )}
+                  {watch('addFinancialCounseling') && (
+                    <ListItem>
+                      <ListItemIcon><CheckCircle color="primary" /></ListItemIcon>
+                      <ListItemText primary="Financial Counseling (+$49.99/mo)" />
+                    </ListItem>
+                  )}
+                  {watch('addLegalConsultation') && (
+                    <ListItem>
+                      <ListItemIcon><CheckCircle color="primary" /></ListItemIcon>
+                      <ListItemText primary="Legal Consultation (+$99.99/mo)" />
+                    </ListItem>
+                  )}
+                  {watch('addRushService') && (
+                    <ListItem>
+                      <ListItemIcon><CheckCircle color="primary" /></ListItemIcon>
+                      <ListItemText primary="Rush Service (+$29.99/mo)" />
+                    </ListItem>
+                  )}
+                </List>
+              </>
+            )}
+          </Paper>
+          
+          {/* Pricing */}
+          <Paper sx={{ p: 3, mb: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              PRICING & PAYMENT TERMS
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+            
+            <Table>
+              <TableBody>
+                <TableRow>
+                  <TableCell>Monthly Service Fee</TableCell>
+                  <TableCell align="right">
+                    ${calculatePricing.monthly.toFixed(2)}
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>Add-on Services</TableCell>
+                  <TableCell align="right">
+                    ${calculatePricing.addOns.toFixed(2)}/mo
+                  </TableCell>
+                </TableRow>
+                {calculatePricing.discount > 0 && (
+                  <TableRow>
+                    <TableCell>Discount</TableCell>
+                    <TableCell align="right">
+                      -${calculatePricing.discount.toFixed(2)}
+                    </TableCell>
+                  </TableRow>
+                )}
+                <TableRow>
+                  <TableCell>
+                    <strong>Total Monthly</strong>
+                  </TableCell>
+                  <TableCell align="right">
+                    <strong>${calculatePricing.monthlyTotal.toFixed(2)}</strong>
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>Setup Fee (one-time)</TableCell>
+                  <TableCell align="right">
+                    ${calculatePricing.setup}
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>Billing Cycle</TableCell>
+                  <TableCell align="right">
+                    {watch('billingCycle')}
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>
+                    <Typography variant="h6">Due Today</Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography variant="h6" color="primary">
+                      ${calculatePricing.firstPayment.toFixed(2)}
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+            
+            <Typography variant="body2" sx={{ mt: 2 }}>
+              Payment Method: {PAYMENT_METHODS.find(m => m.id === watch('paymentMethod'))?.label}<br />
+              Payment Due Date: {watch('paymentDueDate')}th of each month<br />
+              AutoPay: {watch('autopayEnabled') ? 'Enabled' : 'Disabled'}
+            </Typography>
+          </Paper>
+          
+          {/* Terms */}
+          <Paper sx={{ p: 3, mb: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              TERMS & CONDITIONS
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+            
+            <Typography variant="body2" paragraph>
+              Service Start Date: {watch('startDate')}<br />
+              Auto-Renewal: {watch('autoRenew') ? 'Yes' : 'No'}<br />
+              {watch('autoRenew') && `Renewal Term: ${watch('renewalTerm')} months`}
+            </Typography>
+            
+            <Typography variant="body2" paragraph>
+              This agreement contains the complete terms and conditions governing the 
+              credit repair services to be provided. By signing below, both parties 
+              acknowledge they have read, understood, and agree to be bound by all terms 
+              herein.
+            </Typography>
+          </Paper>
+          
+          {/* Signatures */}
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              SIGNATURES
+            </Typography>
+            <Divider sx={{ mb: 3 }} />
+            
+            <Grid container spacing={4}>
+              <Grid item xs={6}>
+                <Box>
+                  {signatures.client && (
+                    <img 
+                      src={signatures.client.signature} 
+                      alt="Client Signature" 
+                      style={{ maxHeight: 60, marginBottom: 8 }}
+                    />
+                  )}
+                  <Typography variant="body2">
+                    _________________________________<br />
+                    {watch('clientName')}<br />
+                    Client<br />
+                    Date: {signatures.client ? 
+                      format(new Date(signatures.client.timestamp), 'MM/dd/yyyy') : 
+                      '_____________'}
+                  </Typography>
+                </Box>
+              </Grid>
+              
+              {requireCosigner && (
+                <Grid item xs={6}>
+                  <Box>
+                    {signatures.cosigner && (
+                      <img 
+                        src={signatures.cosigner.signature} 
+                        alt="Co-signer Signature" 
+                        style={{ maxHeight: 60, marginBottom: 8 }}
+                      />
+                    )}
+                    <Typography variant="body2">
+                      _________________________________<br />
+                      {watch('cosignerName')}<br />
+                      Co-signer<br />
+                      Date: {signatures.cosigner ? 
+                        format(new Date(signatures.cosigner.timestamp), 'MM/dd/yyyy') : 
+                        '_____________'}
+                    </Typography>
+                  </Box>
+                </Grid>
+              )}
+              
+              <Grid item xs={6}>
+                <Box>
+                  <Typography variant="body2">
+                    _________________________________<br />
+                    {watch('companyRepName') || 'Authorized Representative'}<br />
+                    {watch('companyRepTitle') || 'Speedy Credit Repair LLC'}<br />
+                    Date: {format(new Date(), 'MM/dd/yyyy')}
+                  </Typography>
+                </Box>
+              </Grid>
+            </Grid>
+            
+            {qrCode && (
+              <Box textAlign="center" mt={3}>
+                <img src={qrCode} alt="Verification QR" style={{ width: 100 }} />
+                <Typography variant="caption" display="block">
+                  Agreement Verification Code
+                </Typography>
+              </Box>
+            )}
+          </Paper>
+        </Container>
+      </Dialog>
+      
+      {/* Payment Processing Dialog */}
+      <Dialog
+        open={showPaymentDialog}
+        onClose={() => !processingPayment && setShowPaymentDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          Process Payment
+        </DialogTitle>
+        <DialogContent>
+          {processingPayment ? (
+            <Box textAlign="center" py={4}>
+              <CircularProgress size={60} />
+              <Typography variant="h6" sx={{ mt: 2 }}>
+                Processing Payment...
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Please wait while we securely process your payment
+              </Typography>
+            </Box>
+          ) : paymentStatus === 'success' ? (
+            <Box textAlign="center" py={4}>
+              <CheckCircle color="success" sx={{ fontSize: 60 }} />
+              <Typography variant="h6" sx={{ mt: 2 }}>
+                Payment Successful!
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Your agreement has been executed successfully
+              </Typography>
+            </Box>
+          ) : paymentStatus === 'failed' ? (
+            <Box textAlign="center" py={4}>
+              <Cancel color="error" sx={{ fontSize: 60 }} />
+              <Typography variant="h6" sx={{ mt: 2 }}>
+                Payment Failed
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Please check your payment information and try again
+              </Typography>
+            </Box>
+          ) : (
+            <>
+              <Alert severity="info" sx={{ mb: 2 }}>
+                <AlertTitle>Secure Payment Processing</AlertTitle>
+                Amount to charge: ${calculatePricing.firstPayment.toFixed(2)}
+              </Alert>
+              
+              <Typography variant="body2" paragraph>
+                By confirming, you authorize us to charge the payment method on file.
+              </Typography>
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          {!processingPayment && paymentStatus !== 'success' && (
+            <>
+              <Button onClick={() => setShowPaymentDialog(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={processPayment}
+                variant="contained"
+                color="primary"
+                disabled={paymentStatus === 'failed'}
+              >
+                {paymentStatus === 'failed' ? 'Retry Payment' : 'Confirm Payment'}
+              </Button>
+            </>
+          )}
+          {paymentStatus === 'success' && (
+            <Button onClick={() => {
+              setShowPaymentDialog(false);
+              if (onComplete) onComplete({ agreementId, status: 'executed' });
+            }}>
+              Close
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
+      
+      {/* Snackbar for auto-save */}
+      <Snackbar
+        open={saving}
+        autoHideDuration={2000}
+        message="Saving progress..."
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      />
+    </Box>
   );
 };
 

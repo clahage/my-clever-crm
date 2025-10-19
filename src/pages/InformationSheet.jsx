@@ -1,1603 +1,2917 @@
-// src/pages/InformationSheet.jsx - Comprehensive Client Information Collection
-import React, { useState, useEffect } from 'react';
+// InformationSheet.jsx - Complete Enterprise Client Information Collection
+// Full-featured client intake form with advanced validation, document upload, and credit analysis
+
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
-  Box, Paper, Typography, Button, TextField, Grid, Stepper, Step, StepLabel,
-  Card, CardContent, FormControl, InputLabel, Select, MenuItem, Checkbox,
-  FormControlLabel, Radio, RadioGroup, Divider, Alert, Snackbar, Stack,
-  Autocomplete, InputAdornment, Chip, IconButton, Dialog, DialogTitle,
-  DialogContent, DialogActions, List, ListItem, ListItemText, Avatar,
-  LinearProgress, Accordion, AccordionSummary, AccordionDetails, Tooltip
+  Box,
+  Card,
+  CardContent,
+  CardActions,
+  CardHeader,
+  Paper,
+  Typography,
+  TextField,
+  Button,
+  IconButton,
+  Grid,
+  Divider,
+  Chip,
+  Avatar,
+  Alert,
+  AlertTitle,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  AccordionActions,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  ListItemAvatar,
+  ListItemSecondaryAction,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  FormControlLabel,
+  Checkbox,
+  Switch,
+  Radio,
+  RadioGroup,
+  Tabs,
+  Tab,
+  CircularProgress,
+  LinearProgress,
+  Stepper,
+  Step,
+  StepLabel,
+  StepContent,
+  StepButton,
+  SpeedDial,
+  SpeedDialIcon,
+  SpeedDialAction,
+  ToggleButton,
+  ToggleButtonGroup,
+  InputAdornment,
+  Menu,
+  Autocomplete,
+  Breadcrumbs,
+  Link,
+  Backdrop,
+  Skeleton,
+  Fade,
+  Zoom,
+  Collapse,
+  Stack,
+  Rating,
+  Tooltip,
+  Badge,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TablePagination,
+  Drawer,
+  AppBar,
+  Toolbar,
+  Container,
+  Snackbar
 } from '@mui/material';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import {
-  User, Mail, Phone, MapPin, Calendar, Home, Briefcase, CreditCard,
-  DollarSign, FileText, CheckCircle, AlertCircle, Save, Send, Download,
-  Edit, Trash2, Plus, ChevronDown, ChevronRight, Upload, Eye
-} from 'lucide-react';
-import { 
-  collection, addDoc, updateDoc, doc, query, where, getDocs,
-  serverTimestamp, getDoc
-} from 'firebase/firestore';
-import { db } from '../lib/firebase';
-import { useAuth } from '../contexts/AuthContext';
-import { format } from 'date-fns';
+  Assignment,
+  AssignmentTurnedIn,
+  Person,
+  Phone,
+  Email,
+  Home,
+  Work,
+  AttachMoney,
+  CreditCard,
+  AccountBalance,
+  TrendingUp,
+  TrendingDown,
+  Assessment,
+  Timeline,
+  Business,
+  DirectionsCar,
+  School,
+  LocalHospital,
+  Gavel,
+  MoneyOff,
+  CheckCircle,
+  Cancel,
+  Warning,
+  Info,
+  Schedule,
+  Timer,
+  Save,
+  Send,
+  Print,
+  Download,
+  Upload,
+  CloudUpload,
+  Delete,
+  Edit,
+  Add,
+  Remove,
+  ExpandMore,
+  ExpandLess,
+  NavigateNext,
+  NavigateBefore,
+  MoreVert,
+  Settings,
+  Help,
+  Lock,
+  LockOpen,
+  Visibility,
+  VisibilityOff,
+  VerifiedUser,
+  Security,
+  Flag,
+  Star,
+  StarBorder,
+  FolderOpen,
+  Description,
+  AttachFile,
+  PhotoCamera,
+  Mic,
+  Videocam,
+  Calculate,
+  Analytics,
+  PieChart,
+  BarChart,
+  ShowChart,
+  DateRange,
+  CalendarToday,
+  AccessTime,
+  History,
+  Refresh,
+  Sync,
+  SyncDisabled,
+  CloudDone,
+  CloudOff,
+  WifiOff,
+  SignalWifiOff,
+  Battery20,
+  BatteryFull,
+  Speed,
+  HighQuality,
+  CheckCircleOutline,
+  ErrorOutline,
+  ReportProblem,
+  NewReleases,
+  Announcement,
+  Campaign,
+  Celebration,
+  EmojiEvents,
+  ThumbUp,
+  ThumbDown,
+  SentimentVerySatisfied,
+  SentimentVeryDissatisfied,
+  Psychology,
+  AutoAwesome,
+  AutoGraph,
+  TipsAndUpdates,
+  Lightbulb,
+  Policy,
+  FactCheck,
+  TaskAlt,
+  Rule,
+  Balance,
+  Receipt,
+  RequestQuote,
+  CreditScore,
+  AccountBalanceWallet,
+  Savings,
+  Payment,
+  ShoppingCart,
+  Store,
+  Storefront,
+  LocalAtm,
+  CurrencyExchange,
+  ManageAccounts,
+  Badge as BadgeIcon,
+  VerifiedUserOutlined,
+  AdminPanelSettings,
+  SupervisorAccount,
+  GroupAdd,
+  PersonAdd,
+  PersonRemove,
+  Block,
+  ReportOff,
+  PrivacyTip,
+  HealthAndSafety,
+  Coronavirus,
+  MedicalServices,
+  Medication,
+  Vaccines,
+  Healing,
+  Spa,
+  SelfImprovement,
+  FitnessCenter,
+  SportsMartialArts,
+  DirectionsRun,
+  DirectionsBike,
+  Pool,
+  Surfing,
+  Snowboarding,
+  Skateboarding,
+  IceSkating,
+  Sledding,
+  Paragliding,
+  KiteBoarding
+} from '@mui/icons-material';
+import { useForm, Controller, useFieldArray } from 'react-hook-form';
+import { doc, setDoc, getDoc, updateDoc, deleteDoc, collection, query, where, orderBy, limit, getDocs, serverTimestamp, onSnapshot } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { db, storage } from '@/lib/firebase';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNotification } from '@/contexts/NotificationContext';
+import { format, formatDistanceToNow, parseISO, isBefore, isAfter, addMonths, differenceInMonths, differenceInYears } from 'date-fns';
 
-const InformationSheet = () => {
-  const { currentUser } = useAuth();
-  const [activeStep, setActiveStep] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [contacts, setContacts] = useState([]);
-  const [savedForms, setSavedForms] = useState([]);
-  const [viewDialogOpen, setViewDialogOpen] = useState(false);
-  const [selectedForm, setSelectedForm] = useState(null);
+// Section definitions with icons and descriptions
+const INFO_SECTIONS = {
+  personal: {
+    label: 'Personal Information',
+    icon: <Person />,
+    description: 'Basic personal details and identification'
+  },
+  contact: {
+    label: 'Contact Information',
+    icon: <Phone />,
+    description: 'Phone, email, and preferred contact methods'
+  },
+  address: {
+    label: 'Address History',
+    icon: <Home />,
+    description: 'Current and previous addresses'
+  },
+  employment: {
+    label: 'Employment Information',
+    icon: <Work />,
+    description: 'Current and previous employment details'
+  },
+  income: {
+    label: 'Income & Expenses',
+    icon: <AttachMoney />,
+    description: 'Monthly income sources and expenses'
+  },
+  credit: {
+    label: 'Credit Accounts',
+    icon: <CreditCard />,
+    description: 'Current credit accounts and debts'
+  },
+  goals: {
+    label: 'Credit Goals',
+    icon: <TrendingUp />,
+    description: 'What you want to achieve with credit repair'
+  },
+  documents: {
+    label: 'Documents',
+    icon: <FolderOpen />,
+    description: 'Upload supporting documents'
+  },
+  consent: {
+    label: 'Consent & Authorization',
+    icon: <VerifiedUser />,
+    description: 'Legal agreements and permissions'
+  }
+};
 
-  // Form Data
-  const [formData, setFormData] = useState({
-    // Personal Information
-    firstName: '',
-    middleName: '',
-    lastName: '',
-    suffix: '',
-    dateOfBirth: null,
-    ssn: '',
-    email: '',
-    phone: '',
-    alternatePhone: '',
-    preferredContact: 'email',
-    
-    // Current Address
-    currentAddress: {
-      street: '',
-      unit: '',
-      city: '',
-      state: '',
-      zip: '',
-      residenceSince: null,
-      residenceType: 'rent', // rent, own, family
-      monthlyPayment: ''
-    },
-    
-    // Previous Address (if less than 2 years at current)
-    previousAddress: {
-      needed: false,
-      street: '',
-      unit: '',
-      city: '',
-      state: '',
-      zip: '',
-      residenceFrom: null,
-      residenceTo: null
-    },
-    
-    // Employment Information
-    employment: {
-      status: 'employed', // employed, self-employed, unemployed, retired
-      employer: '',
-      jobTitle: '',
-      employedSince: null,
-      monthlyIncome: '',
-      workPhone: '',
-      
-      // If self-employed
-      businessName: '',
-      businessType: '',
-      
-      // Address
-      street: '',
-      city: '',
-      state: '',
-      zip: ''
-    },
-    
-    // Previous Employment (if less than 2 years)
-    previousEmployment: {
-      needed: false,
-      employer: '',
-      jobTitle: '',
-      employedFrom: null,
-      employedTo: null
-    },
-    
-    // Additional Income
-    additionalIncome: [],
-    
-    // Current Credit Accounts
-    creditAccounts: [],
-    
-    // Goals & Objectives
-    goals: {
-      primaryGoal: '', // home purchase, auto loan, credit cards, etc.
-      targetDate: null,
-      targetScore: '',
-      specificNeeds: '',
-      disputeReasons: []
-    },
-    
-    // Legal Information
-    legal: {
-      bankruptcyHistory: false,
-      bankruptcyDate: null,
-      bankruptcyType: '',
-      bankruptcyDischargeDate: null,
-      foreclosureHistory: false,
-      foreclosureDate: null,
-      judgments: false,
-      judgmentDetails: '',
-      taxLiens: false,
-      taxLienDetails: ''
-    },
-    
-    // Authorization
-    authorization: {
-      accuracyConfirmed: false,
-      consentToInquiry: false,
-      consentToContact: false,
-      signature: '',
-      signatureDate: null,
-      ipAddress: ''
-    },
-    
-    // Admin
-    contactId: null,
-    status: 'draft',
-    completedAt: null
-  });
+// Credit account types
+const ACCOUNT_TYPES = [
+  'Credit Card',
+  'Personal Loan',
+  'Auto Loan',
+  'Mortgage',
+  'Student Loan',
+  'Medical Debt',
+  'Collections',
+  'Charge-off',
+  'Bankruptcy',
+  'Tax Lien',
+  'Judgment',
+  'Other'
+];
 
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'info'
-  });
+// Income sources
+const INCOME_SOURCES = [
+  'Employment',
+  'Self-Employment',
+  'Business Income',
+  'Rental Income',
+  'Investment Income',
+  'Social Security',
+  'Pension',
+  'Disability',
+  'Alimony',
+  'Child Support',
+  'Other'
+];
 
-  const steps = [
-    'Personal Information',
-    'Address Details',
-    'Employment',
-    'Financial Information',
-    'Credit Goals',
-    'Legal History',
-    'Review & Submit'
-  ];
+// Goals categories
+const GOAL_CATEGORIES = {
+  score: { label: 'Credit Score Improvement', icon: <TrendingUp />, color: '#4ECDC4' },
+  mortgage: { label: 'Home Purchase', icon: <Home />, color: '#95E77E' },
+  auto: { label: 'Auto Financing', icon: <DirectionsCar />, color: '#FFE66D' },
+  business: { label: 'Business Credit', icon: <Business />, color: '#FF6B6B' },
+  cards: { label: 'Credit Cards', icon: <CreditCard />, color: '#A8E6CF' },
+  debt: { label: 'Debt Reduction', icon: <MoneyOff />, color: '#C7CEEA' }
+};
 
-  const states = [
-    'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
-    'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
-    'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
-    'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
-    'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'
-  ];
-
-  const incomeTypes = [
-    'Rental Income',
-    'Investment Income',
-    'Alimony',
-    'Child Support',
-    'Social Security',
-    'Disability',
-    'Pension',
-    'Other'
-  ];
-
-  const disputeReasons = [
-    'Not mine - Never opened this account',
-    'Paid in full - Shows balance',
-    'Incorrect balance',
-    'Duplicate account',
-    'Incorrect payment history',
-    'Identity theft',
-    'Account closed by consumer',
-    'Mixed credit file',
-    'Outdated information',
-    'Settled account showing unpaid',
-    'Bankruptcy not reporting correctly',
-    'Authorized user - not responsible'
-  ];
-
-  // Load contacts for autocomplete
-  const loadContacts = async () => {
-    try {
-      const q = query(
-        collection(db, 'contacts'),
-        where('userId', '==', currentUser.uid)
-      );
-      
-      const querySnapshot = await getDocs(q);
-      const contactsData = [];
-      
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        contactsData.push({
-          id: doc.id,
-          ...data,
-          displayName: data.name || `${data.firstName || ''} ${data.lastName || ''}`.trim()
-        });
-      });
-      
-      setContacts(contactsData);
-    } catch (error) {
-      console.error('Error loading contacts:', error);
-    }
-  };
-
-  // Load saved forms
-  const loadSavedForms = async () => {
-    try {
-      const q = query(
-        collection(db, 'informationSheets'),
-        where('userId', '==', currentUser.uid)
-      );
-      
-      const querySnapshot = await getDocs(q);
-      const formsData = [];
-      
-      querySnapshot.forEach((doc) => {
-        formsData.push({
-          id: doc.id,
-          ...doc.data()
-        });
-      });
-      
-      setSavedForms(formsData);
-    } catch (error) {
-      console.error('Error loading forms:', error);
-    }
-  };
-
-  useEffect(() => {
-    if (currentUser) {
-      loadContacts();
-      loadSavedForms();
-    }
-  }, [currentUser]);
-
-  // Form validation
-  const validateStep = (step) => {
-    switch (step) {
-      case 0: // Personal Information
-        return formData.firstName && formData.lastName && formData.dateOfBirth &&
-               formData.ssn && formData.email && formData.phone;
-      
-      case 1: // Address
-        return formData.currentAddress.street && formData.currentAddress.city &&
-               formData.currentAddress.state && formData.currentAddress.zip;
-      
-      case 2: // Employment
-        return formData.employment.status && 
-               (formData.employment.status === 'unemployed' || formData.employment.employer);
-      
-      case 3: // Financial
-        return true; // Optional section
-      
-      case 4: // Goals
-        return formData.goals.primaryGoal && formData.goals.targetScore;
-      
-      case 5: // Legal
-        return true; // Optional but important
-      
-      case 6: // Review
-        return formData.authorization.accuracyConfirmed &&
-               formData.authorization.consentToInquiry &&
-               formData.authorization.consentToContact;
-      
-      default:
-        return true;
-    }
-  };
-
-  // Handle next step
-  const handleNext = () => {
-    if (validateStep(activeStep)) {
-      setActiveStep((prevStep) => prevStep + 1);
-    } else {
-      showSnackbar('Please complete all required fields', 'warning');
-    }
-  };
-
-  const handleBack = () => {
-    setActiveStep((prevStep) => prevStep - 1);
-  };
-
-  // Save as draft
-  const handleSaveDraft = async () => {
-    setLoading(true);
-    try {
-      const draftData = {
-        ...formData,
-        userId: currentUser.uid,
-        status: 'draft',
-        updatedAt: serverTimestamp()
-      };
-
-      if (formData.id) {
-        await updateDoc(doc(db, 'informationSheets', formData.id), draftData);
-        showSnackbar('Draft updated successfully', 'success');
-      } else {
-        const docRef = await addDoc(collection(db, 'informationSheets'), {
-          ...draftData,
-          createdAt: serverTimestamp()
-        });
-        setFormData(prev => ({ ...prev, id: docRef.id }));
-        showSnackbar('Draft saved successfully', 'success');
-      }
-      
-      loadSavedForms();
-    } catch (error) {
-      console.error('Error saving draft:', error);
-      showSnackbar('Error saving draft', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Submit form
-  const handleSubmit = async () => {
-    if (!validateStep(6)) {
-      showSnackbar('Please complete all required fields', 'warning');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const submissionData = {
-        ...formData,
-        userId: currentUser.uid,
-        status: 'completed',
-        completedAt: serverTimestamp(),
-        authorization: {
-          ...formData.authorization,
-          signatureDate: new Date(),
-          ipAddress: await fetch('https://api.ipify.org?format=json')
-            .then(res => res.json())
-            .then(data => data.ip)
-            .catch(() => 'unknown')
-        }
-      };
-
-      if (formData.id) {
-        await updateDoc(doc(db, 'informationSheets', formData.id), submissionData);
-      } else {
-        await addDoc(collection(db, 'informationSheets'), {
-          ...submissionData,
-          createdAt: serverTimestamp()
-        });
-      }
-
-      // Create/update contact if needed
-      if (formData.contactId) {
-        await updateDoc(doc(db, 'contacts', formData.contactId), {
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          phone: formData.phone,
-          updatedAt: serverTimestamp()
-        });
-      }
-
-      showSnackbar('Information sheet submitted successfully!', 'success');
-      
-      // Reset form after short delay
-      setTimeout(() => {
-        resetForm();
-        setActiveStep(0);
-      }, 2000);
-      
-    } catch (error) {
-      console.error('Error submitting form:', error);
-      showSnackbar('Error submitting form', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Reset form
-  const resetForm = () => {
-    setFormData({
+const InformationSheet = ({ 
+  clientId = null,
+  mode = 'create', // 'create', 'edit', 'view'
+  onComplete,
+  autoSave = true
+}) => {
+  const { user } = useAuth();
+  const { showSuccess, showError, showInfo } = useNotification();
+  
+  // React Hook Form setup
+  const { control, handleSubmit, watch, setValue, getValues, formState: { errors, isDirty } } = useForm({
+    defaultValues: {
+      // Personal Information
       firstName: '',
       middleName: '',
       lastName: '',
       suffix: '',
-      dateOfBirth: null,
+      dateOfBirth: '',
       ssn: '',
-      email: '',
-      phone: '',
-      alternatePhone: '',
+      driverLicense: '',
+      dlState: '',
+      
+      // Contact Information
+      primaryPhone: '',
+      secondaryPhone: '',
+      primaryEmail: '',
+      secondaryEmail: '',
       preferredContact: 'email',
-      currentAddress: {
-        street: '',
-        unit: '',
-        city: '',
-        state: '',
-        zip: '',
-        residenceSince: null,
-        residenceType: 'rent',
-        monthlyPayment: ''
+      bestTimeToCall: 'morning',
+      
+      // Current Address
+      currentAddress: '',
+      currentCity: '',
+      currentState: '',
+      currentZip: '',
+      currentResidenceType: 'rent',
+      currentMonthlyPayment: '',
+      currentMoveInDate: '',
+      
+      // Previous Address
+      previousAddress: '',
+      previousCity: '',
+      previousState: '',
+      previousZip: '',
+      previousMoveInDate: '',
+      previousMoveOutDate: '',
+      
+      // Employment
+      employerName: '',
+      employerPhone: '',
+      employerAddress: '',
+      jobTitle: '',
+      employmentStartDate: '',
+      monthlyIncome: '',
+      employmentType: 'full-time',
+      
+      // Previous Employment
+      previousEmployerName: '',
+      previousJobTitle: '',
+      previousEmploymentDates: '',
+      
+      // Income Sources
+      incomeSources: [],
+      monthlyExpenses: {
+        rent: 0,
+        utilities: 0,
+        insurance: 0,
+        carPayment: 0,
+        creditCards: 0,
+        loans: 0,
+        other: 0
       },
-      previousAddress: {
-        needed: false,
-        street: '',
-        unit: '',
-        city: '',
-        state: '',
-        zip: '',
-        residenceFrom: null,
-        residenceTo: null
-      },
-      employment: {
-        status: 'employed',
-        employer: '',
-        jobTitle: '',
-        employedSince: null,
-        monthlyIncome: '',
-        workPhone: '',
-        businessName: '',
-        businessType: '',
-        street: '',
-        city: '',
-        state: '',
-        zip: ''
-      },
-      previousEmployment: {
-        needed: false,
-        employer: '',
-        jobTitle: '',
-        employedFrom: null,
-        employedTo: null
-      },
-      additionalIncome: [],
-      creditAccounts: [],
-      goals: {
-        primaryGoal: '',
-        targetDate: null,
-        targetScore: '',
-        specificNeeds: '',
-        disputeReasons: []
-      },
-      legal: {
-        bankruptcyHistory: false,
-        bankruptcyDate: null,
-        bankruptcyType: '',
-        bankruptcyDischargeDate: null,
-        foreclosureHistory: false,
-        foreclosureDate: null,
-        judgments: false,
-        judgmentDetails: '',
-        taxLiens: false,
-        taxLienDetails: ''
-      },
-      authorization: {
-        accuracyConfirmed: false,
-        consentToInquiry: false,
-        consentToContact: false,
-        signature: '',
-        signatureDate: null,
-        ipAddress: ''
-      },
-      contactId: null,
-      status: 'draft',
-      completedAt: null
-    });
+      
+      // Credit Goals
+      creditGoals: [],
+      targetScore: '',
+      targetDate: '',
+      specificGoals: '',
+      
+      // Authorization
+      agreeToTerms: false,
+      authorizeCredit: false,
+      authorizeDisputes: false,
+      electronicSignature: '',
+      signatureDate: new Date().toISOString().split('T')[0]
+    }
+  });
+  
+  // Field arrays for dynamic sections
+  const { fields: creditAccounts, append: appendAccount, remove: removeAccount } = useFieldArray({
+    control,
+    name: 'creditAccounts'
+  });
+  
+  const { fields: incomeSources, append: appendIncome, remove: removeIncome } = useFieldArray({
+    control,
+    name: 'incomeSources'
+  });
+  
+  // State management
+  const [activeSection, setActiveSection] = useState('personal');
+  const [completedSections, setCompletedSections] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [documents, setDocuments] = useState([]);
+  const [uploadProgress, setUploadProgress] = useState({});
+  const [validationErrors, setValidationErrors] = useState({});
+  const [showPreview, setShowPreview] = useState(false);
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState(autoSave);
+  const [lastSaved, setLastSaved] = useState(null);
+  const [creditScore, setCreditScore] = useState(null);
+  const [debtToIncomeRatio, setDebtToIncomeRatio] = useState(null);
+  const [monthlyDisposableIncome, setMonthlyDisposableIncome] = useState(null);
+  
+  // Refs
+  const autoSaveTimer = useRef(null);
+  const fileInputRef = useRef(null);
+  
+  // Load existing data if editing
+  useEffect(() => {
+    if (mode !== 'create' && clientId) {
+      loadClientData();
+    }
+  }, [clientId, mode]);
+  
+  // Auto-save functionality
+  useEffect(() => {
+    if (autoSaveEnabled && isDirty && mode !== 'view') {
+      if (autoSaveTimer.current) {
+        clearTimeout(autoSaveTimer.current);
+      }
+      
+      autoSaveTimer.current = setTimeout(() => {
+        saveProgress();
+      }, 3000); // Save after 3 seconds of inactivity
+    }
+    
+    return () => {
+      if (autoSaveTimer.current) {
+        clearTimeout(autoSaveTimer.current);
+      }
+    };
+  }, [watch(), autoSaveEnabled, isDirty]);
+  
+  // Calculate financial metrics
+  const calculatedData = useMemo(() => {
+    const formData = getValues();
+    const totalIncome = parseFloat(formData.monthlyIncome || 0) + 
+      (incomeSources?.reduce((sum, source) => sum + parseFloat(source.amount || 0), 0) || 0);
+    
+    const totalExpenses = Object.values(formData.monthlyExpenses || {})
+      .reduce((sum, expense) => sum + parseFloat(expense || 0), 0);
+    
+    const totalDebt = creditAccounts?.reduce((sum, account) => {
+      if (account.type === 'Mortgage' || account.type === 'Auto Loan') {
+        return sum + parseFloat(account.balance || 0);
+      }
+      return sum + parseFloat(account.balance || 0);
+    }, 0) || 0;
+    
+    const monthlyDebtPayments = creditAccounts?.reduce((sum, account) => 
+      sum + parseFloat(account.monthlyPayment || 0), 0) || 0;
+    
+    const dti = totalIncome > 0 ? ((monthlyDebtPayments / totalIncome) * 100).toFixed(2) : 0;
+    const disposable = totalIncome - totalExpenses;
+    
+    return {
+      totalIncome,
+      totalExpenses,
+      totalDebt,
+      monthlyDebtPayments,
+      debtToIncomeRatio: dti,
+      monthlyDisposableIncome: disposable,
+      utilizationRate: calculateUtilizationRate()
+    };
+  }, [watch(), creditAccounts, incomeSources]);
+  
+  const calculateUtilizationRate = () => {
+    const creditCards = creditAccounts?.filter(acc => acc.type === 'Credit Card') || [];
+    if (creditCards.length === 0) return 0;
+    
+    const totalLimit = creditCards.reduce((sum, card) => sum + parseFloat(card.limit || 0), 0);
+    const totalBalance = creditCards.reduce((sum, card) => sum + parseFloat(card.balance || 0), 0);
+    
+    return totalLimit > 0 ? ((totalBalance / totalLimit) * 100).toFixed(2) : 0;
   };
-
-  const showSnackbar = (message, severity = 'info') => {
-    setSnackbar({ open: true, message, severity });
-  };
-
-  // Add additional income
-  const addAdditionalIncome = () => {
-    setFormData(prev => ({
-      ...prev,
-      additionalIncome: [
-        ...prev.additionalIncome,
-        { type: '', amount: '', source: '' }
-      ]
-    }));
-  };
-
-  // Remove additional income
-  const removeAdditionalIncome = (index) => {
-    setFormData(prev => ({
-      ...prev,
-      additionalIncome: prev.additionalIncome.filter((_, i) => i !== index)
-    }));
-  };
-
-  // Render step content
-  const renderStepContent = (step) => {
-    switch (step) {
-      case 0: // Personal Information
-        return (
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <Alert severity="info">
-                All information provided will be kept strictly confidential
-              </Alert>
-            </Grid>
-
-            <Grid item xs={12} md={3}>
-              <TextField
-                label="First Name"
-                required
-                fullWidth
-                value={formData.firstName}
-                onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
-              />
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <TextField
-                label="Middle Name"
-                fullWidth
-                value={formData.middleName}
-                onChange={(e) => setFormData(prev => ({ ...prev, middleName: e.target.value }))}
-              />
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <TextField
-                label="Last Name"
-                required
-                fullWidth
-                value={formData.lastName}
-                onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
-              />
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <FormControl fullWidth>
-                <InputLabel>Suffix</InputLabel>
-                <Select
-                  value={formData.suffix}
-                  onChange={(e) => setFormData(prev => ({ ...prev, suffix: e.target.value }))}
-                >
-                  <MenuItem value="">None</MenuItem>
-                  <MenuItem value="Jr.">Jr.</MenuItem>
-                  <MenuItem value="Sr.">Sr.</MenuItem>
-                  <MenuItem value="II">II</MenuItem>
-                  <MenuItem value="III">III</MenuItem>
-                  <MenuItem value="IV">IV</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-
-            <Grid item xs={12} md={4}>
-              <DatePicker
-                label="Date of Birth *"
-                value={formData.dateOfBirth}
-                onChange={(date) => setFormData(prev => ({ ...prev, dateOfBirth: date }))}
-                renderInput={(params) => <TextField {...params} fullWidth required />}
-              />
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <TextField
-                label="Social Security Number"
-                required
-                fullWidth
-                value={formData.ssn}
-                onChange={(e) => setFormData(prev => ({ ...prev, ssn: e.target.value }))}
-                placeholder="XXX-XX-XXXX"
-                inputProps={{ maxLength: 11 }}
-              />
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <FormControl fullWidth required>
-                <InputLabel>Preferred Contact Method</InputLabel>
-                <Select
-                  value={formData.preferredContact}
-                  onChange={(e) => setFormData(prev => ({ ...prev, preferredContact: e.target.value }))}
-                >
-                  <MenuItem value="email">Email</MenuItem>
-                  <MenuItem value="phone">Phone</MenuItem>
-                  <MenuItem value="text">Text/SMS</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-
-            <Grid item xs={12} md={4}>
-              <TextField
-                label="Email Address"
-                required
-                fullWidth
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                InputProps={{
-                  startAdornment: <Mail size={18} style={{ marginRight: 8 }} />
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <TextField
-                label="Primary Phone"
-                required
-                fullWidth
-                value={formData.phone}
-                onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                placeholder="(XXX) XXX-XXXX"
-                InputProps={{
-                  startAdornment: <Phone size={18} style={{ marginRight: 8 }} />
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <TextField
-                label="Alternate Phone"
-                fullWidth
-                value={formData.alternatePhone}
-                onChange={(e) => setFormData(prev => ({ ...prev, alternatePhone: e.target.value }))}
-                placeholder="(XXX) XXX-XXXX"
-              />
-            </Grid>
-          </Grid>
-        );
-
-      case 1: // Address Details
-        return (
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <Typography variant="h6" gutterBottom>Current Address</Typography>
-            </Grid>
-
-            <Grid item xs={12} md={8}>
-              <TextField
-                label="Street Address"
-                required
-                fullWidth
-                value={formData.currentAddress.street}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  currentAddress: { ...prev.currentAddress, street: e.target.value }
-                }))}
-                InputProps={{
-                  startAdornment: <MapPin size={18} style={{ marginRight: 8 }} />
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <TextField
-                label="Unit/Apt #"
-                fullWidth
-                value={formData.currentAddress.unit}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  currentAddress: { ...prev.currentAddress, unit: e.target.value }
-                }))}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={5}>
-              <TextField
-                label="City"
-                required
-                fullWidth
-                value={formData.currentAddress.city}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  currentAddress: { ...prev.currentAddress, city: e.target.value }
-                }))}
-              />
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <FormControl fullWidth required>
-                <InputLabel>State</InputLabel>
-                <Select
-                  value={formData.currentAddress.state}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    currentAddress: { ...prev.currentAddress, state: e.target.value }
-                  }))}
-                >
-                  {states.map(state => (
-                    <MenuItem key={state} value={state}>{state}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <TextField
-                label="ZIP Code"
-                required
-                fullWidth
-                value={formData.currentAddress.zip}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  currentAddress: { ...prev.currentAddress, zip: e.target.value }
-                }))}
-                inputProps={{ maxLength: 5 }}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={4}>
-              <DatePicker
-                label="Living Here Since *"
-                value={formData.currentAddress.residenceSince}
-                onChange={(date) => setFormData(prev => ({
-                  ...prev,
-                  currentAddress: { ...prev.currentAddress, residenceSince: date }
-                }))}
-                renderInput={(params) => <TextField {...params} fullWidth required />}
-              />
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <FormControl fullWidth required>
-                <InputLabel>Residence Type</InputLabel>
-                <Select
-                  value={formData.currentAddress.residenceType}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    currentAddress: { ...prev.currentAddress, residenceType: e.target.value }
-                  }))}
-                >
-                  <MenuItem value="rent">Rent</MenuItem>
-                  <MenuItem value="own">Own</MenuItem>
-                  <MenuItem value="family">Living with Family</MenuItem>
-                  <MenuItem value="other">Other</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <TextField
-                label="Monthly Payment"
-                fullWidth
-                value={formData.currentAddress.monthlyPayment}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  currentAddress: { ...prev.currentAddress, monthlyPayment: e.target.value }
-                }))}
-                InputProps={{
-                  startAdornment: <InputAdornment position="start">$</InputAdornment>
-                }}
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={formData.previousAddress.needed}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      previousAddress: { ...prev.previousAddress, needed: e.target.checked }
-                    }))}
-                  />
-                }
-                label="I lived at my current address for less than 2 years"
-              />
-            </Grid>
-
-            {formData.previousAddress.needed && (
-              <>
-                <Grid item xs={12}>
-                  <Divider />
-                  <Typography variant="h6" sx={{ mt: 2 }}>Previous Address</Typography>
-                </Grid>
-
-                <Grid item xs={12} md={8}>
-                  <TextField
-                    label="Previous Street Address"
-                    fullWidth
-                    value={formData.previousAddress.street}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      previousAddress: { ...prev.previousAddress, street: e.target.value }
-                    }))}
-                  />
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <TextField
-                    label="Unit/Apt #"
-                    fullWidth
-                    value={formData.previousAddress.unit}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      previousAddress: { ...prev.previousAddress, unit: e.target.value }
-                    }))}
-                  />
-                </Grid>
-
-                <Grid item xs={12} md={5}>
-                  <TextField
-                    label="City"
-                    fullWidth
-                    value={formData.previousAddress.city}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      previousAddress: { ...prev.previousAddress, city: e.target.value }
-                    }))}
-                  />
-                </Grid>
-                <Grid item xs={12} md={3}>
-                  <FormControl fullWidth>
-                    <InputLabel>State</InputLabel>
-                    <Select
-                      value={formData.previousAddress.state}
-                      onChange={(e) => setFormData(prev => ({
-                        ...prev,
-                        previousAddress: { ...prev.previousAddress, state: e.target.value }
-                      }))}
-                    >
-                      {states.map(state => (
-                        <MenuItem key={state} value={state}>{state}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <TextField
-                    label="ZIP Code"
-                    fullWidth
-                    value={formData.previousAddress.zip}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      previousAddress: { ...prev.previousAddress, zip: e.target.value }
-                    }))}
-                  />
-                </Grid>
-              </>
-            )}
-          </Grid>
-        );
-
-      case 2: // Employment
-        return (
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <FormControl fullWidth required>
-                <InputLabel>Employment Status</InputLabel>
-                <Select
-                  value={formData.employment.status}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    employment: { ...prev.employment, status: e.target.value }
-                  }))}
-                >
-                  <MenuItem value="employed">Employed</MenuItem>
-                  <MenuItem value="self-employed">Self-Employed</MenuItem>
-                  <MenuItem value="unemployed">Unemployed</MenuItem>
-                  <MenuItem value="retired">Retired</MenuItem>
-                  <MenuItem value="student">Student</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-
-            {(formData.employment.status === 'employed' || formData.employment.status === 'self-employed') && (
-              <>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    label={formData.employment.status === 'self-employed' ? 'Business Name' : 'Employer Name'}
-                    required
-                    fullWidth
-                    value={formData.employment.employer}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      employment: { ...prev.employment, employer: e.target.value }
-                    }))}
-                    InputProps={{
-                      startAdornment: <Briefcase size={18} style={{ marginRight: 8 }} />
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    label="Job Title/Position"
-                    fullWidth
-                    value={formData.employment.jobTitle}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      employment: { ...prev.employment, jobTitle: e.target.value }
-                    }))}
-                  />
-                </Grid>
-
-                <Grid item xs={12} md={4}>
-                  <DatePicker
-                    label="Employed Since"
-                    value={formData.employment.employedSince}
-                    onChange={(date) => setFormData(prev => ({
-                      ...prev,
-                      employment: { ...prev.employment, employedSince: date }
-                    }))}
-                    renderInput={(params) => <TextField {...params} fullWidth />}
-                  />
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <TextField
-                    label="Monthly Income"
-                    fullWidth
-                    value={formData.employment.monthlyIncome}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      employment: { ...prev.employment, monthlyIncome: e.target.value }
-                    }))}
-                    InputProps={{
-                      startAdornment: <InputAdornment position="start">$</InputAdornment>
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <TextField
-                    label="Work Phone"
-                    fullWidth
-                    value={formData.employment.workPhone}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      employment: { ...prev.employment, workPhone: e.target.value }
-                    }))}
-                  />
-                </Grid>
-
-                <Grid item xs={12}>
-                  <Typography variant="subtitle2" gutterBottom>Employer Address</Typography>
-                </Grid>
-
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    label="Street Address"
-                    fullWidth
-                    value={formData.employment.street}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      employment: { ...prev.employment, street: e.target.value }
-                    }))}
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    label="City"
-                    fullWidth
-                    value={formData.employment.city}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      employment: { ...prev.employment, city: e.target.value }
-                    }))}
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth>
-                    <InputLabel>State</InputLabel>
-                    <Select
-                      value={formData.employment.state}
-                      onChange={(e) => setFormData(prev => ({
-                        ...prev,
-                        employment: { ...prev.employment, state: e.target.value }
-                      }))}
-                    >
-                      {states.map(state => (
-                        <MenuItem key={state} value={state}>{state}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    label="ZIP Code"
-                    fullWidth
-                    value={formData.employment.zip}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      employment: { ...prev.employment, zip: e.target.value }
-                    }))}
-                  />
-                </Grid>
-              </>
-            )}
-          </Grid>
-        );
-
-      case 3: // Financial Information
-        return (
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="h6">Additional Income Sources</Typography>
-                <Button
-                  variant="outlined"
-                  startIcon={<Plus size={18} />}
-                  onClick={addAdditionalIncome}
-                >
-                  Add Income
-                </Button>
-              </Box>
-            </Grid>
-
-            {formData.additionalIncome.map((income, index) => (
-              <Grid item xs={12} key={index}>
-                <Card variant="outlined">
-                  <CardContent>
-                    <Grid container spacing={2}>
-                      <Grid item xs={12} md={4}>
-                        <FormControl fullWidth>
-                          <InputLabel>Income Type</InputLabel>
-                          <Select
-                            value={income.type}
-                            onChange={(e) => {
-                              const newIncome = [...formData.additionalIncome];
-                              newIncome[index].type = e.target.value;
-                              setFormData(prev => ({ ...prev, additionalIncome: newIncome }));
-                            }}
-                          >
-                            {incomeTypes.map(type => (
-                              <MenuItem key={type} value={type}>{type}</MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                      </Grid>
-                      <Grid item xs={12} md={4}>
-                        <TextField
-                          label="Monthly Amount"
-                          fullWidth
-                          value={income.amount}
-                          onChange={(e) => {
-                            const newIncome = [...formData.additionalIncome];
-                            newIncome[index].amount = e.target.value;
-                            setFormData(prev => ({ ...prev, additionalIncome: newIncome }));
-                          }}
-                          InputProps={{
-                            startAdornment: <InputAdornment position="start">$</InputAdornment>
-                          }}
-                        />
-                      </Grid>
-                      <Grid item xs={12} md={3}>
-                        <TextField
-                          label="Source"
-                          fullWidth
-                          value={income.source}
-                          onChange={(e) => {
-                            const newIncome = [...formData.additionalIncome];
-                            newIncome[index].source = e.target.value;
-                            setFormData(prev => ({ ...prev, additionalIncome: newIncome }));
-                          }}
-                        />
-                      </Grid>
-                      <Grid item xs={12} md={1}>
-                        <IconButton
-                          color="error"
-                          onClick={() => removeAdditionalIncome(index)}
-                        >
-                          <Trash2 size={20} />
-                        </IconButton>
-                      </Grid>
-                    </Grid>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-
-            {formData.additionalIncome.length === 0 && (
-              <Grid item xs={12}>
-                <Alert severity="info">
-                  Click "Add Income" to include any additional income sources such as rental income, investments, or benefits.
-                </Alert>
-              </Grid>
-            )}
-          </Grid>
-        );
-
-      case 4: // Credit Goals
-        return (
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <FormControl fullWidth required>
-                <InputLabel>Primary Credit Goal</InputLabel>
-                <Select
-                  value={formData.goals.primaryGoal}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    goals: { ...prev.goals, primaryGoal: e.target.value }
-                  }))}
-                >
-                  <MenuItem value="home_purchase">Home Purchase</MenuItem>
-                  <MenuItem value="auto_loan">Auto Loan</MenuItem>
-                  <MenuItem value="credit_cards">Credit Card Approval</MenuItem>
-                  <MenuItem value="personal_loan">Personal Loan</MenuItem>
-                  <MenuItem value="refinance">Refinance Existing Debt</MenuItem>
-                  <MenuItem value="score_improvement">General Score Improvement</MenuItem>
-                  <MenuItem value="rental_approval">Rental Application</MenuItem>
-                  <MenuItem value="employment">Employment/Background Check</MenuItem>
-                  <MenuItem value="other">Other</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <DatePicker
-                label="Target Date"
-                value={formData.goals.targetDate}
-                onChange={(date) => setFormData(prev => ({
-                  ...prev,
-                  goals: { ...prev.goals, targetDate: date }
-                }))}
-                renderInput={(params) => <TextField {...params} fullWidth />}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                label="Target Credit Score"
-                required
-                fullWidth
-                type="number"
-                value={formData.goals.targetScore}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  goals: { ...prev.goals, targetScore: e.target.value }
-                }))}
-                placeholder="e.g., 700"
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <TextField
-                label="Specific Needs or Requirements"
-                multiline
-                rows={3}
-                fullWidth
-                value={formData.goals.specificNeeds}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  goals: { ...prev.goals, specificNeeds: e.target.value }
-                }))}
-                placeholder="Tell us about your specific situation or any urgent needs..."
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <Typography variant="subtitle2" gutterBottom>
-                Select all reasons that apply to items on your credit report:
-              </Typography>
-              <Box sx={{ mt: 2 }}>
-                {disputeReasons.map((reason) => (
-                  <FormControlLabel
-                    key={reason}
-                    control={
-                      <Checkbox
-                        checked={formData.goals.disputeReasons.includes(reason)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setFormData(prev => ({
-                              ...prev,
-                              goals: {
-                                ...prev.goals,
-                                disputeReasons: [...prev.goals.disputeReasons, reason]
-                              }
-                            }));
-                          } else {
-                            setFormData(prev => ({
-                              ...prev,
-                              goals: {
-                                ...prev.goals,
-                                disputeReasons: prev.goals.disputeReasons.filter(r => r !== reason)
-                              }
-                            }));
-                          }
-                        }}
-                      />
-                    }
-                    label={reason}
-                    sx={{ width: '100%', mb: 1 }}
-                  />
-                ))}
-              </Box>
-            </Grid>
-          </Grid>
-        );
-
-      case 5: // Legal History
-        return (
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <Alert severity="warning">
-                Please answer honestly. This information helps us provide better service and is required for compliance.
-              </Alert>
-            </Grid>
-
-            <Grid item xs={12}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={formData.legal.bankruptcyHistory}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      legal: { ...prev.legal, bankruptcyHistory: e.target.checked }
-                    }))}
-                  />
-                }
-                label="Have you ever filed for bankruptcy?"
-              />
-            </Grid>
-
-            {formData.legal.bankruptcyHistory && (
-              <>
-                <Grid item xs={12} md={4}>
-                  <DatePicker
-                    label="Bankruptcy Filing Date"
-                    value={formData.legal.bankruptcyDate}
-                    onChange={(date) => setFormData(prev => ({
-                      ...prev,
-                      legal: { ...prev.legal, bankruptcyDate: date }
-                    }))}
-                    renderInput={(params) => <TextField {...params} fullWidth />}
-                  />
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <FormControl fullWidth>
-                    <InputLabel>Bankruptcy Type</InputLabel>
-                    <Select
-                      value={formData.legal.bankruptcyType}
-                      onChange={(e) => setFormData(prev => ({
-                        ...prev,
-                        legal: { ...prev.legal, bankruptcyType: e.target.value }
-                      }))}
-                    >
-                      <MenuItem value="Chapter 7">Chapter 7</MenuItem>
-                      <MenuItem value="Chapter 11">Chapter 11</MenuItem>
-                      <MenuItem value="Chapter 13">Chapter 13</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <DatePicker
-                    label="Discharge Date"
-                    value={formData.legal.bankruptcyDischargeDate}
-                    onChange={(date) => setFormData(prev => ({
-                      ...prev,
-                      legal: { ...prev.legal, bankruptcyDischargeDate: date }
-                    }))}
-                    renderInput={(params) => <TextField {...params} fullWidth />}
-                  />
-                </Grid>
-              </>
-            )}
-
-            <Grid item xs={12}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={formData.legal.foreclosureHistory}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      legal: { ...prev.legal, foreclosureHistory: e.target.checked }
-                    }))}
-                  />
-                }
-                label="Have you had a foreclosure?"
-              />
-            </Grid>
-
-            {formData.legal.foreclosureHistory && (
-              <Grid item xs={12} md={6}>
-                <DatePicker
-                  label="Foreclosure Date"
-                  value={formData.legal.foreclosureDate}
-                  onChange={(date) => setFormData(prev => ({
-                    ...prev,
-                    legal: { ...prev.legal, foreclosureDate: date }
-                  }))}
-                  renderInput={(params) => <TextField {...params} fullWidth />}
-                />
-              </Grid>
-            )}
-
-            <Grid item xs={12}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={formData.legal.judgments}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      legal: { ...prev.legal, judgments: e.target.checked }
-                    }))}
-                  />
-                }
-                label="Do you have any judgments against you?"
-              />
-            </Grid>
-
-            {formData.legal.judgments && (
-              <Grid item xs={12}>
-                <TextField
-                  label="Judgment Details"
-                  multiline
-                  rows={2}
-                  fullWidth
-                  value={formData.legal.judgmentDetails}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    legal: { ...prev.legal, judgmentDetails: e.target.value }
-                  }))}
-                  placeholder="Please provide details about the judgment(s)"
-                />
-              </Grid>
-            )}
-
-            <Grid item xs={12}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={formData.legal.taxLiens}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      legal: { ...prev.legal, taxLiens: e.target.checked }
-                    }))}
-                  />
-                }
-                label="Do you have any tax liens?"
-              />
-            </Grid>
-
-            {formData.legal.taxLiens && (
-              <Grid item xs={12}>
-                <TextField
-                  label="Tax Lien Details"
-                  multiline
-                  rows={2}
-                  fullWidth
-                  value={formData.legal.taxLienDetails}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    legal: { ...prev.legal, taxLienDetails: e.target.value }
-                  }))}
-                  placeholder="Please provide details about the tax lien(s)"
-                />
-              </Grid>
-            )}
-          </Grid>
-        );
-
-      case 6: // Review & Submit
-        return (
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <Alert severity="info">
-                Please review your information carefully before submitting.
-              </Alert>
-            </Grid>
-
-            <Grid item xs={12}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>Personal Information</Typography>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} md={6}>
-                      <Typography variant="body2" color="text.secondary">Name</Typography>
-                      <Typography variant="body1">
-                        {`${formData.firstName} ${formData.middleName} ${formData.lastName} ${formData.suffix}`.trim()}
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <Typography variant="body2" color="text.secondary">Date of Birth</Typography>
-                      <Typography variant="body1">
-                        {formData.dateOfBirth ? format(formData.dateOfBirth, 'MM/dd/yyyy') : '-'}
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <Typography variant="body2" color="text.secondary">Email</Typography>
-                      <Typography variant="body1">{formData.email || '-'}</Typography>
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <Typography variant="body2" color="text.secondary">Phone</Typography>
-                      <Typography variant="body1">{formData.phone || '-'}</Typography>
-                    </Grid>
-                  </Grid>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid item xs={12}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>Current Address</Typography>
-                  <Typography variant="body1">
-                    {formData.currentAddress.street} {formData.currentAddress.unit}
-                  </Typography>
-                  <Typography variant="body1">
-                    {formData.currentAddress.city}, {formData.currentAddress.state} {formData.currentAddress.zip}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid item xs={12}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>Employment</Typography>
-                  <Typography variant="body1">
-                    {formData.employment.employer || 'Not provided'}
-                  </Typography>
-                  {formData.employment.jobTitle && (
-                    <Typography variant="body2" color="text.secondary">
-                      {formData.employment.jobTitle}
-                    </Typography>
-                  )}
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid item xs={12}>
-              <Typography variant="h6" gutterBottom>Authorization & Consent</Typography>
-            </Grid>
-
-            <Grid item xs={12}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={formData.authorization.accuracyConfirmed}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      authorization: { ...prev.authorization, accuracyConfirmed: e.target.checked }
-                    }))}
-                  />
-                }
-                label="I certify that all information provided is true and accurate to the best of my knowledge"
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={formData.authorization.consentToInquiry}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      authorization: { ...prev.authorization, consentToInquiry: e.target.checked }
-                    }))}
-                  />
-                }
-                label="I authorize the company to obtain my credit reports and review my credit history"
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={formData.authorization.consentToContact}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      authorization: { ...prev.authorization, consentToContact: e.target.checked }
-                    }))}
-                  />
-                }
-                label="I consent to be contacted by phone, email, or SMS regarding my credit repair services"
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <TextField
-                label="Electronic Signature (Type your full name)"
-                required
-                fullWidth
-                value={formData.authorization.signature}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  authorization: { ...prev.authorization, signature: e.target.value }
-                }))}
-                placeholder="Type your full legal name"
-              />
-              <Typography variant="caption" color="text.secondary">
-                By typing your name above, you agree that this serves as your legal electronic signature
-              </Typography>
-            </Grid>
-          </Grid>
-        );
-
-      default:
-        return null;
+  
+  const loadClientData = async () => {
+    try {
+      setLoading(true);
+      const docRef = doc(db, 'clients', clientId);
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        Object.keys(data).forEach(key => {
+          setValue(key, data[key]);
+        });
+        
+        // Load documents
+        if (data.documents) {
+          setDocuments(data.documents);
+        }
+        
+        // Set completed sections
+        setCompletedSections(data.completedSections || []);
+        
+        showSuccess('Client information loaded');
+      }
+    } catch (error) {
+      console.error('Error loading client data:', error);
+      showError('Failed to load client information');
+    } finally {
+      setLoading(false);
     }
   };
-
+  
+  const saveProgress = async () => {
+    try {
+      setSaving(true);
+      const formData = getValues();
+      
+      const dataToSave = {
+        ...formData,
+        creditAccounts,
+        incomeSources,
+        documents,
+        completedSections,
+        lastUpdated: serverTimestamp(),
+        updatedBy: user.uid,
+        calculatedMetrics: calculatedData
+      };
+      
+      if (clientId) {
+        await updateDoc(doc(db, 'clients', clientId), dataToSave);
+      } else {
+        // Create temporary draft
+        await setDoc(doc(db, 'drafts', `${user.uid}_information_sheet`), dataToSave);
+      }
+      
+      setLastSaved(new Date());
+      showInfo('Progress saved');
+    } catch (error) {
+      console.error('Error saving progress:', error);
+      showError('Failed to save progress');
+    } finally {
+      setSaving(false);
+    }
+  };
+  
+  const validateSection = (sectionName) => {
+    const errors = {};
+    const data = getValues();
+    
+    switch (sectionName) {
+      case 'personal':
+        if (!data.firstName) errors.firstName = 'First name is required';
+        if (!data.lastName) errors.lastName = 'Last name is required';
+        if (!data.dateOfBirth) errors.dateOfBirth = 'Date of birth is required';
+        if (!data.ssn || data.ssn.length !== 11) errors.ssn = 'Valid SSN is required';
+        break;
+      
+      case 'contact':
+        if (!data.primaryPhone) errors.primaryPhone = 'Primary phone is required';
+        if (!data.primaryEmail) errors.primaryEmail = 'Primary email is required';
+        if (data.primaryEmail && !isValidEmail(data.primaryEmail)) {
+          errors.primaryEmail = 'Valid email is required';
+        }
+        break;
+      
+      case 'address':
+        if (!data.currentAddress) errors.currentAddress = 'Current address is required';
+        if (!data.currentCity) errors.currentCity = 'City is required';
+        if (!data.currentState) errors.currentState = 'State is required';
+        if (!data.currentZip) errors.currentZip = 'ZIP code is required';
+        break;
+      
+      case 'employment':
+        if (!data.employerName) errors.employerName = 'Employer name is required';
+        if (!data.jobTitle) errors.jobTitle = 'Job title is required';
+        if (!data.monthlyIncome) errors.monthlyIncome = 'Monthly income is required';
+        break;
+      
+      case 'consent':
+        if (!data.agreeToTerms) errors.agreeToTerms = 'You must agree to terms';
+        if (!data.authorizeCredit) errors.authorizeCredit = 'Credit authorization required';
+        if (!data.electronicSignature) errors.electronicSignature = 'Signature is required';
+        break;
+    }
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+  
+  const isValidEmail = (email) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+  
+  const handleSectionComplete = (sectionName) => {
+    if (validateSection(sectionName)) {
+      setCompletedSections(prev => {
+        if (!prev.includes(sectionName)) {
+          return [...prev, sectionName];
+        }
+        return prev;
+      });
+      
+      // Move to next section
+      const sections = Object.keys(INFO_SECTIONS);
+      const currentIndex = sections.indexOf(sectionName);
+      if (currentIndex < sections.length - 1) {
+        setActiveSection(sections[currentIndex + 1]);
+      }
+    } else {
+      showError('Please complete all required fields');
+    }
+  };
+  
+  const handleFileUpload = async (event) => {
+    const files = Array.from(event.target.files);
+    
+    for (const file of files) {
+      try {
+        setUploadProgress(prev => ({ ...prev, [file.name]: 0 }));
+        
+        // Create storage reference
+        const storageRef = ref(storage, `clients/${clientId || 'temp'}/${Date.now()}_${file.name}`);
+        
+        // Upload file
+        const uploadTask = uploadBytes(storageRef, file);
+        
+        // Monitor progress
+        uploadTask.on('state_changed',
+          (snapshot) => {
+            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            setUploadProgress(prev => ({ ...prev, [file.name]: progress }));
+          },
+          (error) => {
+            console.error('Upload error:', error);
+            showError(`Failed to upload ${file.name}`);
+          },
+          async () => {
+            const downloadURL = await getDownloadURL(storageRef);
+            
+            const newDocument = {
+              id: Date.now().toString(),
+              name: file.name,
+              url: downloadURL,
+              type: file.type,
+              size: file.size,
+              uploadedAt: new Date().toISOString(),
+              uploadedBy: user.uid
+            };
+            
+            setDocuments(prev => [...prev, newDocument]);
+            showSuccess(`${file.name} uploaded successfully`);
+            
+            // Clear progress
+            setTimeout(() => {
+              setUploadProgress(prev => {
+                const newProgress = { ...prev };
+                delete newProgress[file.name];
+                return newProgress;
+              });
+            }, 2000);
+          }
+        );
+      } catch (error) {
+        console.error('Error uploading file:', error);
+        showError(`Failed to upload ${file.name}`);
+      }
+    }
+  };
+  
+  const handleRemoveDocument = async (documentId) => {
+    try {
+      const document = documents.find(doc => doc.id === documentId);
+      if (document?.url) {
+        const storageRef = ref(storage, document.url);
+        await deleteObject(storageRef);
+      }
+      
+      setDocuments(prev => prev.filter(doc => doc.id !== documentId));
+      showSuccess('Document removed');
+    } catch (error) {
+      console.error('Error removing document:', error);
+      showError('Failed to remove document');
+    }
+  };
+  
+  const handleAddCreditAccount = () => {
+    appendAccount({
+      type: 'Credit Card',
+      creditor: '',
+      accountNumber: '',
+      balance: 0,
+      limit: 0,
+      monthlyPayment: 0,
+      status: 'current',
+      dateOpened: '',
+      lastPayment: ''
+    });
+  };
+  
+  const handleAddIncomeSource = () => {
+    appendIncome({
+      source: 'Employment',
+      description: '',
+      amount: 0,
+      frequency: 'monthly'
+    });
+  };
+  
+  const handleSubmit = async (data) => {
+    try {
+      setLoading(true);
+      
+      // Validate all sections
+      const allSectionsValid = Object.keys(INFO_SECTIONS).every(section => 
+        validateSection(section)
+      );
+      
+      if (!allSectionsValid) {
+        showError('Please complete all required sections');
+        return;
+      }
+      
+      // Prepare final data
+      const finalData = {
+        ...data,
+        creditAccounts,
+        incomeSources,
+        documents,
+        completedSections: Object.keys(INFO_SECTIONS),
+        calculatedMetrics: calculatedData,
+        status: 'complete',
+        submittedAt: serverTimestamp(),
+        submittedBy: user.uid
+      };
+      
+      // Save to Firestore
+      let docId = clientId;
+      if (!docId) {
+        const docRef = await setDoc(collection(db, 'clients'), finalData);
+        docId = docRef.id;
+      } else {
+        await updateDoc(doc(db, 'clients', clientId), finalData);
+      }
+      
+      // Send notification
+      await sendCompletionNotification(docId, finalData);
+      
+      showSuccess('Information sheet submitted successfully!');
+      
+      if (onComplete) {
+        onComplete({ ...finalData, id: docId });
+      }
+    } catch (error) {
+      console.error('Error submitting information:', error);
+      showError('Failed to submit information');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const sendCompletionNotification = async (clientId, data) => {
+    await setDoc(doc(collection(db, 'notifications')), {
+      type: 'information_sheet_complete',
+      clientId,
+      clientName: `${data.firstName} ${data.lastName}`,
+      clientEmail: data.primaryEmail,
+      createdAt: serverTimestamp(),
+      read: false
+    });
+  };
+  
+  const exportData = () => {
+    const data = {
+      ...getValues(),
+      creditAccounts,
+      incomeSources,
+      calculatedMetrics: calculatedData,
+      exportedAt: new Date().toISOString()
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `client_information_${Date.now()}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showSuccess('Data exported successfully');
+  };
+  
+  const sections = Object.entries(INFO_SECTIONS);
+  
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+        <CircularProgress size={60} />
+      </Box>
+    );
+  }
+  
   return (
-    <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Box sx={{ p: 3 }}>
-        {/* Header */}
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h4" fontWeight={600} gutterBottom>
-            Client Information Sheet
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Complete this form to begin your credit repair journey
-          </Typography>
-        </Box>
-
-        {/* Saved Forms */}
-        {savedForms.length > 0 && (
-          <Card sx={{ mb: 3 }}>
+    <Box sx={{ maxWidth: 1200, mx: 'auto', p: 3 }}>
+      {/* Header */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Box display="flex" justifyContent="space-between" alignItems="center">
+            <Box display="flex" alignItems="center" gap={2}>
+              <Avatar sx={{ bgcolor: 'primary.main', width: 56, height: 56 }}>
+                <Assignment />
+              </Avatar>
+              <Box>
+                <Typography variant="h5" fontWeight="bold">
+                  Client Information Sheet
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Complete client intake and assessment
+                </Typography>
+              </Box>
+            </Box>
+            
+            <Box display="flex" gap={2} alignItems="center">
+              {saving && (
+                <Chip
+                  icon={<CircularProgress size={16} />}
+                  label="Saving..."
+                  color="primary"
+                  variant="outlined"
+                />
+              )}
+              <Chip
+                icon={<CheckCircle />}
+                label={`${completedSections.length}/${sections.length} Complete`}
+                color={completedSections.length === sections.length ? 'success' : 'default'}
+              />
+              <IconButton onClick={() => setShowPreview(true)}>
+                <Visibility />
+              </IconButton>
+              <IconButton onClick={exportData}>
+                <Download />
+              </IconButton>
+            </Box>
+          </Box>
+          
+          {/* Progress Bar */}
+          <Box sx={{ mt: 2 }}>
+            <LinearProgress 
+              variant="determinate" 
+              value={(completedSections.length / sections.length) * 100}
+              sx={{ height: 8, borderRadius: 4 }}
+            />
+          </Box>
+        </CardContent>
+      </Card>
+      
+      {/* Financial Summary Cards */}
+      <Grid container spacing={3} sx={{ mb: 3 }}>
+        <Grid item xs={12} md={3}>
+          <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom>Recent Submissions</Typography>
-              <List dense>
-                {savedForms.slice(0, 3).map((form) => (
+              <Box display="flex" alignItems="center" justifyContent="space-between">
+                <Box>
+                  <Typography variant="body2" color="text.secondary">
+                    Monthly Income
+                  </Typography>
+                  <Typography variant="h5" fontWeight="bold">
+                    ${calculatedData.totalIncome.toLocaleString()}
+                  </Typography>
+                </Box>
+                <Avatar sx={{ bgcolor: 'success.light' }}>
+                  <TrendingUp />
+                </Avatar>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+        
+        <Grid item xs={12} md={3}>
+          <Card>
+            <CardContent>
+              <Box display="flex" alignItems="center" justifyContent="space-between">
+                <Box>
+                  <Typography variant="body2" color="text.secondary">
+                    Monthly Expenses
+                  </Typography>
+                  <Typography variant="h5" fontWeight="bold">
+                    ${calculatedData.totalExpenses.toLocaleString()}
+                  </Typography>
+                </Box>
+                <Avatar sx={{ bgcolor: 'error.light' }}>
+                  <TrendingDown />
+                </Avatar>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+        
+        <Grid item xs={12} md={3}>
+          <Card>
+            <CardContent>
+              <Box display="flex" alignItems="center" justifyContent="space-between">
+                <Box>
+                  <Typography variant="body2" color="text.secondary">
+                    Debt-to-Income
+                  </Typography>
+                  <Typography variant="h5" fontWeight="bold">
+                    {calculatedData.debtToIncomeRatio}%
+                  </Typography>
+                </Box>
+                <Avatar sx={{ bgcolor: 'warning.light' }}>
+                  <Assessment />
+                </Avatar>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+        
+        <Grid item xs={12} md={3}>
+          <Card>
+            <CardContent>
+              <Box display="flex" alignItems="center" justifyContent="space-between">
+                <Box>
+                  <Typography variant="body2" color="text.secondary">
+                    Disposable Income
+                  </Typography>
+                  <Typography variant="h5" fontWeight="bold">
+                    ${calculatedData.monthlyDisposableIncome.toLocaleString()}
+                  </Typography>
+                </Box>
+                <Avatar sx={{ bgcolor: 'info.light' }}>
+                  <AccountBalanceWallet />
+                </Avatar>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+      
+      {/* Main Content */}
+      <Grid container spacing={3}>
+        {/* Section Navigation */}
+        <Grid item xs={12} md={3}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                Sections
+              </Typography>
+              <List>
+                {sections.map(([key, section]) => (
                   <ListItem
-                    key={form.id}
-                    secondaryAction={
-                      <IconButton edge="end" onClick={() => {
-                        setSelectedForm(form);
-                        setViewDialogOpen(true);
-                      }}>
-                        <Eye size={18} />
-                      </IconButton>
-                    }
+                    key={key}
+                    button
+                    selected={activeSection === key}
+                    onClick={() => setActiveSection(key)}
+                    sx={{
+                      borderRadius: 1,
+                      mb: 1,
+                      backgroundColor: completedSections.includes(key) 
+                        ? 'success.lighter' 
+                        : activeSection === key 
+                        ? 'primary.lighter' 
+                        : 'transparent'
+                    }}
                   >
-                    <ListItemText
-                      primary={`${form.firstName} ${form.lastName}`}
-                      secondary={`Status: ${form.status} - ${form.createdAt ? format(form.createdAt.toDate(), 'MM/dd/yyyy') : ''}`}
+                    <ListItemIcon>
+                      {completedSections.includes(key) ? (
+                        <Avatar sx={{ bgcolor: 'success.main', width: 32, height: 32 }}>
+                          <CheckCircle sx={{ fontSize: 20 }} />
+                        </Avatar>
+                      ) : (
+                        <Avatar sx={{ 
+                          bgcolor: activeSection === key ? 'primary.main' : 'grey.300',
+                          width: 32,
+                          height: 32
+                        }}>
+                          {section.icon}
+                        </Avatar>
+                      )}
+                    </ListItemIcon>
+                    <ListItemText 
+                      primary={section.label}
+                      secondary={section.description}
                     />
                   </ListItem>
                 ))}
               </List>
+              
+              {lastSaved && (
+                <Alert severity="info" sx={{ mt: 2 }}>
+                  <AlertTitle>Auto-Save Active</AlertTitle>
+                  Last saved {formatDistanceToNow(lastSaved)} ago
+                </Alert>
+              )}
             </CardContent>
           </Card>
-        )}
-
-        {/* Main Form */}
-        <Paper sx={{ p: 4 }}>
-          {/* Progress Stepper */}
-          <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
-            {steps.map((label) => (
-              <Step key={label}>
-                <StepLabel>{label}</StepLabel>
-              </Step>
-            ))}
-          </Stepper>
-
-          {/* Step Content */}
-          <Box sx={{ minHeight: 400 }}>
-            {renderStepContent(activeStep)}
-          </Box>
-
-          {/* Navigation Buttons */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
-            <Button
-              disabled={activeStep === 0}
-              onClick={handleBack}
-              startIcon={<ChevronRight size={18} style={{ transform: 'rotate(180deg)' }} />}
-            >
-              Back
-            </Button>
-
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <Button
-                variant="outlined"
-                onClick={handleSaveDraft}
-                startIcon={<Save size={18} />}
-                disabled={loading}
-              >
-                Save Draft
-              </Button>
-
-              {activeStep === steps.length - 1 ? (
-                <Button
-                  variant="contained"
-                  onClick={handleSubmit}
-                  startIcon={<Send size={18} />}
-                  disabled={loading}
-                >
-                  Submit
-                </Button>
-              ) : (
-                <Button
-                  variant="contained"
-                  onClick={handleNext}
-                  endIcon={<ChevronRight size={18} />}
-                >
-                  Next
-                </Button>
+        </Grid>
+        
+        {/* Form Content */}
+        <Grid item xs={12} md={9}>
+          <Card>
+            <CardContent>
+              {/* Personal Information Section */}
+              {activeSection === 'personal' && (
+                <Box>
+                  <Typography variant="h6" gutterBottom>
+                    Personal Information
+                  </Typography>
+                  <Divider sx={{ mb: 3 }} />
+                  
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} sm={4}>
+                      <Controller
+                        name="firstName"
+                        control={control}
+                        rules={{ required: 'First name is required' }}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="First Name"
+                            error={Boolean(errors.firstName || validationErrors.firstName)}
+                            helperText={errors.firstName?.message || validationErrors.firstName}
+                            disabled={mode === 'view'}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={4}>
+                      <Controller
+                        name="middleName"
+                        control={control}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="Middle Name"
+                            disabled={mode === 'view'}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={4}>
+                      <Controller
+                        name="lastName"
+                        control={control}
+                        rules={{ required: 'Last name is required' }}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="Last Name"
+                            error={Boolean(errors.lastName || validationErrors.lastName)}
+                            helperText={errors.lastName?.message || validationErrors.lastName}
+                            disabled={mode === 'view'}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                      <Controller
+                        name="dateOfBirth"
+                        control={control}
+                        rules={{ required: 'Date of birth is required' }}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="Date of Birth"
+                            type="date"
+                            InputLabelProps={{ shrink: true }}
+                            error={Boolean(errors.dateOfBirth || validationErrors.dateOfBirth)}
+                            helperText={errors.dateOfBirth?.message || validationErrors.dateOfBirth}
+                            disabled={mode === 'view'}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                      <Controller
+                        name="ssn"
+                        control={control}
+                        rules={{ 
+                          required: 'SSN is required',
+                          pattern: {
+                            value: /^\d{3}-\d{2}-\d{4}$/,
+                            message: 'SSN format: XXX-XX-XXXX'
+                          }
+                        }}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="Social Security Number"
+                            placeholder="XXX-XX-XXXX"
+                            error={Boolean(errors.ssn || validationErrors.ssn)}
+                            helperText={errors.ssn?.message || validationErrors.ssn}
+                            disabled={mode === 'view'}
+                            InputProps={{
+                              endAdornment: (
+                                <InputAdornment position="end">
+                                  <Lock />
+                                </InputAdornment>
+                              )
+                            }}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                      <Controller
+                        name="driverLicense"
+                        control={control}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="Driver's License Number"
+                            disabled={mode === 'view'}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                      <Controller
+                        name="dlState"
+                        control={control}
+                        render={({ field }) => (
+                          <FormControl fullWidth>
+                            <InputLabel>DL State</InputLabel>
+                            <Select
+                              {...field}
+                              label="DL State"
+                              disabled={mode === 'view'}
+                            >
+                              <MenuItem value="">Select State</MenuItem>
+                              <MenuItem value="CA">California</MenuItem>
+                              <MenuItem value="TX">Texas</MenuItem>
+                              <MenuItem value="FL">Florida</MenuItem>
+                              <MenuItem value="NY">New York</MenuItem>
+                              {/* Add more states as needed */}
+                            </Select>
+                          </FormControl>
+                        )}
+                      />
+                    </Grid>
+                  </Grid>
+                  
+                  <Box display="flex" justifyContent="flex-end" gap={2} sx={{ mt: 3 }}>
+                    <Button
+                      variant="outlined"
+                      onClick={saveProgress}
+                      disabled={saving}
+                    >
+                      Save Progress
+                    </Button>
+                    <Button
+                      variant="contained"
+                      onClick={() => handleSectionComplete('personal')}
+                      endIcon={<NavigateNext />}
+                    >
+                      Next Section
+                    </Button>
+                  </Box>
+                </Box>
               )}
-            </Box>
+              
+              {/* Contact Information Section */}
+              {activeSection === 'contact' && (
+                <Box>
+                  <Typography variant="h6" gutterBottom>
+                    Contact Information
+                  </Typography>
+                  <Divider sx={{ mb: 3 }} />
+                  
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} sm={6}>
+                      <Controller
+                        name="primaryPhone"
+                        control={control}
+                        rules={{ required: 'Primary phone is required' }}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="Primary Phone"
+                            placeholder="(555) 123-4567"
+                            error={Boolean(errors.primaryPhone || validationErrors.primaryPhone)}
+                            helperText={errors.primaryPhone?.message || validationErrors.primaryPhone}
+                            disabled={mode === 'view'}
+                            InputProps={{
+                              startAdornment: (
+                                <InputAdornment position="start">
+                                  <Phone />
+                                </InputAdornment>
+                              )
+                            }}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                      <Controller
+                        name="secondaryPhone"
+                        control={control}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="Secondary Phone"
+                            placeholder="(555) 123-4567"
+                            disabled={mode === 'view'}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                      <Controller
+                        name="primaryEmail"
+                        control={control}
+                        rules={{ 
+                          required: 'Primary email is required',
+                          pattern: {
+                            value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                            message: 'Invalid email format'
+                          }
+                        }}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="Primary Email"
+                            type="email"
+                            error={Boolean(errors.primaryEmail || validationErrors.primaryEmail)}
+                            helperText={errors.primaryEmail?.message || validationErrors.primaryEmail}
+                            disabled={mode === 'view'}
+                            InputProps={{
+                              startAdornment: (
+                                <InputAdornment position="start">
+                                  <Email />
+                                </InputAdornment>
+                              )
+                            }}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                      <Controller
+                        name="secondaryEmail"
+                        control={control}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="Secondary Email"
+                            type="email"
+                            disabled={mode === 'view'}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                      <Controller
+                        name="preferredContact"
+                        control={control}
+                        render={({ field }) => (
+                          <FormControl fullWidth>
+                            <InputLabel>Preferred Contact Method</InputLabel>
+                            <Select
+                              {...field}
+                              label="Preferred Contact Method"
+                              disabled={mode === 'view'}
+                            >
+                              <MenuItem value="email">Email</MenuItem>
+                              <MenuItem value="phone">Phone</MenuItem>
+                              <MenuItem value="text">Text Message</MenuItem>
+                              <MenuItem value="mail">Mail</MenuItem>
+                            </Select>
+                          </FormControl>
+                        )}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                      <Controller
+                        name="bestTimeToCall"
+                        control={control}
+                        render={({ field }) => (
+                          <FormControl fullWidth>
+                            <InputLabel>Best Time to Call</InputLabel>
+                            <Select
+                              {...field}
+                              label="Best Time to Call"
+                              disabled={mode === 'view'}
+                            >
+                              <MenuItem value="morning">Morning (9am-12pm)</MenuItem>
+                              <MenuItem value="afternoon">Afternoon (12pm-5pm)</MenuItem>
+                              <MenuItem value="evening">Evening (5pm-8pm)</MenuItem>
+                              <MenuItem value="weekend">Weekend</MenuItem>
+                            </Select>
+                          </FormControl>
+                        )}
+                      />
+                    </Grid>
+                  </Grid>
+                  
+                  <Box display="flex" justifyContent="space-between" sx={{ mt: 3 }}>
+                    <Button
+                      variant="outlined"
+                      onClick={() => setActiveSection('personal')}
+                      startIcon={<NavigateBefore />}
+                    >
+                      Previous
+                    </Button>
+                    <Box display="flex" gap={2}>
+                      <Button
+                        variant="outlined"
+                        onClick={saveProgress}
+                        disabled={saving}
+                      >
+                        Save Progress
+                      </Button>
+                      <Button
+                        variant="contained"
+                        onClick={() => handleSectionComplete('contact')}
+                        endIcon={<NavigateNext />}
+                      >
+                        Next Section
+                      </Button>
+                    </Box>
+                  </Box>
+                </Box>
+              )}
+              
+              {/* Credit Accounts Section */}
+              {activeSection === 'credit' && (
+                <Box>
+                  <Typography variant="h6" gutterBottom>
+                    Credit Accounts
+                  </Typography>
+                  <Divider sx={{ mb: 3 }} />
+                  
+                  <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+                    <Typography variant="body1">
+                      List all your credit accounts (credit cards, loans, mortgages, etc.)
+                    </Typography>
+                    <Button
+                      variant="outlined"
+                      startIcon={<Add />}
+                      onClick={handleAddCreditAccount}
+                    >
+                      Add Account
+                    </Button>
+                  </Box>
+                  
+                  {creditAccounts.map((account, index) => (
+                    <Accordion key={account.id} sx={{ mb: 2 }}>
+                      <AccordionSummary expandIcon={<ExpandMore />}>
+                        <Box display="flex" justifyContent="space-between" alignItems="center" width="100%">
+                          <Typography>
+                            {account.creditor || `Account ${index + 1}`} - {account.type}
+                          </Typography>
+                          <Chip 
+                            label={`$${account.balance?.toLocaleString() || 0}`}
+                            color={account.status === 'current' ? 'success' : 'error'}
+                            size="small"
+                          />
+                        </Box>
+                      </AccordionSummary>
+                      <AccordionDetails>
+                        <Grid container spacing={2}>
+                          <Grid item xs={12} sm={6}>
+                            <Controller
+                              name={`creditAccounts.${index}.type`}
+                              control={control}
+                              render={({ field }) => (
+                                <FormControl fullWidth>
+                                  <InputLabel>Account Type</InputLabel>
+                                  <Select {...field} label="Account Type">
+                                    {ACCOUNT_TYPES.map(type => (
+                                      <MenuItem key={type} value={type}>{type}</MenuItem>
+                                    ))}
+                                  </Select>
+                                </FormControl>
+                              )}
+                            />
+                          </Grid>
+                          
+                          <Grid item xs={12} sm={6}>
+                            <Controller
+                              name={`creditAccounts.${index}.creditor`}
+                              control={control}
+                              render={({ field }) => (
+                                <TextField
+                                  {...field}
+                                  fullWidth
+                                  label="Creditor Name"
+                                />
+                              )}
+                            />
+                          </Grid>
+                          
+                          <Grid item xs={12} sm={6}>
+                            <Controller
+                              name={`creditAccounts.${index}.accountNumber`}
+                              control={control}
+                              render={({ field }) => (
+                                <TextField
+                                  {...field}
+                                  fullWidth
+                                  label="Account Number (last 4 digits)"
+                                  placeholder="XXXX"
+                                />
+                              )}
+                            />
+                          </Grid>
+                          
+                          <Grid item xs={12} sm={6}>
+                            <Controller
+                              name={`creditAccounts.${index}.balance`}
+                              control={control}
+                              render={({ field }) => (
+                                <TextField
+                                  {...field}
+                                  fullWidth
+                                  label="Current Balance"
+                                  type="number"
+                                  InputProps={{
+                                    startAdornment: <InputAdornment position="start">$</InputAdornment>
+                                  }}
+                                />
+                              )}
+                            />
+                          </Grid>
+                          
+                          <Grid item xs={12} sm={6}>
+                            <Controller
+                              name={`creditAccounts.${index}.limit`}
+                              control={control}
+                              render={({ field }) => (
+                                <TextField
+                                  {...field}
+                                  fullWidth
+                                  label="Credit Limit (if applicable)"
+                                  type="number"
+                                  InputProps={{
+                                    startAdornment: <InputAdornment position="start">$</InputAdornment>
+                                  }}
+                                />
+                              )}
+                            />
+                          </Grid>
+                          
+                          <Grid item xs={12} sm={6}>
+                            <Controller
+                              name={`creditAccounts.${index}.monthlyPayment`}
+                              control={control}
+                              render={({ field }) => (
+                                <TextField
+                                  {...field}
+                                  fullWidth
+                                  label="Monthly Payment"
+                                  type="number"
+                                  InputProps={{
+                                    startAdornment: <InputAdornment position="start">$</InputAdornment>
+                                  }}
+                                />
+                              )}
+                            />
+                          </Grid>
+                          
+                          <Grid item xs={12} sm={6}>
+                            <Controller
+                              name={`creditAccounts.${index}.status`}
+                              control={control}
+                              render={({ field }) => (
+                                <FormControl fullWidth>
+                                  <InputLabel>Account Status</InputLabel>
+                                  <Select {...field} label="Account Status">
+                                    <MenuItem value="current">Current</MenuItem>
+                                    <MenuItem value="late">Late</MenuItem>
+                                    <MenuItem value="collections">Collections</MenuItem>
+                                    <MenuItem value="chargeoff">Charge-off</MenuItem>
+                                    <MenuItem value="paid">Paid Off</MenuItem>
+                                  </Select>
+                                </FormControl>
+                              )}
+                            />
+                          </Grid>
+                          
+                          <Grid item xs={12} sm={6}>
+                            <Controller
+                              name={`creditAccounts.${index}.dateOpened`}
+                              control={control}
+                              render={({ field }) => (
+                                <TextField
+                                  {...field}
+                                  fullWidth
+                                  label="Date Opened"
+                                  type="date"
+                                  InputLabelProps={{ shrink: true }}
+                                />
+                              )}
+                            />
+                          </Grid>
+                        </Grid>
+                      </AccordionDetails>
+                      <AccordionActions>
+                        <Button
+                          color="error"
+                          startIcon={<Delete />}
+                          onClick={() => removeAccount(index)}
+                        >
+                          Remove
+                        </Button>
+                      </AccordionActions>
+                    </Accordion>
+                  ))}
+                  
+                  {/* Credit Summary */}
+                  <Paper sx={{ p: 2, mt: 3, bgcolor: 'grey.50' }}>
+                    <Typography variant="h6" gutterBottom>
+                      Credit Summary
+                    </Typography>
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} sm={4}>
+                        <Typography variant="body2" color="text.secondary">
+                          Total Debt
+                        </Typography>
+                        <Typography variant="h6">
+                          ${calculatedData.totalDebt.toLocaleString()}
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={12} sm={4}>
+                        <Typography variant="body2" color="text.secondary">
+                          Credit Utilization
+                        </Typography>
+                        <Typography variant="h6">
+                          {calculatedData.utilizationRate}%
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={12} sm={4}>
+                        <Typography variant="body2" color="text.secondary">
+                          Monthly Payments
+                        </Typography>
+                        <Typography variant="h6">
+                          ${calculatedData.monthlyDebtPayments.toLocaleString()}
+                        </Typography>
+                      </Grid>
+                    </Grid>
+                  </Paper>
+                  
+                  <Box display="flex" justifyContent="space-between" sx={{ mt: 3 }}>
+                    <Button
+                      variant="outlined"
+                      onClick={() => setActiveSection('income')}
+                      startIcon={<NavigateBefore />}
+                    >
+                      Previous
+                    </Button>
+                    <Box display="flex" gap={2}>
+                      <Button
+                        variant="outlined"
+                        onClick={saveProgress}
+                        disabled={saving}
+                      >
+                        Save Progress
+                      </Button>
+                      <Button
+                        variant="contained"
+                        onClick={() => handleSectionComplete('credit')}
+                        endIcon={<NavigateNext />}
+                      >
+                        Next Section
+                      </Button>
+                    </Box>
+                  </Box>
+                </Box>
+              )}
+              
+              {/* Documents Section */}
+              {activeSection === 'documents' && (
+                <Box>
+                  <Typography variant="h6" gutterBottom>
+                    Upload Documents
+                  </Typography>
+                  <Divider sx={{ mb: 3 }} />
+                  
+                  <Alert severity="info" sx={{ mb: 3 }}>
+                    <AlertTitle>Required Documents</AlertTitle>
+                    Please upload the following documents to help us process your case:
+                    <ul>
+                      <li>Government-issued ID (Driver's License or Passport)</li>
+                      <li>Proof of Income (Pay stubs, W2, or Tax Returns)</li>
+                      <li>Recent Credit Reports</li>
+                      <li>Any dispute letters or correspondence with creditors</li>
+                    </ul>
+                  </Alert>
+                  
+                  {/* Upload Area */}
+                  <Paper
+                    sx={{
+                      p: 3,
+                      border: '2px dashed',
+                      borderColor: 'primary.main',
+                      bgcolor: 'primary.lighter',
+                      textAlign: 'center',
+                      cursor: 'pointer',
+                      '&:hover': {
+                        bgcolor: 'primary.light'
+                      }
+                    }}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <CloudUpload sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
+                    <Typography variant="h6" gutterBottom>
+                      Click to upload or drag and drop
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      PDF, JPG, PNG up to 10MB
+                    </Typography>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      hidden
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={handleFileUpload}
+                    />
+                  </Paper>
+                  
+                  {/* Upload Progress */}
+                  {Object.keys(uploadProgress).length > 0 && (
+                    <Box sx={{ mt: 3 }}>
+                      {Object.entries(uploadProgress).map(([fileName, progress]) => (
+                        <Box key={fileName} sx={{ mb: 2 }}>
+                          <Box display="flex" justifyContent="space-between" alignItems="center">
+                            <Typography variant="body2">{fileName}</Typography>
+                            <Typography variant="body2">{Math.round(progress)}%</Typography>
+                          </Box>
+                          <LinearProgress variant="determinate" value={progress} />
+                        </Box>
+                      ))}
+                    </Box>
+                  )}
+                  
+                  {/* Uploaded Documents List */}
+                  {documents.length > 0 && (
+                    <Box sx={{ mt: 3 }}>
+                      <Typography variant="h6" gutterBottom>
+                        Uploaded Documents
+                      </Typography>
+                      <List>
+                        {documents.map((doc) => (
+                          <ListItem
+                            key={doc.id}
+                            sx={{
+                              border: 1,
+                              borderColor: 'divider',
+                              borderRadius: 1,
+                              mb: 1
+                            }}
+                          >
+                            <ListItemAvatar>
+                              <Avatar>
+                                <Description />
+                              </Avatar>
+                            </ListItemAvatar>
+                            <ListItemText
+                              primary={doc.name}
+                              secondary={`Uploaded ${formatDistanceToNow(new Date(doc.uploadedAt))} ago`}
+                            />
+                            <ListItemSecondaryAction>
+                              <IconButton onClick={() => window.open(doc.url, '_blank')}>
+                                <Visibility />
+                              </IconButton>
+                              <IconButton onClick={() => handleRemoveDocument(doc.id)}>
+                                <Delete />
+                              </IconButton>
+                            </ListItemSecondaryAction>
+                          </ListItem>
+                        ))}
+                      </List>
+                    </Box>
+                  )}
+                  
+                  <Box display="flex" justifyContent="space-between" sx={{ mt: 3 }}>
+                    <Button
+                      variant="outlined"
+                      onClick={() => setActiveSection('goals')}
+                      startIcon={<NavigateBefore />}
+                    >
+                      Previous
+                    </Button>
+                    <Box display="flex" gap={2}>
+                      <Button
+                        variant="outlined"
+                        onClick={saveProgress}
+                        disabled={saving}
+                      >
+                        Save Progress
+                      </Button>
+                      <Button
+                        variant="contained"
+                        onClick={() => handleSectionComplete('documents')}
+                        endIcon={<NavigateNext />}
+                      >
+                        Next Section
+                      </Button>
+                    </Box>
+                  </Box>
+                </Box>
+              )}
+              
+              {/* Consent & Authorization Section */}
+              {activeSection === 'consent' && (
+                <Box>
+                  <Typography variant="h6" gutterBottom>
+                    Consent & Authorization
+                  </Typography>
+                  <Divider sx={{ mb: 3 }} />
+                  
+                  <Alert severity="warning" sx={{ mb: 3 }}>
+                    <AlertTitle>Important</AlertTitle>
+                    Please read and agree to the following terms and authorizations before submitting your information.
+                  </Alert>
+                  
+                  <Paper sx={{ p: 3, mb: 3, bgcolor: 'grey.50' }}>
+                    <Typography variant="h6" gutterBottom>
+                      Terms of Service
+                    </Typography>
+                    <Typography variant="body2" paragraph>
+                      By submitting this information sheet, I acknowledge that I am providing accurate
+                      information to the best of my knowledge. I understand that false or misleading
+                      information may result in termination of services.
+                    </Typography>
+                    <Controller
+                      name="agreeToTerms"
+                      control={control}
+                      render={({ field }) => (
+                        <FormControlLabel
+                          control={<Checkbox {...field} checked={field.value} />}
+                          label="I agree to the Terms of Service"
+                        />
+                      )}
+                    />
+                  </Paper>
+                  
+                  <Paper sx={{ p: 3, mb: 3, bgcolor: 'grey.50' }}>
+                    <Typography variant="h6" gutterBottom>
+                      Credit Report Authorization
+                    </Typography>
+                    <Typography variant="body2" paragraph>
+                      I authorize the company to obtain my credit reports from all three credit bureaus
+                      (Experian, Equifax, and TransUnion) for the purpose of credit repair services.
+                    </Typography>
+                    <Controller
+                      name="authorizeCredit"
+                      control={control}
+                      render={({ field }) => (
+                        <FormControlLabel
+                          control={<Checkbox {...field} checked={field.value} />}
+                          label="I authorize credit report access"
+                        />
+                      )}
+                    />
+                  </Paper>
+                  
+                  <Paper sx={{ p: 3, mb: 3, bgcolor: 'grey.50' }}>
+                    <Typography variant="h6" gutterBottom>
+                      Dispute Authorization
+                    </Typography>
+                    <Typography variant="body2" paragraph>
+                      I authorize the company to send dispute letters on my behalf to credit bureaus,
+                      creditors, and collection agencies for the purpose of correcting inaccurate information.
+                    </Typography>
+                    <Controller
+                      name="authorizeDisputes"
+                      control={control}
+                      render={({ field }) => (
+                        <FormControlLabel
+                          control={<Checkbox {...field} checked={field.value} />}
+                          label="I authorize dispute submissions"
+                        />
+                      )}
+                    />
+                  </Paper>
+                  
+                  <Paper sx={{ p: 3, bgcolor: 'grey.50' }}>
+                    <Typography variant="h6" gutterBottom>
+                      Electronic Signature
+                    </Typography>
+                    <Grid container spacing={3}>
+                      <Grid item xs={12} sm={8}>
+                        <Controller
+                          name="electronicSignature"
+                          control={control}
+                          rules={{ required: 'Electronic signature is required' }}
+                          render={({ field }) => (
+                            <TextField
+                              {...field}
+                              fullWidth
+                              label="Type your full legal name"
+                              placeholder="John Doe"
+                              error={Boolean(errors.electronicSignature || validationErrors.electronicSignature)}
+                              helperText={errors.electronicSignature?.message || validationErrors.electronicSignature}
+                            />
+                          )}
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={4}>
+                        <Controller
+                          name="signatureDate"
+                          control={control}
+                          render={({ field }) => (
+                            <TextField
+                              {...field}
+                              fullWidth
+                              label="Date"
+                              type="date"
+                              InputLabelProps={{ shrink: true }}
+                              disabled
+                            />
+                          )}
+                        />
+                      </Grid>
+                    </Grid>
+                  </Paper>
+                  
+                  <Box display="flex" justifyContent="space-between" sx={{ mt: 3 }}>
+                    <Button
+                      variant="outlined"
+                      onClick={() => setActiveSection('documents')}
+                      startIcon={<NavigateBefore />}
+                    >
+                      Previous
+                    </Button>
+                  <Box display="flex" gap={2}>
+                      <Button
+                        variant="outlined"
+                        onClick={saveProgress}
+                        disabled={saving}
+                      >
+                        Save Progress
+                      </Button>
+                      <Button
+                        variant="contained"
+                        color="success"
+                        onClick={handleSubmit(handleSubmit)}
+                        disabled={loading || !completedSections.includes('consent')}
+                        startIcon={<Send />}
+                      >
+                        Submit Information Sheet
+                      </Button>
+                    </Box>
+                  </Box>
+                </Box>
+              )}
+              
+              {/* Address History Section */}
+              {activeSection === 'address' && (
+                <Box>
+                  <Typography variant="h6" gutterBottom>
+                    Address History
+                  </Typography>
+                  <Divider sx={{ mb: 3 }} />
+                  
+                  <Typography variant="subtitle1" gutterBottom fontWeight="bold">
+                    Current Address
+                  </Typography>
+                  
+                  <Grid container spacing={3}>
+                    <Grid item xs={12}>
+                      <Controller
+                        name="currentAddress"
+                        control={control}
+                        rules={{ required: 'Current address is required' }}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="Street Address"
+                            error={Boolean(errors.currentAddress || validationErrors.currentAddress)}
+                            helperText={errors.currentAddress?.message || validationErrors.currentAddress}
+                            disabled={mode === 'view'}
+                            InputProps={{
+                              startAdornment: (
+                                <InputAdornment position="start">
+                                  <Home />
+                                </InputAdornment>
+                              )
+                            }}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={5}>
+                      <Controller
+                        name="currentCity"
+                        control={control}
+                        rules={{ required: 'City is required' }}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="City"
+                            error={Boolean(errors.currentCity || validationErrors.currentCity)}
+                            helperText={errors.currentCity?.message || validationErrors.currentCity}
+                            disabled={mode === 'view'}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={3}>
+                      <Controller
+                        name="currentState"
+                        control={control}
+                        rules={{ required: 'State is required' }}
+                        render={({ field }) => (
+                          <FormControl fullWidth error={Boolean(errors.currentState || validationErrors.currentState)}>
+                            <InputLabel>State</InputLabel>
+                            <Select
+                              {...field}
+                              label="State"
+                              disabled={mode === 'view'}
+                            >
+                              <MenuItem value="">Select State</MenuItem>
+                              <MenuItem value="AL">Alabama</MenuItem>
+                              <MenuItem value="AK">Alaska</MenuItem>
+                              <MenuItem value="AZ">Arizona</MenuItem>
+                              <MenuItem value="AR">Arkansas</MenuItem>
+                              <MenuItem value="CA">California</MenuItem>
+                              <MenuItem value="CO">Colorado</MenuItem>
+                              <MenuItem value="CT">Connecticut</MenuItem>
+                              <MenuItem value="DE">Delaware</MenuItem>
+                              <MenuItem value="FL">Florida</MenuItem>
+                              <MenuItem value="GA">Georgia</MenuItem>
+                              <MenuItem value="HI">Hawaii</MenuItem>
+                              <MenuItem value="ID">Idaho</MenuItem>
+                              <MenuItem value="IL">Illinois</MenuItem>
+                              <MenuItem value="IN">Indiana</MenuItem>
+                              <MenuItem value="IA">Iowa</MenuItem>
+                              <MenuItem value="KS">Kansas</MenuItem>
+                              <MenuItem value="KY">Kentucky</MenuItem>
+                              <MenuItem value="LA">Louisiana</MenuItem>
+                              <MenuItem value="ME">Maine</MenuItem>
+                              <MenuItem value="MD">Maryland</MenuItem>
+                              <MenuItem value="MA">Massachusetts</MenuItem>
+                              <MenuItem value="MI">Michigan</MenuItem>
+                              <MenuItem value="MN">Minnesota</MenuItem>
+                              <MenuItem value="MS">Mississippi</MenuItem>
+                              <MenuItem value="MO">Missouri</MenuItem>
+                              <MenuItem value="MT">Montana</MenuItem>
+                              <MenuItem value="NE">Nebraska</MenuItem>
+                              <MenuItem value="NV">Nevada</MenuItem>
+                              <MenuItem value="NH">New Hampshire</MenuItem>
+                              <MenuItem value="NJ">New Jersey</MenuItem>
+                              <MenuItem value="NM">New Mexico</MenuItem>
+                              <MenuItem value="NY">New York</MenuItem>
+                              <MenuItem value="NC">North Carolina</MenuItem>
+                              <MenuItem value="ND">North Dakota</MenuItem>
+                              <MenuItem value="OH">Ohio</MenuItem>
+                              <MenuItem value="OK">Oklahoma</MenuItem>
+                              <MenuItem value="OR">Oregon</MenuItem>
+                              <MenuItem value="PA">Pennsylvania</MenuItem>
+                              <MenuItem value="RI">Rhode Island</MenuItem>
+                              <MenuItem value="SC">South Carolina</MenuItem>
+                              <MenuItem value="SD">South Dakota</MenuItem>
+                              <MenuItem value="TN">Tennessee</MenuItem>
+                              <MenuItem value="TX">Texas</MenuItem>
+                              <MenuItem value="UT">Utah</MenuItem>
+                              <MenuItem value="VT">Vermont</MenuItem>
+                              <MenuItem value="VA">Virginia</MenuItem>
+                              <MenuItem value="WA">Washington</MenuItem>
+                              <MenuItem value="WV">West Virginia</MenuItem>
+                              <MenuItem value="WI">Wisconsin</MenuItem>
+                              <MenuItem value="WY">Wyoming</MenuItem>
+                            </Select>
+                          </FormControl>
+                        )}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={4}>
+                      <Controller
+                        name="currentZip"
+                        control={control}
+                        rules={{ 
+                          required: 'ZIP code is required',
+                          pattern: {
+                            value: /^\d{5}(-\d{4})?$/,
+                            message: 'Invalid ZIP code format'
+                          }
+                        }}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="ZIP Code"
+                            placeholder="12345"
+                            error={Boolean(errors.currentZip || validationErrors.currentZip)}
+                            helperText={errors.currentZip?.message || validationErrors.currentZip}
+                            disabled={mode === 'view'}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                      <Controller
+                        name="currentResidenceType"
+                        control={control}
+                        render={({ field }) => (
+                          <FormControl fullWidth>
+                            <InputLabel>Residence Type</InputLabel>
+                            <Select
+                              {...field}
+                              label="Residence Type"
+                              disabled={mode === 'view'}
+                            >
+                              <MenuItem value="own">Own</MenuItem>
+                              <MenuItem value="rent">Rent</MenuItem>
+                              <MenuItem value="family">Living with Family</MenuItem>
+                              <MenuItem value="other">Other</MenuItem>
+                            </Select>
+                          </FormControl>
+                        )}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                      <Controller
+                        name="currentMonthlyPayment"
+                        control={control}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="Monthly Rent/Mortgage Payment"
+                            type="number"
+                            disabled={mode === 'view'}
+                            InputProps={{
+                              startAdornment: <InputAdornment position="start">$</InputAdornment>
+                            }}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                      <Controller
+                        name="currentMoveInDate"
+                        control={control}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="Move-In Date"
+                            type="date"
+                            InputLabelProps={{ shrink: true }}
+                            disabled={mode === 'view'}
+                          />
+                        )}
+                      />
+                    </Grid>
+                  </Grid>
+                  
+                  <Divider sx={{ my: 4 }} />
+                  
+                  <Typography variant="subtitle1" gutterBottom fontWeight="bold">
+                    Previous Address (if less than 2 years at current address)
+                  </Typography>
+                  
+                  <Grid container spacing={3}>
+                    <Grid item xs={12}>
+                      <Controller
+                        name="previousAddress"
+                        control={control}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="Street Address"
+                            disabled={mode === 'view'}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={5}>
+                      <Controller
+                        name="previousCity"
+                        control={control}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="City"
+                            disabled={mode === 'view'}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={3}>
+                      <Controller
+                        name="previousState"
+                        control={control}
+                        render={({ field }) => (
+                          <FormControl fullWidth>
+                            <InputLabel>State</InputLabel>
+                            <Select
+                              {...field}
+                              label="State"
+                              disabled={mode === 'view'}
+                            >
+                              <MenuItem value="">Select State</MenuItem>
+                              {/* Same state list as above */}
+                            </Select>
+                          </FormControl>
+                        )}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={4}>
+                      <Controller
+                        name="previousZip"
+                        control={control}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="ZIP Code"
+                            disabled={mode === 'view'}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                      <Controller
+                        name="previousMoveInDate"
+                        control={control}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="Move-In Date"
+                            type="date"
+                            InputLabelProps={{ shrink: true }}
+                            disabled={mode === 'view'}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                      <Controller
+                        name="previousMoveOutDate"
+                        control={control}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="Move-Out Date"
+                            type="date"
+                            InputLabelProps={{ shrink: true }}
+                            disabled={mode === 'view'}
+                          />
+                        )}
+                      />
+                    </Grid>
+                  </Grid>
+                  
+                  <Box display="flex" justifyContent="space-between" sx={{ mt: 3 }}>
+                    <Button
+                      variant="outlined"
+                      onClick={() => setActiveSection('contact')}
+                      startIcon={<NavigateBefore />}
+                    >
+                      Previous
+                    </Button>
+                    <Box display="flex" gap={2}>
+                      <Button
+                        variant="outlined"
+                        onClick={saveProgress}
+                        disabled={saving}
+                      >
+                        Save Progress
+                      </Button>
+                      <Button
+                        variant="contained"
+                        onClick={() => handleSectionComplete('address')}
+                        endIcon={<NavigateNext />}
+                      >
+                        Next Section
+                      </Button>
+                    </Box>
+                  </Box>
+                </Box>
+              )}
+              
+              {/* Employment Section */}
+              {activeSection === 'employment' && (
+                <Box>
+                  <Typography variant="h6" gutterBottom>
+                    Employment Information
+                  </Typography>
+                  <Divider sx={{ mb: 3 }} />
+                  
+                  <Typography variant="subtitle1" gutterBottom fontWeight="bold">
+                    Current Employment
+                  </Typography>
+                  
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} sm={8}>
+                      <Controller
+                        name="employerName"
+                        control={control}
+                        rules={{ required: 'Employer name is required' }}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="Employer Name"
+                            error={Boolean(errors.employerName || validationErrors.employerName)}
+                            helperText={errors.employerName?.message || validationErrors.employerName}
+                            disabled={mode === 'view'}
+                            InputProps={{
+                              startAdornment: (
+                                <InputAdornment position="start">
+                                  <Work />
+                                </InputAdornment>
+                              )
+                            }}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={4}>
+                      <Controller
+                        name="employerPhone"
+                        control={control}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="Employer Phone"
+                            placeholder="(555) 123-4567"
+                            disabled={mode === 'view'}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12}>
+                      <Controller
+                        name="employerAddress"
+                        control={control}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="Employer Address"
+                            disabled={mode === 'view'}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                      <Controller
+                        name="jobTitle"
+                        control={control}
+                        rules={{ required: 'Job title is required' }}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="Job Title/Position"
+                            error={Boolean(errors.jobTitle || validationErrors.jobTitle)}
+                            helperText={errors.jobTitle?.message || validationErrors.jobTitle}
+                            disabled={mode === 'view'}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                      <Controller
+                        name="employmentType"
+                        control={control}
+                        render={({ field }) => (
+                          <FormControl fullWidth>
+                            <InputLabel>Employment Type</InputLabel>
+                            <Select
+                              {...field}
+                              label="Employment Type"
+                              disabled={mode === 'view'}
+                            >
+                              <MenuItem value="full-time">Full-Time</MenuItem>
+                              <MenuItem value="part-time">Part-Time</MenuItem>
+                              <MenuItem value="self-employed">Self-Employed</MenuItem>
+                              <MenuItem value="contract">Contract</MenuItem>
+                              <MenuItem value="unemployed">Unemployed</MenuItem>
+                              <MenuItem value="retired">Retired</MenuItem>
+                            </Select>
+                          </FormControl>
+                        )}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                      <Controller
+                        name="employmentStartDate"
+                        control={control}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="Start Date"
+                            type="date"
+                            InputLabelProps={{ shrink: true }}
+                            disabled={mode === 'view'}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                      <Controller
+                        name="monthlyIncome"
+                        control={control}
+                        rules={{ required: 'Monthly income is required' }}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="Gross Monthly Income"
+                            type="number"
+                            error={Boolean(errors.monthlyIncome || validationErrors.monthlyIncome)}
+                            helperText={errors.monthlyIncome?.message || validationErrors.monthlyIncome}
+                            disabled={mode === 'view'}
+                            InputProps={{
+                              startAdornment: <InputAdornment position="start">$</InputAdornment>
+                            }}
+                          />
+                        )}
+                      />
+                    </Grid>
+                  </Grid>
+                  
+                  <Divider sx={{ my: 4 }} />
+                  
+                  <Typography variant="subtitle1" gutterBottom fontWeight="bold">
+                    Previous Employment (if less than 2 years at current job)
+                  </Typography>
+                  
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} sm={6}>
+                      <Controller
+                        name="previousEmployerName"
+                        control={control}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="Previous Employer Name"
+                            disabled={mode === 'view'}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                      <Controller
+                        name="previousJobTitle"
+                        control={control}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="Previous Job Title"
+                            disabled={mode === 'view'}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12}>
+                      <Controller
+                        name="previousEmploymentDates"
+                        control={control}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="Employment Period (e.g., Jan 2020 - Dec 2022)"
+                            disabled={mode === 'view'}
+                          />
+                        )}
+                      />
+                    </Grid>
+                  </Grid>
+                  
+                  <Box display="flex" justifyContent="space-between" sx={{ mt: 3 }}>
+                    <Button
+                      variant="outlined"
+                      onClick={() => setActiveSection('address')}
+                      startIcon={<NavigateBefore />}
+                    >
+                      Previous
+                    </Button>
+                    <Box display="flex" gap={2}>
+                      <Button
+                        variant="outlined"
+                        onClick={saveProgress}
+                        disabled={saving}
+                      >
+                        Save Progress
+                      </Button>
+                      <Button
+                        variant="contained"
+                        onClick={() => handleSectionComplete('employment')}
+                        endIcon={<NavigateNext />}
+                      >
+                        Next Section
+                      </Button>
+                    </Box>
+                  </Box>
+                </Box>
+              )}
+              
+              {/* Income & Expenses Section */}
+              {activeSection === 'income' && (
+                <Box>
+                  <Typography variant="h6" gutterBottom>
+                    Income & Expenses
+                  </Typography>
+                  <Divider sx={{ mb: 3 }} />
+                  
+                  {/* Additional Income Sources */}
+                  <Box sx={{ mb: 4 }}>
+                    <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+                      <Typography variant="subtitle1" fontWeight="bold">
+                        Additional Income Sources
+                      </Typography>
+                      <Button
+                        variant="outlined"
+                        startIcon={<Add />}
+                        onClick={handleAddIncomeSource}
+                      >
+                        Add Income
+                      </Button>
+                    </Box>
+                    
+                    {incomeSources.map((income, index) => (
+                      <Paper key={income.id} sx={{ p: 2, mb: 2 }}>
+                        <Grid container spacing={2}>
+                          <Grid item xs={12} sm={4}>
+                            <Controller
+                              name={`incomeSources.${index}.source`}
+                              control={control}
+                              render={({ field }) => (
+                                <FormControl fullWidth>
+                                  <InputLabel>Income Type</InputLabel>
+                                  <Select {...field} label="Income Type">
+                                    {INCOME_SOURCES.map(source => (
+                                      <MenuItem key={source} value={source}>{source}</MenuItem>
+                                    ))}
+                                  </Select>
+                                </FormControl>
+                              )}
+                            />
+                          </Grid>
+                          
+                          <Grid item xs={12} sm={4}>
+                            <Controller
+                              name={`incomeSources.${index}.description`}
+                              control={control}
+                              render={({ field }) => (
+                                <TextField
+                                  {...field}
+                                  fullWidth
+                                  label="Description"
+                                />
+                              )}
+                            />
+                          </Grid>
+                          
+                          <Grid item xs={12} sm={3}>
+                            <Controller
+                              name={`incomeSources.${index}.amount`}
+                              control={control}
+                              render={({ field }) => (
+                                <TextField
+                                  {...field}
+                                  fullWidth
+                                  label="Monthly Amount"
+                                  type="number"
+                                  InputProps={{
+                                    startAdornment: <InputAdornment position="start">$</InputAdornment>
+                                  }}
+                                />
+                              )}
+                            />
+                          </Grid>
+                          
+                          <Grid item xs={12} sm={1}>
+                            <IconButton
+                              color="error"
+                              onClick={() => removeIncome(index)}
+                            >
+                              <Delete />
+                            </IconButton>
+                          </Grid>
+                        </Grid>
+                      </Paper>
+                    ))}
+                  </Box>
+                  
+                  <Divider sx={{ my: 4 }} />
+                  
+                  {/* Monthly Expenses */}
+                  <Typography variant="subtitle1" gutterBottom fontWeight="bold">
+                    Monthly Expenses
+                  </Typography>
+                  
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} sm={6}>
+                      <Controller
+                        name="monthlyExpenses.rent"
+                        control={control}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="Rent/Mortgage"
+                            type="number"
+                            InputProps={{
+                              startAdornment: <InputAdornment position="start">$</InputAdornment>
+                            }}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                      <Controller
+                        name="monthlyExpenses.utilities"
+                        control={control}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="Utilities (Electric, Gas, Water)"
+                            type="number"
+                            InputProps={{
+                              startAdornment: <InputAdornment position="start">$</InputAdornment>
+                            }}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                      <Controller
+                        name="monthlyExpenses.insurance"
+                        control={control}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="Insurance (Auto, Health, Life)"
+                            type="number"
+                            InputProps={{
+                              startAdornment: <InputAdornment position="start">$</InputAdornment>
+                            }}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                      <Controller
+                        name="monthlyExpenses.carPayment"
+                        control={control}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="Car Payment"
+                            type="number"
+                            InputProps={{
+                              startAdornment: <InputAdornment position="start">$</InputAdornment>
+                            }}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                      <Controller
+                        name="monthlyExpenses.creditCards"
+                        control={control}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="Credit Card Payments"
+                            type="number"
+                            InputProps={{
+                              startAdornment: <InputAdornment position="start">$</InputAdornment>
+                            }}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                      <Controller
+                        name="monthlyExpenses.loans"
+                        control={control}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="Other Loan Payments"
+                            type="number"
+                            InputProps={{
+                              startAdornment: <InputAdornment position="start">$</InputAdornment>
+                            }}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12}>
+                      <Controller
+                        name="monthlyExpenses.other"
+                        control={control}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="Other Monthly Expenses"
+                            type="number"
+                            InputProps={{
+                              startAdornment: <InputAdornment position="start">$</InputAdornment>
+                            }}
+                          />
+                        )}
+                      />
+                    </Grid>
+                  </Grid>
+                  
+                  <Box display="flex" justifyContent="space-between" sx={{ mt: 3 }}>
+                    <Button
+                      variant="outlined"
+                      onClick={() => setActiveSection('employment')}
+                      startIcon={<NavigateBefore />}
+                    >
+                      Previous
+                    </Button>
+                    <Box display="flex" gap={2}>
+                      <Button
+                        variant="outlined"
+                        onClick={saveProgress}
+                        disabled={saving}
+                      >
+                        Save Progress
+                      </Button>
+                      <Button
+                        variant="contained"
+                        onClick={() => handleSectionComplete('income')}
+                        endIcon={<NavigateNext />}
+                      >
+                        Next Section
+                      </Button>
+                    </Box>
+                  </Box>
+                </Box>
+              )}
+              
+              {/* Goals Section */}
+              {activeSection === 'goals' && (
+                <Box>
+                  <Typography variant="h6" gutterBottom>
+                    Credit Goals & Objectives
+                  </Typography>
+                  <Divider sx={{ mb: 3 }} />
+                  
+                  <Grid container spacing={3}>
+                    <Grid item xs={12}>
+                      <Typography variant="subtitle1" gutterBottom>
+                        What are your primary credit goals? (Select all that apply)
+                      </Typography>
+                      <Controller
+                        name="creditGoals"
+                        control={control}
+                        render={({ field }) => (
+                          <Box display="flex" flexWrap="wrap" gap={2}>
+                            {Object.entries(GOAL_CATEGORIES).map(([key, goal]) => (
+                              <Chip
+                                key={key}
+                                icon={goal.icon}
+                                label={goal.label}
+                                onClick={() => {
+                                  const current = field.value || [];
+                                  const newValue = current.includes(key)
+                                    ? current.filter(g => g !== key)
+                                    : [...current, key];
+                                  field.onChange(newValue);
+                                }}
+                                color={field.value?.includes(key) ? 'primary' : 'default'}
+                                variant={field.value?.includes(key) ? 'filled' : 'outlined'}
+                                sx={{ 
+                                  bgcolor: field.value?.includes(key) ? goal.color : 'transparent',
+                                  '&:hover': { bgcolor: goal.color, opacity: 0.8 }
+                                }}
+                              />
+                            ))}
+                          </Box>
+                        )}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                      <Controller
+                        name="targetScore"
+                        control={control}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="Target Credit Score"
+                            type="number"
+                            placeholder="720"
+                            InputProps={{
+                              startAdornment: (
+                                <InputAdornment position="start">
+                                  <TrendingUp />
+                                </InputAdornment>
+                              )
+                            }}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                      <Controller
+                        name="targetDate"
+                        control={control}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            label="Target Date"
+                            type="date"
+                            InputLabelProps={{ shrink: true }}
+                            InputProps={{
+                              startAdornment: (
+                                <InputAdornment position="start">
+                                  <CalendarToday />
+                                </InputAdornment>
+                              )
+                            }}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12}>
+                      <Controller
+                        name="specificGoals"
+                        control={control}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            multiline
+                            rows={4}
+                            label="Specific Goals & Plans"
+                            placeholder="Tell us more about your credit goals and what you hope to achieve..."
+                          />
+                        )}
+                      />
+                    </Grid>
+                  </Grid>
+                  
+                  <Box display="flex" justifyContent="space-between" sx={{ mt: 3 }}>
+                    <Button
+                      variant="outlined"
+                      onClick={() => setActiveSection('credit')}
+                      startIcon={<NavigateBefore />}
+                    >
+                      Previous
+                    </Button>
+                    <Box display="flex" gap={2}>
+                      <Button
+                        variant="outlined"
+                        onClick={saveProgress}
+                        disabled={saving}
+                      >
+                        Save Progress
+                      </Button>
+                      <Button
+                        variant="contained"
+                        onClick={() => handleSectionComplete('goals')}
+                        endIcon={<NavigateNext />}
+                      >
+                        Next Section
+                      </Button>
+                    </Box>
+                  </Box>
+                </Box>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+      
+      {/* Preview Dialog */}
+      <Dialog
+        open={showPreview}
+        onClose={() => setShowPreview(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          Information Sheet Preview
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ p: 2 }}>
+            <Typography variant="h6" gutterBottom>Summary</Typography>
+            <Divider sx={{ mb: 2 }} />
+            
+            {/* Preview content here */}
+            <Typography variant="body2">
+              Name: {watch('firstName')} {watch('lastName')}
+            </Typography>
+            <Typography variant="body2">
+              Email: {watch('primaryEmail')}
+            </Typography>
+            <Typography variant="body2">
+              Total Income: ${calculatedData.totalIncome.toLocaleString()}
+            </Typography>
+            <Typography variant="body2">
+              DTI Ratio: {calculatedData.debtToIncomeRatio}%
+            </Typography>
           </Box>
-
-          {/* Loading Indicator */}
-          {loading && <LinearProgress sx={{ mt: 2 }} />}
-        </Paper>
-
-        {/* Snackbar */}
-        <Snackbar
-          open={snackbar.open}
-          autoHideDuration={6000}
-          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
-        >
-          <Alert severity={snackbar.severity}>
-            {snackbar.message}
-          </Alert>
-        </Snackbar>
-      </Box>
-    </LocalizationProvider>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowPreview(false)}>
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
+      
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={Boolean(lastSaved)}
+        autoHideDuration={3000}
+        message={`Last saved ${lastSaved ? formatDistanceToNow(lastSaved) : ''} ago`}
+      />
+    </Box>
   );
 };
 

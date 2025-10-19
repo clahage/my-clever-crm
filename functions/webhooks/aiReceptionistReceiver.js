@@ -9,7 +9,7 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 
 // Get webhook secret from Firebase config (set via: firebase functions:config:set)
-const WEBHOOK_SECRET = functions.config().webhook?.secret;
+const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
 
 /**
  * Secured webhook receiver with API Key authentication
