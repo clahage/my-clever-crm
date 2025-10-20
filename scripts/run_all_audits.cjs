@@ -12,6 +12,19 @@ if (!fs.existsSync(INVENTORY_CSV)) { console.error('Missing', INVENTORY_CSV); pr
 const navText = fs.readFileSync(NAV_SRC, 'utf8');
 const invText = fs.readFileSync(INVENTORY_CSV, 'utf8');
 
+// -----------------------------------------------------------------------------
+// Configuration: exclusions and thresholds
+// -----------------------------------------------------------------------------
+const EXCLUDE_PATTERNS = ['node_modules', 'backups', '/dist/', '\\dist\\', '/build/', '\\build\\', '/.git/', '\\.git\\'];
+const MAX_FILE_BYTES = 1 * 1024 * 1024; // 1MB
+const SMALL_FILE_LINES = 50;
+
+function isExcluded(p) {
+  if (!p) return false;
+  const lp = p.replace(/\\\\/g, '/').toLowerCase();
+  return EXCLUDE_PATTERNS.some(ex => lp.includes(ex.replace(/\\\\/g,'/')));
+}
+
 // Parse inventory into a simple map by filename and by path end
 const invLines = invText.split(/\r?\n/).filter(Boolean);
 invLines.shift();
@@ -29,15 +42,36 @@ const invRows = invLines.map(l => {
   };
 });
 
-function findBySlug(slug){
+function findBySlugInSources(slug){
   if (!slug) return null;
   const low = slug.toLowerCase();
-  // prefer direct path contains
-  let found = invRows.find(r => r.RelPath.toLowerCase().includes('/' + low));
-  if (found) return found;
-  // fallback: filename match
-  found = invRows.find(r => r.FileName.toLowerCase().startsWith(low));
-  return found || null;
+  // prefer files under src/pages then src/components
+  const pagesMatch = invRows.find(r => {
+    const norm = r.RelPath.replace(/\\\\/g,'/').toLowerCase();
+    if (isExcluded(norm)) return false;
+    if (!norm.includes('/src/pages/')) return false;
+    if ((norm.endsWith('/' + low) || norm.includes('/' + low + '.')) || r.FileName.toLowerCase().startsWith(low)) {
+      // skip very large files
+      if ((r.SizeKB || 0) * 1024 > MAX_FILE_BYTES) return false;
+      return true;
+    }
+    return false;
+  });
+  if (pagesMatch) return pagesMatch;
+
+  const compMatch = invRows.find(r => {
+    const norm = r.RelPath.replace(/\\\\/g,'/').toLowerCase();
+    if (isExcluded(norm)) return false;
+    if (!norm.includes('/src/components/')) return false;
+    if ((norm.endsWith('/' + low) || norm.includes('/' + low + '.')) || r.FileName.toLowerCase().startsWith(low)) {
+      if ((r.SizeKB || 0) * 1024 > MAX_FILE_BYTES) return false;
+      return true;
+    }
+    return false;
+  });
+  if (compMatch) return compMatch;
+
+  return null;
 }
 
 // Extract navigation item objects from navConfig.js by leveraging JS eval inside a fake module
@@ -78,115 +112,162 @@ items.forEach(it => {
   if (seen.has(it.path)) return;
   seen.add(it.path);
   const slug = it.path.replace(/^\//,'').split('/').filter(Boolean).slice(-1)[0] || '';
-  const match = findBySlug(slug);
+  const match = findBySlugInSources(slug);
   unique.push(Object.assign({}, it, {slug, match}));
 });
 
 // Write Audit 1
 fs.mkdirSync(OUT_DIR, {recursive:true});
 let md1 = '# AUDIT 1 — Navigation Configuration Analysis\n\n';
-md1 += '| Label | Path | File Location | Exists? | Line Count | Issues |\n';
+md1 += '| Label | Path | File Location | Exists? | Line Count | SizeKB | Issues |\n';
 md1 += '|---|---|---|---:|---:|---|\n';
 unique.forEach(it => {
   const fileLoc = it.match ? it.match.RelPath : '';
   const exists = !!it.match;
   const linesCount = it.match ? it.match.LineCount : '';
+  const sizeKB = it.match ? it.match.SizeKB : '';
   const issues = [];
   if (!it.path) issues.push('No path');
-  if (!exists) issues.push('File missing');
-  if (linesCount && linesCount < 20) issues.push('Small file (<20 lines)');
-  md1 += `| ${it.title} | ${it.path} | ${fileLoc} | ${exists ? 'Yes' : 'No'} | ${linesCount} | ${issues.join('; ')} |\n`;
+  if (!exists) issues.push('Missing (not in src/pages or src/components)');
+  if (linesCount && linesCount < SMALL_FILE_LINES) issues.push('Small/Stub - Review');
+  md1 += `| ${it.title} | ${it.path} | ${fileLoc} | ${exists ? 'Yes' : 'No'} | ${linesCount} | ${sizeKB} | ${issues.join('; ')} |\n`;
 });
-fs.writeFileSync(path.resolve(OUT_DIR, 'audit_navConfig.md'), md1, 'utf8');
+fs.writeFileSync(path.resolve(OUT_DIR, 'audit_navConfig_filtered.md'), md1, 'utf8');
 
 // -----------------------------------------------------------------------------
 // AUDIT 2: OpenAI integration search
 // -----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// AUDIT 2: OpenAI integration search (filtered)
+// Search only under src/ but exclude noisy paths. Skip files >1MB.
+// -----------------------------------------------------------------------------
 const audit2Files = [];
-const walk = (dir) => {
+const walkForOpenAI = (dir) => {
+  if (!fs.existsSync(dir)) return;
   const items = fs.readdirSync(dir, {withFileTypes:true});
   items.forEach(d => {
     const p = path.join(dir, d.name);
-    if (d.isDirectory()) return walk(p);
-    if (d.isFile()) {
-      const txt = fs.readFileSync(p, 'utf8');
-      if (/openai/i.test(txt) || /VITE_OPENAI_API_KEY/.test(txt) || /ai/i.test(p)) {
-        const lines = txt.split(/\r?\n/).length;
-        // guess feature
-        const feature = /openai/i.test(txt) ? 'OpenAI usage' : (/ai/i.test(p) ? 'AI feature' : 'env key');
-        const status = /TODO|PLACEHOLDER|stub/i.test(txt) ? 'placeholder' : 'working';
-        audit2Files.push({path: p, lines, feature, status});
+    if (isExcluded(p)) return;
+    try {
+      if (d.isDirectory()) return walkForOpenAI(p);
+      if (d.isFile()) {
+        const st = fs.statSync(p);
+        if (st.size > MAX_FILE_BYTES) return; // skip large
+        const txt = fs.readFileSync(p, 'utf8');
+        if (/openai/i.test(txt) || /VITE_OPENAI_API_KEY/.test(txt) || /\bai\b/i.test(p)) {
+          const lines = txt.split(/\r?\n/).length;
+          const feature = /openai/i.test(txt) ? 'OpenAI usage' : (/\bai\b/i.test(p) ? 'AI feature' : 'env key');
+          const status = /TODO|PLACEHOLDER|stub/i.test(txt) ? 'placeholder' : 'working';
+          audit2Files.push({path: p, lines, sizeKB: (st.size/1024).toFixed(2), feature, status});
+        }
       }
+    } catch (e) {
+      // ignore unreadable files
     }
   });
 };
-walk(path.resolve(ROOT, 'src'));
-// Also check root .env
-const envText = fs.readFileSync(path.resolve(ROOT, '.env'), 'utf8');
-if (/VITE_OPENAI_API_KEY/.test(envText)) {
-  audit2Files.push({path: path.resolve(ROOT, '.env'), lines: envText.split(/\r?\n/).length, feature: 'OpenAI API key', status: 'configured'});
-}
+walkForOpenAI(path.resolve(ROOT, 'src'));
 
-let md2 = '# AUDIT 2 — OpenAI Integration Points\n\n';
-md2 += '| File Path | Line Count | Feature | Status |\n';
-md2 += '|---|---:|---|---|\n';
-audit2Files.forEach(f => md2 += `| ${f.path} | ${f.lines} | ${f.feature} | ${f.status} |\n`);
-fs.writeFileSync(path.resolve(OUT_DIR, 'audit_openai.md'), md2, 'utf8');
+let md2 = '# AUDIT 2 — OpenAI Integration Points (filtered)\n\n';
+md2 += '| File Path | Line Count | SizeKB | Feature | Status |\n';
+md2 += '|---|---:|---:|---|---|\n';
+audit2Files.forEach(f => md2 += `| ${f.path} | ${f.lines} | ${f.sizeKB} | ${f.feature} | ${f.status} |\n`);
+fs.writeFileSync(path.resolve(OUT_DIR, 'audit_openai_filtered.md'), md2, 'utf8');
 
 // -----------------------------------------------------------------------------
 // AUDIT 3: Email & Communication systems
 // -----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// AUDIT 3: Email & Communication systems (filtered)
+// Only search canonical service/component/page folders and functions/api/server roots
+// Skip .env files (we already know they're configured)
+// -----------------------------------------------------------------------------
 const commFiles = [];
 const commRegex = /email|sendgrid|gmail|smtp|communication|message|notification|EmailCenter|EmailDashboard|sendEmail/ig;
-walkFiles = (dir) => {
-  const items = fs.readdirSync(dir, {withFileTypes:true});
-  items.forEach(d => {
-    const p = path.join(dir, d.name);
-    if (d.isDirectory()) return walkFiles(p);
-    if (d.isFile()) {
-      const txt = fs.readFileSync(p, 'utf8');
-      if (commRegex.test(txt) || commRegex.test(p)) {
-        commFiles.push({path: p, lines: txt.split(/\r?\n/).length, excerpt: (txt.match(commRegex)||[]).slice(0,3).join(', ')});
-      }
-    }
+const EMAIL_SEARCH_DIRS = [
+  path.resolve(ROOT, 'src/services'),
+  path.resolve(ROOT, 'src/components'),
+  path.resolve(ROOT, 'src/pages'),
+  path.resolve(ROOT, 'functions'),
+  path.resolve(ROOT, 'api'),
+  path.resolve(ROOT, 'server')
+];
+
+const walkEmailDirs = (baseDirs) => {
+  baseDirs.forEach(base => {
+    if (!fs.existsSync(base)) return;
+    const items = fs.readdirSync(base, {withFileTypes:true});
+    items.forEach(d => {
+      const p = path.join(base, d.name);
+      if (isExcluded(p)) return;
+      try {
+        if (d.isDirectory()) return walkEmailDirs([p]);
+        if (d.isFile()) {
+          if (p.endsWith('.env') || p.endsWith('.env.example')) return; // skip .env
+          const st = fs.statSync(p);
+          if (st.size > MAX_FILE_BYTES) return; // skip large files
+          const txt = fs.readFileSync(p, 'utf8');
+          if (commRegex.test(txt) || commRegex.test(p)) {
+            const lines = txt.split(/\r?\n/).length;
+            const excerpt = (txt.match(commRegex)||[]).slice(0,3).join(', ');
+            const status = /sendgrid|smtp|gmail|nodemailer/i.test(txt) ? 'integrated' : 'unknown';
+            const small = lines < SMALL_FILE_LINES ? 'Small/Stub - Review' : '';
+            commFiles.push({path: p, lines, sizeKB: (st.size/1024).toFixed(2), excerpt, status, small});
+          }
+        }
+      } catch (e) {}
+    });
   });
 };
-walkFiles(path.resolve(ROOT));
+walkEmailDirs(EMAIL_SEARCH_DIRS);
 
-let md3 = '# AUDIT 3 — Email & Communication Systems\n\n';
-md3 += '| File Path | Line Count | Purpose / Excerpt | Integration Status |\n';
-md3 += '|---|---:|---|---|\n';
+let md3 = '# AUDIT 3 — Email & Communication Systems (filtered)\n\n';
+md3 += '| File Path | Line Count | SizeKB | Purpose / Excerpt | Integration Status | Flags |\n';
+md3 += '|---|---:|---:|---|---|---|\n';
 commFiles.forEach(f => {
-  const status = /sendgrid|smtp|gmail|nodemailer/i.test(fs.readFileSync(f.path,'utf8')) ? 'integrated' : 'unknown';
-  md3 += `| ${f.path} | ${f.lines} | ${f.excerpt} | ${status} |\n`;
+  md3 += `| ${f.path} | ${f.lines} | ${f.sizeKB} | ${f.excerpt} | ${f.status} | ${f.small} |\n`;
 });
-fs.writeFileSync(path.resolve(OUT_DIR, 'audit_email.md'), md3, 'utf8');
+fs.writeFileSync(path.resolve(OUT_DIR, 'audit_email_filtered.md'), md3, 'utf8');
 
 // -----------------------------------------------------------------------------
 // AUDIT 4: IDIQ Integration
 // -----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// AUDIT 4: IDIQ Integration (filtered)
+// Search src and functions/api/server, skip excluded paths and large files
+// -----------------------------------------------------------------------------
 const idiqFiles = [];
-const idiqRegex = /IDIQ|idiq|VITE_IDIQ|IDIQService|getidiq|idiq/i;
-walkFiles2 = (dir) => {
-  const items = fs.readdirSync(dir, {withFileTypes:true});
-  items.forEach(d => {
-    const p = path.join(dir, d.name);
-    if (d.isDirectory()) return walkFiles2(p);
-    if (d.isFile()) {
-      const txt = fs.readFileSync(p, 'utf8');
-      if (idiqRegex.test(txt) || idiqRegex.test(p)) {
-        const status = /try\s*\{|catch\s*\(/.test(txt) ? 'has error handling' : 'no obvious error handling';
-        idiqFiles.push({path: p, lines: txt.split(/\r?\n/).length, status});
-      }
-    }
+const idiqRegex = /IDIQ|idiq|VITE_IDIQ|IDIQService|getidiq|\bidiq\b/i;
+const IDIQ_SEARCH_DIRS = [path.resolve(ROOT, 'src'), path.resolve(ROOT, 'functions'), path.resolve(ROOT, 'api'), path.resolve(ROOT, 'server')];
+
+const walkIdiq = (dirs) => {
+  dirs.forEach(base => {
+    if (!fs.existsSync(base)) return;
+    const items = fs.readdirSync(base, {withFileTypes:true});
+    items.forEach(d => {
+      const p = path.join(base, d.name);
+      if (isExcluded(p)) return;
+      try {
+        if (d.isDirectory()) return walkIdiq([p]);
+        if (d.isFile()) {
+          const st = fs.statSync(p);
+          if (st.size > MAX_FILE_BYTES) return;
+          const txt = fs.readFileSync(p, 'utf8');
+          if (idiqRegex.test(txt) || idiqRegex.test(p)) {
+            const status = /try\s*\{|catch\s*\(/.test(txt) ? 'has error handling' : 'no obvious error handling';
+            idiqFiles.push({path: p, lines: txt.split(/\r?\n/).length, sizeKB: (st.size/1024).toFixed(2), status, hasErrorHandling: /try\s*\{|catch\s*\(/.test(txt)});
+          }
+        }
+      } catch (e) {}
+    });
   });
 };
-walkFiles2(path.resolve(ROOT));
+walkIdiq(IDIQ_SEARCH_DIRS);
 
-let md4 = '# AUDIT 4 — IDIQ Integration\n\n';
-md4 += '| File Path | Line Count | Implementation Status | Error Handling |\n';
-md4 += '|---|---:|---|---|\n';
-idiqFiles.forEach(f => md4 += `| ${f.path} | ${f.lines} | ${f.status} | ${/try\s*\{|catch\s*\(/.test(fs.readFileSync(f.path,'utf8')) ? 'Yes' : 'No' } |\n`);
-fs.writeFileSync(path.resolve(OUT_DIR, 'audit_idiq.md'), md4, 'utf8');
+let md4 = '# AUDIT 4 — IDIQ Integration (filtered)\n\n';
+md4 += '| File Path | Line Count | SizeKB | Implementation Status | Error Handling |\n';
+md4 += '|---|---:|---:|---|---:|\n';
+idiqFiles.forEach(f => md4 += `| ${f.path} | ${f.lines} | ${f.sizeKB} | ${f.status} | ${f.hasErrorHandling ? 'Yes' : 'No'} |\n`);
+fs.writeFileSync(path.resolve(OUT_DIR, 'audit_idiq_filtered.md'), md4, 'utf8');
 
 console.log('Wrote audits to', OUT_DIR);

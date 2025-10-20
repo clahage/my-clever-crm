@@ -1,14 +1,63 @@
 ﻿// ============================================
-// AI Receptionist Webhook
-const { receiveAIReceptionistCall, reprocessAIReceptionistCall } = require('./webhooks/aiReceptionistReceiver');
+// functions/index.js - Firebase Cloud Functions for SpeedyCRM
+// VERSION: 3.0 - AUDIT REMEDIATION: Added secure AI service
+// Last Updated: 2025-10-20
+// ============================================
+
+const functions = require('firebase-functions');
+const admin = require('firebase-admin');
+const cors = require('cors')({ origin: true });
+const fetch = require('node-fetch');
+
+// ⚠️ REMOVED: OpenAI direct import (security risk)
+// OpenAI is now handled securely in aiService.js
+// const { OpenAI } = require('openai');
+
+// ============================================
+// FIREBASE ADMIN INITIALIZATION
+// ============================================
+// ✅ BEST PRACTICE: Simple auto-authentication - No serviceAccountKey.json needed!
+if (!admin.apps.length) {
+  admin.initializeApp();
+  console.log('✅ Firebase Admin initialized successfully');
+}
+
+// ============================================
+// SECURE AI SERVICE (NEW - CRITICAL SECURITY FIX)
+// ============================================
+// ✅ BEST PRACTICE: Import AI service module for secure OpenAI access
+const aiService = require('./aiService');
+
+// Export all AI endpoints
+exports.aiComplete = aiService.aiComplete;
+exports.analyzeCreditReport = aiService.analyzeCreditReport;
+exports.generateDisputeLetter = aiService.generateDisputeLetter;
+exports.scoreLead = aiService.scoreLead;
+exports.parseCreditReport = aiService.parseCreditReport;
+exports.getAIUsageStats = aiService.getAIUsageStats;
+exports.getAllAIUsage = aiService.getAllAIUsage;
+
+// ============================================
+// AI RECEPTIONIST WEBHOOK
+// ============================================
+// ✅ BEST PRACTICE: Group related functions together
+const { 
+  receiveAIReceptionistCall, 
+  reprocessAIReceptionistCall 
+} = require('./webhooks/aiReceptionistReceiver');
 exports.receiveAIReceptionistCall = receiveAIReceptionistCall;
 exports.reprocessAIReceptionistCall = reprocessAIReceptionistCall;
 
-// Notifications
+// ============================================
+// NOTIFICATIONS
+// ============================================
 const { sendMorningSummary } = require('./automation/notificationService');
 exports.sendMorningSummary = sendMorningSummary;
 
-// Zelle Payments
+// ============================================
+// ZELLE PAYMENTS
+// ============================================
+// ✅ BEST PRACTICE: Destructure all related exports at once
 const {
   reportZellePayment,
   confirmZellePayment,
@@ -16,38 +65,21 @@ const {
   getPendingZellePayments,
   sendZelleConfirmationReminders
 } = require('./payments/zelleHandler');
+
 exports.reportZellePayment = reportZellePayment;
 exports.confirmZellePayment = confirmZellePayment;
 exports.markZelleNotReceived = markZelleNotReceived;
 exports.getPendingZellePayments = getPendingZellePayments;
 exports.sendZelleConfirmationReminders = sendZelleConfirmationReminders;
-// functions/index.js - Firebase Cloud Functions for SpeedyCRM
-// VERSION: 2.0 - Enhanced with better error handling and organization
-// Last Updated: 2025-10-11
-
-const functions = require('firebase-functions');
-const admin = require('firebase-admin');
-const cors = require('cors')({ origin: true });
-const fetch = require('node-fetch');
-const { OpenAI } = require('openai');
-
-// ============================================
-// FIREBASE ADMIN INITIALIZATION
-// ============================================
-// ✅ Simple auto-authentication - No serviceAccountKey.json needed!
-if (!admin.apps.length) {
-  admin.initializeApp();
-  console.log('✅ Firebase Admin initialized successfully');
-}
 
 // ============================================
 // CONFIGURATION
 // ============================================
 
-// Master Admin UID (for secure operations)
+// ✅ BEST PRACTICE: Store sensitive UIDs as constants at top level
 const MASTER_ADMIN_UID = "BgTAnHE4zMOLr4ZhBqCBfFb3h6D3";
 
-// IDIQ API Configuration
+// ✅ BEST PRACTICE: Environment-specific configuration with fallbacks
 const IDIQ_CONFIG = {
   STAGE_BASE_URL: 'https://api-stage.identityiq.com/pif-service/',
   PROD_BASE_URL: 'https://api.identityiq.com/pif-service/',
@@ -58,12 +90,12 @@ const IDIQ_CONFIG = {
 const IDIQ_ENV = process.env.IDIQ_ENV || "stage";
 const IDIQ_PARTNER_TOKEN_PATH = process.env.IDIQ_PARTNER_TOKEN_PATH;
 
-// Allowed origins for CORS
+// ✅ BEST PRACTICE: Use Set for O(1) lookup performance
 const ALLOW_ORIGINS = new Set([
   "https://my-clever-crm--preview-auth-mba1x04f.web.app",
   "https://my-clever-crm.web.app",
   "https://my-clever-crm.firebaseapp.com",
-  "https://myclevercrm.com", // Added your custom domain
+  "https://myclevercrm.com",
   "http://localhost:5173",
   "http://localhost:3000"
 ]);
