@@ -483,6 +483,15 @@ export const navigationItems = [
         description: 'Text messaging'
       },
       { 
+        id: 'communications', 
+        title: 'Communications', 
+        path: '/communications', 
+        icon: MessageSquare, 
+        visibleTo: ['admin','user'],
+        mobileHidden: false,
+        description: 'Unified communications center'
+      },
+      { 
         id: 'drip-campaigns', 
         title: 'Drip Campaigns', 
         path: '/drip-campaigns', 

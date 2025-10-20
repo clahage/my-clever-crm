@@ -161,6 +161,7 @@ const CreditMonitoring = lazy(() => import('@/pages/CreditMonitoring'));
 const Letters = lazy(() => import('@/pages/Letters'));
 const Emails = lazy(() => import('@/pages/Emails'));
 const SMS = lazy(() => import('@/pages/SMS'));
+const CommunicationsCenter = lazy(() => import('@/pages/CommunicationsCenter'));
 const DripCampaigns = lazy(() => import('@/pages/DripCampaigns'));
 const Templates = lazy(() => import('@/pages/Templates'));
 const CallLogs = lazy(() => import('@/pages/CallLogs'));
@@ -330,6 +331,7 @@ const AppContent = () => {
         <Route path="credit-monitoring" element={<Suspense fallback={<LoadingFallback />}><CreditMonitoring /></Suspense>} />
         <Route path="letters" element={<Suspense fallback={<LoadingFallback />}><Letters /></Suspense>} />
         <Route path="emails" element={<Suspense fallback={<LoadingFallback />}><Emails /></Suspense>} />
+  <Route path="communications" element={<Suspense fallback={<LoadingFallback />}><CommunicationsCenter /></Suspense>} />
         <Route path="sms" element={<Suspense fallback={<LoadingFallback />}><SMS /></Suspense>} />
         <Route path="drip-campaigns" element={<Suspense fallback={<LoadingFallback />}><DripCampaigns /></Suspense>} />
         <Route path="templates" element={<Suspense fallback={<LoadingFallback />}><Templates /></Suspense>} />
