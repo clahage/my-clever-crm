@@ -1,57 +1,13 @@
-const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
+import aiService from '@/services/aiService';
 
 class OpenAIService {
-  constructor() {
-    this.apiKey = OPENAI_API_KEY;
-    this.apiUrl = 'https://api.openai.com/v1/chat/completions';
-  }
-
   async generateResponse(message, platform, context = {}) {
-    if (!this.apiKey) {
-      console.error('OpenAI API key not configured');
-      return this.getFallbackResponse(platform);
+    if (aiService?.complete) {
+      const res = await aiService.complete({ messages: [{ role: 'user', content: message }], ...context });
+      return { success: true, response: res.response || res, model: res.model || 'aiService' };
     }
-
-    try {
-      const prompt = this.buildPrompt(message, platform, context);
-      
-      const response = await fetch(this.apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`
-        },
-        body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are a helpful customer service representative for Speedy Credit Repair. Be professional, empathetic, and informative about credit repair services.'
-            },
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
-          temperature: 0.7,
-          max_tokens: 150
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`OpenAI API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return {
-        success: true,
-        response: data.choices[0].message.content,
-        model: 'gpt-3.5-turbo'
-      };
-    } catch (error) {
-      console.error('OpenAI generation error:', error);
-      return this.getFallbackResponse(platform);
-    }
+    console.warn('aiService.complete not available - returning fallback');
+    return this.getFallbackResponse(platform);
   }
 
   buildPrompt(message, platform, context) {
@@ -74,83 +30,27 @@ Keep the response under 100 words.`;
   }
 
   async analyzeReviewSentiment(reviewText, rating) {
-    if (!this.apiKey) return { sentiment: 'neutral', urgency: 'normal' };
-
-    try {
-      const response = await fetch(this.apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`
-        },
-        body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
-          messages: [
-            {
-              role: 'system',
-              content: 'Analyze the sentiment and urgency of this customer review.'
-            },
-            {
-              role: 'user',
-              content: `Review (${rating}/5 stars): "${reviewText}"
-
-Respond with JSON: {"sentiment": "positive/neutral/negative", "urgency": "low/normal/high", "key_issues": []}`
-            }
-          ],
-          temperature: 0.3,
-          max_tokens: 100
-        })
-      });
-
-      const data = await response.json();
-      return JSON.parse(data.choices[0].message.content);
-    } catch (error) {
-      console.error('Sentiment analysis error:', error);
-      return { sentiment: 'neutral', urgency: rating < 3 ? 'high' : 'normal' };
+    if (aiService?.complete) {
+      const res = await aiService.complete({ messages: [{ role: 'user', content: `Analyze sentiment: ${reviewText}` }] });
+      try {
+        return JSON.parse(res.response || res);
+      } catch {
+        return { sentiment: 'neutral', urgency: rating < 3 ? 'high' : 'normal' };
+      }
     }
+    return { sentiment: 'neutral', urgency: rating < 3 ? 'high' : 'normal' };
   }
 
   async categorizeContact(contact) {
-    try {
-      if (!this.apiKey) {
-        console.warn('No OpenAI API key configured');
-        throw new Error('No OpenAI API key');
+    if (aiService?.complete) {
+      const res = await aiService.complete({ messages: [{ role: 'user', content: `Categorize contact: ${JSON.stringify(contact)}` }] });
+      try {
+        return JSON.parse(res.response || res);
+      } catch {
+        return { category: 'lead', heatScore: 5, urgency: 'Medium', nextMove: 'Follow up within 3 days.' };
       }
-      
-      const prompt = `Given the following contact details, categorize as one of: lead, client, vendor, affiliate. Also provide a heat score (1-10), urgency (Low/Medium/High), and suggest the next best move.\nContact: ${JSON.stringify(contact)}`;
-      
-      const response = await fetch(this.apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`
-        },
-        body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
-          messages: [
-            { role: 'system', content: 'You are a CRM contact categorization and sales expert.' },
-            { role: 'user', content: prompt }
-          ],
-          temperature: 0.7,
-          max_tokens: 200
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`OpenAI API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return JSON.parse(data.choices[0].message.content);
-    } catch (err) {
-      console.error('Categorization error', err);
-      return { 
-        category: 'lead', 
-        heatScore: 5, 
-        urgency: 'Medium', 
-        nextMove: 'Follow up within 3 days.' 
-      };
     }
+    return { category: 'lead', heatScore: 5, urgency: 'Medium', nextMove: 'Follow up within 3 days.' };
   }
 }
 

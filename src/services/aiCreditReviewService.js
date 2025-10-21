@@ -2,7 +2,7 @@
 // AI-Powered Credit Review Generation Service
 // Generates initial reviews and monthly updates with affiliate suggestions
 
-import OpenAI from 'openai';
+import aiService from '@/services/aiService';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, query, where, getDocs, orderBy, limit, doc, updateDoc } from 'firebase/firestore';
 import { analyzeCreditProfile } from '@/services/aiCreditAnalyzer';
@@ -12,10 +12,17 @@ import { suggestProducts } from '@/services/affiliateLinkService';
 // OPENAI CONFIGURATION
 // ============================================================================
 
-const openai = new OpenAI({
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-  dangerouslyAllowBrowser: true
-});
+// Keep a small proxy to allow existing code (openai.chat.completions.create) to work
+const openai = {
+  chat: {
+    completions: {
+      create: async (opts) => {
+        const res = await aiService.complete(opts);
+        return { choices: [{ message: { content: res.response || res || '' } }], usage: res.usage || {} };
+      }
+    }
+  }
+};
 
 // ============================================================================
 // REVIEW TYPES

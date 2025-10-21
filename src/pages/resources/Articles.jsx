@@ -55,6 +55,7 @@ const ArticleAnalyzer = React.lazy(() =>
     })
 );
 import axios from 'axios';
+import aiService from '@/services/aiService';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { processWordDocument, generateSEOMetadata, detectCategory, identifyAffiliateOpportunities } from '../../utils/articleHelpers';
@@ -475,42 +476,25 @@ const Articles = () => {
   // ========== AI FUNCTIONS ==========
   
   const enhanceWithAI = async () => {
-    const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-    if (!apiKey) {
-      showSnackbar('OpenAI API key not configured', 'warning');
-      return;
-    }
-
     setProcessingAI(true);
     try {
-      const response = await axios.post(
-        'https://api.openai.com/v1/chat/completions',
-        {
+      if (aiService?.complete) {
+        const res = await aiService.complete({
           model: 'gpt-3.5-turbo',
           messages: [
-            {
-              role: 'system',
-              content: 'You are a credit repair expert. Enhance this article with better structure, clarity, and SEO optimization. Include suggestions for affiliate link placement.'
-            },
-            {
-              role: 'user',
-              content: `Title: ${currentArticle.title}\n\nContent: ${currentArticle.content}`
-            }
+            { role: 'system', content: 'You are a credit repair expert. Enhance this article with better structure, clarity, and SEO optimization. Include suggestions for affiliate link placement.' },
+            { role: 'user', content: `Title: ${currentArticle.title}\n\nContent: ${currentArticle.content}` }
           ],
           temperature: 0.7,
           max_tokens: 2000
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
+        });
 
-      const enhanced = response.data.choices[0].message.content;
-      setCurrentArticle({ ...currentArticle, content: enhanced });
-      showSnackbar('Content enhanced with AI', 'success');
+        const enhanced = res.response || res;
+        setCurrentArticle({ ...currentArticle, content: enhanced });
+        showSnackbar('Content enhanced with AI', 'success');
+      } else {
+        showSnackbar('AI service not configured', 'warning');
+      }
     } catch (error) {
       console.error('AI Enhancement error:', error);
       showSnackbar('Error enhancing content', 'error');
@@ -520,43 +504,29 @@ const Articles = () => {
   };
 
   const generateSEO = async () => {
-    const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-    if (!apiKey) return;
-
     setProcessingAI(true);
     try {
-      const response = await axios.post(
-        'https://api.openai.com/v1/chat/completions',
-        {
+      if (aiService?.complete) {
+        const res = await aiService.complete({
           model: 'gpt-3.5-turbo',
           messages: [
-            {
-              role: 'system',
-              content: 'Generate SEO metadata. Return JSON: {metaTitle, metaDescription, keywords}'
-            },
-            {
-              role: 'user',
-              content: `${currentArticle.title}\n${currentArticle.content.substring(0, 500)}`
-            }
+            { role: 'system', content: 'Generate SEO metadata. Return JSON: {metaTitle, metaDescription, keywords}' },
+            { role: 'user', content: `${currentArticle.title}\n${currentArticle.content.substring(0, 500)}` }
           ],
           temperature: 0.5,
           max_tokens: 300
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
+        });
 
-      const seoData = JSON.parse(response.data.choices[0].message.content);
-      setCurrentArticle(prev => ({
-        ...prev,
-        seo: seoData
-      }));
-      
-      showSnackbar('SEO metadata generated', 'success');
+        try {
+          const seoData = JSON.parse(res.response || res);
+          setCurrentArticle(prev => ({ ...prev, seo: seoData }));
+          showSnackbar('SEO metadata generated', 'success');
+        } catch {
+          showSnackbar('AI returned unexpected SEO format', 'warning');
+        }
+      } else {
+        showSnackbar('AI service not configured', 'warning');
+      }
     } catch (error) {
       console.error('SEO generation error:', error);
       showSnackbar('Error generating SEO', 'error');
@@ -566,50 +536,27 @@ const Articles = () => {
   };
 
   const translateContent = async () => {
-    const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-    if (!apiKey) return;
-
     setProcessingAI(true);
     try {
-      const targetLang = LANGUAGES.find(l => l.code === selectedLanguage)?.name;
-      
-      const response = await axios.post(
-        'https://api.openai.com/v1/chat/completions',
-        {
+      if (aiService?.complete) {
+        const targetLang = LANGUAGES.find(l => l.code === selectedLanguage)?.name;
+        const res = await aiService.complete({
           model: 'gpt-3.5-turbo',
           messages: [
-            {
-              role: 'system',
-              content: `Translate to ${targetLang}. Maintain HTML formatting.`
-            },
-            {
-              role: 'user',
-              content: currentArticle.content
-            }
+            { role: 'system', content: `Translate to ${targetLang}. Maintain HTML formatting.` },
+            { role: 'user', content: currentArticle.content }
           ],
           temperature: 0.3,
           max_tokens: 3000
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
+        });
 
-      const translated = response.data.choices[0].message.content;
-      
-      setCurrentArticle(prev => ({
-        ...prev,
-        translations: {
-          ...prev.translations,
-          [selectedLanguage]: translated
-        }
-      }));
-      
-      showSnackbar(`Translated to ${targetLang}`, 'success');
-      setTranslateDialogOpen(false);
+        const translated = res.response || res;
+        setCurrentArticle(prev => ({ ...prev, translations: { ...prev.translations, [selectedLanguage]: translated } }));
+        showSnackbar(`Translated to ${targetLang}`, 'success');
+        setTranslateDialogOpen(false);
+      } else {
+        showSnackbar('AI service not configured', 'warning');
+      }
     } catch (error) {
       console.error('Translation error:', error);
       showSnackbar('Translation failed', 'error');
@@ -619,55 +566,32 @@ const Articles = () => {
   };
 
   const insertAffiliateLinks = async () => {
-    const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-    if (!apiKey) return;
-
     setProcessingAI(true);
     try {
-      const response = await axios.post(
-        'https://api.openai.com/v1/chat/completions',
-        {
+      if (aiService?.complete) {
+        const res = await aiService.complete({
           model: 'gpt-3.5-turbo',
           messages: [
-            {
-              role: 'system',
-              content: 'Identify 3-5 opportunities for credit repair affiliate links. Return JSON array: [{text, url, product}]'
-            },
-            {
-              role: 'user',
-              content: currentArticle.content
-            }
+            { role: 'system', content: 'Identify 3-5 opportunities for credit repair affiliate links in this content. Return JSON array: [{text, url, product}]' },
+            { role: 'user', content: currentArticle.content }
           ],
           temperature: 0.5,
           max_tokens: 500
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
+        });
 
-      const affiliateLinks = JSON.parse(response.data.choices[0].message.content);
-      
-      let updatedContent = currentArticle.content;
-      affiliateLinks.forEach(link => {
-        const affiliateUrl = `https://speedycreditrepair.com/go/${link.url}`;
-        const linkHtml = `<a href="${affiliateUrl}" target="_blank" rel="sponsored" class="affiliate-link">${link.text}</a>`;
-        updatedContent = updatedContent.replace(link.text, linkHtml);
-      });
+        const affiliateLinks = JSON.parse(res.response || res || '[]');
+        let updatedContent = currentArticle.content;
+        affiliateLinks.forEach(link => {
+          const affiliateUrl = `https://speedycreditrepair.com/go/${link.url}`;
+          const linkHtml = `<a href="${affiliateUrl}" target="_blank" rel="sponsored" class="affiliate-link">${link.text}</a>`;
+          updatedContent = updatedContent.replace(link.text, linkHtml);
+        });
 
-      setCurrentArticle({
-        ...currentArticle,
-        content: updatedContent,
-        monetization: {
-          ...currentArticle.monetization,
-          affiliateLinks
-        }
-      });
-      
-      showSnackbar(`${affiliateLinks.length} affiliate links added`, 'success');
+        setCurrentArticle({ ...currentArticle, content: updatedContent, monetization: { ...currentArticle.monetization, affiliateLinks } });
+        showSnackbar(`${affiliateLinks.length} affiliate links added`, 'success');
+      } else {
+        showSnackbar('AI service not configured', 'warning');
+      }
     } catch (error) {
       console.error('Error inserting affiliate links:', error);
       showSnackbar('Error adding affiliate links', 'error');

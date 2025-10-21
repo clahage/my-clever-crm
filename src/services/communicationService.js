@@ -28,13 +28,19 @@ import emailService from './emailService';
 import faxService from './faxService';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
-import { OpenAI } from 'openai';
+import aiService from '@/services/aiService';
 
-// Initialize OpenAI
-const openai = new OpenAI({
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-  dangerouslyAllowBrowser: true // For client-side usage
-});
+// Proxy to aiService
+const openai = {
+  chat: {
+    completions: {
+      create: async (opts) => {
+        const res = await aiService.complete(opts);
+        return { choices: [{ message: { content: res.response || res || '' } }], usage: res.usage || {} };
+      }
+    }
+  }
+};
 
 // Communication types
 export const COMMUNICATION_TYPES = {
@@ -119,7 +125,7 @@ export const sendClientMessage = async ({
     let shouldAutoRespond = false;
     let staffAssignment = null;
 
-    if (aiProcess && import.meta.env.VITE_OPENAI_API_KEY) {
+    if (aiProcess && aiService?.complete) {
       const aiAnalysis = await analyzeMessageWithAI({
         subject,
         message,

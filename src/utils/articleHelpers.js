@@ -70,34 +70,12 @@ export const extractTextFromHTML = (html) => {
 
 // ========== AI FUNCTIONS ==========
 
+import aiService from '@/services/aiService';
+
 export const callOpenAI = async (messages, options = {}) => {
-  const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error('OpenAI API key not configured');
-  }
-
-  try {
-    const response = await axios.post(
-      'https://api.openai.com/v1/chat/completions',
-      {
-        model: options.model || 'gpt-3.5-turbo',
-        messages,
-        temperature: options.temperature || 0.7,
-        max_tokens: options.maxTokens || 2000
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-
-    return response.data.choices[0].message.content;
-  } catch (error) {
-    console.error('OpenAI API error:', error);
-    throw error;
-  }
+  if (!aiService?.complete) throw new Error('aiService.complete not configured');
+  const res = await aiService.complete({ messages, model: options.model || 'gpt-3.5-turbo', temperature: options.temperature || 0.7, max_tokens: options.maxTokens || 2000 });
+  return res.response || res;
 };
 
 export const enhanceContent = async (title, content, category) => {

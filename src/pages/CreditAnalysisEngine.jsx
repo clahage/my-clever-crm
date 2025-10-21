@@ -22,7 +22,7 @@ import {
 import { collection, addDoc, updateDoc, doc, query, where, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
-import OpenAI from 'openai';
+import aiService from '@/services/aiService';
 
 const CreditAnalysisEngine = () => {
   const { currentUser } = useAuth();
@@ -63,11 +63,17 @@ const CreditAnalysisEngine = () => {
   // File upload
   const fileInputRef = useRef(null);
 
-  // Initialize OpenAI
-  const openai = new OpenAI({
-    apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-    dangerouslyAllowBrowser: true
-  });
+  // aiService proxy (use aiService.complete or aiService.analyzeCreditReport)
+  const openai = {
+    chat: {
+      completions: {
+        create: async (opts) => {
+          const res = await (aiService.analyzeCreditReport ? aiService.analyzeCreditReport(opts) : aiService.complete(opts));
+          return { choices: [{ message: { content: res.response || res || '' } }], usage: res.usage || {} };
+        }
+      }
+    }
+  };
 
   // AI Analysis Engine
   const analyzeCredit = async () => {

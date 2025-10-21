@@ -2,66 +2,36 @@
 // OpenAI Integration for Dispute Letter Generation
 // Place this file in src/services/openaiDisputeService.js
 
-const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY || '';
-const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
+import aiService from '@/services/aiService';
 
-// Generate complete dispute letter with AI
+// Generate complete dispute letter with secure aiService
 export async function generateLetterWithAI(params) {
   const { clientInfo, disputeDetails, strategy, template } = params;
-  
-  // If no API key, use fallback template
-  if (!OPENAI_API_KEY) {
-    console.warn('OpenAI API key not configured. Using template fallback.');
-    return generateFallbackLetter(params);
-  }
 
-  const prompt = constructPrompt(clientInfo, disputeDetails, strategy, template);
-  
-  try {
-    const response = await fetch(OPENAI_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a professional credit repair specialist creating legally compliant dispute letters. Focus on FCRA, FDCPA, and FCBA compliance. Be professional, assertive, and cite relevant laws.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: strategy === 'aggressive' ? 0.8 : strategy === 'moderate' ? 0.6 : 0.4,
-        max_tokens: 2000
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`);
+  if (aiService?.generateDisputeLetter) {
+    try {
+      const result = await aiService.generateDisputeLetter({ clientInfo, disputeDetails, strategy, template });
+      return result.response || result;
+    } catch (err) {
+      console.error('aiService.generateDisputeLetter failed:', err);
+      return generateFallbackLetter(params);
     }
-
-    const data = await response.json();
-    return formatLetter(data.choices[0].message.content, clientInfo);
-  } catch (error) {
-    console.error('Error generating letter with AI:', error);
-    return generateFallbackLetter(params);
   }
+
+  // Fallback: if aiService isn't available, use existing fetch-based fallback logic without exposing API key
+  console.warn('aiService.generateDisputeLetter not available, using local fallback.');
+  return generateFallbackLetter(params);
 }
 
 // Analyze dispute strategy and recommend approach
 export async function analyzeDisputeStrategy(clientData, creditReport) {
-  if (!OPENAI_API_KEY) {
-    return {
-      recommendedApproach: 'standard',
-      prioritizedDisputes: [],
-      successProbability: 65,
-      reasoning: 'Default strategy - API key not configured'
-    };
+  // If aiService available, prefer it. Otherwise continue with fallback behavior.
+  if (aiService?.analyzeDisputeStrategy) {
+    try {
+      return await aiService.analyzeDisputeStrategy(clientData, creditReport);
+    } catch (err) {
+      console.error('aiService.analyzeDisputeStrategy failed:', err);
+    }
   }
 
   const prompt = `Analyze this credit situation and recommend the best dispute strategy:

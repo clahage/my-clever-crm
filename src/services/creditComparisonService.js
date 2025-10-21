@@ -2,16 +2,18 @@
 // Credit Report Comparison Service
 // Analyzes changes between credit reports for monthly updates
 
-import OpenAI from 'openai';
+import aiService from '@/services/aiService';
 
-// ============================================================================
-// OPENAI CONFIGURATION
-// ============================================================================
-
-const openai = new OpenAI({
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-  dangerouslyAllowBrowser: true
-});
+const openai = {
+  chat: {
+    completions: {
+      create: async (opts) => {
+        const res = await aiService.complete(opts);
+        return { choices: [{ message: { content: res.response || res || '' } }], usage: res.usage || {} };
+      }
+    }
+  }
+};
 
 // ============================================================================
 // COMPARISON FUNCTIONS

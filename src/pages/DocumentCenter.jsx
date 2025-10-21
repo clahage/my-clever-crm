@@ -31,7 +31,7 @@ import { db, storage } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
-import OpenAI from 'openai';
+import aiService from '@/services/aiService';
 
 const DocumentCenter = () => {
   const { currentUser } = useAuth();
@@ -39,11 +39,16 @@ const DocumentCenter = () => {
   const fileInputRef = useRef(null);
   const batchInputRef = useRef(null);
 
-  // Initialize OpenAI
-  const openai = new OpenAI({
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-    dangerouslyAllowBrowser: true
-  });
+  const openai = {
+    chat: {
+      completions: {
+        create: async (opts) => {
+          const res = await aiService.complete(opts);
+          return { choices: [{ message: { content: res.response || res || '' } }], usage: res.usage || {} };
+        }
+      }
+    }
+  };
 
   // State Management
   const [activeTab, setActiveTab] = useState(0);

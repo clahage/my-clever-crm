@@ -26,6 +26,7 @@ import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import Papa from 'papaparse';
 import axios from 'axios';
+import aiService from '@/services/aiService';
 
 // ============================================================================
 // REUSABLE RICH PREVIEW COMPONENT
@@ -324,81 +325,46 @@ const FAQ = () => {
 
   // AI Category Detection
   const detectCategory = async (text) => {
-    const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-    if (!apiKey) {
-      console.log('OpenAI API key not configured');
-      return 'General';
-    }
-
-    try {
-      const response = await axios.post(
-        'https://api.openai.com/v1/chat/completions',
-        {
+    if (aiService?.complete) {
+      try {
+        const res = await aiService.complete({
           model: 'gpt-3.5-turbo',
           messages: [
-            {
-              role: 'system',
-              content: `You are a credit repair expert. Categorize the following text into one of these categories: ${CATEGORIES.join(', ')}. Respond with only the category name.`
-            },
-            {
-              role: 'user',
-              content: text
-            }
+            { role: 'system', content: `You are a credit repair expert. Categorize the following text into one of these categories: ${CATEGORIES.join(', ')}. Respond with only the category name.` },
+            { role: 'user', content: text }
           ],
           temperature: 0.3,
           max_tokens: 50
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      const category = response.data.choices[0].message.content.trim();
-      return CATEGORIES.includes(category) ? category : 'General';
-    } catch (error) {
-      console.error('Error detecting category:', error);
-      return 'General';
+        });
+        const category = (res.response || res || '').trim();
+        return CATEGORIES.includes(category) ? category : 'General';
+      } catch (error) {
+        console.error('Error detecting category via aiService:', error);
+        return 'General';
+      }
     }
+    return 'General';
   };
 
   // AI Enhance Answer
   const enhanceAnswer = async () => {
-    const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-    if (!apiKey) {
-      showSnackbar('OpenAI API key not configured', 'warning');
+    if (!aiService?.complete) {
+      showSnackbar('AI service not configured', 'warning');
       return;
     }
 
     try {
-      const response = await axios.post(
-        'https://api.openai.com/v1/chat/completions',
-        {
-          model: 'gpt-3.5-turbo',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are a credit repair expert. Enhance this FAQ answer with more detail, structure it with markdown formatting (headers, lists, bold for key points), and identify where affiliate links for credit monitoring, credit repair services, or identity protection would be appropriate. Mark affiliate opportunities with $$AFFILIATE:product name$$.'
-            },
-            {
-              role: 'user',
-              content: `Question: ${currentFaq.question}\nAnswer: ${currentFaq.answer}`
-            }
-          ],
-          temperature: 0.7,
-          max_tokens: 1000
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
+      const res = await aiService.complete({
+        model: 'gpt-3.5-turbo',
+        messages: [
+          { role: 'system', content: 'You are a credit repair expert. Enhance this FAQ answer with more detail, structure it with markdown formatting (headers, lists, bold for key points), and identify where affiliate links for credit monitoring, credit repair services, or identity protection would be appropriate. Mark affiliate opportunities with $$AFFILIATE:product name$$.' },
+          { role: 'user', content: `Question: ${currentFaq.question}\nAnswer: ${currentFaq.answer}` }
+        ],
+        temperature: 0.7,
+        max_tokens: 1000
+      });
 
-      const enhancedAnswer = response.data.choices[0].message.content;
+      const enhancedAnswer = res.response || res || '';
       setCurrentFaq({ ...currentFaq, answer: enhancedAnswer });
       showSnackbar('Answer enhanced with AI', 'success');
     } catch (error) {

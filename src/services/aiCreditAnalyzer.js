@@ -1,11 +1,21 @@
 // src/services/aiCreditAnalyzer.js
 // AI-Powered Credit Analysis Service
-import OpenAI from 'openai';
+import aiService from '@/services/aiService';
 
-const openai = new OpenAI({
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-  dangerouslyAllowBrowser: true
-});
+// Proxy shim so existing calls to openai.chat.completions.create(...) keep working.
+const openai = {
+  chat: {
+    completions: {
+      create: async (opts) => {
+        const res = await aiService.analyzeCreditReport
+          ? aiService.analyzeCreditReport(opts)
+          : await aiService.complete(opts);
+        // Normalize to previous shape { choices: [{ message: { content: '...' } }] }
+        return { choices: [{ message: { content: res.response || res || '' } }], usage: res.usage || {} };
+      }
+    }
+  }
+};
 
 // FICO Score Factors (official weights)
 const FICO_FACTORS = {

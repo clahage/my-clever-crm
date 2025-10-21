@@ -2,16 +2,24 @@
 // Enhanced AI-Assisted Credit Report Parsing
 // Supports: IDIQ, PDF uploads, manual entry, and other providers
 
-import OpenAI from 'openai';
+import aiService from '@/services/aiService';
 
-// ============================================================================
-// OPENAI CONFIGURATION
-// ============================================================================
-
-const openai = new OpenAI({
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-  dangerouslyAllowBrowser: true
-});
+// Proxy to keep existing openai.chat.completions.create(...) calls working
+const openai = {
+  chat: {
+    completions: {
+      create: async (opts) => {
+        // For parsing flows prefer aiService.parseCreditReport if available
+        if (aiService.parseCreditReport) {
+          const res = await aiService.parseCreditReport(opts);
+          return { choices: [{ message: { content: res.response || res || '' } }] };
+        }
+        const res = await aiService.complete(opts);
+        return { choices: [{ message: { content: res.response || res || '' } }] };
+      }
+    }
+  }
+};
 
 // ============================================================================
 // MAIN PARSING FUNCTION

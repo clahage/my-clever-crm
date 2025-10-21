@@ -1,14 +1,8 @@
-// OpenAI Configuration
-// Usage: import { getApiKey, setApiKey } from './openaiConfig';
+// openaiConfig.js is deprecated.
+// All OpenAI usage has been migrated to the secure aiService at '@/services/aiService'.
+// Please import aiService and call its methods (complete, analyzeCreditReport, parseCreditReport, generateDisputeLetter, etc.)
+// Example:
+// import aiService from '@/services/aiService';
+// const res = await aiService.complete({ messages: [...] });
 
-
-// OpenAI API key management using environment variable fallback
-let apiKey = import.meta.env.VITE_OPENAI_API_KEY || '';
-
-export function getApiKey() {
-  return apiKey;
-}
-
-export function setApiKey(key) {
-  apiKey = key;
-}
+export default null;

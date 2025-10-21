@@ -9,6 +9,9 @@ const admin = require('firebase-admin');
 const cors = require('cors')({ origin: true });
 const fetch = require('node-fetch');
 
+// Webhook API Key for external services
+const WEBHOOK_API_KEY = 'scr-webhook-2025-secure-key-abc123';
+
 // ⚠️ REMOVED: OpenAI direct import (security risk)
 // OpenAI is now handled securely in aiService.js
 // const { OpenAI } = require('openai');
@@ -816,58 +819,204 @@ exports.scoreLead = functions.https.onRequest(async (req, res) => {
 });
 
 /**
- * MyAIFrontDesk Webhook Handler - Enhanced with full processing
+ * Webhook endpoint for AI Receptionist calls from myaifrontdeskdashboard.com
+ * URL: https://us-central1-my-clever-crm.cloudfunctions.net/aiWebhook
+ * Method: POST
  */
-exports.aiWebhook = functions.runWith({
-  invoker: 'public'
-}).https.onRequest(async (req, res) => {
-  setCors(req, res);
-  if (handlePreflight(req, res)) return;
+exports.aiWebhook = functions.https.onRequest(async (req, res) => {
+  // Set CORS headers to allow requests from any origin
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-  console.log('📞 AI Receptionist webhook received:', new Date().toISOString());
+  // Handle preflight OPTIONS request
+  if (req.method === 'OPTIONS') {
+    return res.status(204).send('');
+  }
+
+  // Only accept POST requests
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method Not Allowed' });
+  }
+
+  // API Key Authentication
+  const apiKey = req.headers['x-api-key'] || req.query.apiKey;
+  if (!apiKey || apiKey !== WEBHOOK_API_KEY) {
+    console.error('❌ Unauthorized webhook attempt - invalid or missing API key');
+    return res.status(403).json({ 
+      success: false,
+      error: 'Forbidden - Invalid or missing API key',
+      hint: 'Include x-api-key header or apiKey query parameter'
+    });
+  }
+  console.log('✅ API key validated successfully');
 
   try {
-    // Save to aiReceptionistCalls collection
-    const docRef = await admin.firestore()
-      .collection('aiReceptionistCalls')
-      .add({
-        ...req.body,
-        receivedAt: admin.firestore.FieldValue.serverTimestamp(),
-        processed: false,
-        source: 'ai-receptionist-public'
-      });
+    console.log('AI Receptionist webhook received:', JSON.stringify(req.body, null, 2));
 
-    console.log('✅ Webhook saved:', docRef.id);
+    const callData = req.body;
 
-    // Trigger async processing using the sophisticated pipeline
-    try {
-      const { processAICallAsync } = require('./webhooks/callProcessor');
-      processAICallAsync(docRef.id, req.body).catch(err => {
-        console.error('❌ Error in async processing:', err);
+    // Validate that we have some data
+    if (!callData || Object.keys(callData).length === 0) {
+      console.error('Empty webhook data received');
+      return res.status(400).json({ 
+        success: false,
+        error: 'No data received in webhook' 
       });
-    } catch (err) {
-      console.log('⚠️ Advanced processing not available, using basic processing');
-      
-      // Fallback to basic processing
-      if (req.body.name || req.body.email) {
-        await admin.firestore().collection('contacts').add({
-          name: req.body.name || 'Unknown',
-          email: req.body.email || '',
-          phone: req.body.caller || '',
-          category: 'lead',
-          source: 'AI Receptionist',
-          createdAt: admin.firestore.FieldValue.serverTimestamp()
-        });
-        
-        console.log('✅ Basic lead created');
-      }
     }
 
-    res.status(200).json({ success: true, id: docRef.id });
+    // Helper function to normalize phone numbers
+    function normalizePhone(phone) {
+      if (!phone) return null;
+      const digits = phone.replace(/\D/g, '');
+      const cleaned = digits.startsWith('1') && digits.length === 11 
+        ? digits.substring(1) 
+        : digits;
+      if (cleaned.length === 10) {
+        return `(${cleaned.substring(0, 3)}) ${cleaned.substring(3, 6)}-${cleaned.substring(6)}`;
+      }
+      return phone;
+    }
+
+    // Extract and normalize data from myaifrontdesk webhook
+    // Adjust field names based on what myaifrontdesk actually sends
+    const normalizedData = {
+      // Call identification
+      callId: callData.call_id || callData.id || `call_${Date.now()}`,
+      callerID: normalizePhone(callData.caller_id || callData.from || callData.phone_number),
+      
+      // Timestamps
+      callTimestamp: callData.timestamp || callData.call_time || callData.created_at || admin.firestore.FieldValue.serverTimestamp(),
+      receivedAt: admin.firestore.FieldValue.serverTimestamp(),
+      
+      // Call content
+      transcript: callData.transcript || callData.text || callData.message || callData.conversation || '',
+      duration: callData.duration || callData.call_duration || null,
+      recording_url: callData.recording_url || callData.recording || null,
+      
+      // Contact info (from AI questions in myaifrontdesk)
+      phone: normalizePhone(callData.phone || callData.caller_id || callData.from),
+      phoneConfirmed: callData.phone_confirmed || false,
+      email: callData.email || callData.customer_email || null,
+      firstName: callData.first_name || callData.firstName || (callData.name ? callData.name.split(' ')[0] : null),
+      lastName: callData.last_name || callData.lastName || (callData.name ? callData.name.split(' ').slice(1).join(' ') : null),
+      
+      // Intent & Analysis
+      intent: callData.intent || callData.purpose || callData.reason || null,
+      sentiment: callData.sentiment || 'neutral',
+      summary: callData.summary || null,
+      
+      // Questions & Answers (myaifrontdesk format)
+      questionsAnswered: callData.questions || callData.answers || [],
+      customFields: callData.custom_fields || callData.custom_data || {},
+      
+      // Status
+      status: 'received',
+      processed: false,
+      
+      // AI Agent info
+      agentName: 'AI Receptionist',
+      language: callData.language || 'en',
+      
+      // Transfer info
+      transferRequested: callData.transfer_requested || callData.transferred || false,
+      transferReason: callData.transfer_reason || null,
+      
+      // Additional metadata
+      metadata: {
+        webhookVersion: '1.0',
+        source: 'myaifrontdesk',
+        receivedFrom: req.headers['user-agent'] || 'unknown',
+        rawData: callData // Store original for debugging
+      }
+    };
+
+    // Save to aiReceptionistCalls collection
+    const db = admin.firestore();
+    const docRef = await db.collection('aiReceptionistCalls').add(normalizedData);
+    
+    console.log(`✅ AI Receptionist call saved successfully: ${docRef.id}`);
+
+    // Return success response
+    return res.status(200).json({
+      success: true,
+      message: 'Call received and queued for processing',
+      callId: normalizedData.callId,
+      documentId: docRef.id,
+      timestamp: new Date().toISOString()
+    });
 
   } catch (error) {
-    console.error('❌ Webhook error:', error);
-    res.status(500).json({ error: error.message });
+    console.error('❌ Error processing AI Receptionist webhook:', error);
+    
+    return res.status(500).json({
+      success: false,
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+/**
+ * Test endpoint to verify webhook is working
+ * Call this URL manually: https://us-central1-my-clever-crm.cloudfunctions.net/testAiWebhook
+ */
+exports.testAiWebhook = functions.https.onRequest(async (req, res) => {
+  try {
+    // API Key Authentication
+    const apiKey = req.headers['x-api-key'] || req.query.apiKey;
+    if (!apiKey || apiKey !== WEBHOOK_API_KEY) {
+      console.error('❌ Unauthorized test webhook attempt - invalid or missing API key');
+      return res.status(403).json({ 
+        success: false,
+        error: 'Forbidden - Invalid or missing API key',
+        hint: 'Include x-api-key header or apiKey query parameter'
+      });
+    }
+    console.log('✅ API key validated successfully');
+    const db = admin.firestore();
+    
+    // Create test call data
+    const testCallData = {
+      callId: 'test_' + Date.now(),
+      callerID: '(555) 123-4567',
+      callTimestamp: admin.firestore.FieldValue.serverTimestamp(),
+      receivedAt: admin.firestore.FieldValue.serverTimestamp(),
+      transcript: 'This is a test call transcript. The caller asked about credit repair services.',
+      phone: '(555) 123-4567',
+      phoneConfirmed: true,
+      email: 'test@example.com',
+      firstName: 'John',
+      lastName: 'Doe',
+      intent: 'credit repair inquiry',
+      sentiment: 'positive',
+      status: 'test',
+      processed: false,
+      metadata: {
+        source: 'manual_test',
+        note: 'Created via testAiWebhook endpoint'
+      }
+    };
+
+    // Save to collection
+    const docRef = await db.collection('aiReceptionistCalls').add(testCallData);
+
+    console.log(`✅ Test call created: ${docRef.id}`);
+
+    res.status(200).json({
+      success: true,
+      message: 'Test call created successfully! Check Firestore aiReceptionistCalls collection.',
+      documentId: docRef.id,
+      testData: testCallData,
+      instructions: 'Go to Firebase Console → Firestore → aiReceptionistCalls to see this test record'
+    });
+
+  } catch (error) {
+    console.error('❌ Error creating test call:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
   }
 });
 
