@@ -249,6 +249,7 @@ const ProtectedLayout = () => {
   const quickActions = useMemo(() => {
     const baseActions = [
       { label: 'New Contact', icon: <User className="w-4 h-4" />, path: '/contacts?action=new', roles: ['user', 'manager', 'admin', 'masterAdmin'] },
+      { label: 'Client Intake', icon: <UserPlus className="w-4 h-4" />, path: '/intake', roles: ['user', 'manager', 'admin', 'masterAdmin'] },
       { label: 'Send Dispute', icon: <MessageSquare className="w-4 h-4" />, path: '/dispute-letters', roles: ['user', 'manager', 'admin', 'masterAdmin', 'client'] },
       { label: 'View Reports', icon: <Eye className="w-4 h-4" />, path: '/reports', roles: ['manager', 'admin', 'masterAdmin'] },
       { label: 'My Portal', icon: <User className="w-4 h-4" />, path: '/client-portal', roles: ['client', 'prospect'] }
