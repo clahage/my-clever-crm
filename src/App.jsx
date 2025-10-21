@@ -145,6 +145,7 @@ const AIReviewEditor = lazy(() => import('@/components/AIReviewEditor'));
 const CreditAnalysisEngine = lazy(() => import('@/pages/CreditAnalysisEngine'));
 const PredictiveAnalytics = lazy(() => import('@/pages/PredictiveAnalytics'));
 const Contacts = lazy(() => import('@/pages/Contacts'));
+const ClientIntake = lazy(() => import('@/pages/ClientIntake'));
 const Pipeline = lazy(() => import('@/pages/Pipeline'));
 const ContactImport = lazy(() => import('@/pages/ContactImport'));
 const ContactExport = lazy(() => import('@/pages/ContactExport'));
@@ -312,8 +313,11 @@ const AppContent = () => {
         <Route path="credit-analysis" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><CreditAnalysisEngine /></Suspense></ProtectedRoute>} />
         <Route path="predictive-analytics" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><PredictiveAnalytics /></Suspense></ProtectedRoute>} />
         
-        {/* CONTACTS ROUTE - This should work */}
-        <Route path="contacts" element={<Suspense fallback={<LoadingFallback />}><Contacts /></Suspense>} />
+  {/* CONTACTS ROUTE - This should work */}
+  <Route path="contacts" element={<Suspense fallback={<LoadingFallback />}><Contacts /></Suspense>} />
+  {/* Client Intake (full intake form wrapper) */}
+  <Route path="intake" element={<Suspense fallback={<LoadingFallback />}><ClientIntake /></Suspense>} />
+  <Route path="new-client" element={<Suspense fallback={<LoadingFallback />}><ClientIntake /></Suspense>} />
         
         <Route path="pipeline" element={<Suspense fallback={<LoadingFallback />}><Pipeline /></Suspense>} />
         <Route path="import" element={<Suspense fallback={<LoadingFallback />}><ContactImport /></Suspense>} />
