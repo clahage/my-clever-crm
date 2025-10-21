@@ -315,6 +315,15 @@ export const navigationItems = [
         mobileHidden: true,
         description: 'Contact segmentation and filters'
       }
+      ,{
+        id: 'client-intake',
+        title: 'Client Intake',
+        path: '/intake',
+        icon: UserPlus,
+        permission: 'user',
+        mobileHidden: false,
+        description: 'Full client intake form (UltimateClientForm)'
+      }
     ]
   },
 
