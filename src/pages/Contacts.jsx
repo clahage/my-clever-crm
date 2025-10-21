@@ -1751,6 +1751,13 @@ const Contacts = () => {
                           Set to {status.label}
                         </option>
                       ))}
+                        <button
+                          onClick={() => navigate('/intake')}
+                          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                        >
+                          <UserPlus className="h-5 w-5" />
+                          Full Client Intake
+                        </button>
                     </optgroup>
                     <optgroup label="Change Urgency">
                       {Object.entries(URGENCY_LEVELS).map(([key, level]) => (
