@@ -1,28 +1,43 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import UltimateClientForm from '../components/UltimateClientForm';
 import { db } from '../lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 
 export default function ClientIntake() {
   const navigate = useNavigate();
-
-  const handleSave = async (finalData) => {
+  const location = useLocation();
+  const { contactId, contactData } = location.state || {};
+  const [saving, setSaving] = useState(false);
+  const handleSave = async (formData) => {
+    setSaving(true);
     try {
-      // augment with metadata
-      const payload = {
-        ...finalData,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      };
+      console.log(contactId ? 'Updating client:' : 'Saving new client:', formData);
 
-      const ref = await addDoc(collection(db, 'contacts'), payload);
+      let docRef;
+      if (contactId) {
+        // Update existing contact
+        await updateDoc(doc(db, 'contacts', contactId), {
+          ...formData,
+          updatedAt: new Date()
+        });
+        alert('Client updated successfully!');
+        navigate(`/contacts/${contactId}`);
+      } else {
+        // Create new contact
+        docRef = await addDoc(collection(db, 'contacts'), {
+          ...formData,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
 
-      // navigate to the newly created contact's page if route exists
-      navigate(`/contacts/${ref.id}`);
+        // navigate to the newly created contact's page if route exists
+        navigate(`/contacts/${docRef.id}`);
+      }
     } catch (err) {
-      console.error('Failed to create contact from intake:', err);
-      // keep user on page; in a fuller integration we'd show a toast
+      console.error('Failed to create/update contact from intake:', err);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -34,7 +49,12 @@ export default function ClientIntake() {
   return (
     <div className="p-6">
       <h1 className="text-2xl font-semibold mb-4">Client Intake</h1>
-      <UltimateClientForm onSave={handleSave} onCancel={handleCancel} />
+      <UltimateClientForm
+        initialData={contactData || {}}
+        onSave={handleSave}
+        onCancel={handleCancel}
+        contactId={contactId || null}
+      />
     </div>
   );
 }

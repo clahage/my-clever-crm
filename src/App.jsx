@@ -138,6 +138,7 @@ const Dashboard = lazy(() => import('@/pages/Dashboard'));
 const Home = lazy(() => import('@/pages/Home'));
 const ClientPortal = lazy(() => import('@/pages/ClientPortal'));
 const ClientDashboard = lazy(() => import('@/pages/ClientPortal/ClientDashboard'));
+const ContactDetailPage = lazy(() => import('./pages/ContactDetailPage'));
 const Portal = lazy(() => import('@/pages/Portal'));
 const CreditReportWorkflow = lazy(() => import('@/pages/CreditReportWorkflow'));
 const AIReviewDashboard = lazy(() => import('@/pages/AIReviewDashboard'));
@@ -312,13 +313,13 @@ const AppContent = () => {
         <Route path="admin/ai-reviews/:reviewId" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><AIReviewEditor /></Suspense></ProtectedRoute>} />
         <Route path="credit-analysis" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><CreditAnalysisEngine /></Suspense></ProtectedRoute>} />
         <Route path="predictive-analytics" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><PredictiveAnalytics /></Suspense></ProtectedRoute>} />
-        
-  {/* CONTACTS ROUTE - This should work */}
-  <Route path="contacts" element={<Suspense fallback={<LoadingFallback />}><Contacts /></Suspense>} />
-  {/* Client Intake (full intake form wrapper) */}
-  <Route path="intake" element={<Suspense fallback={<LoadingFallback />}><ClientIntake /></Suspense>} />
-  <Route path="new-client" element={<Suspense fallback={<LoadingFallback />}><ClientIntake /></Suspense>} />
-        
+
+        {/* CONTACTS ROUTE - This should work */}
+        <Route path="contacts" element={<Suspense fallback={<LoadingFallback />}><Contacts /></Suspense>} />
+        <Route path="contacts/:id" element={<Suspense fallback={<LoadingFallback />}><ContactDetailPage /></Suspense>} />
+        {/* Client Intake (full intake form wrapper) */}
+        <Route path="intake" element={<Suspense fallback={<LoadingFallback />}><ClientIntake /></Suspense>} />
+        <Route path="new-client" element={<Suspense fallback={<LoadingFallback />}><ClientIntake /></Suspense>} />
         <Route path="pipeline" element={<Suspense fallback={<LoadingFallback />}><Pipeline /></Suspense>} />
         <Route path="import" element={<Suspense fallback={<LoadingFallback />}><ContactImport /></Suspense>} />
         <Route path="export" element={<Suspense fallback={<LoadingFallback />}><ContactExport /></Suspense>} />
@@ -335,7 +336,7 @@ const AppContent = () => {
         <Route path="credit-monitoring" element={<Suspense fallback={<LoadingFallback />}><CreditMonitoring /></Suspense>} />
         <Route path="letters" element={<Suspense fallback={<LoadingFallback />}><Letters /></Suspense>} />
         <Route path="emails" element={<Suspense fallback={<LoadingFallback />}><Emails /></Suspense>} />
-  <Route path="communications" element={<Suspense fallback={<LoadingFallback />}><CommunicationsCenter /></Suspense>} />
+        <Route path="communications" element={<Suspense fallback={<LoadingFallback />}><CommunicationsCenter /></Suspense>} />
         <Route path="sms" element={<Suspense fallback={<LoadingFallback />}><SMS /></Suspense>} />
         <Route path="drip-campaigns" element={<Suspense fallback={<LoadingFallback />}><DripCampaigns /></Suspense>} />
         <Route path="templates" element={<Suspense fallback={<LoadingFallback />}><Templates /></Suspense>} />
