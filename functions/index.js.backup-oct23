@@ -1023,221 +1023,9 @@ exports.testAiWebhook = functions.https.onRequest(async (req, res) => {
 /**
  * Process AI Receptionist Calls (Firestore Trigger)
  */
-// ============================================
-// AI RECEPTIONIST CALL PROCESSING (REAL FIX WITH PHONE PARSING)
-// Hybrid approach: Use intake form + parse transcript for missing critical data
-// ============================================
-
-const { OpenAI } = require('openai');
-
-/**
- * Parse phone number from transcript
- * Handles formats like "5 5 5 8 5 5 5 4 1 0" or "555-855-5410"
- */
-function parsePhoneFromTranscript(transcript) {
-  console.log('🔍 Parsing phone number from transcript...');
-  
-  // Look for patterns like "my phone number is X X X..."
-  const patterns = [
-    /(?:my )?phone (?:number )?is[:\s]+(\d[\s\-\d]+\d)/gi,
-    /call me (?:at|on)[:\s]+(\d[\s\-\d]+\d)/gi,
-    /reach me at[:\s]+(\d[\s\-\d]+\d)/gi,
-    /contact (?:me )?(?:at|on)[:\s]+(\d[\s\-\d]+\d)/gi
-  ];
-  
-  for (const pattern of patterns) {
-    const match = transcript.match(pattern);
-    if (match && match[0]) {
-      // Extract just the digits
-      const digits = match[0].replace(/\D/g, '');
-      
-      // Valid US phone number should be 10 digits
-      if (digits.length === 10) {
-        console.log('✅ Found phone in transcript:', digits);
-        return digits;
-      }
-    }
-  }
-  
-  // Try to find 10 consecutive digits or digits with spaces/dashes
-  const allDigits = transcript.match(/\d[\s\-\d]{8,}\d/g);
-  if (allDigits) {
-    for (const digitStr of allDigits) {
-      const cleaned = digitStr.replace(/\D/g, '');
-      if (cleaned.length === 10) {
-        console.log('✅ Found phone pattern in transcript:', cleaned);
-        return cleaned;
-      }
-    }
-  }
-  
-  console.log('⚠️ No phone number found in transcript');
-  return null;
-}
-
-/**
- * Extract data from rawPayload intake form fields
- */
-function extractFromIntakeForm(rawPayload) {
-  console.log('📋 Checking rawPayload for intake form data...');
-  
-  if (!rawPayload || typeof rawPayload !== 'object') {
-    console.log('⚠️ No rawPayload found');
-    return null;
-  }
-  
-  // Extract data from intake form fields
-  const fullName = rawPayload['Intake Form: May I ask for your full name so I may help you with better accuracy?'] || '';
-  const phoneResponse = rawPayload['Intake Form: Is the number you\'re calling from the best way to reach you?'] || '';
-  const email = rawPayload['Intake Form: Can you say or spell out your email address please?'] || '';
-  
-  // If we have at least a name, we can work with this
-  if (fullName && fullName.trim().length > 0) {
-    console.log('✅ Found intake form data:', { fullName, phoneResponse, email });
-    
-    // Parse name
-    const nameParts = fullName.trim().split(' ');
-    const firstName = nameParts[0] || '';
-    const lastName = nameParts.slice(1).join(' ') || '';
-    
-    // Clean email (convert spoken format to email format)
-    const cleanEmail = email
-      .toLowerCase()
-      .replace(/\s+at\s+/g, '@')
-      .replace(/\s+dot\s+/g, '.')
-      .replace(/\s+/g, '');
-    
-    // Parse phone - only use if it's actual digits, not "Yes" or other text
-    let phone = phoneResponse.replace(/\D/g, '');
-    if (phone.length !== 10) {
-      // Invalid or missing phone in intake form
-      phone = null;
-    }
-    
-    return {
-      firstName,
-      lastName,
-      phone: phone, // May be null if not in intake form
-      email: cleanEmail,
-      source: 'intake-form'
-    };
-  }
-  
-  console.log('⚠️ No intake form data found in rawPayload');
-  return null;
-}
-
-/**
- * Helper function: Use OpenAI to extract structured data from transcript
- */
-async function extractContactDataFromTranscript(transcript, summary) {
-  const openaiKey = functions.config().openai?.api_key;
-  
-  if (!openaiKey) {
-    console.error('❌ OpenAI API key not configured in Firebase');
-    throw new Error('OpenAI API key not found');
-  }
-  
-  const openai = new OpenAI({ apiKey: openaiKey });
-  
-  const prompt = `You are a data extraction expert. Extract contact information from this phone call transcript.
-
-TRANSCRIPT:
-${transcript}
-
-SUMMARY:
-${summary}
-
-Extract the following information and return ONLY valid JSON (no markdown, no code blocks):
-{
-  "firstName": "extracted first name or empty string",
-  "lastName": "extracted last name or empty string", 
-  "phone": "extracted phone number digits only or empty string",
-  "email": "extracted email or empty string",
-  "address": {
-    "street": "street address or empty string",
-    "city": "city or empty string",
-    "state": "state abbreviation (2 letters) or empty string",
-    "zipCode": "zip code or empty string"
-  },
-  "creditScore": "estimated credit score as number or null",
-  "issues": ["array of credit issues mentioned like collections, student loans, etc"],
-  "bestTimeToCall": "preferred callback time or empty string",
-  "interestLevel": "high, medium, or low based on conversation",
-  "callbackRequested": true or false
-}
-
-CRITICAL INSTRUCTIONS:
-- For phone numbers spelled out like "5 5 5 8 5 5 5 4 1 0", combine them: "5558555410"
-- Parse addresses carefully: "Huntington Beach, California" = city: "Huntington Beach", state: "CA"
-- Return ONLY the JSON object, no other text
-- Use empty strings for missing text fields, null for missing numbers, empty arrays for lists`;
-
-  try {
-    console.log('🤖 Calling OpenAI to extract contact data from transcript...');
-    
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a data extraction expert. Return only valid JSON, no markdown.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      temperature: 0.1,
-      max_tokens: 500
-    });
-
-    const extractedText = completion.choices[0].message.content.trim();
-    
-    // Remove markdown code blocks if present
-    const jsonText = extractedText
-      .replace(/```json\n?/g, '')
-      .replace(/```\n?/g, '')
-      .trim();
-    
-    const extracted = JSON.parse(jsonText);
-    console.log('✅ AI extraction complete:', JSON.stringify(extracted, null, 2));
-    return extracted;
-
-  } catch (error) {
-    console.error('❌ Error extracting contact data:', error);
-    return {
-      firstName: '',
-      lastName: '',
-      phone: '',
-      email: '',
-      address: { street: '', city: '', state: '', zipCode: '' },
-      creditScore: null,
-      issues: [],
-      bestTimeToCall: '',
-      interestLevel: 'medium',
-      callbackRequested: false
-    };
-  }
-}
-
-/**
- * Process AI Receptionist Calls (Firestore Trigger)
- * ✅ HYBRID APPROACH: Use intake form + parse transcript for complete data
- * ✅ TRIGGERS ON: Both CREATE and UPDATE events (so you can reprocess by changing processed flag)
- */
 exports.processAIReceptionistCall = functions.firestore
   .document('aiReceptionistCalls/{docId}')
-  .onWrite(async (change, context) => {
-    // Handle both create and update events
-    const snap = change.after;
-    
-    // If document was deleted, do nothing
-    if (!snap.exists) {
-      console.log('Document deleted, skipping');
-      return null;
-    }
-    
+  .onCreate(async (snap, context) => {
     const data = snap.data();
     const docId = context.params.docId;
     
@@ -1249,186 +1037,59 @@ exports.processAIReceptionistCall = functions.firestore
         return null;
       }
 
-      const transcript = data.transcript || '';
-      const summary = data.summary || '';
+      // Extract caller info
+      const callerName = data['Intake Form: May I ask for your full name so I may help you with better accuracy?'] || 
+                        data.name || 'Unknown';
+      const callerEmail = data['Intake Form: Can you say or spell out your email address please?'] || 
+                         data.email || '';
+      const callerPhone = data.caller || '';
       
-      if (!transcript || transcript.length < 10) {
-        console.error('❌ Transcript too short or missing');
-        await snap.ref.update({
-          processed: true,
-          processedAt: admin.firestore.FieldValue.serverTimestamp(),
-          processingError: 'Transcript missing or too short'
-        });
-        return null;
-      }
+      // Clean email
+      let cleanEmail = callerEmail.toLowerCase()
+        .replace(/\s+at\s+/g, '@')
+        .replace(/\s+dot\s+/g, '.')
+        .replace(/\s+/g, '');
       
-      // ✅ HYBRID APPROACH: Combine intake form + transcript parsing + AI extraction
-      
-      let extracted = {
-        firstName: '',
-        lastName: '',
-        phone: '',
-        email: '',
-        address: { street: '', city: '', state: '', zipCode: '' },
-        creditScore: null,
-        issues: [],
-        bestTimeToCall: '',
-        interestLevel: 'medium',
-        callbackRequested: false
-      };
-      
-      let extractionMethods = [];
-      
-      // STEP 1: Try intake form first (fast & free)
-      const intakeFormData = extractFromIntakeForm(data.rawPayload);
-      if (intakeFormData) {
-        console.log('✅ Using intake form data');
-        extractionMethods.push('intake-form');
-        extracted.firstName = intakeFormData.firstName || extracted.firstName;
-        extracted.lastName = intakeFormData.lastName || extracted.lastName;
-        extracted.email = intakeFormData.email || extracted.email;
-        if (intakeFormData.phone && intakeFormData.phone.length === 10) {
-          extracted.phone = intakeFormData.phone;
-        }
-      }
-      
-      // STEP 2: Parse phone from transcript if still missing
-      if (!extracted.phone || extracted.phone.length !== 10) {
-        console.log('📞 Phone missing from intake form, parsing transcript...');
-        const phoneFromTranscript = parsePhoneFromTranscript(transcript);
-        if (phoneFromTranscript) {
-          extracted.phone = phoneFromTranscript;
-          extractionMethods.push('transcript-parse');
-        }
-      }
-      
-      // STEP 3: Use AI to fill in remaining gaps
-      console.log('🤖 Using AI to extract additional details...');
-      const aiExtracted = await extractContactDataFromTranscript(transcript, summary);
-      extractionMethods.push('ai-extraction');
-      
-      // Merge AI data for missing fields
-      if (!extracted.firstName) extracted.firstName = aiExtracted.firstName;
-      if (!extracted.lastName) extracted.lastName = aiExtracted.lastName;
-      if (!extracted.phone) extracted.phone = aiExtracted.phone;
-      if (!extracted.email) extracted.email = aiExtracted.email;
-      
-      // Always use AI for address (more complete)
-      extracted.address = aiExtracted.address;
-      extracted.creditScore = aiExtracted.creditScore;
-      extracted.issues = aiExtracted.issues;
-      extracted.bestTimeToCall = aiExtracted.bestTimeToCall;
-      extracted.interestLevel = aiExtracted.interestLevel;
-      extracted.callbackRequested = aiExtracted.callbackRequested;
-      
-      const extractionMethod = extractionMethods.join('+');
-      
-      console.log('✅ Combined extraction complete:', {
-        method: extractionMethod,
-        firstName: extracted.firstName,
-        lastName: extracted.lastName,
-        phone: extracted.phone,
-        email: extracted.email
-      });
-      
-      // Validate we have minimum required data
-      if (!extracted.phone || extracted.phone.length !== 10) {
-        console.error('❌ CRITICAL: Phone number not extracted!');
-        console.error('Transcript sample:', transcript.substring(0, 500));
-      }
+      console.log('📋 Extracted - Name:', callerName, 'Email:', cleanEmail, 'Phone:', callerPhone);
       
       // Calculate lead score
       let leadScore = 5;
-      const duration = parseInt(data.callDuration || data.duration || 0);
+      const duration = parseInt(data.duration) || 0;
       
       if (duration > 120) leadScore += 2;
       if (duration > 300) leadScore += 1;
-      if (extracted.interestLevel === 'high') leadScore += 2;
-      if (extracted.callbackRequested) leadScore += 1;
-      if (extracted.creditScore && extracted.creditScore < 600) leadScore += 1;
+      if (data.transcript && data.transcript.includes('credit')) leadScore += 1;
+      if (data.transcript && data.transcript.includes('help')) leadScore += 1;
       
-      leadScore = Math.min(10, leadScore);
-      
-      // Determine urgency
-      let urgencyLevel = 'medium';
-      if (extracted.interestLevel === 'high' || extracted.callbackRequested) {
-        urgencyLevel = 'high';
-      }
-      if (duration < 60) {
-        urgencyLevel = 'low';
-      }
-      
-      // Clean phone number
-      const cleanPhone = extracted.phone.replace(/\D/g, '');
+      const urgencyLevel = duration > 180 ? 'high' : 'medium';
       
       // Create contact data
+      const [firstName, ...lastNameParts] = callerName.split(' ');
       const contactData = {
-        firstName: extracted.firstName || 'Unknown',
-        lastName: extracted.lastName || '',
-        fullName: `${extracted.firstName || 'Unknown'} ${extracted.lastName || ''}`.trim(),
-        email: extracted.email || '',
-        phone: cleanPhone,
-        
-        address: extracted.address && extracted.address.city ? {
-          street: extracted.address.street || '',
-          city: extracted.address.city,
-          state: extracted.address.state,
-          zipCode: extracted.address.zipCode || ''
-        } : null,
-        
-        creditInfo: {
-          estimatedScore: extracted.creditScore,
-          issues: extracted.issues || [],
-          goals: 'Credit repair',
-          source: 'ai-receptionist-call'
-        },
-        
+        firstName: firstName || '',
+        lastName: lastNameParts.join(' ') || '',
+        fullName: callerName,
+        email: cleanEmail,
+        phone: callerPhone.replace(/\D/g, ''),
         category: 'lead',
-        leadScore: leadScore,
-        urgencyLevel: urgencyLevel,
+        leadScore: Math.min(10, leadScore),
+        urgencyLevel,
         source: 'ai-receptionist',
-        
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         lastActivityDate: admin.firestore.FieldValue.serverTimestamp(),
-        callDate: admin.firestore.Timestamp.now(),
-        
-        bestTimeToCall: extracted.bestTimeToCall || '',
-        preferredContact: 'phone',
-        
+        notes: `Call duration: ${duration}s\nFrom: ${data.username || 'Unknown'}\nTimestamp: ${data.timestamp}`,
         lifecycleStatus: 'new',
         primaryRole: 'lead',
-        roles: ['lead'],
-        
-        notes: [
-          `📞 Call Date: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`,
-          `⏱️ Duration: ${Math.floor(duration / 60)}m ${duration % 60}s`,
-          `📊 Lead Score: ${leadScore}/10`,
-          `💡 Interest Level: ${extracted.interestLevel}`,
-          extracted.issues.length > 0 ? `⚠️ Issues: ${extracted.issues.join(', ')}` : '',
-          extracted.bestTimeToCall ? `⏰ Best Time: ${extracted.bestTimeToCall}` : '',
-          `🔗 Call Recording: ${data.rawPayload?.call_info_link || 'N/A'}`,
-          `🤖 Extraction: ${extractionMethod}`
-        ].filter(Boolean).join('\n'),
-        
-        aiReceptionistCallId: docId,
-        sentiment: data.sentiment || null,
-        extractionMethod: extractionMethod
+        roles: ['lead']
       };
-      
-      console.log('📋 Final contact data:', {
-        name: contactData.fullName,
-        email: contactData.email,
-        phone: contactData.phone,
-        method: extractionMethod
-      });
       
       // Check for existing contact
       let existingContact = null;
       
-      if (cleanPhone && cleanPhone.length === 10) {
+      if (callerPhone) {
         const phoneQuery = await admin.firestore()
           .collection('contacts')
-          .where('phone', '==', cleanPhone)
+          .where('phone', '==', contactData.phone)
           .limit(1)
           .get();
         
@@ -1438,17 +1099,13 @@ exports.processAIReceptionistCall = functions.firestore
         }
       }
       
-      // Create or update contact
       if (existingContact) {
         await existingContact.ref.update({
           lastActivityDate: admin.firestore.FieldValue.serverTimestamp(),
           leadScore: contactData.leadScore,
-          urgencyLevel: contactData.urgencyLevel,
-          notes: admin.firestore.FieldValue.arrayUnion(
-            `📞 Follow-up call: ${new Date().toLocaleDateString()} - Score: ${leadScore}/10`
-          )
+          urgencyLevel: contactData.urgencyLevel
         });
-        console.log('✅ Updated existing contact:', existingContact.id);
+        console.log('✅ Updated existing contact');
       } else {
         const newContactRef = await admin.firestore()
           .collection('contacts')
@@ -1456,36 +1113,18 @@ exports.processAIReceptionistCall = functions.firestore
         console.log('✅ Created new contact:', newContactRef.id);
       }
       
-      // Update aiReceptionistCall document
+      // Mark as processed
       await snap.ref.update({
         processed: true,
         processedAt: admin.firestore.FieldValue.serverTimestamp(),
-        
-        extractedData: {
-          firstName: extracted.firstName,
-          lastName: extracted.lastName,
-          phone: extracted.phone,
-          email: extracted.email,
-          address: extracted.address,
-          creditScore: extracted.creditScore,
-          issues: extracted.issues,
-          bestTimeToCall: extracted.bestTimeToCall,
-          interestLevel: extracted.interestLevel
-        },
-        
-        leadScore: leadScore,
+        leadScore,
         category: 'lead',
-        urgencyLevel: urgencyLevel,
-        extractionMethod: extractionMethod,
-        
-        callerName: contactData.fullName,
-        customerName: contactData.fullName,
-        customerPhone: extracted.phone,
-        intent: extracted.issues.join(', ') || 'credit repair inquiry'
+        urgencyLevel,
+        callerName
       });
       
-      console.log('✅ Successfully processed with', extractionMethod);
-      return { success: true, leadScore, contactName: contactData.fullName, method: extractionMethod };
+      console.log('✅ Successfully processed call');
+      return { success: true };
       
     } catch (error) {
       console.error('❌ Error processing call:', error);
@@ -1493,7 +1132,6 @@ exports.processAIReceptionistCall = functions.firestore
       await snap.ref.update({
         processed: false,
         processingError: error.message,
-        processingErrorStack: error.stack,
         processingAttemptedAt: admin.firestore.FieldValue.serverTimestamp()
       });
       
