@@ -739,7 +739,7 @@ const InformationSheet = ({
     });
   };
   
-  const handleSubmit = async (data) => {
+  const onSubmit = async (data) => {
     try {
       setLoading(true);
       
@@ -1890,7 +1890,7 @@ const InformationSheet = ({
                       <Button
                         variant="contained"
                         color="success"
-                        onClick={handleSubmit(handleSubmit)}
+                        onClick={handleSubmit(onSubmit)}
                         disabled={loading || !completedSections.includes('consent')}
                         startIcon={<Send />}
                       >
