@@ -65,13 +65,6 @@ import {
   TablePagination,
   ToggleButton,
   ToggleButtonGroup,
-  Timeline,
-  TimelineItem,
-  TimelineSeparator,
-  TimelineConnector,
-  TimelineContent,
-  TimelineDot,
-  TimelineOppositeContent,
   Backdrop,
   SpeedDial,
   SpeedDialIcon,
@@ -91,6 +84,15 @@ import {
   Container,
   ButtonGroup
 } from '@mui/material';
+import {
+  Timeline,
+  TimelineItem,
+  TimelineSeparator,
+  TimelineConnector,
+  TimelineContent,
+  TimelineDot,
+  TimelineOppositeContent
+} from '@mui/lab';
 import {
   Description,
   Assignment,
@@ -1880,28 +1882,17 @@ const FullAgreement = ({
                           </Typography>
                           <List>
                             <ListItem>
-                              <List
-                    name="clientName"
-                    control={control}
-                    rules={{ required: 'Name is required' }}
-                    render={({ field }) => (
-                      <TextField
-                        {...field}
-                        fullWidth
-                        label="Full Name"
-                        error={Boolean(errors.clientName || validationErrors.clientName)}
-                        helperText={errors.clientName?.message || validationErrors.clientName}
-                        InputProps={{
-                          startAdornment: (
-                            <InputAdornment position="start">
-                              <Person />
-                            </InputAdornment>
-                          )
-                        }}
-                      />
-                    )}
-                  />
-                </Grid>
+                              <ListItemText primary="Client will provide necessary documentation and authorization to proceed with disputes." />
+                            </ListItem>
+                          </List>
+                        </>
+                      )}
+                    </Box>
+                  </AccordionDetails>
+                </Accordion>
+              ))}
+
+                <Grid item xs={12} sm={6}>
                 
                 <Grid item xs={12} sm={6}>
                   <Controller

@@ -226,7 +226,7 @@ import {
   IceSkating,
   Sledding,
   Paragliding,
-  KiteBoarding
+  
 } from '@mui/icons-material';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { doc, setDoc, getDoc, updateDoc, deleteDoc, collection, query, where, orderBy, limit, getDocs, serverTimestamp, onSnapshot } from 'firebase/firestore';
