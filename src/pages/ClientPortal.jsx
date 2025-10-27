@@ -42,7 +42,7 @@ import {
 // Lucide Icons
 import {
   LayoutDashboard, TrendingUp, TrendingDown, Activity, Target, Award,
-  BarChart3, LineChart, PieChart, AreaChart, Shield, ShieldCheck,
+  BarChart3 as Bar, BarChart3, LineChart, PieChart, AreaChart, Shield, ShieldCheck,
   Plus, Edit2, Trash2, Save, Download, Upload, Share2, Copy, Check,
   X, RefreshCw, Filter, Search, SlidersHorizontal, Eye, EyeOff,
   Home, FileText, CreditCard, Users, Settings, Bell, HelpCircle,

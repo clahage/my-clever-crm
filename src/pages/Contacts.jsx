@@ -11,7 +11,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import InteractionLogger from '../components/InteractionLogger';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { 
-  Users, Plus, Search, Filter, Mail, Phone, MapPin, Calendar, Edit, Trash2, Eye,
+  Users, User, Plus, Search, Filter, Mail, Phone, MapPin, Calendar, Edit, Trash2, Eye,
   ChevronDown, Download, Upload, UserCheck, UserPlus, Star, Building2, Tag,
   AlertCircle, CheckCircle, XCircle, RefreshCw, ArrowUpCircle, Hash, Shield,
   Clock, FileText, Paperclip, X, MessageSquare, TrendingUp, Target, DollarSign,

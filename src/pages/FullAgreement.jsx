@@ -283,6 +283,7 @@ import {
   SecurityUpdate,
   SecurityUpdateGood,
   SecurityUpdateWarning
+  ,Visibility
 } from '@mui/icons-material';
 import SignatureCanvas from 'react-signature-canvas';
 import { useForm, Controller, useFieldArray, useWatch } from 'react-hook-form';
