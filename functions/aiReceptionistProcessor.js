@@ -1,461 +1,419 @@
 // functions/aiReceptionistProcessor.js
-// Processes incoming AI Receptionist calls and creates/updates contacts
+// IMPROVED VERSION - Smart Name Handling
+// Handles missing names by extracting from email and flagging for review
 
-const functions = require('firebase-functions');
 const admin = require('firebase-admin');
-const aiService = require('./aiService');
-
-// Initialize if not already done
-if (!admin.apps.length) {
-  admin.initializeApp();
-}
-
-const db = admin.firestore();
+const { FieldValue } = require('firebase-admin/firestore');
 
 /**
- * Triggered when a new document is created in aiReceptionistCalls
- * Processes the call and creates/updates contact record
+ * Extract potential name from email address
+ * Examples:
+ *   john.smith@email.com → { firstName: "John", lastName: "Smith" }
+ *   jsmith@email.com → { firstName: "Jsmith", lastName: "" }
+ *   kuva.caid@yahoo.com → { firstName: "Kuva", lastName: "Caid" }
  */
-exports.processAIReceptionistCall = functions.firestore
-  .document('aiReceptionistCalls/{callId}')
-  .onCreate(async (snap, context) => {
-    const callData = snap.data();
-    const callId = context.params.callId;
-
-    console.log(`Processing AI Receptionist call: ${callId}`);
-
-    try {
-      // Step 1: Analyze call transcript with AI
-      const analysis = await analyzeCallWithAI(callData);
-
-      // Step 2: Search for existing contact
-      const existingContact = await findExistingContact(callData);
-
-      // Step 3: Create or update contact
-      let contactId;
-      if (existingContact) {
-        contactId = existingContact.id;
-        await updateExistingContact(existingContact, callData, analysis);
-        console.log(`Updated existing contact: ${contactId}`);
-      } else {
-        contactId = await createNewContact(callData, analysis);
-        console.log(`Created new contact: ${contactId}`);
-      }
-
-      // Step 4: Update aiReceptionistCall with processing status
-      await snap.ref.update({
-        processed: true,
-        processedAt: admin.firestore.FieldValue.serverTimestamp(),
-        contactId: contactId,
-        analysis: analysis
-      });
-
-      // Step 5: Create follow-up task if needed
-      if (analysis.priority === 'urgent' || analysis.leadTemperature === 'hot') {
-        await createFollowUpTask(contactId, analysis);
-      }
-
-      // Step 6: Send notification to appropriate team member
-      await sendTeamNotification(contactId, analysis);
-
-      return { success: true, contactId };
-
-    } catch (error) {
-      console.error('Error processing AI Receptionist call:', error);
-      
-      // Update call with error status
-      await snap.ref.update({
-        processed: false,
-        processedAt: admin.firestore.FieldValue.serverTimestamp(),
-        error: error.message
-      });
-
-      // Alert admin about processing failure
-      await alertAdmin(callId, error);
-
-      throw error;
-    }
-  });
-
-/**
- * Analyze call transcript using OpenAI
- */
-async function analyzeCallWithAI(callData) {
-  console.log('Analyzing call with AI...');
-
-  const transcript = callData.transcript || callData.callNotes || '';
-  
-  const prompt = `Analyze this customer service call transcript and extract key information:
-
-TRANSCRIPT:
-${transcript}
-
-CALLER INFO:
-- Phone: ${callData.phone || callData.callerID || 'unknown'}
-- Name: ${callData.firstName || ''} ${callData.lastName || ''}
-- Email: ${callData.email || 'not provided'}
-
-Provide a JSON response with:
-1. roles: Array of roles (always include "contact", then add "lead", "client", "previousClient", "affiliate", or "vendor" as appropriate)
-2. leadTemperature: "hot", "warm", or "cold" (only if lead role assigned)
-3. urgencyScore: 1-10 based on caller's situation
-4. priority: "urgent", "high", "medium", or "low"
-5. callIntent: Brief summary of why they called
-6. creditSituation: Summary of their credit issues (if mentioned)
-7. goals: What they're trying to achieve
-8. nextAction: Recommended next step
-9. nextActionDue: When to follow up (ISO timestamp, relative to call time: ${callData.callTimestamp})
-10. assignedTo: Suggested team member ("chris", "laurie", or "sales_team")
-11. requiresOwnerAttention: true if urgent complaint or high-value opportunity
-12. keyInsights: Array of important points from the call
-13. sentiment: "positive", "neutral", or "negative"
-
-DECISION RULES:
-- Hot lead: Urgency 8-10, specific timeline, ready to act NOW
-- Warm lead: Urgency 5-7, researching, interested but no immediate timeline
-- Cold lead: Urgency 1-4, general inquiry
-- Urgent priority: Time-sensitive loan application, complaint, or high urgency score
-- Previous client: Mentions being a past customer
-- Client: Mentions current account or recent agreement
-- Requires owner attention: Complaint, high-value opportunity (mortgage, large purchase), or urgency 10
-
-Return ONLY valid JSON, no other text.`;
+function extractNameFromEmail(email) {
+  if (!email || typeof email !== 'string') {
+    return { firstName: '', lastName: '' };
+  }
 
   try {
-    // Use the secure aiService
-    const response = await aiService.complete({
-      prompt: prompt,
-      maxTokens: 1000,
-      temperature: 0.3 // Lower temperature for more consistent analysis
-    });
-
-    const analysis = JSON.parse(response.text);
+    // Get the part before @
+    const localPart = email.split('@')[0];
     
-    // Ensure roles always includes "contact"
-    if (!analysis.roles.includes('contact')) {
-      analysis.roles.unshift('contact');
+    // Remove numbers and special chars except dots, hyphens, underscores
+    const cleaned = localPart.replace(/[0-9]/g, '').replace(/[^a-zA-Z.\-_]/g, '');
+    
+    // Split by common separators
+    const parts = cleaned.split(/[.\-_]+/).filter(p => p.length > 0);
+    
+    if (parts.length === 0) {
+      return { firstName: '', lastName: '' };
     }
-
-    return analysis;
-
+    
+    // Capitalize first letter of each part
+    const capitalized = parts.map(part => 
+      part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
+    );
+    
+    if (capitalized.length === 1) {
+      // Single part - use as first name only
+      return { 
+        firstName: capitalized[0], 
+        lastName: '' 
+      };
+    } else if (capitalized.length === 2) {
+      // Two parts - first and last name
+      return { 
+        firstName: capitalized[0], 
+        lastName: capitalized[1] 
+      };
+    } else {
+      // Multiple parts - use first as firstName, rest as lastName
+      return { 
+        firstName: capitalized[0], 
+        lastName: capitalized.slice(1).join(' ') 
+      };
+    }
   } catch (error) {
-    console.error('AI analysis failed:', error);
+    console.error('Error extracting name from email:', error);
+    return { firstName: '', lastName: '' };
+  }
+}
+
+/**
+ * Determine contact quality and flags based on available data
+ */
+function analyzeContactQuality(contactData) {
+  const hasFirstName = contactData.firstName && contactData.firstName !== 'Unknown' && contactData.firstName !== '';
+  const hasLastName = contactData.lastName && contactData.lastName !== '';
+  const hasEmail = contactData.email && contactData.email !== '';
+  const hasPhone = contactData.phone && contactData.phone !== '';
+  const nameFromEmail = contactData.nameSource === 'email';
+  
+  const flags = [];
+  const tags = [];
+  let quality = 'good';
+  let needsManualReview = false;
+  
+  // Check name quality
+  if (!hasFirstName && !hasLastName) {
+    quality = 'poor';
+    flags.push('MISSING_NAME');
+    tags.push('name-needed');
+    needsManualReview = true;
+  } else if (nameFromEmail) {
+    quality = 'fair';
+    flags.push('NAME_FROM_EMAIL');
+    tags.push('verify-name');
+    needsManualReview = true;
+  } else if (!hasLastName) {
+    quality = 'fair';
+    flags.push('MISSING_LAST_NAME');
+    tags.push('verify-name');
+  }
+  
+  // Check contact info
+  if (!hasEmail) {
+    quality = quality === 'good' ? 'fair' : 'poor';
+    flags.push('MISSING_EMAIL');
+  }
+  
+  if (!hasPhone) {
+    quality = 'poor';
+    flags.push('MISSING_PHONE');
+  }
+  
+  // High priority flags
+  if (contactData.urgencyLevel === 'critical' || contactData.urgencyLevel === 'high') {
+    flags.push('HIGH_PRIORITY');
+    needsManualReview = true;
+  }
+  
+  if (contactData.leadScore >= 8) {
+    flags.push('HOT_LEAD');
+    needsManualReview = true;
+  }
+  
+  return {
+    quality,
+    flags,
+    tags,
+    needsManualReview,
+    dataCompleteness: {
+      firstName: hasFirstName,
+      lastName: hasLastName,
+      email: hasEmail,
+      phone: hasPhone,
+      nameVerified: !nameFromEmail
+    }
+  };
+}
+
+/**
+ * Process AI Receptionist call data and create/update contact
+ */
+async function processAIReceptionistCall(callData, callId) {
+  const db = admin.firestore();
+  
+  console.log(`📞 Processing AI Receptionist call: ${callId}`);
+  
+  try {
+    // Extract data
+    const extractedData = callData.extractedData || {};
+    let firstName = extractedData.firstName || callData.customerName || '';
+    let lastName = extractedData.lastName || '';
+    const email = extractedData.email || callData.email || '';
+    const phone = extractedData.phone || callData.customerPhone || callData.phone || '';
     
-    // Return fallback analysis
-    return {
+    let nameSource = 'transcript'; // or 'email' or 'unknown'
+    
+    // Handle missing names
+    if (!firstName || firstName === 'Unknown' || firstName === '') {
+      console.log('⚠️ Name missing or Unknown, attempting extraction from email...');
+      
+      if (email) {
+        const extractedName = extractNameFromEmail(email);
+        if (extractedName.firstName) {
+          firstName = extractedName.firstName;
+          lastName = extractedName.lastName;
+          nameSource = 'email';
+          console.log(`✅ Extracted name from email: ${firstName} ${lastName}`);
+        } else {
+          firstName = 'Unknown';
+          lastName = '';
+          nameSource = 'unknown';
+          console.log('❌ Could not extract name from email');
+        }
+      } else {
+        firstName = 'Unknown';
+        lastName = '';
+        nameSource = 'unknown';
+        console.log('❌ No email available for name extraction');
+      }
+    }
+    
+    // Build contact data
+    const contactData = {
+      // Basic Info
+      firstName: firstName,
+      lastName: lastName || '',
+      fullName: lastName ? `${firstName} ${lastName}` : firstName,
+      nameSource: nameSource, // NEW: Track where name came from
+      
+      // Contact Info
+      email: email,
+      phone: phone,
+      
+      // AI Receptionist Data
+      source: 'ai-receptionist',
+      aiReceptionistCallId: callId,
+      
+      // Lead Info
+      category: callData.category || 'lead',
+      leadScore: callData.leadScore || extractedData.leadScore || 5,
+      urgencyLevel: callData.urgencyLevel || extractedData.urgencyLevel || 'medium',
+      lifecycleStatus: 'new',
+      
+      // Roles
+      primaryRole: 'lead',
       roles: ['contact', 'lead'],
-      leadTemperature: 'warm',
-      urgencyScore: 5,
-      priority: 'medium',
-      callIntent: 'Credit repair inquiry',
-      nextAction: 'follow_up',
-      nextActionDue: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-      assignedTo: 'sales_team',
-      requiresOwnerAttention: false,
-      keyInsights: ['AI analysis failed - manual review needed'],
-      sentiment: 'neutral'
+      
+      // Intent & Interests
+      intent: callData.intent || 'credit repair inquiry',
+      interestLevel: extractedData.interestLevel || 'medium',
+      
+      // Credit Info
+      creditInfo: {
+        estimatedScore: extractedData.creditScore || null,
+        goals: extractedData.creditGoals || callData.intent || 'Credit repair',
+        issues: extractedData.issues || [],
+        source: 'ai-receptionist-call'
+      },
+      
+      // Communication Preferences
+      preferredContact: 'phone',
+      bestTimeToCall: extractedData.bestTimeToCall || '',
+      
+      // Location
+      address: extractedData.address || null,
+      city: extractedData.address?.city || '',
+      state: extractedData.address?.state || '',
+      
+      // Sentiment & Analysis
+      sentiment: callData.sentiment || {
+        positive: 0,
+        neutral: 100,
+        negative: 0,
+        description: 'No sentiment data available'
+      },
+      
+      // Call Details
+      callDate: callData.timestamp || admin.firestore.FieldValue.serverTimestamp(),
+      
+      // Metadata
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      lastActivityDate: admin.firestore.FieldValue.serverTimestamp(),
+      
+      // Extraction Method
+      extractionMethod: callData.extractionMethod || 'transcript-parse+ai-extraction'
     };
-  }
-}
-
-/**
- * Search for existing contact by phone, email, or name
- */
-async function findExistingContact(callData) {
-  console.log('Searching for existing contact...');
-
-  // Normalize phone number for search
-  const normalizedPhone = normalizePhoneNumber(callData.phone || callData.callerID);
-
-  // Search by phone number first (most reliable)
-  if (normalizedPhone) {
-    const phoneQuery = await db.collection('contacts')
-      .where('phone', '==', normalizedPhone)
-      .limit(1)
-      .get();
-
-    if (!phoneQuery.empty) {
-      return { id: phoneQuery.docs[0].id, ...phoneQuery.docs[0].data() };
-    }
-  }
-
-  // Search by email if provided
-  if (callData.email) {
-    const emailQuery = await db.collection('contacts')
-      .where('email', '==', callData.email.toLowerCase())
-      .limit(1)
-      .get();
-
-    if (!emailQuery.empty) {
-      return { id: emailQuery.docs[0].id, ...emailQuery.docs[0].data() };
-    }
-  }
-
-  // Search by name combination (less reliable, requires both first and last)
-  if (callData.firstName && callData.lastName) {
-    const nameQuery = await db.collection('contacts')
-      .where('firstName', '==', callData.firstName)
-      .where('lastName', '==', callData.lastName)
-      .limit(1)
-      .get();
-
-    if (!nameQuery.empty) {
-      return { id: nameQuery.docs[0].id, ...nameQuery.docs[0].data() };
-    }
-  }
-
-  return null; // No existing contact found
-}
-
-/**
- * Create new contact from call data
- */
-async function createNewContact(callData, analysis) {
-  console.log('Creating new contact...');
-
-  const contactData = {
-    // Basic Info
-    firstName: callData.firstName || 'Unknown',
-    lastName: callData.lastName || 'Caller',
-    email: callData.email ? callData.email.toLowerCase() : null,
-    phone: normalizePhoneNumber(callData.phone || callData.callerID),
-
-    // Address (if provided)
-    address: callData.address || {
-      street: callData.street || null,
-      city: callData.city || null,
-      state: callData.state || null,
-      zipCode: callData.zipCode || null,
-      county: callData.county || null,
-      timeZone: callData.timeZone || null
-    },
-
-    // Identity
-    dateOfBirth: callData.dateOfBirth || null,
-    ssn_last4: callData.ssn_last4 || null,
-    needsFullSSN: callData.needsFullSSN || true,
-
-    // Contact Preferences
-    preferredContactMethod: callData.preferredContactMethod || ['phone'],
-    bestTimeToContact: callData.bestTimeToContact || null,
-
-    // Lead Intelligence (from AI analysis)
-    roles: analysis.roles,
-    leadTemperature: analysis.leadTemperature || null,
-    urgencyScore: analysis.urgencyScore || 5,
-    priority: analysis.priority,
-
-    // Call Details
-    callIntent: analysis.callIntent,
-    creditSituation: analysis.creditSituation || null,
-    goals: analysis.goals || null,
-    callNotes: callData.transcript || callData.callNotes || '',
-    additionalNotes: callData.additionalNotes || null,
-
-    // Metadata
-    source: 'aiReceptionist',
-    callTimestamp: callData.callTimestamp || admin.firestore.FieldValue.serverTimestamp(),
-    callerID: callData.callerID || callData.phone,
-
-    // Status & Assignment
-    status: 'new',
-    assignedTo: analysis.assignedTo || null,
-    nextAction: analysis.nextAction,
-    nextActionDue: analysis.nextActionDue ? admin.firestore.Timestamp.fromDate(new Date(analysis.nextActionDue)) : null,
-    requiresOwnerAttention: analysis.requiresOwnerAttention || false,
-
-    // Sentiment & Insights
-    sentiment: analysis.sentiment || 'neutral',
-    keyInsights: analysis.keyInsights || [],
-
-    // Tracking
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    createdBy: 'aiReceptionist',
-    lastContactedAt: admin.firestore.FieldValue.serverTimestamp(),
-
-    // Activity Log
-    activityLog: [{
-      type: 'call',
-      timestamp: admin.firestore.FieldValue.serverTimestamp(),
-      notes: `AI Receptionist call: ${analysis.callIntent}`,
-      createdBy: 'aiReceptionist'
-    }]
-  };
-
-  // Remove null values
-  Object.keys(contactData).forEach(key => {
-    if (contactData[key] === null || contactData[key] === undefined) {
-      delete contactData[key];
-    }
-  });
-
-  const contactRef = await db.collection('contacts').add(contactData);
-  return contactRef.id;
-}
-
-/**
- * Update existing contact with new call information
- */
-async function updateExistingContact(existingContact, callData, analysis) {
-  console.log(`Updating existing contact: ${existingContact.id}`);
-
-  const updates = {
-    // Always update these
-    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    lastContactedAt: admin.firestore.FieldValue.serverTimestamp(),
-
-    // Add new role if AI assigned one that doesn't exist
-    roles: admin.firestore.FieldValue.arrayUnion(...analysis.roles),
-
-    // Update lead temperature if this is a warmer lead
-    ...(shouldUpdateLeadTemperature(existingContact, analysis) && {
-      leadTemperature: analysis.leadTemperature,
-      urgencyScore: analysis.urgencyScore,
-      priority: analysis.priority
-    }),
-
-    // Update contact info if it was missing or caller provided new info
-    ...(callData.email && !existingContact.email && {
-      email: callData.email.toLowerCase()
-    }),
     
-    ...(callData.address && !existingContact.address && {
-      address: callData.address
-    }),
-
-    // Add to activity log
-    activityLog: admin.firestore.FieldValue.arrayUnion({
-      type: 'call',
-      timestamp: admin.firestore.FieldValue.serverTimestamp(),
-      notes: `AI Receptionist call: ${analysis.callIntent}`,
-      sentiment: analysis.sentiment,
-      createdBy: 'aiReceptionist'
-    }),
-
-    // Flag if requires owner attention
-    ...(analysis.requiresOwnerAttention && {
-      requiresOwnerAttention: true,
-      assignedTo: 'chris'
-    })
-  };
-
-  await db.collection('contacts').doc(existingContact.id).update(updates);
-}
-
-/**
- * Determine if lead temperature should be updated
- */
-function shouldUpdateLeadTemperature(existingContact, analysis) {
-  if (!existingContact.roles.includes('lead')) return true;
-  
-  const tempOrder = { cold: 1, warm: 2, hot: 3 };
-  const existingTemp = tempOrder[existingContact.leadTemperature] || 0;
-  const newTemp = tempOrder[analysis.leadTemperature] || 0;
-  
-  return newTemp > existingTemp; // Only update if getting warmer
-}
-
-/**
- * Normalize phone number to (XXX) XXX-XXXX format
- */
-function normalizePhoneNumber(phone) {
-  if (!phone) return null;
-  
-  // Remove all non-digits
-  const digits = phone.replace(/\D/g, '');
-  
-  // Remove leading 1 if present (US country code)
-  const cleaned = digits.startsWith('1') && digits.length === 11 
-    ? digits.substring(1) 
-    : digits;
-  
-  // Format as (XXX) XXX-XXXX
-  if (cleaned.length === 10) {
-    return `(${cleaned.substring(0, 3)}) ${cleaned.substring(3, 6)}-${cleaned.substring(6)}`;
+    // Analyze contact quality
+    const qualityAnalysis = analyzeContactQuality(contactData);
+    
+    // Add quality data to contact
+    contactData.dataQuality = qualityAnalysis.quality;
+    contactData.dataFlags = qualityAnalysis.flags;
+    contactData.dataCompleteness = qualityAnalysis.dataCompleteness;
+    contactData.needsManualReview = qualityAnalysis.needsManualReview;
+    contactData.tags = [...new Set([...(contactData.tags || []), ...qualityAnalysis.tags])];
+    
+    // Build notes with quality warnings
+    let notes = `📞 Call Date: ${new Date().toLocaleString()} `;
+    notes += `\n⏱️ Duration: ${Math.floor(callData.callDuration / 60)}m ${callData.callDuration % 60}s `;
+    notes += `\n📊 Lead Score: ${contactData.leadScore}/10 `;
+    notes += `\n💡 Interest Level: ${contactData.interestLevel} `;
+    
+    if (qualityAnalysis.flags.length > 0) {
+      notes += `\n\n⚠️ DATA QUALITY FLAGS:`;
+      qualityAnalysis.flags.forEach(flag => {
+        notes += `\n  • ${flag.replace(/_/g, ' ')}`;
+      });
+    }
+    
+    if (nameSource === 'email') {
+      notes += `\n\n📧 Name extracted from email address - please verify with caller`;
+    }
+    
+    if (extractedData.issues && extractedData.issues.length > 0) {
+      notes += `\n⚠️ Issues: ${extractedData.issues.join(', ')} `;
+    }
+    
+    if (extractedData.bestTimeToCall) {
+      notes += `\n⏰ Best Time: ${extractedData.bestTimeToCall} `;
+    }
+    
+    notes += `\n🔗 Call Recording: ${callData.rawPayload?.call_info_link || 'N/A'} `;
+    notes += `\n🤖 Extraction: ${contactData.extractionMethod}`;
+    
+    contactData.notes = notes;
+    
+    // Check for existing contact
+    let existingContact = null;
+    
+    // Try to find by phone first (most reliable)
+    if (phone) {
+      const phoneQuery = await db.collection('contacts')
+        .where('phone', '==', phone)
+        .limit(1)
+        .get();
+      
+      if (!phoneQuery.empty) {
+        existingContact = phoneQuery.docs[0];
+        console.log(`✅ Found existing contact by phone: ${existingContact.id}`);
+      }
+    }
+    
+    // Try email if no phone match
+    if (!existingContact && email) {
+      const emailQuery = await db.collection('contacts')
+        .where('email', '==', email)
+        .limit(1)
+        .get();
+      
+      if (!emailQuery.empty) {
+        existingContact = emailQuery.docs[0];
+        console.log(`✅ Found existing contact by email: ${existingContact.id}`);
+      }
+    }
+    
+    let contactId;
+    let action;
+    
+    if (existingContact) {
+      // Update existing contact
+      contactId = existingContact.id;
+      action = 'updated';
+      
+      const existingData = existingContact.data();
+      
+      // Merge roles
+      const mergedRoles = [...new Set([...(existingData.roles || []), ...contactData.roles])];
+      
+      // Update with new data, but preserve existing good data
+      const updateData = {
+        ...contactData,
+        roles: mergedRoles,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        lastActivityDate: admin.firestore.FieldValue.serverTimestamp(),
+        
+        // Only update name if current name is better quality
+        firstName: (existingData.firstName && existingData.firstName !== 'Unknown') 
+          ? existingData.firstName 
+          : contactData.firstName,
+        lastName: existingData.lastName || contactData.lastName,
+        fullName: (existingData.firstName && existingData.firstName !== 'Unknown')
+          ? `${existingData.firstName} ${existingData.lastName || ''}`
+          : contactData.fullName,
+        
+        // Merge notes
+        notes: `${existingData.notes || ''}\n\n--- New Call ${new Date().toLocaleString()} ---\n${notes}`,
+        
+        // Keep higher lead score
+        leadScore: Math.max(existingData.leadScore || 0, contactData.leadScore),
+        
+        // Merge tags
+        tags: [...new Set([...(existingData.tags || []), ...(contactData.tags || [])])],
+        
+        // Merge flags
+        dataFlags: [...new Set([...(existingData.dataFlags || []), ...(contactData.dataFlags || [])])],
+        
+        // Update quality if worse
+        dataQuality: existingData.dataQuality === 'poor' || contactData.dataQuality === 'poor' 
+          ? 'poor' 
+          : contactData.dataQuality,
+        
+        needsManualReview: existingData.needsManualReview || contactData.needsManualReview
+      };
+      
+      await db.collection('contacts').doc(contactId).update(updateData);
+      console.log(`✅ Updated existing contact: ${contactId}`);
+      
+    } else {
+      // Create new contact
+      action = 'created';
+      const docRef = await db.collection('contacts').add(contactData);
+      contactId = docRef.id;
+      console.log(`✅ Created new contact: ${contactId}`);
+    }
+    
+    // Update call record with contact ID
+    await db.collection('aiReceptionistCalls').doc(callId).update({
+      contactId: contactId,
+      processed: true,
+      processedAt: admin.firestore.FieldValue.serverTimestamp(),
+      processingResult: {
+        action: action,
+        contactId: contactId,
+        nameSource: nameSource,
+        quality: qualityAnalysis.quality,
+        flags: qualityAnalysis.flags,
+        needsReview: qualityAnalysis.needsManualReview
+      }
+    });
+    
+    // Log quality issues for monitoring
+    if (qualityAnalysis.needsManualReview) {
+      console.log(`⚠️ Contact ${contactId} needs manual review:`, qualityAnalysis.flags);
+    }
+    
+    return {
+      success: true,
+      contactId: contactId,
+      action: action,
+      quality: qualityAnalysis.quality,
+      needsReview: qualityAnalysis.needsManualReview,
+      flags: qualityAnalysis.flags
+    };
+    
+  } catch (error) {
+    console.error('❌ Error processing AI Receptionist call:', error);
+    
+    // Mark call as failed
+    await db.collection('aiReceptionistCalls').doc(callId).update({
+      processed: false,
+      processingError: error.message,
+      processingErrorAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+    
+    throw error;
   }
-  
-  return phone; // Return original if can't normalize
-}
-
-/**
- * Create follow-up task for urgent/hot leads
- */
-async function createFollowUpTask(contactId, analysis) {
-  console.log('Creating follow-up task...');
-
-  const taskData = {
-    contactId: contactId,
-    type: 'callback',
-    priority: analysis.priority,
-    title: `Follow up: ${analysis.callIntent}`,
-    description: `AI Receptionist call - ${analysis.leadTemperature} lead\n\nKey insights:\n${analysis.keyInsights.join('\n')}`,
-    dueDate: analysis.nextActionDue ? admin.firestore.Timestamp.fromDate(new Date(analysis.nextActionDue)) : null,
-    assignedTo: analysis.assignedTo,
-    status: 'pending',
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    createdBy: 'aiReceptionist'
-  };
-
-  await db.collection('tasks').add(taskData);
-}
-
-/**
- * Send notification to team member
- */
-async function sendTeamNotification(contactId, analysis) {
-  console.log('Sending team notification...');
-
-  // Get contact data for notification
-  const contactDoc = await db.collection('contacts').doc(contactId).get();
-  const contact = contactDoc.data();
-
-  const notificationData = {
-    type: 'new_lead',
-    priority: analysis.priority,
-    title: `New ${analysis.leadTemperature} lead from AI Receptionist`,
-    message: `${contact.firstName} ${contact.lastName} called about: ${analysis.callIntent}`,
-    contactId: contactId,
-    assignedTo: analysis.assignedTo,
-    requiresOwnerAttention: analysis.requiresOwnerAttention,
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    read: false,
-    metadata: {
-      leadTemperature: analysis.leadTemperature,
-      urgencyScore: analysis.urgencyScore,
-      sentiment: analysis.sentiment,
-      keyInsights: analysis.keyInsights
-    }
-  };
-
-  await db.collection('notifications').add(notificationData);
-}
-
-/**
- * Alert admin about processing failure
- */
-async function alertAdmin(callId, error) {
-  console.error('Alerting admin about processing failure...');
-
-  const alertData = {
-    type: 'system_error',
-    priority: 'urgent',
-    title: 'AI Receptionist Call Processing Failed',
-    message: `Call ${callId} could not be processed: ${error.message}`,
-    assignedTo: 'chris',
-    requiresOwnerAttention: true,
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    read: false,
-    metadata: {
-      callId: callId,
-      error: error.message,
-      stack: error.stack
-    }
-  };
-
-  await db.collection('notifications').add(alertData);
 }
 
 module.exports = {
-  processAIReceptionistCall: exports.processAIReceptionistCall
+  processAIReceptionistCall,
+  extractNameFromEmail,
+  analyzeContactQuality
 };

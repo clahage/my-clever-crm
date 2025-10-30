@@ -3,7 +3,7 @@
 // 3000+ LINES - PRODUCTION READY
 // LAST UPDATED: 2025-10-12
 
-import UltimateClientForm from '@/components/UltimateClientForm';
+import MegaContactForm from '@/components/forms/MegaContactForm';
 import ImportContactsModal from '../components/ImportContactsModal';
 import ExportModal from '../components/ExportModal';
 import BulkActions from '../components/BulkActions';
@@ -2290,31 +2290,6 @@ const Contacts = () => {
                                 <Bot className="h-3 w-3 text-purple-600 dark:text-purple-400" title="AI Generated" />
                               )}
                             </div>
-                            
-                            {/* Created Date - NEW! */}
-                            {contact.createdAt && (
-                              <div className="flex items-center gap-1 mt-0.5">
-                                <Clock className="h-3 w-3 text-gray-400" />
-                                <span className="text-xs text-gray-500 dark:text-gray-400">
-                                  Added {(() => {
-                                    const created = contact.createdAt?.toDate ? contact.createdAt.toDate() : new Date(contact.createdAt);
-                                    const now = new Date();
-                                    const diffMs = now - created;
-                                    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-                                    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-                                    const diffMinutes = Math.floor(diffMs / (1000 * 60));
-                                    
-                                    if (diffMinutes < 60) return `${diffMinutes}m ago`;
-                                    if (diffHours < 24) return `${diffHours}h ago`;
-                                    if (diffDays < 7) return `${diffDays}d ago`;
-                                    if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
-                                    if (diffDays < 365) return `${Math.floor(diffDays / 30)}mo ago`;
-                                    return created.toLocaleDateString();
-                                  })()}
-                                </span>
-                              </div>
-                            )}
-                            
                             {contact.company && (
                               <div className="text-xs text-gray-500 dark:text-gray-400">{contact.company}</div>
                             )}
@@ -2616,25 +2591,46 @@ const Contacts = () => {
       )}
 
       {/* ========== MODALS ========== */}
-                 
+      
+      {/* Mega Contact Form Modal */}
+      {(() => {
+        console.log('🔍 RENDER CHECK:', {
+          showMegaForm,
+          componentExists: !!MegaContactForm,
+          componentType: typeof MegaContactForm,
+          editingContact,
+          formMode
+        });
+        return null;
+      })()}
+      
       {showMegaForm && (
-  <UltimateClientForm
-    initialData={editingContact || {}}
-    contactId={editingContact?.id || null}
-    onSave={async (savedContact) => {
-      setShowMegaForm(false);
-      setEditingContact(null);
-      setFormMode('create');
-      await fetchContacts(false);
-      showNotification('Contact saved successfully!', 'success');
-    }}
-    onCancel={() => {
-      setShowMegaForm(false);
-      setEditingContact(null);
-      setFormMode('create');
-    }}
-  />
-)}
+        <>
+          {console.log('🟢 RENDERING MegaContactForm NOW!')}
+          <MegaContactForm
+            onClose={() => {
+              console.log('🔴 Close clicked');
+              setShowMegaForm(false);
+              setEditingContact(null);
+              setFormMode('create');
+            }}
+            onSuccess={(newContact) => {
+              console.log('✅ Contact saved:', newContact);
+              setShowMegaForm(false);
+              setEditingContact(null);
+              setFormMode('create');
+              alert('Contact created successfully!');
+              
+              // Refresh contacts
+              if (typeof fetchContacts === 'function') {
+                fetchContacts(false);
+              }
+            }}
+            existingContact={editingContact}
+            mode={formMode}
+          />
+        </>
+      )}
 
       {/* Interaction Logger Modal */}
       {showInteractionLogger && selectedContactForInteraction && (
@@ -2683,153 +2679,6 @@ const Contacts = () => {
               >
                 Delete Contact
               </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Contact Details Modal */}
-      {showContactDetails && selectedContactDetails && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            {/* Header */}
-            <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {selectedContactDetails.firstName} {selectedContactDetails.lastName}
-                </h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Contact Details</p>
-              </div>
-              <button
-                onClick={() => {
-                  setShowContactDetails(false);
-                  setSelectedContactDetails(null);
-                }}
-                className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            {/* Content */}
-            <div className="p-6 space-y-6">
-              {/* Lead Score & Roles */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Star className="h-5 w-5 text-blue-600" />
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Lead Score</span>
-                  </div>
-                  <p className="text-3xl font-bold text-blue-600">{selectedContactDetails.leadScore || 'N/A'}/10</p>
-                </div>
-                <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Users className="h-5 w-5 text-purple-600" />
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Roles</span>
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {selectedContactDetails.roles?.map(role => (
-                      <span key={role} className="px-2 py-1 bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 text-xs rounded">
-                        {role}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Contact Information */}
-              <div className="space-y-3">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                  <Phone className="h-5 w-5" /> Contact Information
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {selectedContactDetails.phone && (
-                    <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                      <Phone className="h-4 w-4 text-gray-500" />
-                      <div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Phone</p>
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedContactDetails.phone}</p>
-                      </div>
-                    </div>
-                  )}
-                  {selectedContactDetails.email && (
-                    <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                      <Mail className="h-4 w-4 text-gray-500" />
-                      <div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Email</p>
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedContactDetails.email}</p>
-                      </div>
-                    </div>
-                  )}
-                  {selectedContactDetails.city && (
-                    <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                      <MapPin className="h-4 w-4 text-gray-500" />
-                      <div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Location</p>
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">
-                          {selectedContactDetails.city}, {selectedContactDetails.state}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                  {selectedContactDetails.createdAt && (
-                    <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                      <Calendar className="h-4 w-4 text-gray-500" />
-                      <div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Added</p>
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">
-                          {new Date(selectedContactDetails.createdAt?.toDate()).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Source & Notes */}
-              {(selectedContactDetails.source || selectedContactDetails.notes) && (
-                <div className="space-y-3">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Additional Info</h3>
-                  {selectedContactDetails.source && (
-                    <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Source</p>
-                      <p className="text-sm text-gray-900 dark:text-white">{selectedContactDetails.source}</p>
-                    </div>
-                  )}
-                  {selectedContactDetails.notes && (
-                    <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Notes</p>
-                      <p className="text-sm text-gray-900 dark:text-white whitespace-pre-wrap">{selectedContactDetails.notes}</p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-                <button
-                  onClick={() => {
-                    setShowContactDetails(false);
-                    setSelectedContactDetails(null);
-                    setEditingContact(selectedContactDetails);
-                    setFormMode('edit');
-                    setShowMegaForm(true);
-                  }}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
-                >
-                  <Edit className="h-4 w-4" />
-                  Edit Contact
-                </button>
-                <button
-                  onClick={() => {
-                    setShowContactDetails(false);
-                    setSelectedContactDetails(null);
-                  }}
-                  className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-                >
-                  Close
-                </button>
-              </div>
             </div>
           </div>
         </div>

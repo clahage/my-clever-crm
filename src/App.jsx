@@ -1,6 +1,7 @@
 // src/App.jsx - SpeedyCRM Complete Application Router
 // VERSION: 2.2 - FIXED DUPLICATE PublicRoute ERROR
 // LAST UPDATED: 2025-10-11
+import EmailWorkflowDashboard from './components/EmailWorkflowDashboard';
 import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
@@ -337,6 +338,7 @@ const AppContent = () => {
         <Route path="letters" element={<Suspense fallback={<LoadingFallback />}><Letters /></Suspense>} />
         <Route path="emails" element={<Suspense fallback={<LoadingFallback />}><Emails /></Suspense>} />
         <Route path="communications" element={<Suspense fallback={<LoadingFallback />}><CommunicationsCenter /></Suspense>} />
+        <Route path="email-workflows" element={<Suspense fallback={<LoadingFallback />}><EmailWorkflowDashboard /></Suspense>} />
         <Route path="sms" element={<Suspense fallback={<LoadingFallback />}><SMS /></Suspense>} />
         <Route path="drip-campaigns" element={<Suspense fallback={<LoadingFallback />}><DripCampaigns /></Suspense>} />
         <Route path="templates" element={<Suspense fallback={<LoadingFallback />}><Templates /></Suspense>} />

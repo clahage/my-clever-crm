@@ -247,7 +247,7 @@ export const navigationItems = [
     description: 'Review, approve, and send AI-generated credit analysis',
     category: 'ai'
   },
-
+  
   // ==========================================================================
   // 👥 CONTACTS & CRM
   // ==========================================================================
@@ -268,6 +268,16 @@ export const navigationItems = [
         permission: 'user',
         mobileHidden: false,
         description: 'Manage all client contacts'
+      },
+      {
+        id: 'email-workflows',
+        title: 'Email Workflows',
+        path: '/email-workflows',
+        icon: Mail,
+        permission: 'admin',
+        mobileHidden: true,
+        badge: 'AI',
+        description: 'Automated email campaigns with AI personalization'
       },
       { 
         id: 'pipeline', 

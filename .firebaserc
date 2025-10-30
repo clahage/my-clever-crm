@@ -12,5 +12,11 @@
       }
     }
   },
-  "etags": {}
+  "etags": {
+    "my-clever-crm": {
+      "extensionInstances": {
+        "firestore-send-email": "eb92105fac14085b1d1e0ec7ddf8e978ea16ae4a85169992f88909d48985bfb3"
+      }
+    }
+  }
 }

@@ -51,6 +51,9 @@ const {
 exports.receiveAIReceptionistCall = receiveAIReceptionistCall;
 exports.reprocessAIReceptionistCall = reprocessAIReceptionistCall;
 
+// Processor utilities for AI receptionist handling
+const { processAIReceptionistCall, extractNameFromEmail } = require('./aiReceptionistProcessor');
+
 // ============================================
 // NOTIFICATIONS
 // ============================================
@@ -200,6 +203,189 @@ exports.trackEmailOpen = functions.runWith({
   });
   
   res.end(pixel);
+});
+
+/**
+ * NEW FUNCTION: Fix existing "Unknown" contacts
+ * Call this once to retroactively fix contacts with missing names
+ * URL: https://us-central1-my-clever-crm.cloudfunctions.net/fixUnknownContacts?apiKey=YOUR_KEY
+ */
+exports.fixUnknownContacts = functions.https.onRequest(async (req, res) => {
+  // Security check
+  const apiKey = req.query.apiKey;
+  const WEBHOOK_API_KEY = 'scr-webhook-2025-secure-key-abc123';
+  
+  if (apiKey !== WEBHOOK_API_KEY) {
+    return res.status(403).json({ error: 'Unauthorized' });
+  }
+  
+  try {
+    const db = admin.firestore();
+    
+    // Find all contacts with firstName = "Unknown" or empty
+    const unknownContactsQuery = await db.collection('contacts')
+      .where('firstName', 'in', ['Unknown', '', null])
+      .get();
+    
+    console.log(`📊 Found ${unknownContactsQuery.size} contacts with missing names`);
+    
+    const results = {
+      total: unknownContactsQuery.size,
+      fixed: 0,
+      flagged: 0,
+      skipped: 0,
+      details: []
+    };
+    
+    for (const doc of unknownContactsQuery.docs) {
+      const contact = doc.data();
+      const contactId = doc.id;
+      
+      let action = 'skipped';
+      let newFirstName = contact.firstName;
+      let newLastName = contact.lastName || '';
+      let nameSource = 'unknown';
+      
+      // Try to extract name from email
+      if (contact.email) {
+        const extracted = extractNameFromEmail(contact.email);
+        
+        if (extracted.firstName && extracted.firstName !== '') {
+          newFirstName = extracted.firstName;
+          newLastName = extracted.lastName;
+          nameSource = 'email';
+          action = 'fixed';
+          results.fixed++;
+          
+          // Update contact
+          await db.collection('contacts').doc(contactId).update({
+            firstName: newFirstName,
+            lastName: newLastName,
+            fullName: newLastName ? `${newFirstName} ${newLastName}` : newFirstName,
+            nameSource: nameSource,
+            dataFlags: admin.firestore.FieldValue.arrayUnion('NAME_FROM_EMAIL'),
+            tags: admin.firestore.FieldValue.arrayUnion('verify-name'),
+            needsManualReview: true,
+            dataQuality: 'fair',
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            notes: `${contact.notes || ''}\n\n⚠️ AUTOMATED UPDATE: Name extracted from email address. Please verify with caller.`
+          });
+          
+          console.log(`✅ Fixed contact ${contactId}: ${newFirstName} ${newLastName}`);
+        } else {
+          // Couldn't extract name - just flag it
+          action = 'flagged';
+          results.flagged++;
+          
+          await db.collection('contacts').doc(contactId).update({
+            dataFlags: admin.firestore.FieldValue.arrayUnion('MISSING_NAME'),
+            tags: admin.firestore.FieldValue.arrayUnion('name-needed'),
+            needsManualReview: true,
+            dataQuality: 'poor',
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+          
+          console.log(`⚠️ Flagged contact ${contactId}: Could not extract name`);
+        }
+      } else {
+        // No email - just flag it
+        action = 'flagged';
+        results.flagged++;
+        
+        await db.collection('contacts').doc(contactId).update({
+          dataFlags: admin.firestore.FieldValue.arrayUnion('MISSING_NAME', 'MISSING_EMAIL'),
+          tags: admin.firestore.FieldValue.arrayUnion('name-needed', 'needs-info'),
+          needsManualReview: true,
+          dataQuality: 'poor',
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        
+        console.log(`⚠️ Flagged contact ${contactId}: No email available`);
+      }
+      
+      results.details.push({
+        contactId: contactId,
+        oldName: contact.firstName || 'Unknown',
+        newName: newFirstName,
+        email: contact.email || 'none',
+        action: action
+      });
+      
+      if (action === 'skipped') {
+        results.skipped++;
+      }
+    }
+    
+    console.log(`✅ Batch fix complete:`, results);
+    
+    return res.status(200).json({
+      success: true,
+      message: 'Unknown contacts processed',
+      results: results
+    });
+    
+  } catch (error) {
+    console.error('❌ Error fixing unknown contacts:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * NEW FUNCTION: Get contacts that need manual review
+ * URL: https://us-central1-my-clever-crm.cloudfunctions.net/getReviewNeededContacts?apiKey=YOUR_KEY
+ */
+exports.getReviewNeededContacts = functions.https.onRequest(async (req, res) => {
+  const apiKey = req.query.apiKey;
+  const WEBHOOK_API_KEY = 'scr-webhook-2025-secure-key-abc123';
+  
+  if (apiKey !== WEBHOOK_API_KEY) {
+    return res.status(403).json({ error: 'Unauthorized' });
+  }
+  
+  try {
+    const db = admin.firestore();
+    
+    // Get all contacts that need review
+    const reviewQuery = await db.collection('contacts')
+      .where('needsManualReview', '==', true)
+      .orderBy('createdAt', 'desc')
+      .limit(100)
+      .get();
+    
+    const contacts = [];
+    reviewQuery.forEach(doc => {
+      const data = doc.data();
+      contacts.push({
+        id: doc.id,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        phone: data.phone,
+        nameSource: data.nameSource,
+        dataQuality: data.dataQuality,
+        dataFlags: data.dataFlags || [],
+        leadScore: data.leadScore,
+        createdAt: data.createdAt,
+        aiReceptionistCallId: data.aiReceptionistCallId
+      });
+    });
+    
+    return res.status(200).json({
+      success: true,
+      count: contacts.length,
+      contacts: contacts
+    });
+    
+  } catch (error) {
+    console.error('❌ Error getting review contacts:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
 });
 
 /**
@@ -819,140 +1005,66 @@ exports.scoreLead = functions.https.onRequest(async (req, res) => {
 });
 
 /**
- * Webhook endpoint for AI Receptionist calls from myaifrontdeskdashboard.com
- * URL: https://us-central1-my-clever-crm.cloudfunctions.net/aiWebhook
- * Method: POST
+ * Updated AI Webhook with improved name handling
+ * This replaces your existing aiWebhook function
  */
 exports.aiWebhook = functions.https.onRequest(async (req, res) => {
-  // Set CORS headers to allow requests from any origin
-  res.set('Access-Control-Allow-Origin', '*');
-  res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
-  // Handle preflight OPTIONS request
-  if (req.method === 'OPTIONS') {
-    return res.status(204).send('');
+  // Security check
+  const apiKey = req.query.apiKey || req.body.apiKey;
+  const WEBHOOK_API_KEY = 'scr-webhook-2025-secure-key-abc123';
+  
+  if (apiKey !== WEBHOOK_API_KEY) {
+    console.error('❌ Unauthorized webhook access attempt');
+    return res.status(403).json({ error: 'Unauthorized' });
   }
-
-  // Only accept POST requests
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
-  }
-
-  // API Key Authentication
-  const apiKey = req.headers['x-api-key'] || req.query.apiKey;
-  if (!apiKey || apiKey !== WEBHOOK_API_KEY) {
-    console.error('❌ Unauthorized webhook attempt - invalid or missing API key');
-    return res.status(403).json({ 
-      success: false,
-      error: 'Forbidden - Invalid or missing API key',
-      hint: 'Include x-api-key header or apiKey query parameter'
-    });
-  }
-  console.log('✅ API key validated successfully');
-
+  
   try {
-    console.log('AI Receptionist webhook received:', JSON.stringify(req.body, null, 2));
-
     const callData = req.body;
-
-    // Validate that we have some data
-    if (!callData || Object.keys(callData).length === 0) {
-      console.error('Empty webhook data received');
-      return res.status(400).json({ 
-        success: false,
-        error: 'No data received in webhook' 
-      });
-    }
-
-    // Helper function to normalize phone numbers
-    function normalizePhone(phone) {
-      if (!phone) return null;
-      const digits = phone.replace(/\D/g, '');
-      const cleaned = digits.startsWith('1') && digits.length === 11 
-        ? digits.substring(1) 
-        : digits;
-      if (cleaned.length === 10) {
-        return `(${cleaned.substring(0, 3)}) ${cleaned.substring(3, 6)}-${cleaned.substring(6)}`;
-      }
-      return phone;
-    }
-
-    // Extract and normalize data from myaifrontdesk webhook
-    // Adjust field names based on what myaifrontdesk actually sends
-    const normalizedData = {
-      // Call identification
-      callId: callData.call_id || callData.id || `call_${Date.now()}`,
-      callerID: normalizePhone(callData.caller_id || callData.from || callData.phone_number),
-      
-      // Timestamps
-      callTimestamp: callData.timestamp || callData.call_time || callData.created_at || admin.firestore.FieldValue.serverTimestamp(),
-      receivedAt: admin.firestore.FieldValue.serverTimestamp(),
-      
-      // Call content
-      transcript: callData.transcript || callData.text || callData.message || callData.conversation || '',
-      duration: callData.duration || callData.call_duration || null,
-      recording_url: callData.recording_url || callData.recording || null,
-      
-      // Contact info (from AI questions in myaifrontdesk)
-      phone: normalizePhone(callData.phone || callData.caller_id || callData.from),
-      phoneConfirmed: callData.phone_confirmed || false,
-      email: callData.email || callData.customer_email || null,
-      firstName: callData.first_name || callData.firstName || (callData.name ? callData.name.split(' ')[0] : null),
-      lastName: callData.last_name || callData.lastName || (callData.name ? callData.name.split(' ').slice(1).join(' ') : null),
-      
-      // Intent & Analysis
-      intent: callData.intent || callData.purpose || callData.reason || null,
-      sentiment: callData.sentiment || 'neutral',
-      summary: callData.summary || null,
-      
-      // Questions & Answers (myaifrontdesk format)
-      questionsAnswered: callData.questions || callData.answers || [],
-      customFields: callData.custom_fields || callData.custom_data || {},
-      
-      // Status
-      status: 'received',
-      processed: false,
-      
-      // AI Agent info
-      agentName: 'AI Receptionist',
-      language: callData.language || 'en',
-      
-      // Transfer info
-      transferRequested: callData.transfer_requested || callData.transferred || false,
-      transferReason: callData.transfer_reason || null,
-      
-      // Additional metadata
-      metadata: {
-        webhookVersion: '1.0',
-        source: 'myaifrontdesk',
-        receivedFrom: req.headers['user-agent'] || 'unknown',
-        rawData: callData // Store original for debugging
-      }
-    };
-
-    // Save to aiReceptionistCalls collection
-    const db = admin.firestore();
-    const docRef = await db.collection('aiReceptionistCalls').add(normalizedData);
+    console.log('📞 AI Receptionist webhook triggered');
     
-    console.log(`✅ AI Receptionist call saved successfully: ${docRef.id}`);
-
-    // Return success response
+    // Save to aiReceptionistCalls collection first
+    const callRef = await admin.firestore().collection('aiReceptionistCalls').add({
+      ...callData,
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      processed: false
+    });
+    
+    const callId = callRef.id;
+    console.log(`✅ Call saved: ${callId}`);
+    
+    // Process the call with improved name handling
+    const result = await processAIReceptionistCall(callData, callId);
+    
+    // Log result
+    console.log(`✅ Processing complete:`, {
+      contactId: result.contactId,
+      action: result.action,
+      quality: result.quality,
+      needsReview: result.needsReview,
+      flags: result.flags
+    });
+    
+    // Send notification if needs review
+    if (result.needsReview) {
+      console.log(`🔔 Contact ${result.contactId} flagged for manual review`);
+      // TODO: Send notification to admin
+    }
+    
     return res.status(200).json({
       success: true,
-      message: 'Call received and queued for processing',
-      callId: normalizedData.callId,
-      documentId: docRef.id,
-      timestamp: new Date().toISOString()
+      callId: callId,
+      contactId: result.contactId,
+      action: result.action,
+      message: 'Call processed successfully',
+      quality: result.quality,
+      needsReview: result.needsReview
     });
-
-  } catch (error) {
-    console.error('❌ Error processing AI Receptionist webhook:', error);
     
+  } catch (error) {
+    console.error('❌ Webhook error:', error);
     return res.status(500).json({
       success: false,
-      error: error.message,
-      timestamp: new Date().toISOString()
+      error: error.message
     });
   }
 });

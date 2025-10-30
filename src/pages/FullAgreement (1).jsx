@@ -65,6 +65,13 @@ import {
   TablePagination,
   ToggleButton,
   ToggleButtonGroup,
+  Timeline,
+  TimelineItem,
+  TimelineSeparator,
+  TimelineConnector,
+  TimelineContent,
+  TimelineDot,
+  TimelineOppositeContent,
   Backdrop,
   SpeedDial,
   SpeedDialIcon,
@@ -84,15 +91,6 @@ import {
   Container,
   ButtonGroup
 } from '@mui/material';
-import {
-  Timeline,
-  TimelineItem,
-  TimelineSeparator,
-  TimelineConnector,
-  TimelineContent,
-  TimelineDot,
-  TimelineOppositeContent
-} from '@mui/lab';
 import {
   Description,
   Assignment,
@@ -282,9 +280,7 @@ import {
   SystemUpdateAlt,
   SecurityUpdate,
   SecurityUpdateGood,
-  SecurityUpdateWarning,
-  Visibility,
-  Check
+  SecurityUpdateWarning
 } from '@mui/icons-material';
 import SignatureCanvas from 'react-signature-canvas';
 import { useForm, Controller, useFieldArray, useWatch } from 'react-hook-form';
@@ -1884,17 +1880,77 @@ const FullAgreement = ({
                           </Typography>
                           <List>
                             <ListItem>
-                              <ListItemText primary="Client will provide necessary documentation and authorization to proceed with disputes." />
+                              <ListItemIcon>
+                                <CheckCircle color="primary" />
+                              </ListItemIcon>
+                              <ListItemText 
+                                primary="Initial Credit Report Analysis" 
+                                secondary="Company will obtain and thoroughly review credit reports from all three major bureaus (Equifax, Experian, TransUnion) to identify inaccurate, incomplete, or unverifiable information."
+                              />
                             </ListItem>
-                          </List>
-                        </>
-                      )}
-                    </Box>
-                  </AccordionDetails>
-                </Accordion>
-              ))}
-
-                <Grid item xs={12} sm={6}>
+                            <ListItem>
+                              <ListItemIcon>
+                                <CheckCircle color="primary" />
+                              </ListItemIcon>
+                              <ListItemText 
+                                primary="Dispute Letter Preparation" 
+                                secondary="Professional dispute letters will be prepared for each identified item, citing relevant consumer protection laws (FCRA, FDCPA) and providing supporting documentation."
+                              />
+                            </ListItem>
+                            <ListItem>
+                              <ListItemIcon>
+                                <CheckCircle color="primary" />
+                              </ListItemIcon>
+                              <ListItemText 
+                                primary="Direct Bureau Communication" 
+                                secondary="Disputes will be filed directly with credit bureaus via certified mail and online portals to ensure proper documentation and tracking."
+                              />
+                            </ListItem>
+                            <ListItem>
+                              <ListItemIcon>
+                                <CheckCircle color="primary" />
+                              </ListItemIcon>
+                              <ListItemText 
+                                primary="Creditor & Collection Agency Follow-up" 
+                                secondary="Company will also contact original creditors and collection agencies to request validation of debts and challenge inaccurate reporting."
+                              />
+                            </ListItem>
+                            <ListItem>
+                              <ListItemIcon>
+                                <CheckCircle color="primary" />
+                              </ListItemIcon>
+                              <ListItemText 
+                                primary="Response Monitoring" 
+                                secondary="All bureau responses will be monitored within the 30-45 day legal timeframe to ensure compliance with FCRA regulations."
+                              />
+                            </ListItem>
+                            <ListItem>
+                              <ListItemIcon>
+                                <CheckCircle color="primary" />
+                              </ListItemIcon>
+                              <ListItemText 
+                                primary="Follow-up Disputes" 
+                                secondary="If items are verified but still believed to be inaccurate, Company will file follow-up disputes with additional documentation and legal citations."
+                              />
+                            </ListItem>
+                            <ListItem>
+                              <ListItemIcon>
+                                <CheckCircle color="primary" />
+                              </ListItemIcon>
+                              <ListItemText 
+                                primary="Monthly Progress Updates" 
+                                secondary="Client will receive comprehensive monthly reports showing all dispute activity, bureau responses, and score changes across all three credit reports."
+                              />
+                            </ListItem>
+                            <ListItem>
+                              <ListItemIcon>
+                                <CheckCircle color="primary" />
+                              </ListItemIcon>
+                              <ListItemText 
+                                primary="Success Documentation" 
+                                secondary="All deleted items and positive changes will be documented in writing with before/after credit reports provided to the client."
+                              />
+                            </ListItem>
                 
                 <Grid item xs={12} sm={6}>
                   <Controller
@@ -2168,7 +2224,8 @@ const FullAgreement = ({
                     </Grid>
                   </>
                 )}
-              </Grid>
+              </List>
+            </>
             </Box>
           )}
           
@@ -2859,7 +2916,7 @@ const FullAgreement = ({
               )}
             </Box>
           )}
-        </CardContent>
+        </Box>
         
         {/* Navigation Buttons */}
         <CardActions sx={{ justifyContent: 'space-between', p: 2 }}>
@@ -2902,7 +2959,7 @@ const FullAgreement = ({
             )}
           </Box>
         </CardActions>
-      </Card>
+      </AccordionDetails>
       
       {/* History Timeline (for existing agreements) */}
       {agreementHistory.length > 0 && (
