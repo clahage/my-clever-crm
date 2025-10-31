@@ -1635,3 +1635,179 @@ exports.testFunction = functions.runWith({
 });
 
 console.log('🚀 SpeedyCRM Functions loaded successfully!');
+
+// ============================================================================
+// EMAIL AUTOMATION SYSTEM (Added Oct 2025)
+// ============================================================================
+
+// ═══════════════════════════════════════════════════════════════════════════
+// EMAIL WORKFLOW SYSTEM - Complete Migration to New Engine
+// ═══════════════════════════════════════════════════════════════════════════
+
+const { 
+  startWorkflow,
+  processScheduledStages,
+  pauseWorkflow,
+  resumeWorkflow,
+  stopWorkflow,
+  sendManualEmail,
+  getWorkflowStatus,
+  runContactAnalytics,
+  SendGridService,
+  checkIDIQApplications,
+  generateAIEmailContent
+} = require('./emailWorkflowEngine');
+
+// ═══════════════════════════════════════════════════════════════════════════
+// EMAIL WORKFLOW SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Trigger: When contact is created
+exports.onContactCreated = functions.firestore
+  .document('contacts/{contactId}')
+  .onCreate(async (snap, context) => {
+    const contactId = context.params.contactId;
+    const contactData = snap.data();
+    
+    try {
+      console.log(`📞 New contact created: ${contactId}`);
+      
+      // Start email workflow
+      const result = await startWorkflow(contactId, contactData);
+      
+      if (result && result.success) {
+        console.log(`✅ Workflow started: ${result.workflowId}`);
+      } else {
+        console.log(`⚠️ Workflow not started: ${result && result.reason ? result.reason : 'unknown reason'}`);
+      }
+      
+    } catch (error) {
+      console.error('❌ Error starting workflow:', error);
+    }
+  });
+
+// Scheduled: Process due workflow stages
+exports.processWorkflowStages = functions.pubsub
+  .schedule('every 15 minutes')
+  .timeZone('America/Los_Angeles')
+  .onRun(async (context) => {
+    console.log('⏰ Processing due workflow stages...');
+    
+    try {
+      await processScheduledStages();
+      console.log('✅ Workflow stages processed');
+    } catch (error) {
+      console.error('❌ Error processing stages:', error);
+    }
+    
+    return null;
+  });
+
+// Webhook: Handle SendGrid events (opens, clicks, bounces, etc.)
+exports.handleSendGridWebhook = functions.https.onRequest(async (req, res) => {
+  try {
+    const events = req.body;
+    
+    if (!Array.isArray(events)) {
+      res.status(400).send('Invalid payload');
+      return;
+    }
+    
+    await SendGridService.handleWebhook(events);
+    
+    res.status(200).send('OK');
+  } catch (error) {
+    console.error('Webhook error:', error);
+    res.status(500).send('Error');
+  }
+});
+
+// ───────────────────────────────────────────────────────────────────────────
+// EXPORTS - Cloud Functions (wire to engine implementations)
+// ───────────────────────────────────────────────────────────────────────────
+
+// Note: scheduled Pub/Sub function defined above is the single exporter for processing stages
+
+// Manual send (callable)
+exports.manualSendEmail = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated');
+  }
+  try {
+    const { contactId, templateId, customData } = data;
+    await sendManualEmail(contactId, templateId, customData);
+    return { success: true };
+  } catch (error) {
+    console.error('Manual email error:', error);
+    throw new functions.https.HttpsError('internal', error.message);
+  }
+});
+
+// Pause/resume wrappers
+exports.pauseWorkflowForContact = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated');
+  }
+  try {
+    await pauseWorkflow(data.contactId, data.reason);
+    return { success: true };
+  } catch (error) {
+    throw new functions.https.HttpsError('internal', error.message);
+  }
+});
+
+exports.resumeWorkflowForContact = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated');
+  }
+  try {
+    await resumeWorkflow(data.contactId);
+    return { success: true };
+  } catch (error) {
+    throw new functions.https.HttpsError('internal', error.message);
+  }
+});
+
+// Get workflow status
+exports.getContactWorkflowStatus = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated');
+  }
+  try {
+    const status = await getWorkflowStatus(data.contactId);
+    return status;
+  } catch (error) {
+    throw new functions.https.HttpsError('internal', error.message);
+  }
+});
+
+// Legacy compatibility callables
+exports.checkIDIQApplications = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated');
+  }
+  try {
+    const summary = await checkIDIQApplications(data.contactIds || []);
+    return summary;
+  } catch (error) {
+    throw new functions.https.HttpsError('internal', error.message);
+  }
+});
+
+exports.generateAIEmailContent = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated');
+  }
+  try {
+    const content = await generateAIEmailContent(
+      data.templateId,
+      data.contactData,
+      data.options || {}
+    );
+    return content;
+  } catch (error) {
+    throw new functions.https.HttpsError('internal', error.message);
+  }
+});
+
+console.log('📧 Email Automation Functions exported successfully!');
