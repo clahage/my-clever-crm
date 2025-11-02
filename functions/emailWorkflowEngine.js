@@ -14,14 +14,15 @@
  * ✅ Multi-armed bandit A/B testing
  * ✅ Send-time optimization
  * ✅ Behavioral targeting
- * ✅ Built-in SendGrid
+ * ✅ Built-in Google Workspace SMTP
  * ✅ Built-in OpenAI
  * ✅ Built-in IDIQ tracking
  * ✅ Production-ready error handling
  * 
- * @version 3.0.0 MEGA ENTERPRISE - COMPLETE
- * @date October 30, 2025
+ * @version 3.1.0 MEGA ENTERPRISE - GOOGLE WORKSPACE EDITION
+ * @date November 2, 2025
  * @author SpeedyCRM Engineering - Chris Lahage
+ * @updated Switched from SendGrid to Google Workspace SMTP
  */
 
 const functions = require('firebase-functions');
@@ -33,16 +34,29 @@ const { getEmailTemplate } = require('./emailTemplates');
 // EXTERNAL SERVICE INTEGRATIONS
 // ═══════════════════════════════════════════════════════════════════════════
 
-// SendGrid
-const sgMail = require('@sendgrid/mail');
-const sendgridKey = functions.config().sendgrid?.api_key;
-const fromEmail = functions.config().sendgrid?.from_email || 'chris@speedycreditrepair.com';
-const fromName = functions.config().sendgrid?.from_name || 'Chris Lahage - Speedy Credit Repair';
-const replyTo = functions.config().sendgrid?.reply_to || 'contact@speedycreditrepair.com';
+// Google Workspace SMTP (using nodemailer)
+const nodemailer = require('nodemailer');
+const gmailUser = functions.config().gmail?.user || 'chris@speedycreditrepair.com';
+const gmailAppPassword = functions.config().gmail?.app_password;
+const fromEmail = functions.config().gmail?.from_email || 'chris@speedycreditrepair.com';
+const fromName = functions.config().gmail?.from_name || 'Chris Lahage - Speedy Credit Repair';
+const replyTo = functions.config().gmail?.reply_to || 'contact@speedycreditrepair.com';
 
-if (sendgridKey) {
-  sgMail.setApiKey(sendgridKey);
-  console.log('✅ SendGrid initialized');
+let transporter = null;
+
+if (gmailAppPassword) {
+  transporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false, // true for 465, false for other ports
+    auth: {
+      user: gmailUser,
+      pass: gmailAppPassword
+    }
+  });
+  console.log('✅ Google Workspace SMTP initialized');
+} else {
+  console.warn('⚠️ Gmail app password not configured');
 }
 
 // OpenAI
@@ -255,54 +269,110 @@ class AIAnalyticsEngine {
     score -= features.emailClickRate * 0.2;
     
     // Lead score (lower = worse)
-    score += ((10 - features.leadScore) / 10) * 0.15;
+    score -= (features.leadScore / 10) * 0.15;
     
     // Stage completion (lower = worse)
-    score += (1 - features.stageCompletionRate) * 0.1;
+    score -= features.stageCompletionRate * 0.1;
     
     return Math.max(0, Math.min(1, score));
   }
 
   static identifyChurnFactors(features) {
     const factors = [];
-    if (features.daysSinceLastEngagement > 14) factors.push('No recent engagement');
-    if (features.emailOpenRate < 0.2) factors.push('Low email open rate');
-    if (features.emailClickRate < 0.05) factors.push('Low click rate');
-    if (features.leadScore < 4) factors.push('Low lead score');
+    
+    if (features.daysSinceLastEngagement > 14) {
+      factors.push('Low recent engagement');
+    }
+    if (features.emailOpenRate < 0.2) {
+      factors.push('Low email open rate');
+    }
+    if (features.emailClickRate < 0.1) {
+      factors.push('Low email click rate');
+    }
+    if (features.leadScore < 5) {
+      factors.push('Low lead score');
+    }
+    if (features.stageCompletionRate < 0.5) {
+      factors.push('Low stage completion');
+    }
+    
     return factors;
   }
 
   static getChurnRecommendation(score) {
-    if (score > 0.7) return 'Send reengagement campaign immediately';
-    if (score > 0.4) return 'Increase touchpoint frequency';
-    return 'Continue normal workflow';
+    if (score > 0.7) {
+      return 'Urgent: Reach out personally, offer special incentive';
+    } else if (score > 0.4) {
+      return 'Warning: Send re-engagement campaign';
+    } else {
+      return 'Healthy: Continue normal workflow';
+    }
+  }
+
+  static calculateDaysSince(date) {
+    if (!date) return 999;
+    const then = date.toDate ? date.toDate() : new Date(date);
+    const now = new Date();
+    return Math.floor((now - then) / (1000 * 60 * 60 * 24));
+  }
+
+  static calculateStageCompletion(contactData) {
+    if (!contactData.workflowCurrentStage || !contactData.workflowId) return 0;
+    
+    const workflow = WORKFLOW_DEFINITIONS[contactData.workflowId];
+    if (!workflow) return 0;
+    
+    const currentStageIndex = workflow.stages.findIndex(s => s.id === contactData.workflowCurrentStage);
+    if (currentStageIndex === -1) return 0;
+    
+    return (currentStageIndex + 1) / workflow.stages.length;
   }
 
   /**
-   * Calculate lifetime value prediction
+   * Predict lifetime value
    */
   static async predictLifetimeValue(contactData) {
     try {
-      // LTV calculation based on historical data
-      const baseValue = 500; // Average client value
-      const scoreMultiplier = (contactData.leadScore || 5) / 5;
-      const engagementMultiplier = 1 + (contactData.emailEngagement?.openRate || 0);
+      // Base LTV calculation
+      let ltv = 500; // Base value for credit repair
       
-      const ltv = baseValue * scoreMultiplier * engagementMultiplier;
+      // Adjust based on lead score
+      ltv += (contactData.leadScore || 5) * 50;
+      
+      // Adjust based on engagement
+      const engagementRate = (contactData.emailEngagement?.openRate || 0) * 
+                             (contactData.emailEngagement?.clickRate || 0);
+      ltv += engagementRate * 200;
+      
+      // Adjust based on urgency
+      if (contactData.urgencyLevel === 'high') ltv += 100;
+      if (contactData.urgencyLevel === 'critical') ltv += 200;
+      
+      // Adjust based on pain points
+      const painPointMultiplier = (contactData.painPoints?.length || 0) * 0.1;
+      ltv *= (1 + painPointMultiplier);
       
       return {
-        estimatedLTV: Math.round(ltv),
+        predicted: Math.round(ltv),
         confidence: 0.75,
-        factors: {
-          leadScore: contactData.leadScore || 5,
-          engagement: contactData.emailEngagement?.openRate || 0,
-          urgency: contactData.urgencyLevel || 'medium'
-        }
+        factors: this.identifyLTVFactors(contactData),
+        category: ltv > 1000 ? 'high' : ltv > 500 ? 'medium' : 'low'
       };
     } catch (error) {
       console.error('LTV prediction error:', error);
-      return { estimatedLTV: 0, confidence: 0 };
+      return { predicted: 500, confidence: 0, category: 'medium' };
     }
+  }
+
+  static identifyLTVFactors(contactData) {
+    const factors = [];
+    
+    if (contactData.leadScore > 7) factors.push('High lead score');
+    if (contactData.urgencyLevel === 'critical') factors.push('Critical urgency');
+    if (contactData.painPoints?.length > 3) factors.push('Multiple pain points');
+    if (contactData.emailEngagement?.openRate > 0.5) factors.push('High engagement');
+    
+    return factors;
   }
 
   /**
@@ -310,57 +380,56 @@ class AIAnalyticsEngine {
    */
   static async predictConversionProbability(contactData) {
     try {
-      let probability = 0.3; // Base 30%
+      let probability = 0.2; // Base 20%
       
       // Lead score impact
-      const leadScore = contactData.leadScore || 5;
-      probability += (leadScore - 5) * 0.08;
+      probability += (contactData.leadScore || 5) * 0.05;
       
       // Engagement impact
-      const openRate = contactData.emailEngagement?.openRate || 0;
-      probability += openRate * 0.3;
+      if (contactData.emailEngagement) {
+        probability += contactData.emailEngagement.openRate * 0.2;
+        probability += contactData.emailEngagement.clickRate * 0.3;
+      }
+      
+      // Stage progression impact
+      const stageCompletion = this.calculateStageCompletion(contactData);
+      probability += stageCompletion * 0.15;
       
       // Urgency impact
-      if (contactData.urgencyLevel === 'high') probability += 0.15;
-      if (contactData.urgencyLevel === 'low') probability -= 0.1;
+      if (contactData.urgencyLevel === 'high') probability += 0.1;
+      if (contactData.urgencyLevel === 'critical') probability += 0.2;
       
-      // Source impact
-      if (contactData.leadSource === 'ai-receptionist') probability += 0.1;
-      if (contactData.leadSource === 'referral') probability += 0.2;
+      // IDIQ completion impact
+      if (contactData.idiqStatus === 'completed') probability += 0.15;
+      
+      probability = Math.max(0, Math.min(1, probability));
       
       return {
-        probability: Math.max(0, Math.min(1, probability)),
+        probability: probability,
+        percentage: Math.round(probability * 100),
         confidence: 0.8,
-        factors: {
-          leadScore,
-          engagement: openRate,
-          urgency: contactData.urgencyLevel,
-          source: contactData.leadSource
-        }
+        likelihood: probability > 0.7 ? 'high' : probability > 0.4 ? 'medium' : 'low',
+        nextBestAction: this.getConversionRecommendation(probability, contactData)
       };
     } catch (error) {
       console.error('Conversion prediction error:', error);
-      return { probability: 0, confidence: 0 };
+      return { probability: 0.2, percentage: 20, confidence: 0, likelihood: 'low' };
     }
   }
 
-  // Helper methods
-  static calculateDaysSince(date) {
-    if (!date) return 999;
-    const now = new Date();
-    const then = date.toDate ? date.toDate() : new Date(date);
-    return Math.floor((now - then) / (1000 * 60 * 60 * 24));
-  }
-
-  static calculateStageCompletion(contactData) {
-    const completed = contactData.completedStages?.length || 0;
-    const total = contactData.totalStages || 5;
-    return completed / total;
+  static getConversionRecommendation(probability, contactData) {
+    if (probability > 0.7) {
+      return 'High likelihood - Schedule consultation immediately';
+    } else if (probability > 0.4) {
+      return 'Medium likelihood - Send case studies and testimonials';
+    } else {
+      return 'Low likelihood - Continue nurture campaign';
+    }
   }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// AI SENTIMENT ANALYZER
+// AI SENTIMENT & INTENT ANALYZER
 // ═══════════════════════════════════════════════════════════════════════════
 
 class AISentimentAnalyzer {
@@ -370,147 +439,92 @@ class AISentimentAnalyzer {
   static async analyzeSentiment(contactData) {
     try {
       if (!openai) {
-        console.warn('OpenAI not configured, using fallback sentiment');
-        return this.getFallbackSentiment(contactData);
+        return { sentiment: 'neutral', score: 0, confidence: 0 };
       }
-
-      // Prepare context for AI analysis
-      const context = this.buildSentimentContext(contactData);
       
-      const response = await openai.chat.completions.create({
+      // Compile all available text data
+      const textData = [
+        contactData.notes,
+        contactData.callSummary,
+        contactData.communicationHistory?.map(c => c.content).join(' ')
+      ].filter(Boolean).join(' ');
+      
+      if (!textData || textData.length < 20) {
+        return { sentiment: 'neutral', score: 0, confidence: 0.5 };
+      }
+      
+      const completion = await openai.chat.completions.create({
         model: 'gpt-4',
         messages: [
           {
             role: 'system',
-            content: 'You are a sentiment analysis expert. Analyze the contact\'s behavior and provide sentiment insights.'
+            content: 'You are a sentiment analysis AI. Analyze the following text and return ONLY a JSON object with: sentiment (positive/neutral/negative), score (-1 to 1), confidence (0-1), and key_phrases (array).'
           },
           {
             role: 'user',
-            content: `Analyze this contact's sentiment based on their behavior:\n${context}\n\nProvide: overall sentiment (positive/neutral/negative), emotions detected, urgency level, pain points, and engagement level.`
+            content: textData.substring(0, 2000)
           }
         ],
         temperature: 0.3,
-        max_tokens: 500
+        max_tokens: 200
       });
-
-      const analysis = this.parseSentimentResponse(response.choices[0].message.content);
+      
+      const result = JSON.parse(completion.choices[0].message.content);
       
       return {
-        sentiment: analysis.sentiment || 'neutral',
-        emotions: analysis.emotions || [],
-        urgency: analysis.urgency || 'medium',
-        painPoints: analysis.painPoints || [],
-        engagementLevel: analysis.engagementLevel || 'medium',
-        confidence: 0.85,
-        analyzedAt: new Date().toISOString()
+        sentiment: result.sentiment || 'neutral',
+        score: result.score || 0,
+        confidence: result.confidence || 0.7,
+        keyPhrases: result.key_phrases || []
       };
       
     } catch (error) {
       console.error('Sentiment analysis error:', error);
-      return this.getFallbackSentiment(contactData);
+      return { sentiment: 'neutral', score: 0, confidence: 0 };
     }
-  }
-
-  static buildSentimentContext(contactData) {
-    const parts = [];
-    
-    if (contactData.leadScore) {
-      parts.push(`Lead Score: ${contactData.leadScore}/10`);
-    }
-    
-    if (contactData.callTranscript) {
-      parts.push(`Call Transcript: ${contactData.callTranscript.substring(0, 500)}...`);
-    }
-    
-    if (contactData.emailEngagement) {
-      parts.push(`Email Opens: ${contactData.emailEngagement.opensCount || 0}`);
-      parts.push(`Email Clicks: ${contactData.emailEngagement.clicksCount || 0}`);
-    }
-    
-    if (contactData.urgencyLevel) {
-      parts.push(`Stated Urgency: ${contactData.urgencyLevel}`);
-    }
-    
-    return parts.join('\n');
-  }
-
-  static parseSentimentResponse(content) {
-    // Simple parsing - in production, use structured output
-    const result = {
-      sentiment: 'neutral',
-      emotions: [],
-      urgency: 'medium',
-      painPoints: [],
-      engagementLevel: 'medium'
-    };
-
-    const lower = content.toLowerCase();
-    
-    // Detect sentiment
-    if (lower.includes('positive') || lower.includes('enthusiastic')) {
-      result.sentiment = 'positive';
-    } else if (lower.includes('negative') || lower.includes('frustrated')) {
-      result.sentiment = 'negative';
-    }
-    
-    // Detect urgency
-    if (lower.includes('urgent') || lower.includes('immediate')) {
-      result.urgency = 'high';
-    } else if (lower.includes('casual') || lower.includes('exploring')) {
-      result.urgency = 'low';
-    }
-    
-    // Detect emotions (basic)
-    const emotions = [];
-    if (lower.includes('anxious') || lower.includes('worried')) emotions.push('anxious');
-    if (lower.includes('hopeful') || lower.includes('optimistic')) emotions.push('hopeful');
-    if (lower.includes('frustrated')) emotions.push('frustrated');
-    if (lower.includes('desperate')) emotions.push('desperate');
-    result.emotions = emotions;
-    
-    return result;
-  }
-
-  static getFallbackSentiment(contactData) {
-    return {
-      sentiment: 'neutral',
-      emotions: [],
-      urgency: contactData.urgencyLevel || 'medium',
-      painPoints: [],
-      engagementLevel: 'medium',
-      confidence: 0.5,
-      analyzedAt: new Date().toISOString()
-    };
   }
 
   /**
-   * Detect intent from contact behavior
+   * Classify contact intent
    */
   static async classifyIntent(contactData) {
     try {
-      const behaviors = {
-        emailOpens: contactData.emailEngagement?.opensCount || 0,
-        emailClicks: contactData.emailEngagement?.clicksCount || 0,
-        leadScore: contactData.leadScore || 5,
-        daysSinceContact: AIAnalyticsEngine.calculateDaysSince(contactData.createdAt)
-      };
-
-      let intent = 'exploring';
-      
-      if (behaviors.emailClicks > 2 && behaviors.leadScore >= 7) {
-        intent = 'ready-to-buy';
-      } else if (behaviors.emailClicks > 0 && behaviors.emailOpens > 2) {
-        intent = 'considering';
-      } else if (behaviors.emailOpens === 0 && behaviors.daysSinceContact > 7) {
-        intent = 'cold';
-      } else if (behaviors.leadScore >= 8) {
-        intent = 'hot-lead';
+      if (!openai) {
+        return { intent: 'unknown', confidence: 0 };
       }
-
+      
+      const textData = [
+        contactData.notes,
+        contactData.callSummary,
+        contactData.reason
+      ].filter(Boolean).join(' ');
+      
+      if (!textData || textData.length < 10) {
+        return { intent: 'general_inquiry', confidence: 0.5 };
+      }
+      
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an intent classification AI. Classify the intent as one of: buy_now, research, comparison, support, complaint, general_inquiry. Return ONLY a JSON object with: intent, confidence (0-1), and reasoning.'
+          },
+          {
+            role: 'user',
+            content: textData.substring(0, 1000)
+          }
+        ],
+        temperature: 0.3,
+        max_tokens: 150
+      });
+      
+      const result = JSON.parse(completion.choices[0].message.content);
+      
       return {
-        intent: intent,
-        confidence: 0.75,
-        indicators: this.getIntentIndicators(behaviors, intent)
+        intent: result.intent || 'general_inquiry',
+        confidence: result.confidence || 0.7,
+        reasoning: result.reasoning || ''
       };
       
     } catch (error) {
@@ -518,137 +532,106 @@ class AISentimentAnalyzer {
       return { intent: 'unknown', confidence: 0 };
     }
   }
-
-  static getIntentIndicators(behaviors, intent) {
-    const indicators = [];
-    
-    switch (intent) {
-      case 'ready-to-buy':
-        indicators.push('High engagement');
-        indicators.push('Multiple clicks');
-        indicators.push('High lead score');
-        break;
-      case 'considering':
-        indicators.push('Regular email opens');
-        indicators.push('Some clicks');
-        break;
-      case 'cold':
-        indicators.push('No engagement');
-        indicators.push('Extended time since contact');
-        break;
-      case 'hot-lead':
-        indicators.push('Very high lead score');
-        break;
-    }
-    
-    return indicators;
-  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// A/B TESTING ENGINE (Multi-Armed Bandit)
+// A/B TESTING ENGINE
 // ═══════════════════════════════════════════════════════════════════════════
 
 class ABTestingEngine {
   /**
-   * Select best email variant using multi-armed bandit algorithm
+   * Select variant using multi-armed bandit algorithm
    */
   static async selectVariant(templateId, contactData) {
     try {
-      const variantsRef = db.collection('emailVariants').doc(templateId);
-      const variantDoc = await variantsRef.get();
+      // Get current performance for this template
+      const perfDoc = await db.collection('ab_tests')
+        .doc(templateId)
+        .get();
       
-      if (!variantDoc.exists) {
-        // Initialize variants
-        await this.initializeVariants(templateId);
-        return 'A'; // Default to variant A
+      if (!perfDoc.exists) {
+        // Initialize with equal weights
+        await db.collection('ab_tests').doc(templateId).set({
+          variants: {
+            A: { sends: 0, opens: 0, clicks: 0, conversions: 0, score: 0.5 },
+            B: { sends: 0, opens: 0, clicks: 0, conversions: 0, score: 0.5 }
+          },
+          lastUpdated: admin.firestore.FieldValue.serverTimestamp()
+        });
+        return Math.random() > 0.5 ? 'A' : 'B';
       }
       
-      const variants = variantDoc.data();
+      const performance = perfDoc.data();
       
-      // Use Thompson Sampling algorithm
-      const selected = this.thompsonSampling(variants);
+      // Thompson Sampling for multi-armed bandit
+      const variantA = performance.variants.A || { sends: 0, conversions: 0, score: 0.5 };
+      const variantB = performance.variants.B || { sends: 0, conversions: 0, score: 0.5 };
       
-      return selected;
+      // Calculate probability scores with exploration bonus
+      const explorationBonus = 0.1;
+      const scoreA = variantA.score + (Math.random() * explorationBonus);
+      const scoreB = variantB.score + (Math.random() * explorationBonus);
+      
+      return scoreA > scoreB ? 'A' : 'B';
       
     } catch (error) {
       console.error('Variant selection error:', error);
-      return 'A'; // Default variant
+      return 'A';
     }
-  }
-
-  static thompsonSampling(variants) {
-    // Thompson Sampling: sample from Beta distribution for each variant
-    const samples = {};
-    
-    for (const [variantId, data] of Object.entries(variants)) {
-      const alpha = (data.conversions || 0) + 1;
-      const beta = (data.sends || 0) - (data.conversions || 0) + 1;
-      
-      // Simple beta distribution sampling (simplified)
-      samples[variantId] = alpha / (alpha + beta) + (Math.random() * 0.1);
-    }
-    
-    // Return variant with highest sample
-    return Object.keys(samples).reduce((a, b) => 
-      samples[a] > samples[b] ? a : b
-    );
-  }
-
-  static async initializeVariants(templateId) {
-    const variants = {
-      A: { sends: 0, opens: 0, clicks: 0, conversions: 0 },
-      B: { sends: 0, opens: 0, clicks: 0, conversions: 0 },
-      C: { sends: 0, opens: 0, clicks: 0, conversions: 0 }
-    };
-    
-    await db.collection('emailVariants').doc(templateId).set(variants);
   }
 
   /**
-   * Record variant performance
+   * Record performance metrics
    */
-  static async recordPerformance(templateId, variant, metric, value = 1) {
+  static async recordPerformance(templateId, variant, metric) {
     try {
-      const variantsRef = db.collection('emailVariants').doc(templateId);
+      const docRef = db.collection('ab_tests').doc(templateId);
       
-      await variantsRef.update({
-        [`${variant}.${metric}`]: admin.firestore.FieldValue.increment(value)
+      const updatePath = `variants.${variant}.${metric}`;
+      
+      await docRef.update({
+        [updatePath]: admin.firestore.FieldValue.increment(1),
+        lastUpdated: admin.firestore.FieldValue.serverTimestamp()
       });
       
-      console.log(`✅ Recorded ${metric} for variant ${variant}`);
+      // Recalculate scores
+      await this.updateScores(templateId);
       
     } catch (error) {
       console.error('Performance recording error:', error);
     }
   }
 
-  /**
-   * Get variant statistics
-   */
-  static async getVariantStats(templateId) {
+  static async updateScores(templateId) {
     try {
-      const variantDoc = await db.collection('emailVariants').doc(templateId).get();
+      const doc = await db.collection('ab_tests').doc(templateId).get();
+      if (!doc.exists) return;
       
-      if (!variantDoc.exists) return null;
+      const data = doc.data();
       
-      const variants = variantDoc.data();
-      const stats = {};
+      // Calculate conversion rates
+      const variants = data.variants;
       
-      for (const [variantId, data] of Object.entries(variants)) {
-        stats[variantId] = {
-          sends: data.sends || 0,
-          openRate: (data.opens || 0) / (data.sends || 1),
-          clickRate: (data.clicks || 0) / (data.sends || 1),
-          conversionRate: (data.conversions || 0) / (data.sends || 1)
-        };
+      for (const [key, variant] of Object.entries(variants)) {
+        const sends = variant.sends || 1;
+        const opens = variant.opens || 0;
+        const clicks = variant.clicks || 0;
+        const conversions = variant.conversions || 0;
+        
+        // Weighted score
+        const openRate = opens / sends;
+        const clickRate = clicks / sends;
+        const conversionRate = conversions / sends;
+        
+        const score = (openRate * 0.3) + (clickRate * 0.3) + (conversionRate * 0.4);
+        
+        await db.collection('ab_tests').doc(templateId).update({
+          [`variants.${key}.score`]: score
+        });
       }
       
-      return stats;
-      
     } catch (error) {
-      console.error('Stats retrieval error:', error);
-      return null;
+      console.error('Score update error:', error);
     }
   }
 }
@@ -659,138 +642,138 @@ class ABTestingEngine {
 
 class SendTimeOptimizer {
   /**
-   * Determine optimal send time for contact
+   * Get optimal send time based on historical engagement
    */
   static async getOptimalSendTime(contactData) {
     try {
       // Analyze past engagement patterns
-      const engagementHistory = contactData.emailEngagement?.history || [];
+      const engagementHistory = contactData.engagementHistory || [];
       
-      if (engagementHistory.length > 0) {
-        const optimalHour = this.analyzeEngagementPatterns(engagementHistory);
-        return {
-          recommendedHour: optimalHour,
-          timeZone: contactData.timeZone || 'America/Los_Angeles',
-          confidence: 0.8,
-          reasoning: `Based on past engagement at ${optimalHour}:00`
-        };
+      if (engagementHistory.length < 3) {
+        // Default optimal times if no history
+        return this.getDefaultOptimalTime();
       }
       
-      // Use industry defaults based on contact type
-      return this.getDefaultSendTime(contactData);
+      // Calculate engagement by hour
+      const hourScores = new Array(24).fill(0);
+      const hourCounts = new Array(24).fill(0);
+      
+      engagementHistory.forEach(event => {
+        if (event.timestamp && event.opened) {
+          const hour = new Date(event.timestamp.toDate()).getHours();
+          hourScores[hour] += 1;
+          hourCounts[hour] += 1;
+        }
+      });
+      
+      // Find best hour
+      let bestHour = 9; // Default to 9 AM
+      let bestScore = 0;
+      
+      for (let hour = 0; hour < 24; hour++) {
+        if (hourCounts[hour] > 0) {
+          const score = hourScores[hour] / hourCounts[hour];
+          if (score > bestScore) {
+            bestScore = score;
+            bestHour = hour;
+          }
+        }
+      }
+      
+      // Calculate next optimal send time
+      const now = new Date();
+      const nextSend = new Date(now);
+      nextSend.setHours(bestHour, 0, 0, 0);
+      
+      if (nextSend <= now) {
+        nextSend.setDate(nextSend.getDate() + 1);
+      }
+      
+      return {
+        optimalHour: bestHour,
+        nextSendTime: nextSend,
+        confidence: hourCounts[bestHour] > 5 ? 0.8 : 0.5,
+        dataPoints: hourCounts[bestHour]
+      };
       
     } catch (error) {
       console.error('Send time optimization error:', error);
-      return this.getDefaultSendTime(contactData);
+      return this.getDefaultOptimalTime();
     }
   }
 
-  static analyzeEngagementPatterns(history) {
-    // Count opens by hour
-    const hourCounts = {};
+  static getDefaultOptimalTime() {
+    // Default optimal times based on industry research
+    const optimalHours = [9, 10, 14, 15]; // 9-10 AM, 2-3 PM
+    const randomHour = optimalHours[Math.floor(Math.random() * optimalHours.length)];
     
-    history.forEach(event => {
-      if (event.type === 'open' && event.timestamp) {
-        const hour = new Date(event.timestamp).getHours();
-        hourCounts[hour] = (hourCounts[hour] || 0) + 1;
-      }
-    });
+    const now = new Date();
+    const nextSend = new Date(now);
+    nextSend.setHours(randomHour, 0, 0, 0);
     
-    // Find hour with most opens
-    let maxHour = 10; // Default 10am
-    let maxCount = 0;
-    
-    for (const [hour, count] of Object.entries(hourCounts)) {
-      if (count > maxCount) {
-        maxCount = count;
-        maxHour = parseInt(hour);
-      }
-    }
-    
-    return maxHour;
-  }
-
-  static getDefaultSendTime(contactData) {
-    // Industry best practices
-    const leadSource = contactData.leadSource || 'unknown';
-    
-    let recommendedHour = 10; // Default 10am
-    
-    if (leadSource === 'ai-receptionist' || leadSource === 'phone-call') {
-      recommendedHour = 9; // Call leads respond better to morning emails
-    } else if (leadSource === 'website') {
-      recommendedHour = 14; // Website leads better in afternoon
+    if (nextSend <= now) {
+      nextSend.setDate(nextSend.getDate() + 1);
     }
     
     return {
-      recommendedHour: recommendedHour,
-      timeZone: contactData.timeZone || 'America/Los_Angeles',
+      optimalHour: randomHour,
+      nextSendTime: nextSend,
       confidence: 0.6,
-      reasoning: 'Industry default for lead source'
+      dataPoints: 0
     };
-  }
-
-  /**
-   * Check if now is a good time to send
-   */
-  static isGoodTimeToSend(recommendedHour, currentHour) {
-    // Allow +/- 2 hour window
-    const diff = Math.abs(recommendedHour - currentHour);
-    return diff <= 2 || diff >= 22; // Account for day wrap
   }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SENDGRID SERVICE
+// GOOGLE WORKSPACE EMAIL SERVICE
 // ═══════════════════════════════════════════════════════════════════════════
 
-class SendGridService {
+class GmailService {
   /**
-   * Send email via SendGrid
+   * Send email via Google Workspace SMTP
    */
   static async sendEmail(to, subject, html, metadata = {}) {
     try {
-      if (!sendgridKey) {
-        throw new Error('SendGrid API key not configured');
+      if (!transporter) {
+        throw new Error('Gmail SMTP not configured - check app password');
       }
 
-      const msg = {
+      const mailOptions = {
+        from: `"${fromName}" <${fromEmail}>`,
         to: to,
-        from: {
-          email: fromEmail,
-          name: fromName
-        },
         replyTo: replyTo,
         subject: subject,
         html: html,
-        trackingSettings: {
-          clickTracking: { enable: true },
-          openTracking: { enable: true }
-        },
-        customArgs: {
-          contactId: metadata.contactId || 'unknown',
-          workflowId: metadata.workflowId || 'unknown',
-          stageId: metadata.stageId || 'unknown',
-          templateId: metadata.templateId || 'unknown'
+        // Add custom headers for tracking
+        headers: {
+          'X-Contact-ID': metadata.contactId || '',
+          'X-Workflow-ID': metadata.workflowId || '',
+          'X-Stage-ID': metadata.stageId || '',
+          'X-Template-ID': metadata.templateId || '',
+          'X-Variant': metadata.variant || 'A'
         }
       };
 
-      await sgMail.send(msg);
+      const info = await transporter.sendMail(mailOptions);
       
-      console.log(`✅ Email sent to ${to}`);
+      console.log(`✅ Email sent to ${to}, MessageID: ${info.messageId}`);
       
       // Log to communications collection
-      await this.logCommunication(to, subject, metadata);
+      await this.logCommunication(to, subject, metadata, info.messageId);
       
       // Record A/B test performance
       if (metadata.variant && metadata.templateId) {
         await ABTestingEngine.recordPerformance(metadata.templateId, metadata.variant, 'sends');
       }
       
-      return { success: true, messageId: msg.messageId };
+      return { 
+        success: true, 
+        messageId: info.messageId,
+        response: info.response 
+      };
       
     } catch (error) {
-      console.error('SendGrid error:', error);
+      console.error('Gmail SMTP error:', error);
       throw error;
     }
   }
@@ -798,7 +781,7 @@ class SendGridService {
   /**
    * Log communication to Firestore
    */
-  static async logCommunication(to, subject, metadata) {
+  static async logCommunication(to, subject, metadata, messageId) {
     try {
       await db.collection('communications').add({
         type: 'email',
@@ -810,6 +793,8 @@ class SendGridService {
         stageId: metadata.stageId,
         templateId: metadata.templateId,
         variant: metadata.variant || 'A',
+        messageId: messageId,
+        provider: 'google-workspace',
         sentAt: admin.firestore.FieldValue.serverTimestamp(),
         status: 'sent',
         events: []
@@ -837,311 +822,258 @@ class SendGridService {
   }
 
   /**
-   * Handle SendGrid webhook events
+   * Handle unsubscribe request
    */
-  static async handleWebhook(events) {
-    try {
-      for (const event of events) {
-        const { email, event: eventType, contactId, templateId, variant } = event;
-        
-        // Update communication record
-        await this.updateCommunicationEvent(email, eventType, event);
-        
-        // Update contact engagement
-        await this.updateContactEngagement(contactId, eventType);
-        
-        // Record A/B test performance
-        if (templateId && variant) {
-          if (eventType === 'open') {
-            await ABTestingEngine.recordPerformance(templateId, variant, 'opens');
-          } else if (eventType === 'click') {
-            await ABTestingEngine.recordPerformance(templateId, variant, 'clicks');
-          }
-        }
-        
-        // Handle bounces and unsubscribes
-        if (eventType === 'bounce' || eventType === 'dropped') {
-          await this.handleBounce(contactId, event);
-        } else if (eventType === 'unsubscribe') {
-          await this.handleUnsubscribe(email);
-        }
-      }
-      
-      console.log(`✅ Processed ${events.length} webhook events`);
-      
-    } catch (error) {
-      console.error('Webhook handling error:', error);
-    }
-  }
-
-  static async updateCommunicationEvent(email, eventType, eventData) {
-    try {
-      const commSnapshot = await db.collection('communications')
-        .where('to', '==', email)
-        .orderBy('sentAt', 'desc')
-        .limit(1)
-        .get();
-      
-      if (!commSnapshot.empty) {
-        const commDoc = commSnapshot.docs[0];
-        await commDoc.ref.update({
-          events: admin.firestore.FieldValue.arrayUnion({
-            type: eventType,
-            timestamp: admin.firestore.FieldValue.serverTimestamp(),
-            data: eventData
-          }),
-          [`${eventType}At`]: admin.firestore.FieldValue.serverTimestamp()
-        });
-      }
-    } catch (error) {
-      console.error('Communication event update error:', error);
-    }
-  }
-
-  static async updateContactEngagement(contactId, eventType) {
-    if (!contactId) return;
-    
-    try {
-      const updates = {
-        lastActivityDate: admin.firestore.FieldValue.serverTimestamp()
-      };
-      
-      if (eventType === 'open') {
-        updates['emailEngagement.opensCount'] = admin.firestore.FieldValue.increment(1);
-        updates['emailEngagement.lastOpen'] = admin.firestore.FieldValue.serverTimestamp();
-        updates.emailOpened = true;
-      } else if (eventType === 'click') {
-        updates['emailEngagement.clicksCount'] = admin.firestore.FieldValue.increment(1);
-        updates['emailEngagement.lastClick'] = admin.firestore.FieldValue.serverTimestamp();
-      }
-      
-      await db.collection('contacts').doc(contactId).update(updates);
-    } catch (error) {
-      console.error('Contact engagement update error:', error);
-    }
-  }
-
-  static async handleBounce(contactId, event) {
-    if (!contactId) return;
-    
-    try {
-      await db.collection('contacts').doc(contactId).update({
-        workflowStatus: 'stopped',
-        workflowStatusReason: event.type === 'bounce' ? 'hard_bounce' : 'dropped',
-        bounceDetails: event
-      });
-      
-      console.log(`⚠️ Contact ${contactId} workflow stopped due to ${event.type}`);
-    } catch (error) {
-      console.error('Bounce handling error:', error);
-    }
-  }
-
   static async handleUnsubscribe(email) {
     try {
-      await db.collection('unsubscribes').add({
+      await db.collection('unsubscribes').doc(email.toLowerCase()).set({
         email: email.toLowerCase(),
         unsubscribedAt: admin.firestore.FieldValue.serverTimestamp(),
-        source: 'sendgrid_webhook'
+        source: 'email_link'
       });
-      
-      // Stop all workflows for this email
-      const contactsSnapshot = await db.collection('contacts')
-        .where('emails', 'array-contains', { address: email, isPrimary: true })
-        .get();
-      
-      const promises = [];
-      contactsSnapshot.forEach(doc => {
-        promises.push(
-          doc.ref.update({
-            workflowStatus: 'stopped',
-            workflowStatusReason: 'unsubscribed'
-          })
-        );
-      });
-      
-      await Promise.all(promises);
       
       console.log(`✅ Unsubscribed: ${email}`);
-    } catch (error) {
-      console.error('Unsubscribe handling error:', error);
-    }
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// IDIQ APPLICATION TRACKER
-// ═══════════════════════════════════════════════════════════════════════════
-
-class IDIQTracker {
-  /**
-   * Check IDIQ application status for contact
-   */
-  static async checkIDIQStatus(contactId) {
-    try {
-      const appSnapshot = await db.collection('idiqApplications')
-        .where('contactId', '==', contactId)
-        .orderBy('createdAt', 'desc')
-        .limit(1)
+      
+      // Update contact record
+      const contactsSnapshot = await db.collection('contacts')
+        .where('emails', 'array-contains', { address: email })
         .get();
       
-      if (appSnapshot.empty) {
-        return { status: 'not_started', hasApplication: false };
-      }
-      
-      const appData = appSnapshot.docs[0].data();
-      
-      return {
-        status: appData.status,
-        hasApplication: true,
-        applicationId: appSnapshot.docs[0].id,
-        createdAt: appData.createdAt,
-        completedAt: appData.completedAt,
-        reportUrl: appData.reportUrl
-      };
-      
-    } catch (error) {
-      console.error('IDIQ status check error:', error);
-      return { status: 'unknown', hasApplication: false };
-    }
-  }
-
-  /**
-   * Track application creation
-   */
-  static async trackApplication(contactId, applicationData) {
-    try {
-      await db.collection('idiqApplications').add({
-        contactId: contactId,
-        status: 'started',
-        partnerApplicationId: applicationData.partnerApplicationId,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        ...applicationData
-      });
-      
-      // Update contact
-      await db.collection('contacts').doc(contactId).update({
-        idiqStatus: 'started',
-        idiqApplicationId: applicationData.partnerApplicationId,
-        lastIDIQDate: admin.firestore.FieldValue.serverTimestamp()
-      });
-      
-      console.log(`✅ IDIQ application tracked for ${contactId}`);
-      
-    } catch (error) {
-      console.error('IDIQ tracking error:', error);
-    }
-  }
-
-  /**
-   * Update application status
-   */
-  static async updateStatus(applicationId, status, data = {}) {
-    try {
-      const updates = {
-        status: status,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        ...data
-      };
-      
-      if (status === 'completed') {
-        updates.completedAt = admin.firestore.FieldValue.serverTimestamp();
-      }
-      
-      await db.collection('idiqApplications').doc(applicationId).update(updates);
-      
-      // Update contact
-      const appDoc = await db.collection('idiqApplications').doc(applicationId).get();
-      const contactId = appDoc.data().contactId;
-      
-      if (contactId) {
-        await db.collection('contacts').doc(contactId).update({
-          idiqStatus: status,
-          ...( status === 'completed' && data.reportUrl ? { idiqReportUrl: data.reportUrl } : {})
+      for (const doc of contactsSnapshot.docs) {
+        await doc.ref.update({
+          workflowStatus: 'stopped',
+          workflowStatusReason: 'unsubscribed',
+          unsubscribedAt: admin.firestore.FieldValue.serverTimestamp()
         });
       }
       
-      console.log(`✅ IDIQ status updated: ${status}`);
-      
     } catch (error) {
-      console.error('IDIQ update error:', error);
-    }
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// MAIN WORKFLOW ENGINE
-// ═══════════════════════════════════════════════════════════════════════════
-
-class WorkflowEngine {
-  /**
-   * Start workflow for new contact
-   */
-  static async startWorkflow(contactId, contactData) {
-    try {
-      console.log(`🚀 Starting workflow for contact: ${contactId}`);
-      
-      // Determine appropriate workflow
-      const workflow = this.determineWorkflow(contactData);
-      console.log(`📋 Selected workflow: ${workflow.name}`);
-      
-      // Check entry conditions
-      if (!this.checkEntryConditions(workflow.entryConditions, contactData)) {
-        console.log(`⚠️ Entry conditions not met for ${workflow.id}`);
-        return { success: false, reason: 'entry_conditions_not_met' };
-      }
-      
-      // Check if already in workflow
-      if (contactData.workflowStatus === 'active') {
-        console.log(`ℹ️ Contact already in active workflow`);
-        return { success: false, reason: 'already_in_workflow' };
-      }
-      
-      // Initialize workflow state
-      await db.collection('contacts').doc(contactId).update({
-        workflowName: workflow.id,
-        workflowStatus: 'active',
-        workflowStartedAt: admin.firestore.FieldValue.serverTimestamp(),
-        currentStage: 0,
-        completedStages: [],
-        totalStages: workflow.stages.length
-      });
-      
-      // Execute first stage if delay is 0
-      if (workflow.stages.length > 0 && workflow.stages[0].delayMinutes === 0) {
-        await this.executeStage(contactId, contactData, workflow, 0);
-      } else if (workflow.stages.length > 0) {
-        await this.scheduleNextStage(contactId, workflow, 0);
-      }
-      
-      console.log(`✅ Workflow started successfully`);
-      return { success: true, workflowId: workflow.id };
-      
-    } catch (error) {
-      console.error(`❌ Workflow start error:`, error);
+      console.error('Unsubscribe handling error:', error);
       throw error;
     }
   }
 
   /**
-   * Determine which workflow to use
+   * Update communication event (for tracking opens, clicks, etc.)
+   */
+  static async updateCommunicationEvent(email, eventType, eventData) {
+    try {
+      const commsSnapshot = await db.collection('communications')
+        .where('to', '==', email)
+        .orderBy('sentAt', 'desc')
+        .limit(1)
+        .get();
+      
+      if (commsSnapshot.empty) return;
+      
+      const commDoc = commsSnapshot.docs[0];
+      const eventLog = {
+        type: eventType,
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        data: eventData
+      };
+      
+      await commDoc.ref.update({
+        events: admin.firestore.FieldValue.arrayUnion(eventLog),
+        lastEventType: eventType,
+        lastEventAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+      
+      // Record A/B test metrics
+      const commData = commDoc.data();
+      if (commData.templateId && commData.variant) {
+        if (eventType === 'open') {
+          await ABTestingEngine.recordPerformance(commData.templateId, commData.variant, 'opens');
+        } else if (eventType === 'click') {
+          await ABTestingEngine.recordPerformance(commData.templateId, commData.variant, 'clicks');
+        } else if (eventType === 'conversion') {
+          await ABTestingEngine.recordPerformance(commData.templateId, commData.variant, 'conversions');
+        }
+      }
+      
+    } catch (error) {
+      console.error('Event update error:', error);
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// IDIQ TRACKER
+// ═══════════════════════════════════════════════════════════════════════════
+
+class IDIQTracker {
+  /**
+   * Check IDIQ application status for a contact
+   */
+  static async checkIDIQStatus(contactId) {
+    try {
+      const contactDoc = await db.collection('contacts').doc(contactId).get();
+      
+      if (!contactDoc.exists) {
+        return { status: 'not_started', message: 'Contact not found' };
+      }
+      
+      const contact = contactDoc.data();
+      
+      // Check for IDIQ application data
+      if (!contact.idiqApplicationId) {
+        return { 
+          status: 'not_started',
+          message: 'No IDIQ application started'
+        };
+      }
+      
+      // Check application status
+      const appDoc = await db.collection('idiq_applications')
+        .doc(contact.idiqApplicationId)
+        .get();
+      
+      if (!appDoc.exists) {
+        return {
+          status: 'not_started',
+          message: 'Application record not found'
+        };
+      }
+      
+      const application = appDoc.data();
+      
+      return {
+        status: application.status || 'unknown',
+        applicationId: contact.idiqApplicationId,
+        startedAt: application.startedAt,
+        completedAt: application.completedAt,
+        reportUrl: application.reportUrl,
+        message: this.getStatusMessage(application.status)
+      };
+      
+    } catch (error) {
+      console.error('IDIQ status check error:', error);
+      return { status: 'error', message: error.message };
+    }
+  }
+
+  static getStatusMessage(status) {
+    const messages = {
+      'not_started': 'Application not yet started',
+      'started': 'Application in progress',
+      'pending': 'Waiting for verification',
+      'completed': 'Report ready',
+      'failed': 'Application failed - verification issues',
+      'expired': 'Application link expired'
+    };
+    
+    return messages[status] || 'Unknown status';
+  }
+
+  /**
+   * Trigger IDIQ application for a contact
+   */
+  static async triggerIDIQApplication(contactId) {
+    try {
+      // This would integrate with your IDIQ webhook/API
+      // For now, just log that we would trigger it
+      console.log(`Would trigger IDIQ application for contact: ${contactId}`);
+      
+      // In production, this would:
+      // 1. Call IDIQ API to start application
+      // 2. Store application ID
+      // 3. Set up webhook to receive status updates
+      
+      return {
+        success: true,
+        message: 'IDIQ application triggered (stub)'
+      };
+      
+    } catch (error) {
+      console.error('IDIQ trigger error:', error);
+      throw error;
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WORKFLOW ENGINE - MAIN ORCHESTRATOR
+// ═══════════════════════════════════════════════════════════════════════════
+
+class WorkflowEngine {
+  /**
+   * Start workflow for a new contact
+   */
+  static async startWorkflow(contactId, contactData) {
+    try {
+      console.log(`🚀 Starting workflow for contact: ${contactId}`);
+      
+      // Determine which workflow to use
+      const workflow = this.determineWorkflow(contactData);
+      
+      if (!workflow || workflow.id === 'manual' || workflow.stages.length === 0) {
+        console.log('ℹ️ No automated workflow for this contact');
+        return { success: true, workflow: workflow?.id || 'none' };
+      }
+      
+      // Check entry conditions
+      if (!this.checkEntryConditions(workflow, contactData)) {
+        console.log('⚠️ Entry conditions not met');
+        return { success: false, reason: 'entry_conditions_not_met' };
+      }
+      
+      // Initialize workflow state in contact document
+      await db.collection('contacts').doc(contactId).update({
+        workflowId: workflow.id,
+        workflowStatus: 'active',
+        workflowCurrentStage: null,
+        workflowStartedAt: admin.firestore.FieldValue.serverTimestamp(),
+        emailsSent: 0,
+        lastEmailSent: null
+      });
+      
+      console.log(`✅ Workflow initialized: ${workflow.name}`);
+      
+      // Start first stage immediately if delay is 0
+      const firstStage = workflow.stages[0];
+      if (firstStage && firstStage.delayMinutes === 0) {
+        await this.executeStage(contactId, workflow, 0);
+      } else if (firstStage) {
+        await this.scheduleNextStage(contactId, workflow, 0);
+      }
+      
+      return { 
+        success: true, 
+        workflow: workflow.id,
+        firstStageScheduled: firstStage ? firstStage.id : null
+      };
+      
+    } catch (error) {
+      console.error('Workflow start error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Determine which workflow to use based on contact data
    */
   static determineWorkflow(contactData) {
-    const source = contactData.leadSource || 'unknown';
+    const source = contactData.leadSource || contactData.source || 'unknown';
     
-    // Try AI Receptionist workflow
+    // Check each workflow's entry conditions
+    for (const workflow of Object.values(WORKFLOW_DEFINITIONS)) {
+      if (workflow.entryConditions.sources?.includes(source)) {
+        return workflow;
+      }
+    }
+    
+    // Check specific conditions for ai-receptionist
     if (WORKFLOW_DEFINITIONS['ai-receptionist'].entryConditions.sources.includes(source)) {
-      return WORKFLOW_DEFINITIONS['ai-receptionist'];
+      if (contactData.emails?.length && contactData.phones?.length) {
+        return WORKFLOW_DEFINITIONS['ai-receptionist'];
+      }
     }
     
-    // Try Website Lead workflow
+    // Check for website leads
     if (WORKFLOW_DEFINITIONS['website-lead'].entryConditions.sources.includes(source)) {
-      return WORKFLOW_DEFINITIONS['website-lead'];
-    }
-    
-    // Manual workflow
-    if (source === 'manual') {
-      return WORKFLOW_DEFINITIONS['manual'];
+      if (contactData.emails?.length) {
+        return WORKFLOW_DEFINITIONS['website-lead'];
+      }
     }
     
     // Default workflow
@@ -1149,54 +1081,75 @@ class WorkflowEngine {
   }
 
   /**
-   * Check if contact meets workflow entry conditions
+   * Check if contact meets entry conditions
    */
-  static checkEntryConditions(conditions, contactData) {
-    if (!conditions) return true;
+  static checkEntryConditions(workflow, contactData) {
+    const conditions = workflow.entryConditions;
     
-    if (conditions.hasEmail) {
-      const hasEmail = contactData.emails && 
-                      Array.isArray(contactData.emails) && 
-                      contactData.emails.length > 0 &&
-                      contactData.emails[0].address;
-      if (!hasEmail) {
-        console.log(`❌ Entry failed: No email address`);
-        return false;
-      }
+    if (conditions.hasEmail && !contactData.emails?.length) {
+      return false;
     }
     
-    if (conditions.hasPhone) {
-      const hasPhone = contactData.phones && 
-                      Array.isArray(contactData.phones) && 
-                      contactData.phones.length > 0;
-      if (!hasPhone) {
-        console.log(`❌ Entry failed: No phone number`);
-        return false;
-      }
-    }
-    
-    if (conditions.sources?.length > 0) {
-      const source = contactData.leadSource || 'unknown';
-      if (!conditions.sources.includes(source)) {
-        console.log(`❌ Entry failed: Source ${source} not allowed`);
-        return false;
-      }
+    if (conditions.hasPhone && !contactData.phones?.length) {
+      return false;
     }
     
     return true;
   }
 
   /**
-   * Execute stage
+   * Schedule next stage
    */
-  static async executeStage(contactId, contactData, workflow, stageIndex) {
+  static async scheduleNextStage(contactId, workflow, stageIndex) {
     try {
+      if (stageIndex >= workflow.stages.length) {
+        console.log('✅ All stages completed');
+        await db.collection('contacts').doc(contactId).update({
+          workflowStatus: 'completed',
+          workflowCompletedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        return;
+      }
+      
       const stage = workflow.stages[stageIndex];
-      if (!stage) return;
+      const executeAt = new Date(Date.now() + (stage.delayMinutes * 60 * 1000));
       
-      console.log(`⚡ Executing: ${stage.name}`);
+      // Store schedule in contact document
+      await db.collection('contacts').doc(contactId).update({
+        nextStageId: stage.id,
+        nextStageIndex: stageIndex,
+        nextStageAt: admin.firestore.Timestamp.fromDate(executeAt)
+      });
       
-      // Check condition
+      console.log(`📅 Scheduled stage ${stage.id} for ${executeAt.toISOString()}`);
+      
+    } catch (error) {
+      console.error('Stage scheduling error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Execute a workflow stage (send email)
+   */
+  static async executeStage(contactId, workflow, stageIndex) {
+    try {
+      console.log(`📧 Executing stage ${stageIndex} for contact ${contactId}`);
+      
+      // Get contact data
+      const contactDoc = await db.collection('contacts').doc(contactId).get();
+      if (!contactDoc.exists) throw new Error('Contact not found');
+      
+      const contactData = contactDoc.data();
+      const stage = workflow.stages[stageIndex];
+      
+      // Check if workflow should continue
+      if (contactData.workflowStatus !== 'active') {
+        console.log('⚠️ Workflow not active, skipping');
+        return;
+      }
+      
+      // Check stage condition
       if (stage.condition && !this.checkStageCondition(stage.condition, contactData)) {
         console.log(`⏭️ Stage condition not met, skipping`);
         if (stageIndex + 1 < workflow.stages.length) {
@@ -1209,7 +1162,7 @@ class WorkflowEngine {
       if (!email) throw new Error('No email address');
       
       // Check unsubscribed
-      const isUnsubscribed = await SendGridService.isUnsubscribed(email);
+      const isUnsubscribed = await GmailService.isUnsubscribed(email);
       if (isUnsubscribed) {
         console.log(`⚠️ Contact unsubscribed, stopping workflow`);
         await db.collection('contacts').doc(contactId).update({
@@ -1242,8 +1195,8 @@ class WorkflowEngine {
       // Select A/B variant
       const variant = await ABTestingEngine.selectVariant(stage.templateId, contactData);
       
-      // Send email
-      await SendGridService.sendEmail(
+      // Send email via Google Workspace
+      await GmailService.sendEmail(
         email,
         emailContent.subject,
         emailContent.html,
@@ -1258,28 +1211,34 @@ class WorkflowEngine {
       
       console.log(`✅ Email sent successfully`);
       
-      // Update state
+      // Update contact record
       await db.collection('contacts').doc(contactId).update({
-        currentStage: stageIndex,
-        completedStages: admin.firestore.FieldValue.arrayUnion(stage.id),
-        lastStageAt: admin.firestore.FieldValue.serverTimestamp(),
+        workflowCurrentStage: stage.id,
+        emailsSent: admin.firestore.FieldValue.increment(1),
         lastEmailSent: admin.firestore.FieldValue.serverTimestamp(),
-        emailsSent: admin.firestore.FieldValue.increment(1)
+        lastStageAt: admin.firestore.FieldValue.serverTimestamp(),
+        nextStageId: null,
+        nextStageIndex: null,
+        nextStageAt: null
       });
       
-      // Schedule next
+      // Schedule next stage
       if (stageIndex + 1 < workflow.stages.length) {
         await this.scheduleNextStage(contactId, workflow, stageIndex + 1);
       } else {
-        console.log(`🎉 Workflow complete`);
         await db.collection('contacts').doc(contactId).update({
           workflowStatus: 'completed',
           workflowCompletedAt: admin.firestore.FieldValue.serverTimestamp()
         });
+        console.log('🎉 Workflow completed!');
       }
       
     } catch (error) {
-      console.error(`❌ Stage execution error:`, error);
+      console.error('Stage execution error:', error);
+      await db.collection('contacts').doc(contactId).update({
+        workflowStatus: 'error',
+        workflowStatusReason: error.message
+      });
       throw error;
     }
   }
@@ -1288,77 +1247,68 @@ class WorkflowEngine {
    * Check stage condition
    */
   static checkStageCondition(condition, contactData) {
-    if (!condition) return true;
+    const { field, operator, value } = condition;
+    const fieldValue = contactData[field];
     
-    const actualValue = contactData[condition.field];
-    
-    switch (condition.operator) {
-      case '==': return actualValue === condition.value;
-      case '!=': return actualValue !== condition.value;
-      case '>': return actualValue > condition.value;
-      case '<': return actualValue < condition.value;
-      case '>=': return actualValue >= condition.value;
-      case '<=': return actualValue <= condition.value;
-      default: return true;
+    switch (operator) {
+      case '==':
+        return fieldValue === value;
+      case '!=':
+        return fieldValue !== value;
+      case '>':
+        return fieldValue > value;
+      case '<':
+        return fieldValue < value;
+      case '>=':
+        return fieldValue >= value;
+      case '<=':
+        return fieldValue <= value;
+      default:
+        return true;
     }
   }
 
   /**
-   * Schedule next stage
-   */
-  static async scheduleNextStage(contactId, workflow, stageIndex) {
-    const nextStage = workflow.stages[stageIndex];
-    if (!nextStage) return;
-    
-    const delayMinutes = nextStage.delayMinutes || 0;
-    console.log(`⏰ Scheduling "${nextStage.name}" in ${delayMinutes} minutes`);
-    
-    const scheduledTime = new Date(Date.now() + delayMinutes * 60 * 1000);
-    
-    await db.collection('contacts').doc(contactId).update({
-      nextScheduledStage: {
-        stageIndex,
-        stageName: nextStage.name,
-        scheduledFor: admin.firestore.Timestamp.fromDate(scheduledTime)
-      }
-    });
-  }
-
-  /**
-   * Process scheduled stages (cron job)
+   * Process scheduled stages (called by cron)
    */
   static async processScheduledStages() {
     try {
-      console.log('🔄 Processing scheduled stages...');
+      console.log('⏰ Processing scheduled workflow stages...');
       
       const now = admin.firestore.Timestamp.now();
+      
+      // Find contacts with stages ready to execute
       const snapshot = await db.collection('contacts')
         .where('workflowStatus', '==', 'active')
-        .where('nextScheduledStage.scheduledFor', '<=', now)
+        .where('nextStageAt', '<=', now)
         .limit(50)
         .get();
       
-      console.log(`📋 Found ${snapshot.size} due stages`);
+      console.log(`Found ${snapshot.size} stages ready to execute`);
       
       const promises = [];
       
       snapshot.forEach(doc => {
-        const data = doc.data();
-        const workflow = WORKFLOW_DEFINITIONS[data.workflowName];
+        const contactData = doc.data();
+        const workflow = WORKFLOW_DEFINITIONS[contactData.workflowId];
         
-        if (workflow && data.nextScheduledStage) {
+        if (workflow && typeof contactData.nextStageIndex === 'number') {
           promises.push(
-            this.executeStage(doc.id, data, workflow, data.nextScheduledStage.stageIndex)
-              .catch(err => console.error(`Error for ${doc.id}:`, err))
+            this.executeStage(doc.id, workflow, contactData.nextStageIndex)
+              .catch(error => {
+                console.error(`Error executing stage for ${doc.id}:`, error);
+              })
           );
         }
       });
       
       await Promise.all(promises);
-      console.log(`✅ Processed ${promises.length} stages`);
+      
+      console.log('✅ Scheduled stages processed');
+      return { processed: promises.length };
       
     } catch (error) {
-      console.error('❌ Scheduled processing error:', error);
+      console.error('Process scheduled stages error:', error);
       throw error;
     }
   }
@@ -1366,17 +1316,17 @@ class WorkflowEngine {
   /**
    * Pause workflow
    */
-  static async pauseWorkflow(contactId, reason = 'manual') {
+  static async pauseWorkflow(contactId) {
     try {
       await db.collection('contacts').doc(contactId).update({
         workflowStatus: 'paused',
-        workflowStatusReason: reason,
-        pausedAt: admin.firestore.FieldValue.serverTimestamp()
+        workflowPausedAt: admin.firestore.FieldValue.serverTimestamp()
       });
-      console.log(`⏸️ Workflow paused: ${contactId}`);
+      
+      console.log(`⏸️ Workflow paused for ${contactId}`);
       return { success: true };
     } catch (error) {
-      console.error('Pause error:', error);
+      console.error('Pause workflow error:', error);
       throw error;
     }
   }
@@ -1386,15 +1336,32 @@ class WorkflowEngine {
    */
   static async resumeWorkflow(contactId) {
     try {
+      const contactDoc = await db.collection('contacts').doc(contactId).get();
+      if (!contactDoc.exists) throw new Error('Contact not found');
+      
+      const contactData = contactDoc.data();
+      
+      if (contactData.workflowStatus !== 'paused') {
+        throw new Error('Workflow is not paused');
+      }
+      
       await db.collection('contacts').doc(contactId).update({
         workflowStatus: 'active',
-        workflowStatusReason: '',
-        resumedAt: admin.firestore.FieldValue.serverTimestamp()
+        workflowResumedAt: admin.firestore.FieldValue.serverTimestamp()
       });
-      console.log(`▶️ Workflow resumed: ${contactId}`);
+      
+      // Reschedule next stage if there is one
+      if (contactData.nextStageIndex !== null && contactData.workflowId) {
+        const workflow = WORKFLOW_DEFINITIONS[contactData.workflowId];
+        if (workflow) {
+          await this.scheduleNextStage(contactId, workflow, contactData.nextStageIndex);
+        }
+      }
+      
+      console.log(`▶️ Workflow resumed for ${contactId}`);
       return { success: true };
     } catch (error) {
-      console.error('Resume error:', error);
+      console.error('Resume workflow error:', error);
       throw error;
     }
   }
@@ -1402,17 +1369,21 @@ class WorkflowEngine {
   /**
    * Stop workflow
    */
-  static async stopWorkflow(contactId, reason = 'manual') {
+  static async stopWorkflow(contactId, reason = 'manual_stop') {
     try {
       await db.collection('contacts').doc(contactId).update({
         workflowStatus: 'stopped',
         workflowStatusReason: reason,
-        stoppedAt: admin.firestore.FieldValue.serverTimestamp()
+        workflowStoppedAt: admin.firestore.FieldValue.serverTimestamp(),
+        nextStageId: null,
+        nextStageIndex: null,
+        nextStageAt: null
       });
-      console.log(`⏹️ Workflow stopped: ${contactId}`);
+      
+      console.log(`⏹️ Workflow stopped for ${contactId}: ${reason}`);
       return { success: true };
     } catch (error) {
-      console.error('Stop error:', error);
+      console.error('Stop workflow error:', error);
       throw error;
     }
   }
@@ -1425,18 +1396,18 @@ class WorkflowEngine {
       const contactDoc = await db.collection('contacts').doc(contactId).get();
       
       if (!contactDoc.exists) {
-        return { error: 'Contact not found' };
+        throw new Error('Contact not found');
       }
       
       const data = contactDoc.data();
       
       return {
-        workflowName: data.workflowName,
-        status: data.workflowStatus,
-        currentStage: data.currentStage,
-        completedStages: data.completedStages || [],
-        totalStages: data.totalStages,
-        nextScheduledStage: data.nextScheduledStage,
+        contactId,
+        workflowId: data.workflowId,
+        workflowStatus: data.workflowStatus,
+        currentStage: data.workflowCurrentStage,
+        nextStage: data.nextStageId,
+        nextStageAt: data.nextStageAt,
         emailsSent: data.emailsSent || 0,
         startedAt: data.workflowStartedAt,
         lastStageAt: data.lastStageAt
@@ -1514,7 +1485,7 @@ class WorkflowEngine {
       
       const emailContent = getEmailTemplate(templateId, templateData);
       
-      await SendGridService.sendEmail(
+      await GmailService.sendEmail(
         email,
         emailContent.subject,
         emailContent.html,
@@ -1678,7 +1649,7 @@ module.exports = {
   SendTimeOptimizer,
   
   // Services
-  SendGridService,
+  GmailService,  // ✅ CHANGED FROM SendGridService
   IDIQTracker,
   
   // Workflow Engine
