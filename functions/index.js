@@ -1811,3 +1811,9 @@ exports.generateAIEmailContent = functions.https.onCall(async (data, context) =>
 });
 
 console.log('📧 Email Automation Functions exported successfully!');
+
+// IDIQ Enrollment Service
+const idiqEnrollment = require('./idiqEnrollmentService');
+exports.idiqEnroll = idiqEnrollment.idiqEnroll;
+exports.idiqMemberStatus = idiqEnrollment.idiqMemberStatus;
+exports.idiqWebhook = idiqEnrollment.idiqWebhook;

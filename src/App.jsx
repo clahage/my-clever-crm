@@ -11,6 +11,8 @@ import ProtectedLayout from '@/layout/ProtectedLayout';
 
 // Existing imports...
 import Products from '@/pages/Products';
+import IDIQEnrollmentWizard from './components/IDIQEnrollmentWizard';
+import IDIQReportViewer from './components/IDIQReportViewer';
 
 
 // ============================================================================
@@ -216,7 +218,7 @@ const WhiteLabelTenants = lazy(() => import('@/pages/whitelabel/Tenants'));
 // ============================================================================
 // PROTECTED ROUTE WRAPPER
 // ============================================================================
-const ProtectedRoute = ({ children, requiredRole = null }) => {
+const ProtectedRoute = ({ children, requiredRole = null, requiredRoles = null }) => {
   const { currentUser, userProfile, loading } = useAuth();
 
   if (loading) {
@@ -227,21 +229,37 @@ const ProtectedRoute = ({ children, requiredRole = null }) => {
     return <Navigate to="/login" replace />;
   }
 
-  if (requiredRole) {
+  // Normalize allowedRoles to an array. Support legacy requiredRole and new requiredRoles.
+  let allowedRoles = null;
+  if (requiredRoles) {
+    allowedRoles = Array.isArray(requiredRoles) ? requiredRoles : [requiredRoles];
+  } else if (requiredRole) {
+    allowedRoles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
+  }
+
+  if (allowedRoles) {
     const userRole = userProfile?.role || currentUser?.role || 'user';
-    const allowedRoles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
-    
-  console.debug && console.debug('🔒 Protected Route Check:', { userRole, allowedRoles, requiredRole });
 
-    if (userRole === 'masterAdmin') {
+    // Convert numeric role arrays to strings for consistent comparison, but keep non-numeric role checks.
+    const normalizedAllowed = allowedRoles.map(r => (typeof r === 'number' ? String(r) : r));
+    const normalizedUserRole = typeof userRole === 'number' ? String(userRole) : userRole;
+
+    console.debug && console.debug('🔒 Protected Route Check:', { userRole: normalizedUserRole, allowedRoles: normalizedAllowed });
+
+    if (normalizedUserRole === 'masterAdmin') {
       return <>{children}</>;
     }
 
-    if (allowedRoles.includes('admin') && userRole === 'admin') {
+    if (normalizedAllowed.includes('admin') && normalizedUserRole === 'admin') {
       return <>{children}</>;
     }
 
-    if (allowedRoles.includes('user') && (userRole === 'user' || userRole === 'client')) {
+    if (normalizedAllowed.includes('user') && (normalizedUserRole === 'user' || normalizedUserRole === 'client')) {
+      return <>{children}</>;
+    }
+
+    // Check numeric/string role membership
+    if (normalizedAllowed.includes(normalizedUserRole)) {
       return <>{children}</>;
     }
 
@@ -256,7 +274,7 @@ const ProtectedRoute = ({ children, requiredRole = null }) => {
             You don't have permission to access this page.
             <br />
             <span className="text-sm mt-2 block">
-              Required: {Array.isArray(requiredRole) ? requiredRole.join(', ') : requiredRole} | Your role: {userRole}
+              Required: {Array.isArray(allowedRoles) ? allowedRoles.join(', ') : allowedRoles} | Your role: {userRole}
             </span>
           </p>
           <button
@@ -389,6 +407,39 @@ const AppContent = () => {
         <Route path="whitelabel/plans" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><WhiteLabelPlans /></Suspense></ProtectedRoute>} />
         <Route path="whitelabel/tenants" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><WhiteLabelTenants /></Suspense></ProtectedRoute>} />
         
+  {/* IDIQ Enrollment / Reporting */}
+  <Route
+    path="idiq/enroll"
+    element={
+      <ProtectedRoute requiredRoles={[5,6,7,8]}>
+        <Suspense fallback={<LoadingFallback />}>
+          <IDIQEnrollmentWizard />
+        </Suspense>
+      </ProtectedRoute>
+    }
+  />
+
+  <Route
+    path="idiq/enroll/:contactId"
+    element={
+      <ProtectedRoute requiredRoles={[5,6,7,8]}>
+        <Suspense fallback={<LoadingFallback />}>
+          <IDIQEnrollmentWizard />
+        </Suspense>
+      </ProtectedRoute>
+    }
+  />
+
+  <Route
+    path="idiq/report/:memberToken"
+    element={
+      <ProtectedRoute requiredRoles={[3,5,6,7,8]}>
+        <Suspense fallback={<LoadingFallback />}>
+          <IDIQReportViewer />
+        </Suspense>
+      </ProtectedRoute>
+    }
+  />
         {/* 404 - NOT FOUND */}
         <Route path="*" element={
           <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 dark:from-gray-900 dark:to-purple-900">

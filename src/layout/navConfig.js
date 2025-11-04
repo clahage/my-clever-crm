@@ -427,6 +427,50 @@ export const navigationItems = [
     ]
   },
 
+  // 💳 IDIQ CREDIT MONITORING (AI-Powered)
+  // ==========================================================================
+  {
+  id: 'idiq-group',
+  title: 'IDIQ Monitoring',
+  icon: Shield,
+  isGroup: true,
+  permission: 'client', // Clients can view their reports, staff can enroll
+  mobileHidden: false,
+  category: 'credit',
+  badge: 'AI',
+  items: [
+    { 
+      id: 'idiq-enroll', 
+      title: 'Enroll Client', 
+      path: '/idiq/enroll', 
+      icon: UserPlus, 
+      permission: 'user', // Staff only (roles 5-8)
+      mobileHidden: false,
+      badge: 'AI',
+      description: 'AI-powered IDIQ enrollment with fraud detection'
+    },
+    { 
+      id: 'idiq-reports', 
+      title: 'Credit Reports', 
+      path: '/idiq/reports', 
+      icon: FileText, 
+      permission: 'client', // Clients + Staff (roles 3, 5-8)
+      mobileHidden: false,
+      description: 'View IDIQ credit reports with AI analysis'
+    },
+    { 
+      id: 'idiq-dashboard', 
+      title: 'IDIQ Dashboard', 
+      path: '/idiq/dashboard', 
+      icon: LayoutDashboard, 
+      permission: 'user', // Staff only
+      mobileHidden: true,
+      badge: 'SOON',
+      description: 'Monitor all IDIQ enrollments and status'
+    }
+  ]
+},
+
   // ==========================================================================
   // 🧠 AI INTELLIGENCE (Admin Only)
   // ==========================================================================
@@ -1091,29 +1135,34 @@ export function getMobileNavigation(userRole) {
     masterAdmin: [
       { id: 'portal', title: 'Admin', path: '/portal', icon: LayoutDashboard },
       { id: 'contacts', title: 'Contacts', path: '/contacts', icon: Users },
+      { id: 'idiq-enroll', title: 'IDIQ', path: '/idiq/enroll', icon: Shield },
       { id: 'analytics', title: 'Analytics', path: '/analytics', icon: BarChart },
       { id: 'settings', title: 'Settings', path: '/settings', icon: Settings },
     ],
     admin: [
       { id: 'portal', title: 'Admin', path: '/portal', icon: LayoutDashboard },
       { id: 'contacts', title: 'Contacts', path: '/contacts', icon: Users },
+      { id: 'idiq-enroll', title: 'IDIQ', path: '/idiq/enroll', icon: Shield },
       { id: 'reports', title: 'Reports', path: '/reports', icon: FileText },
       { id: 'settings', title: 'Settings', path: '/settings', icon: Settings },
     ],
     manager: [
       { id: 'contacts', title: 'Contacts', path: '/contacts', icon: Users },
+      { id: 'idiq-enroll', title: 'IDIQ', path: '/idiq/enroll', icon: Shield },
       { id: 'pipeline', title: 'Pipeline', path: '/pipeline', icon: GitBranch },
       { id: 'reports', title: 'Reports', path: '/reports', icon: FileText },
       { id: 'settings', title: 'Settings', path: '/settings', icon: Settings },
     ],
     user: [
       { id: 'contacts', title: 'Contacts', path: '/contacts', icon: Users },
+      { id: 'idiq-enroll', title: 'IDIQ', path: '/idiq/enroll', icon: Shield },
       { id: 'tasks', title: 'Tasks', path: '/tasks', icon: CheckSquare },
       { id: 'calendar', title: 'Calendar', path: '/calendar', icon: Calendar },
       { id: 'settings', title: 'Settings', path: '/settings', icon: Settings },
     ],
     client: [
       { id: 'portal', title: 'My Portal', path: '/client-portal', icon: User },
+      { id: 'idiq-report', title: 'My Credit', path: '/idiq/reports', icon: Shield },
       { id: 'scores', title: 'Scores', path: '/credit-scores', icon: TrendingUp },
       { id: 'disputes', title: 'Disputes', path: '/dispute-letters', icon: FileText },
       { id: 'documents', title: 'Documents', path: '/documents', icon: FileText },
