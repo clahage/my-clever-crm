@@ -12,7 +12,7 @@ import ProtectedLayout from '@/layout/ProtectedLayout';
 // Existing imports...
 import Products from '@/pages/Products';
 import IDIQEnrollmentWizard from './components/IDIQEnrollmentWizard';
-import IDIQReportViewer from './components/IDIQReportViewer';
+
 
 
 // ============================================================================
@@ -432,17 +432,19 @@ const AppContent = () => {
     }
   />
 
+  {/* Credit Reports Hub - Consolidated IDIQ System */}
   <Route
-    path="idiq/report/:memberToken"
+    path="credit-hub"
     element={
-      <ProtectedRoute requiredRoles={[3,5,6,7,8]}>
+      <ProtectedRoute requiredRoles={[3,4,5,6,7,8]}>
         <Suspense fallback={<LoadingFallback />}>
-          <IDIQReportViewer />
+          <CreditReportsHub />
         </Suspense>
       </ProtectedRoute>
     }
   />
-        {/* 404 - NOT FOUND */}
+
+  {/* 404 - NOT FOUND */}
         <Route path="*" element={
           <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 dark:from-gray-900 dark:to-purple-900">
             <div className="text-center max-w-md p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl">
