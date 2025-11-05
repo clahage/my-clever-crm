@@ -139,6 +139,7 @@ const Register = lazy(() => import('@/pages/Register'));
 const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'));
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
 const IDIQDashboard = lazy(() => import("@/components/IDIQDashboard"));
+const CreditReportsHub = lazy(() => import('./pages/credit/CreditReportsHub'));
 const CreditReports = lazy(() => import("@/components/CreditReports"));
 const Home = lazy(() => import('@/pages/Home'));
 const ClientPortal = lazy(() => import('@/pages/ClientPortal'));
@@ -432,17 +433,17 @@ const AppContent = () => {
     }
   />
 
-  {/* Credit Reports Hub - Consolidated IDIQ System */}
-  <Route
-    path="credit-hub"
-    element={
-      <ProtectedRoute requiredRoles={[3,4,5,6,7,8]}>
-        <Suspense fallback={<LoadingFallback />}>
-          <CreditReportsHub />
-        </Suspense>
-      </ProtectedRoute>
-    }
-  />
+{/* Credit Reports Hub - Consolidated IDIQ System */}
+<Route
+  path="credit-hub"
+  element={
+    <ProtectedRoute requiredRoles={[3,4,5,6,7,8]}>
+      <Suspense fallback={<LoadingFallback />}>
+        <CreditReportsHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
 
   {/* 404 - NOT FOUND */}
         <Route path="*" element={

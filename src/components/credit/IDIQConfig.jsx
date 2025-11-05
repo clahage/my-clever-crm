@@ -62,7 +62,7 @@ import {
   History as HistoryIcon,
   Notifications as NotificationIcon,
   Schedule as ScheduleIcon,
-  CreditCard as CardIcon,
+  CreditCard,
   TrendingUp as TrendingUpIcon,
   TrendingDown as TrendingDownIcon,
   Email as EmailIcon,

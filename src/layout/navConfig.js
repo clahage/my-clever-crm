@@ -1,7 +1,7 @@
 // src/layout/navConfig.js
 // ENHANCED NAVIGATION CONFIGURATION - VERSION 3.0
 // ROLE-BASED VISIBILITY + MOBILE OPTIMIZATION + ACCORDION SUPPORT
-// LAST UPDATED: 2025-10-12
+// LAST UPDATED: 2025-11-04 - Phase 2 Complete
 
 import {
   // ===== CORE =====
@@ -219,6 +219,21 @@ export const navigationItems = [
   },
 
   // ==========================================================================
+  // 📊 CREDIT REPORTS HUB (Consolidated IDIQ System)
+  // ==========================================================================
+  {
+    id: 'credit-hub',
+    title: '📊 Credit Reports Hub',
+    path: '/credit-hub',
+    icon: Shield,
+    permission: 'client',
+    mobileHidden: false,
+    badge: 'AI',
+    description: 'Complete IDIQ credit management system - 7 tools in one hub',
+    category: 'credit'
+  },
+
+  // ==========================================================================
   // 📊 CREDIT REPORT WORKFLOW (Admin Only)
   // ==========================================================================
   {
@@ -248,91 +263,104 @@ export const navigationItems = [
     category: 'ai'
   },
   
+  {
+    id: 'ai-credit-analysis',
+    title: 'AI Credit Engine',
+    path: '/credit-analysis',
+    icon: Brain,
+    permission: 'user',
+    mobileHidden: true,
+    badge: 'AI',
+    description: 'Intelligent credit report analysis',
+    category: 'ai'
+  },
+  
+  {
+    id: 'predictive-analytics',
+    title: 'Predictive Analytics',
+    path: '/predictive-analytics',
+    icon: Activity,
+    permission: 'admin',
+    mobileHidden: true,
+    badge: 'AI',
+    description: 'AI-powered predictions',
+    category: 'ai'
+  },
+
   // ==========================================================================
-  // 👥 CONTACTS & CRM
+  // 👥 CONTACT MANAGEMENT
   // ==========================================================================
   {
     id: 'contacts-group',
-    title: 'Contacts & CRM',
+    title: 'Contact Management',
     icon: Users,
     isGroup: true,
-    permission: 'user', // Employees and up
+    permission: 'user',
     mobileHidden: false,
-    category: 'crm',
+    category: 'contacts',
     items: [
       { 
         id: 'contacts', 
         title: 'All Contacts', 
         path: '/contacts', 
-        icon: List, 
+        icon: Users, 
         permission: 'user',
         mobileHidden: false,
-        description: 'Manage all client contacts'
+        description: 'View and manage all contacts'
       },
-      {
-        id: 'email-workflows',
-        title: 'Email Workflows',
-        path: '/email-workflows',
-        icon: Mail,
-        permission: 'admin',
+      { 
+        id: 'client-intake', 
+        title: 'Client Intake', 
+        path: '/client-intake', 
+        icon: UserPlus, 
+        permission: 'user',
         mobileHidden: true,
-        badge: 'AI',
-        description: 'Automated email campaigns with AI personalization'
+        description: 'Add new client'
       },
       { 
         id: 'pipeline', 
         title: 'Sales Pipeline', 
         path: '/pipeline', 
         icon: GitBranch, 
-        permission: 'user', 
-        badge: 'NEW',
+        permission: 'user',
         mobileHidden: true,
-        description: 'Visual sales pipeline'
+        description: 'Sales funnel'
       },
       { 
-        id: 'import', 
+        id: 'import-contacts', 
         title: 'Import Contacts', 
-        path: '/import', 
+        path: '/import-contacts', 
         icon: Upload, 
         permission: 'user',
         mobileHidden: true,
-        description: 'Bulk import from CSV/Excel'
+        description: 'Bulk import'
       },
       { 
-        id: 'export', 
-        title: 'Export Data', 
-        path: '/export', 
+        id: 'export-contacts', 
+        title: 'Export Contacts', 
+        path: '/export-contacts', 
         icon: Download, 
-        permission: 'manager',
+        permission: 'user',
         mobileHidden: true,
-        description: 'Export contacts and reports'
+        description: 'Bulk export'
       },
       { 
         id: 'contact-reports', 
         title: 'Contact Reports', 
         path: '/contact-reports', 
-        icon: BarChart, 
-        permission: 'manager',
+        icon: FileText, 
+        permission: 'user',
         mobileHidden: true,
-        description: 'Analytics and insights'
+        description: 'Contact analytics'
       },
       { 
         id: 'segments', 
         title: 'Segments', 
         path: '/segments', 
-        icon: Layers, 
+        icon: Target, 
         permission: 'user',
         mobileHidden: true,
-        description: 'Contact segmentation and filters'
-      }
-      ,{
-        id: 'client-intake',
-        title: 'Client Intake',
-        path: '/intake',
-        icon: UserPlus,
-        permission: 'user',
-        mobileHidden: false,
-        description: 'Full client intake form (UltimateClientForm)'
+        description: 'Contact segmentation'
       }
     ]
   },
@@ -345,7 +373,7 @@ export const navigationItems = [
     title: 'Credit Management',
     icon: CreditCard,
     isGroup: true,
-    permission: 'client', // Clients and employees
+    permission: 'client',
     mobileHidden: false,
     category: 'credit',
     items: [
@@ -354,19 +382,19 @@ export const navigationItems = [
         title: 'Credit Simulator', 
         path: '/credit-simulator', 
         icon: Calculator, 
-        permission: 'client', 
-        badge: 'AI',
+        permission: 'client',
         mobileHidden: false,
-        description: 'Simulate score changes'
+        badge: 'AI',
+        description: 'What-if score predictions'
       },
       { 
         id: 'business-credit', 
         title: 'Business Credit', 
         path: '/business-credit', 
         icon: Building, 
-        permission: 'client', 
-        badge: 'PRO',
+        permission: 'user',
         mobileHidden: true,
+        badge: 'PRO',
         description: 'Business credit building'
       },
       { 
@@ -376,44 +404,35 @@ export const navigationItems = [
         icon: TrendingUp, 
         permission: 'client',
         mobileHidden: false,
-        description: 'Track all 3 bureaus'
+        description: 'View credit scores'
       },
       { 
-        id: 'dispute-letters', 
+        id: 'dispute-center', 
         title: 'Dispute Center', 
         path: '/dispute-letters', 
         icon: FileText, 
-        permission: 'client', 
+        permission: 'client',
         mobileHidden: false,
-        description: 'AI Disputes + Fax Integration', 
-        badge: 'FAX'
+        badge: 'FAX',
+        description: 'Manage disputes'
       },
       { 
         id: 'dispute-status', 
         title: 'Dispute Status', 
         path: '/dispute-status', 
-        icon: AlertCircle, 
+        icon: Activity, 
         permission: 'client',
         mobileHidden: false,
         description: 'Track dispute progress'
       },
       { 
-        id: 'dispute-admin-panel', 
+        id: 'admin-disputes', 
         title: 'Admin Dispute Panel', 
-        path: '/admin/dispute-admin-panel', 
-        icon: Settings, 
+        path: '/admin/disputes', 
+        icon: Shield, 
         permission: 'admin',
         mobileHidden: true,
-        description: 'Admin dispute management'
-      },
-      { 
-        id: 'credit-reports', 
-        title: 'My Reports', 
-        path: '/credit-reports', 
-        icon: FileSpreadsheet, 
-        permission: 'client',
-        mobileHidden: false,
-        description: 'View and analyze reports'
+        description: 'Manage all disputes'
       },
       { 
         id: 'credit-monitoring', 
@@ -422,110 +441,51 @@ export const navigationItems = [
         icon: Eye, 
         permission: 'client',
         mobileHidden: false,
-        description: 'Real-time credit monitoring'
-      }
-    ]
-  },
-
-  // 💳 IDIQ CREDIT MONITORING (AI-Powered)
-  // ==========================================================================
-  {
-  id: 'idiq-group',
-  title: 'IDIQ Monitoring',
-  icon: Shield,
-  isGroup: true,
-  permission: 'client', // Clients can view their reports, staff can enroll
-  mobileHidden: false,
-  category: 'credit',
-  badge: 'AI',
-  items: [
-    { 
-      id: 'idiq-enroll', 
-      title: 'Enroll Client', 
-      path: '/idiq/enroll', 
-      icon: UserPlus, 
-      permission: 'user', // Staff only (roles 5-8)
-      mobileHidden: false,
-      badge: 'AI',
-      description: 'AI-powered IDIQ enrollment with fraud detection'
-    },
-    { 
-      id: 'idiq-reports', 
-      title: 'Credit Reports', 
-      path: '/credit-reports', 
-      icon: FileText, 
-      permission: 'client', // Clients + Staff (roles 3, 5-8)
-      mobileHidden: false,
-      description: 'View IDIQ credit reports with AI analysis'
-    },
-    { 
-      id: 'idiq-dashboard', 
-      title: 'IDIQ Dashboard', 
-      path: '/idiq-dashboard', 
-      icon: LayoutDashboard, 
-      permission: 'user', // Staff only
-      mobileHidden: false,
-      badge: 'SOON',
-      description: 'Monitor all IDIQ enrollments and status'
-    }
-  ]
-},
-
-  // ==========================================================================
-  // 🧠 AI INTELLIGENCE (Admin Only)
-  // ==========================================================================
-  {
-    id: 'ai-intelligence-group',
-    title: '🧠 AI Intelligence',
-    icon: Brain,
-    isGroup: true,
-    permission: 'admin',
-    mobileHidden: true,
-    category: 'ai',
-    items: [
-      { 
-        id: 'credit-analysis', 
-        title: 'Credit Analysis Engine', 
-        path: '/credit-analysis', 
-        icon: Brain, 
-        permission: 'admin',
-        badge: 'AI',
-        mobileHidden: true,
-        description: 'AI-powered credit analysis and predictions'
+        badge: 'SOON',
+        description: 'Monitor credit changes'
       },
       { 
-        id: 'predictive-analytics', 
-        title: 'Predictive Analytics', 
-        path: '/predictive-analytics', 
-        icon: TrendingUp, 
-        permission: 'admin',
-        badge: 'AI',
-        mobileHidden: true,
-        description: 'Revenue forecasting and churn prediction'
+        id: 'my-reports', 
+        title: 'My Reports', 
+        path: '/credit-reports', 
+        icon: FileText, 
+        permission: 'client',
+        mobileHidden: false,
+        description: 'View credit reports'
       }
     ]
   },
 
   // ==========================================================================
-  // 💬 COMMUNICATION
+  // 📨 COMMUNICATIONS
   // ==========================================================================
   {
-    id: 'communication-group',
-    title: 'Communication',
+    id: 'comms-group',
+    title: 'Communications',
     icon: MessageSquare,
     isGroup: true,
     permission: 'user',
-    mobileHidden: false,
-    category: 'communication',
+    mobileHidden: true,
+    category: 'comms',
     items: [
+      { 
+        id: 'comms-center', 
+        title: 'Communications Center', 
+        path: '/communications', 
+        icon: Inbox, 
+        permission: 'user',
+        mobileHidden: true,
+        badge: 'NEW',
+        description: 'Unified inbox'
+      },
       { 
         id: 'letters', 
         title: 'Letters', 
         path: '/letters', 
-        icon: Mail, 
+        icon: FileText, 
         permission: 'user',
         mobileHidden: true,
-        description: 'Send physical mail'
+        description: 'Document generation'
       },
       { 
         id: 'emails', 
@@ -533,33 +493,24 @@ export const navigationItems = [
         path: '/emails', 
         icon: Mail, 
         permission: 'user',
-        mobileHidden: false,
+        mobileHidden: true,
         description: 'Email campaigns'
       },
       { 
         id: 'sms', 
-        title: 'SMS Messages', 
+        title: 'SMS', 
         path: '/sms', 
         icon: MessageSquare, 
         permission: 'user',
-        mobileHidden: false,
+        mobileHidden: true,
         description: 'Text messaging'
-      },
-      { 
-        id: 'communications', 
-        title: 'Communications', 
-        path: '/communications', 
-        icon: MessageSquare, 
-        visibleTo: ['admin','user'],
-        mobileHidden: false,
-        description: 'Unified communications center'
       },
       { 
         id: 'drip-campaigns', 
         title: 'Drip Campaigns', 
         path: '/drip-campaigns', 
         icon: Zap, 
-        permission: 'manager',
+        permission: 'user',
         mobileHidden: true,
         description: 'Automated sequences'
       },
@@ -570,7 +521,7 @@ export const navigationItems = [
         icon: FileText, 
         permission: 'user',
         mobileHidden: true,
-        description: 'Message templates'
+        description: 'Communication templates'
       },
       { 
         id: 'call-logs', 
@@ -578,30 +529,30 @@ export const navigationItems = [
         path: '/call-logs', 
         icon: Phone, 
         permission: 'user',
-        mobileHidden: false,
-        description: 'Track phone calls'
+        mobileHidden: true,
+        description: 'Phone call tracking'
       },
       { 
         id: 'notifications', 
         title: 'Notifications', 
         path: '/notifications', 
         icon: Bell, 
-        permission: 'prospect',
+        permission: 'user',
         mobileHidden: false,
-        description: 'System notifications'
+        description: 'Alerts and reminders'
       }
     ]
   },
 
   // ==========================================================================
-  // 🎓 LEARNING & TRAINING
+  // 🎓 LEARNING & RESOURCES
   // ==========================================================================
   {
     id: 'learning-group',
-    title: 'Learning & Training',
+    title: 'Learning & Resources',
     icon: GraduationCap,
     isGroup: true,
-    permission: 'prospect', // Open to all
+    permission: 'prospect',
     mobileHidden: false,
     category: 'learning',
     items: [
@@ -610,25 +561,24 @@ export const navigationItems = [
         title: 'Learning Center', 
         path: '/learning-center', 
         icon: BookOpen, 
-        permission: 'prospect', 
-        badge: 'FREE', 
+        permission: 'prospect',
         mobileHidden: false,
-        description: 'Courses, certifications, resources'
+        description: 'Educational content'
       },
       { 
         id: 'achievements', 
-        title: 'My Achievements', 
+        title: 'Achievements', 
         path: '/achievements', 
-        icon: Award, 
+        icon: Trophy, 
         permission: 'client',
         mobileHidden: false,
-        description: 'Track your progress'
+        description: 'Your progress'
       },
       { 
         id: 'certificates', 
-        title: 'My Certificates', 
+        title: 'Certificates', 
         path: '/certificates', 
-        icon: Trophy, 
+        icon: Award, 
         permission: 'client',
         mobileHidden: false,
         description: 'Earned certificates'
@@ -637,26 +587,26 @@ export const navigationItems = [
   },
 
   // ==========================================================================
-  // 📄 DOCUMENTS
+  // 📄 DOCUMENTS & FORMS
   // ==========================================================================
   {
-    id: 'documents-group',
-    title: 'Documents',
+    id: 'docs-group',
+    title: 'Documents & Forms',
     icon: FileText,
     isGroup: true,
-    permission: 'client',
-    mobileHidden: false,
-    category: 'documents',
+    permission: 'user',
+    mobileHidden: true,
+    category: 'docs',
     items: [
       { 
         id: 'document-center', 
-        title: 'Document Hub', 
+        title: 'Document Center', 
         path: '/document-center', 
         icon: FolderOpen, 
         permission: 'user',
-        badge: 'AI',
         mobileHidden: true,
-        description: 'AI-powered document management'
+        badge: 'NEW',
+        description: 'All documents'
       },
       { 
         id: 'documents', 
@@ -665,70 +615,70 @@ export const navigationItems = [
         icon: FileText, 
         permission: 'client',
         mobileHidden: false,
-        description: 'View and manage documents'
+        description: 'Your documents'
       },
       { 
-        id: 'econtracts', 
+        id: 'e-contracts', 
         title: 'E-Contracts', 
-        path: '/econtracts', 
+        path: '/e-contracts', 
         icon: FileSpreadsheet, 
-        permission: 'client',
-        mobileHidden: false,
-        description: 'Digital contracts and agreements'
+        permission: 'user',
+        mobileHidden: true,
+        description: 'Electronic contracts'
       },
       { 
         id: 'forms', 
-        title: 'Forms', 
+        title: 'Forms Library', 
         path: '/forms', 
-        icon: CheckSquare, 
-        permission: 'client',
+        icon: FilePlus, 
+        permission: 'user',
         mobileHidden: true,
-        description: 'Client intake forms'
+        description: 'Form templates'
       },
       { 
         id: 'full-agreement', 
-        title: 'Service Agreement', 
+        title: 'Full Agreement', 
         path: '/full-agreement', 
         icon: FileText, 
-        permission: 'client',
+        permission: 'user',
         mobileHidden: true,
-        description: 'Credit repair service agreement'
+        description: 'Service agreement'
       },
       { 
         id: 'information-sheet', 
-        title: 'Client Information', 
+        title: 'Information Sheet', 
         path: '/information-sheet', 
-        icon: FileText, 
-        permission: 'client',
+        icon: File, 
+        permission: 'user',
         mobileHidden: true,
-        description: 'Personal information form'
+        description: 'Client info form'
       },
       { 
-        id: 'power-of-attorney', 
+        id: 'poa', 
         title: 'Power of Attorney', 
         path: '/power-of-attorney', 
-        icon: Shield, 
-        permission: 'client',
+        icon: FileText, 
+        permission: 'user',
         mobileHidden: true,
-        description: 'Legal authorization (FCRA compliance)'
+        description: 'POA document'
       },
       { 
-        id: 'ach-authorization', 
-        title: 'Payment Authorization', 
+        id: 'ach-auth', 
+        title: 'ACH Authorization', 
         path: '/ach-authorization', 
         icon: CreditCard, 
-        permission: 'client',
+        permission: 'user',
         mobileHidden: true,
-        description: 'ACH payment authorization'
+        description: 'Payment authorization'
       },
       { 
         id: 'addendums', 
-        title: 'Contract Addendums', 
+        title: 'Addendums', 
         path: '/addendums', 
-        icon: Layers, 
-        permission: 'client',
+        icon: FilePlus, 
+        permission: 'user',
         mobileHidden: true,
-        description: 'Contract modifications'
+        description: 'Contract addendums'
       },
       { 
         id: 'document-storage', 
@@ -737,17 +687,17 @@ export const navigationItems = [
         icon: Archive, 
         permission: 'user',
         mobileHidden: true,
-        description: 'File storage and archive'
+        description: 'File storage'
       }
     ]
   },
 
   // ==========================================================================
-  // 💼 BUSINESS TOOLS
+  // 🏢 BUSINESS MANAGEMENT
   // ==========================================================================
   {
     id: 'business-group',
-    title: 'Business Tools',
+    title: 'Business Management',
     icon: Building,
     isGroup: true,
     permission: 'user',
@@ -758,17 +708,17 @@ export const navigationItems = [
         id: 'companies', 
         title: 'Companies', 
         path: '/companies', 
-        icon: Building, 
+        icon: Building2, 
         permission: 'user',
         mobileHidden: true,
-        description: 'Company management'
+        description: 'Manage companies'
       },
       { 
-        id: 'location', 
+        id: 'locations', 
         title: 'Locations', 
-        path: '/location', 
+        path: '/locations', 
         icon: MapPin, 
-        permission: 'manager',
+        permission: 'user',
         mobileHidden: true,
         description: 'Office locations'
       },
@@ -776,52 +726,43 @@ export const navigationItems = [
         id: 'invoices', 
         title: 'Invoices', 
         path: '/invoices', 
-        icon: FileSpreadsheet, 
-        permission: 'client',
-        mobileHidden: false,
-        description: 'View invoices and billing'
+        icon: Receipt, 
+        permission: 'user',
+        mobileHidden: true,
+        description: 'Billing & invoices'
       },
       { 
         id: 'affiliates', 
-        title: 'Affiliate Program', 
+        title: 'Affiliates', 
         path: '/affiliates', 
-        icon: Globe, 
-        permission: 'affiliate',
-        mobileHidden: false,
-        description: 'Affiliate dashboard and commissions'
+        icon: Handshake, 
+        permission: 'user',
+        mobileHidden: true,
+        description: 'Partner program'
       },
       { 
         id: 'billing', 
-        title: 'Billing Management', 
+        title: 'Billing', 
         path: '/billing', 
         icon: DollarSign, 
-        permission: 'admin',
+        permission: 'user',
         mobileHidden: true,
-        description: 'Payment processing and billing'
-      },
-      { 
-        id: 'products', 
-        title: 'Products', 
-        path: '/products', 
-        icon: Package, 
-        permission: 'admin',
-        mobileHidden: true,
-        description: 'Product catalog'
+        description: 'Payment processing'
       }
     ]
   },
 
   // ==========================================================================
-  // 📅 SCHEDULING
+  // 📅 SCHEDULING & TASKS
   // ==========================================================================
   {
     id: 'schedule-group',
-    title: 'Scheduling',
+    title: 'Scheduling & Tasks',
     icon: Calendar,
     isGroup: true,
-    permission: 'client',
+    permission: 'user',
     mobileHidden: false,
-    category: 'scheduling',
+    category: 'schedule',
     items: [
       { 
         id: 'calendar', 
@@ -830,16 +771,16 @@ export const navigationItems = [
         icon: Calendar, 
         permission: 'user',
         mobileHidden: false,
-        description: 'Shared calendar'
+        description: 'Schedule management'
       },
       { 
         id: 'appointments', 
         title: 'Appointments', 
         path: '/appointments', 
         icon: Calendar, 
-        permission: 'client',
+        permission: 'user',
         mobileHidden: false,
-        description: 'Book and manage appointments'
+        description: 'Book appointments'
       },
       { 
         id: 'tasks', 
@@ -855,7 +796,7 @@ export const navigationItems = [
         title: 'Reminders', 
         path: '/reminders', 
         icon: Bell, 
-        permission: 'client',
+        permission: 'user',
         mobileHidden: false,
         description: 'Set reminders'
       }
@@ -868,18 +809,18 @@ export const navigationItems = [
   {
     id: 'analytics-group',
     title: 'Analytics & Reports',
-    icon: BarChart3,
+    icon: BarChart,
     isGroup: true,
-    permission: 'manager',
+    permission: 'user',
     mobileHidden: true,
     category: 'analytics',
     items: [
       { 
         id: 'analytics', 
-        title: 'Analytics Dashboard', 
+        title: 'Analytics', 
         path: '/analytics', 
-        icon: BarChart, 
-        permission: 'manager',
+        icon: LineChart, 
+        permission: 'user',
         mobileHidden: true,
         description: 'Business analytics'
       },
@@ -888,7 +829,7 @@ export const navigationItems = [
         title: 'Reports', 
         path: '/reports', 
         icon: FileText, 
-        permission: 'manager',
+        permission: 'user',
         mobileHidden: true,
         description: 'Generate reports'
       },
@@ -898,21 +839,21 @@ export const navigationItems = [
         path: '/goals', 
         icon: Target, 
         permission: 'user',
-        mobileHidden: false,
-        description: 'Set and track goals'
+        mobileHidden: true,
+        description: 'Track goals'
       }
     ]
   },
 
   // ==========================================================================
-  // 📚 RESOURCES
+  // 📱 RESOURCES
   // ==========================================================================
   {
     id: 'resources-group',
     title: 'Resources',
     icon: BookOpen,
     isGroup: true,
-    permission: 'prospect', // Open to all
+    permission: 'prospect',
     mobileHidden: false,
     category: 'resources',
     items: [
@@ -932,46 +873,46 @@ export const navigationItems = [
         icon: HelpCircle, 
         permission: 'prospect',
         mobileHidden: false,
-        description: 'Frequently asked questions'
+        description: 'Common questions'
       }
     ]
   },
 
   // ==========================================================================
-  // 📱 MOBILE APPS (Admin Only)
+  // 📱 MOBILE APPS
   // ==========================================================================
   {
-    id: 'mobile-apps-group',
+    id: 'apps-group',
     title: 'Mobile Apps',
     icon: Smartphone,
     isGroup: true,
     permission: 'admin',
     mobileHidden: true,
-    category: 'admin',
+    category: 'apps',
     items: [
       { 
         id: 'apps-overview', 
-        title: 'Overview', 
+        title: 'Apps Overview', 
         path: '/apps/overview', 
         icon: Info, 
         permission: 'admin',
         mobileHidden: true,
-        description: 'Mobile app management'
+        description: 'Mobile app info'
       },
       { 
         id: 'apps-employee', 
         title: 'Employee App', 
         path: '/apps/employee', 
-        icon: Users, 
+        icon: User, 
         permission: 'admin',
         mobileHidden: true,
-        description: 'Internal team app'
+        description: 'Staff app'
       },
       { 
         id: 'apps-client', 
         title: 'Client App', 
         path: '/apps/client', 
-        icon: User, 
+        icon: Users, 
         permission: 'admin',
         mobileHidden: true,
         description: 'Client-facing app'
@@ -1135,34 +1076,34 @@ export function getMobileNavigation(userRole) {
     masterAdmin: [
       { id: 'portal', title: 'Admin', path: '/portal', icon: LayoutDashboard },
       { id: 'contacts', title: 'Contacts', path: '/contacts', icon: Users },
-      { id: 'idiq-enroll', title: 'IDIQ', path: '/idiq/enroll', icon: Shield },
+      { id: 'credit-hub', title: 'Credit Hub', path: '/credit-hub', icon: Shield },
       { id: 'analytics', title: 'Analytics', path: '/analytics', icon: BarChart },
       { id: 'settings', title: 'Settings', path: '/settings', icon: Settings },
     ],
     admin: [
       { id: 'portal', title: 'Admin', path: '/portal', icon: LayoutDashboard },
       { id: 'contacts', title: 'Contacts', path: '/contacts', icon: Users },
-      { id: 'idiq-enroll', title: 'IDIQ', path: '/idiq/enroll', icon: Shield },
+      { id: 'credit-hub', title: 'Credit Hub', path: '/credit-hub', icon: Shield },
       { id: 'reports', title: 'Reports', path: '/reports', icon: FileText },
       { id: 'settings', title: 'Settings', path: '/settings', icon: Settings },
     ],
     manager: [
       { id: 'contacts', title: 'Contacts', path: '/contacts', icon: Users },
-      { id: 'idiq-enroll', title: 'IDIQ', path: '/idiq/enroll', icon: Shield },
+      { id: 'credit-hub', title: 'Credit Hub', path: '/credit-hub', icon: Shield },
       { id: 'pipeline', title: 'Pipeline', path: '/pipeline', icon: GitBranch },
       { id: 'reports', title: 'Reports', path: '/reports', icon: FileText },
       { id: 'settings', title: 'Settings', path: '/settings', icon: Settings },
     ],
     user: [
       { id: 'contacts', title: 'Contacts', path: '/contacts', icon: Users },
-      { id: 'idiq-enroll', title: 'IDIQ', path: '/idiq/enroll', icon: Shield },
+      { id: 'credit-hub', title: 'Credit Hub', path: '/credit-hub', icon: Shield },
       { id: 'tasks', title: 'Tasks', path: '/tasks', icon: CheckSquare },
       { id: 'calendar', title: 'Calendar', path: '/calendar', icon: Calendar },
       { id: 'settings', title: 'Settings', path: '/settings', icon: Settings },
     ],
     client: [
       { id: 'portal', title: 'My Portal', path: '/client-portal', icon: User },
-      { id: 'idiq-report', title: 'My Credit', path: '/idiq/reports', icon: Shield },
+      { id: 'credit-hub', title: 'My Credit', path: '/credit-hub', icon: Shield },
       { id: 'scores', title: 'Scores', path: '/credit-scores', icon: TrendingUp },
       { id: 'disputes', title: 'Disputes', path: '/dispute-letters', icon: FileText },
       { id: 'documents', title: 'Documents', path: '/documents', icon: FileText },

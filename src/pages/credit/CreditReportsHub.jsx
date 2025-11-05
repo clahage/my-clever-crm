@@ -2,10 +2,8 @@
 // ============================================================================
 // 📊 CREDIT REPORTS HUB - IDIQ SYSTEM UNIFIED INTERFACE
 // ============================================================================
-// Consolidates all 7 IDIQ components into single tabbed hub
-// ============================================================================
 
-import React, { useState, useEffect, Suspense, lazy } from 'react';
+import React, { useState, Suspense, lazy } from 'react';
 import {
   Box,
   Paper,
@@ -28,7 +26,7 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 
-// Lazy load components for better performance
+// Lazy load components
 const IDIQEnrollment = lazy(() => import('../../components/credit/IDIQEnrollment'));
 const ClientCreditReport = lazy(() => import('../../components/credit/ClientCreditReport'));
 const CreditReportWorkflow = lazy(() => import('../../components/credit/CreditReportWorkflow'));
@@ -36,6 +34,18 @@ const AIDisputeGenerator = lazy(() => import('../../components/credit/AIDisputeG
 const CreditMonitoringSystem = lazy(() => import('../../components/credit/CreditMonitoringSystem'));
 const IDIQControlCenter = lazy(() => import('../../components/credit/IDIQControlCenter'));
 const IDIQConfig = lazy(() => import('../../components/credit/IDIQConfig'));
+
+// Role hierarchy
+const ROLE_HIERARCHY = {
+  viewer: 1,
+  prospect: 2,
+  client: 3,
+  affiliate: 4,
+  user: 5,
+  manager: 6,
+  admin: 7,
+  masterAdmin: 8,
+};
 
 // Tab configuration
 const TABS = [
@@ -48,23 +58,18 @@ const TABS = [
   { id: 'config', label: 'Settings', icon: ConfigIcon, component: IDIQConfig, permission: 'admin' },
 ];
 
-// Role hierarchy for permission checks
-const ROLE_HIERARCHY = {
-  viewer: 1,
-  prospect: 2,
-  client: 3,
-  affiliate: 4,
-  user: 5,
-  manager: 6,
-  admin: 7,
-  masterAdmin: 8,
-};
-
 const CreditReportsHub = () => {
   const { userProfile } = useAuth();
   const userRole = userProfile?.role || 'user';
 
-  // Load saved tab from localStorage or default to first accessible tab
+  // Permission check function - DEFINED FIRST
+  const hasPermission = (requiredRole) => {
+    const userLevel = ROLE_HIERARCHY[userRole] || 5;
+    const requiredLevel = ROLE_HIERARCHY[requiredRole] || 5;
+    return userLevel >= requiredLevel;
+  };
+
+  // Get initial tab - USES hasPermission
   const getInitialTab = () => {
     const saved = localStorage.getItem('creditHubActiveTab');
     if (saved) {
@@ -73,19 +78,11 @@ const CreditReportsHub = () => {
         return saved;
       }
     }
-    // Find first tab user has access to
     const firstAccessible = TABS.find(t => hasPermission(t.permission));
     return firstAccessible?.id || 'enroll';
   };
 
   const [activeTab, setActiveTab] = useState(getInitialTab);
-
-  // Check if user has permission for a tab
-  const hasPermission = (requiredRole) => {
-    const userLevel = ROLE_HIERARCHY[userRole] || 5;
-    const requiredLevel = ROLE_HIERARCHY[requiredRole] || 5;
-    return userLevel >= requiredLevel;
-  };
 
   // Handle tab change
   const handleTabChange = (event, newValue) => {
