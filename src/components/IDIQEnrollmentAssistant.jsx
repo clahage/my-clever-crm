@@ -1558,7 +1558,7 @@ const IDIQEnrollmentAssistant = ({
                 variant="outlined"
                 size="small"
                 disabled={isTyping}
-                inputRef={inputRef}
+                inputRef={inputRef}              
               />
               <IconButton
                 color="primary"

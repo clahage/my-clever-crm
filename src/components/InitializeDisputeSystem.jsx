@@ -28,7 +28,7 @@ import {
   Clock,
   Shield
 } from 'lucide-react';
-import { runInitialization } from '../utils/initializeCollections';
+import { initializeFirestoreCollections } from '../utils/initializeCollections';
 
 const InitializeDisputeSystem = () => {
   const [loading, setLoading] = useState(false);
@@ -40,7 +40,7 @@ const InitializeDisputeSystem = () => {
     setStatus('running');
     
     try {
-      await runInitialization();
+      await initializeFirestoreCollections();
       setStatus('success');
       setInitialized(true);
       

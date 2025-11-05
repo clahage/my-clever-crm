@@ -138,6 +138,8 @@ const Login = lazy(() => import('@/pages/Login'));
 const Register = lazy(() => import('@/pages/Register'));
 const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'));
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
+const IDIQDashboard = lazy(() => import("@/components/IDIQDashboard"));
+const CreditReports = lazy(() => import("@/components/CreditReports"));
 const Home = lazy(() => import('@/pages/Home'));
 const ClientPortal = lazy(() => import('@/pages/ClientPortal'));
 const ClientDashboard = lazy(() => import('@/pages/ClientPortal/ClientDashboard'));
@@ -161,7 +163,6 @@ const CreditScores = lazy(() => import('@/pages/CreditScores'));
 const DisputeLetters = lazy(() => import('@/pages/DisputeLetters'));
 const DisputeStatus = lazy(() => import('@/pages/DisputeStatus'));
 const DisputeAdminPanel = lazy(() => import('@/pages/admin/DisputeAdminPanel'));
-const CreditReports = lazy(() => import('@/pages/CreditReports'));
 const CreditMonitoring = lazy(() => import('@/pages/CreditMonitoring'));
 const Letters = lazy(() => import('@/pages/Letters'));
 const Emails = lazy(() => import('@/pages/Emails'));
@@ -352,6 +353,7 @@ const AppContent = () => {
         <Route path="dispute-status" element={<Suspense fallback={<LoadingFallback />}><DisputeStatus /></Suspense>} />
         <Route path="admin/dispute-admin-panel" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><DisputeAdminPanel /></Suspense></ProtectedRoute>} />
         <Route path="credit-reports" element={<Suspense fallback={<LoadingFallback />}><CreditReports /></Suspense>} />
+        <Route path="idiq-dashboard" element={<Suspense fallback={<LoadingFallback />}><IDIQDashboard /></Suspense>} />
         <Route path="credit-monitoring" element={<Suspense fallback={<LoadingFallback />}><CreditMonitoring /></Suspense>} />
         <Route path="letters" element={<Suspense fallback={<LoadingFallback />}><Letters /></Suspense>} />
         <Route path="emails" element={<Suspense fallback={<LoadingFallback />}><Emails /></Suspense>} />

@@ -452,7 +452,7 @@ export const navigationItems = [
     { 
       id: 'idiq-reports', 
       title: 'Credit Reports', 
-      path: '/idiq/reports', 
+      path: '/credit-reports', 
       icon: FileText, 
       permission: 'client', // Clients + Staff (roles 3, 5-8)
       mobileHidden: false,
@@ -461,10 +461,10 @@ export const navigationItems = [
     { 
       id: 'idiq-dashboard', 
       title: 'IDIQ Dashboard', 
-      path: '/idiq/dashboard', 
+      path: '/idiq-dashboard', 
       icon: LayoutDashboard, 
       permission: 'user', // Staff only
-      mobileHidden: true,
+      mobileHidden: false,
       badge: 'SOON',
       description: 'Monitor all IDIQ enrollments and status'
     }
