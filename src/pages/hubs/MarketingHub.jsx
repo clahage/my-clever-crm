@@ -91,7 +91,7 @@ import {
   ComposedChart, FunnelChart, Funnel, LabelList,
 } from 'recharts';
 import { useAuth } from '@/contexts/AuthContext';
-import { db } from '../../firebase';
+import { db } from '@/lib/firebase';
 import {
   collection, addDoc, updateDoc, deleteDoc, doc,
   getDocs, query, where, orderBy, serverTimestamp,

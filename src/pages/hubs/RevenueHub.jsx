@@ -89,7 +89,7 @@ import {
   Legend,
   ResponsiveContainer
 } from 'recharts';
-import { db } from '../firebase';
+import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 
 const UltimateRevenueHub = () => {
