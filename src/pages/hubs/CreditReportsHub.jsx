@@ -24,7 +24,7 @@ import {
   Dashboard as ControlIcon,
   Settings as ConfigIcon,
 } from '@mui/icons-material';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Lazy load components
 const IDIQEnrollment = lazy(() => import('../../components/credit/IDIQEnrollment'));

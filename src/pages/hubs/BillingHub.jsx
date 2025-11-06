@@ -59,8 +59,8 @@ import {
   collection, query, where, getDocs, orderBy, addDoc,
   updateDoc, deleteDoc, doc, Timestamp, serverTimestamp
 } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
-import { useAuth } from '../../contexts/AuthContext';
+import { db } from '@/lib/firebase';
+import { useAuth } from '@/contexts/AuthContext';
 import { ROLE_HIERARCHY } from '../../layout/navConfig';
 
 // ============================================================================

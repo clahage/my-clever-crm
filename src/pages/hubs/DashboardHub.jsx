@@ -187,8 +187,8 @@ import {
   Wallet,
   TrendingFlat,
 } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
-import { db } from '../../lib/firebase';
+import { useAuth } from '@/contexts/AuthContext';
+import { db } from '@/lib/firebase';
 import {
   collection,
   query,

@@ -90,7 +90,7 @@ import {
   Legend, ResponsiveContainer, ScatterChart, Scatter,
   ComposedChart, FunnelChart, Funnel, LabelList,
 } from 'recharts';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { db } from '../../firebase';
 import {
   collection, addDoc, updateDoc, deleteDoc, doc,
