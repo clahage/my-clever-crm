@@ -149,6 +149,8 @@ import {
   Navigation,
   MapPin,
   Compass
+} ,
+  Plus
 } from 'lucide-react';
 
 import { db } from '@/lib/firebase';

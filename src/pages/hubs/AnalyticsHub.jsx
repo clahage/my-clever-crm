@@ -83,7 +83,7 @@ import {
 import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
   AreaChart, Area, ComposedChart, ScatterChart, Scatter,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   FunnelChart, Funnel, LabelList, Treemap,
 } from 'recharts';
@@ -429,7 +429,7 @@ const AnalyticsHub = () => {
                 <XAxis dataKey="month" />
                 <YAxis yAxisId="left" />
                 <YAxis yAxisId="right" orientation="right" />
-                <Tooltip />
+                <RechartsTooltip />
                 <Legend />
                 <Area
                   yAxisId="left"
@@ -486,7 +486,7 @@ const AnalyticsHub = () => {
                     <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <RechartsTooltip />
               </PieChart>
             </ResponsiveContainer>
             <Divider sx={{ my: 2 }} />
@@ -519,7 +519,7 @@ const AnalyticsHub = () => {
         </Box>
         <ResponsiveContainer width="100%" height={300}>
           <FunnelChart>
-            <Tooltip />
+            <RechartsTooltip />
             <Funnel
               dataKey="value"
               data={funnelData}

@@ -232,10 +232,174 @@ export const navigationItems = [
     description: 'Complete IDIQ credit management system - 7 tools in one hub',
     category: 'credit'
   },
+  // ==========================================================================
+  // 🎯 HYBRID HUBS - ALL BUSINESS FUNCTIONS
+  // ==========================================================================
+  {
+    id: 'hubs-group',
+    title: '🎯 Business Hubs',
+    icon: LayoutDashboard,
+    isGroup: true,
+    permission: 'user',
+    mobileHidden: false,
+    category: 'hubs',
+    defaultExpanded: false,
+    items: [
+      {
+        id: 'clients-hub',
+        title: 'Clients Hub',
+        path: '/clients-hub',
+        icon: Users,
+        permission: 'user',
+        badge: 'AI',
+        description: 'Complete client management with 7 tabs'
+      },
+      {
+        id: 'comms-hub',
+        title: 'Communications Hub',
+        path: '/comms-hub',
+        icon: MessageSquare,
+        permission: 'user',
+        badge: 'AI',
+        description: 'Email, SMS, campaigns, automation'
+      },
+      {
+        id: 'marketing-hub',
+        title: 'Marketing Hub',
+        path: '/marketing-hub',
+        icon: Zap,
+        permission: 'user',
+        badge: 'AI',
+        description: 'Campaigns, content, social media'
+      },
+      {
+        id: 'affiliates-hub',
+        title: 'Affiliates Hub',
+        path: '/affiliates-hub',
+        icon: Handshake,
+        permission: 'user',
+        badge: 'PRO',
+        description: 'Affiliate management and tracking'
+      },
+      {
+        id: 'revenue-hub',
+        title: 'Revenue Hub',
+        path: '/revenue-hub',
+        icon: DollarSign,
+        permission: 'admin',
+        badge: 'ADMIN',
+        description: 'Revenue tracking and forecasting'
+      },
+      {
+        id: 'reports-hub',
+        title: 'Reports Hub',
+        path: '/reports-hub',
+        icon: FileText,
+        permission: 'user',
+        description: 'Comprehensive business reports'
+      },
+      {
+        id: 'analytics-hub',
+        title: 'Analytics Hub',
+        path: '/analytics-hub',
+        icon: BarChart,
+        permission: 'user',
+        badge: 'AI',
+        description: 'Business intelligence dashboard'
+      },
+      {
+        id: 'dashboard-hub',
+        title: 'Dashboard Hub',
+        path: '/dashboard-hub',
+        icon: LayoutDashboard,
+        permission: 'user',
+        description: 'Advanced dashboard features'
+      },
+      {
+        id: 'documents-hub',
+        title: 'Documents Hub',
+        path: '/documents-hub',
+        icon: FolderOpen,
+        permission: 'user',
+        description: 'Document management system'
+      },
+      {
+        id: 'tasks-hub',
+        title: 'Tasks & Scheduling',
+        path: '/tasks-hub',
+        icon: Calendar,
+        permission: 'user',
+        description: 'Task and calendar management'
+      },
+      {
+        id: 'learning-hub',
+        title: 'Learning Hub',
+        path: '/learning-hub',
+        icon: GraduationCap,
+        permission: 'user',
+        description: 'Training and education center'
+      },
+      {
+        id: 'ai-hub',
+        title: 'AI Hub',
+        path: '/ai-hub',
+        icon: Brain,
+        permission: 'user',
+        badge: 'AI',
+        description: 'AI-powered tools and insights'
+      },
+      {
+        id: 'compliance-hub',
+        title: 'Compliance Hub',
+        path: '/compliance-hub',
+        icon: Shield,
+        permission: 'admin',
+        badge: 'ADMIN',
+        description: 'Regulatory compliance tools'
+      },
+      {
+        id: 'billing-hub',
+        title: 'Billing Hub',
+        path: '/billing-hub',
+        icon: Receipt,
+        permission: 'admin',
+        badge: 'ADMIN',
+        description: 'Invoice and payment management'
+      },
+      {
+        id: 'payment-hub',
+        title: 'Payment Integration',
+        path: '/payment-hub',
+        icon: CreditCard,
+        permission: 'admin',
+        badge: 'ADMIN',
+        description: 'Payment processing integration'
+      },
+      {
+        id: 'settings-hub',
+        title: 'Settings Hub',
+        path: '/settings-hub',
+        icon: Settings,
+        permission: 'admin',
+        badge: 'ADMIN',
+        description: 'System configuration'
+      },
+      {
+        id: 'dispute-hub',
+        title: 'Dispute Admin',
+        path: '/dispute-hub',
+        icon: AlertCircle,
+        permission: 'admin',
+        badge: 'ADMIN',
+        description: 'Dispute management panel'
+      }
+    ]
+  },
 
   // ==========================================================================
   // 📊 CREDIT REPORT WORKFLOW (Admin Only)
   // ==========================================================================
+  
   {
     id: 'credit-workflow',
     title: 'Credit Report Workflow',

@@ -70,6 +70,8 @@ import {
   ChevronUp,
   ChevronRight,
   MoreVertical
+} ,
+  Shield
 } from 'lucide-react';
 import {
   LineChart as RechartsLine,

@@ -185,7 +185,7 @@ import {
   ShoppingCart,
   CreditCard as CardIcon,
   Wallet,
-  TrendingFlat,
+  Minus,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/lib/firebase';

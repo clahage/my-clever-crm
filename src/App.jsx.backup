@@ -1,6 +1,6 @@
 // src/App.jsx - SpeedyCRM Complete Application Router
-// VERSION: 3.0 - HYBRID HUB ARCHITECTURE INTEGRATION
-// LAST UPDATED: 2025-11-06 - All 18 Hubs Integrated
+// VERSION: 2.2 - FIXED DUPLICATE PublicRoute ERROR
+// LAST UPDATED: 2025-10-11
 import EmailWorkflowDashboard from './components/EmailWorkflowDashboard';
 import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
@@ -12,6 +12,8 @@ import ProtectedLayout from '@/layout/ProtectedLayout';
 // Existing imports...
 import Products from '@/pages/Products';
 import IDIQEnrollmentWizard from './components/IDIQEnrollmentWizard';
+
+
 
 // ============================================================================
 // LOADING COMPONENT
@@ -137,6 +139,7 @@ const Register = lazy(() => import('@/pages/Register'));
 const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'));
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
 const IDIQDashboard = lazy(() => import("@/components/IDIQDashboard"));
+const CreditReportsHub = lazy(() => import('./pages/credit/CreditReportsHub'));
 const CreditReports = lazy(() => import("@/components/CreditReports"));
 const Home = lazy(() => import('@/pages/Home'));
 const ClientPortal = lazy(() => import('@/pages/ClientPortal'));
@@ -148,8 +151,6 @@ const AIReviewDashboard = lazy(() => import('@/pages/AIReviewDashboard'));
 const AIReviewEditor = lazy(() => import('@/components/AIReviewEditor'));
 const CreditAnalysisEngine = lazy(() => import('@/pages/CreditAnalysisEngine'));
 const PredictiveAnalytics = lazy(() => import('@/pages/PredictiveAnalytics'));
-
-// ===== CONTACT & CRM PAGES =====
 const Contacts = lazy(() => import('@/pages/Contacts'));
 const ClientIntake = lazy(() => import('@/pages/ClientIntake'));
 const Pipeline = lazy(() => import('@/pages/Pipeline'));
@@ -157,32 +158,24 @@ const ContactImport = lazy(() => import('@/pages/ContactImport'));
 const ContactExport = lazy(() => import('@/pages/ContactExport'));
 const ContactReports = lazy(() => import('@/pages/ContactReports'));
 const Segments = lazy(() => import('@/pages/Segments'));
-
-// ===== CREDIT MANAGEMENT =====
 const CreditSimulator = lazy(() => import('@/pages/CreditSimulator'));
 const BusinessCredit = lazy(() => import('@/pages/BusinessCredit'));
 const CreditScores = lazy(() => import('@/pages/CreditScores'));
 const DisputeLetters = lazy(() => import('@/pages/DisputeLetters'));
 const DisputeStatus = lazy(() => import('@/pages/DisputeStatus'));
-const DisputeAdminPanel = lazy(() => import('@/pages/hubs/DisputeAdminPanel'));
+const DisputeAdminPanel = lazy(() => import('@/pages/admin/DisputeAdminPanel'));
 const CreditMonitoring = lazy(() => import('@/pages/CreditMonitoring'));
-
-// ===== COMMUNICATION =====
 const Letters = lazy(() => import('@/pages/Letters'));
 const Emails = lazy(() => import('@/pages/Emails'));
-const CommunicationsCenter = lazy(() => import('@/pages/CommunicationsCenter'));
 const SMS = lazy(() => import('@/pages/SMS'));
+const CommunicationsCenter = lazy(() => import('@/pages/CommunicationsCenter'));
 const DripCampaigns = lazy(() => import('@/pages/DripCampaigns'));
 const Templates = lazy(() => import('@/pages/Templates'));
 const CallLogs = lazy(() => import('@/pages/CallLogs'));
 const Notifications = lazy(() => import('@/pages/Notifications'));
-
-// ===== LEARNING =====
 const LearningCenter = lazy(() => import('@/pages/LearningCenter'));
 const Achievements = lazy(() => import('@/pages/Achievements'));
 const Certificates = lazy(() => import('@/pages/Certificates'));
-
-// ===== DOCUMENTS =====
 const Documents = lazy(() => import('@/pages/Documents'));
 const EContracts = lazy(() => import('@/pages/EContracts'));
 const Forms = lazy(() => import('@/pages/Forms'));
@@ -192,22 +185,16 @@ const PowerOfAttorney = lazy(() => import('@/pages/PowerOfAttorney'));
 const ACHAuthorization = lazy(() => import('@/pages/ACHAuthorization'));
 const Addendums = lazy(() => import('@/pages/Addendums'));
 const DocumentStorage = lazy(() => import('@/pages/DocumentStorage'));
-
-// ===== BUSINESS TOOLS =====
 const Companies = lazy(() => import('@/pages/Companies'));
 const Location = lazy(() => import('@/pages/Location'));
 const Invoices = lazy(() => import('@/pages/Invoices'));
-const PaymentSuccess = lazy(() => import('@/pages/PaymentSuccess'));
 const Affiliates = lazy(() => import('@/pages/Affiliates'));
-const Billing = lazy(() => import('@/pages/BillingPage'));
-
-// ===== SCHEDULING =====
+const Billing = lazy(() => import('@/pages/Billing'));
+const PaymentSuccess = lazy(() => import('@/pages/PaymentSuccess'));
 const Calendar = lazy(() => import('@/pages/Calendar'));
 const Appointments = lazy(() => import('@/pages/Appointments'));
 const Tasks = lazy(() => import('@/pages/Tasks'));
 const Reminders = lazy(() => import('@/pages/Reminders'));
-
-// ===== ANALYTICS & REPORTING =====
 const Analytics = lazy(() => import('@/pages/Analytics'));
 const Reports = lazy(() => import('@/pages/Reports'));
 const Goals = lazy(() => import('@/pages/Goals'));
@@ -229,30 +216,6 @@ const WhiteLabelBranding = lazy(() => import('@/pages/whitelabel/Branding'));
 const WhiteLabelDomains = lazy(() => import('@/pages/whitelabel/Domains'));
 const WhiteLabelPlans = lazy(() => import('@/pages/whitelabel/Plans'));
 const WhiteLabelTenants = lazy(() => import('@/pages/whitelabel/Tenants'));
-
-// ============================================================================
-// ===== 🎯 HYBRID HUB IMPORTS (18 Hubs) =====
-// ============================================================================
-const AffiliatesHub = lazy(() => import('@/pages/hubs/AffiliatesHub'));
-const AutomationHub = lazy(() => import('@/pages/hubs/AutomationHub'));
-const AIHub = lazy(() => import('@/pages/hubs/AIHub'));
-const AnalyticsHub = lazy(() => import('@/pages/hubs/AnalyticsHub'));
-const BillingHub = lazy(() => import('@/pages/hubs/BillingHub'));
-const ClientsHub = lazy(() => import('@/pages/hubs/ClientsHub'));
-const CommunicationsHub = lazy(() => import('@/pages/hubs/CommunicationsHub'));
-const ComplianceHub = lazy(() => import('@/pages/hubs/ComplianceHub'));
-const CreditReportsHub = lazy(() => import('@/pages/hubs/CreditReportsHub'));
-const DashboardHub = lazy(() => import('@/pages/hubs/DashboardHub'));
-const DisputeHub = lazy(() => import('@/pages/hubs/DisputeAdminPanel'));
-const DocumentsHub = lazy(() => import('@/pages/hubs/DocumentsHub'));
-const LearningHub = lazy(() => import('@/pages/hubs/LearningHub'));
-const MarketingHub = lazy(() => import('@/pages/hubs/MarketingHub'));
-const PaymentIntegrationHub = lazy(() => import('@/pages/hubs/PaymentIntegrationHub'));
-const ReportsHub = lazy(() => import('@/pages/hubs/ReportsHub'));
-const RevenueHub = lazy(() => import('@/pages/hubs/RevenueHub'));
-const SettingsHub = lazy(() => import('@/pages/hubs/SettingsHub'));
-const SupportHub = lazy(() => import('@/pages/hubs/SupportHub'));
-const TasksSchedulingHub = lazy(() => import('@/pages/hubs/TasksSchedulingHub'));
 
 // ============================================================================
 // PROTECTED ROUTE WRAPPER
@@ -470,10 +433,6 @@ const AppContent = () => {
     }
   />
 
-{/* ============================================================================ */}
-{/* ===== 🎯 HYBRID HUB ROUTES (18 Hubs) ===== */}
-{/* ============================================================================ */}
-
 {/* Credit Reports Hub - Consolidated IDIQ System */}
 <Route
   path="credit-hub"
@@ -486,248 +445,16 @@ const AppContent = () => {
   }
 />
 
-{/* Affiliates Hub - Complete affiliate management */}
-<Route
-  path="affiliates-hub"
-  element={
-    <ProtectedRoute requiredRole="user">
-      <Suspense fallback={<LoadingFallback />}>
-        <AffiliatesHub />
-      </Suspense>
-    </ProtectedRoute>
-  }
-/>
-
-
-{/* Automation Hub - Workflow automation and triggers */}
-<Route
-  path="automation-hub"
-  element={
-    <ProtectedRoute requiredRole="user">
-      <Suspense fallback={<LoadingFallback />}>
-        <AutomationHub />
-      </Suspense>
-    </ProtectedRoute>
-  }
-/>
-{/* AI Hub - AI-powered features and analytics */}
-<Route
-  path="ai-hub"
-
-  element={
-    <ProtectedRoute requiredRole="user">
-      <Suspense fallback={<LoadingFallback />}>
-        <AIHub />
-      </Suspense>
-    </ProtectedRoute>
-  }
-/>
-
-{/* Analytics Hub - Business intelligence and reporting */}
-<Route
-  path="analytics-hub"
-  element={
-    <ProtectedRoute requiredRole="user">
-      <Suspense fallback={<LoadingFallback />}>
-        <AnalyticsHub />
-      </Suspense>
-    </ProtectedRoute>
-  }
-/>
-
-{/* Billing Hub - Invoicing and payment management */}
-<Route
-  path="billing-hub"
-  element={
-    <ProtectedRoute requiredRole="admin">
-      <Suspense fallback={<LoadingFallback />}>
-        <BillingHub />
-      </Suspense>
-    </ProtectedRoute>
-  }
-/>
-
-{/* Clients Hub - Complete client management */}
-<Route
-  path="clients-hub"
-  element={
-    <ProtectedRoute requiredRole="user">
-      <Suspense fallback={<LoadingFallback />}>
-        <ClientsHub />
-      </Suspense>
-    </ProtectedRoute>
-  }
-/>
-
-{/* Communications Hub - Email, SMS, campaigns */}
-<Route
-  path="comms-hub"
-  element={
-    <ProtectedRoute requiredRole="user">
-      <Suspense fallback={<LoadingFallback />}>
-        <CommunicationsHub />
-      </Suspense>
-    </ProtectedRoute>
-  }
-/>
-
-{/* Compliance Hub - Regulatory compliance tools */}
-<Route
-  path="compliance-hub"
-  element={
-    <ProtectedRoute requiredRole="admin">
-      <Suspense fallback={<LoadingFallback />}>
-        <ComplianceHub />
-      </Suspense>
-    </ProtectedRoute>
-  }
-/>
-
-{/* Dashboard Hub - Advanced dashboard features */}
-<Route
-  path="dashboard-hub"
-  element={
-    <ProtectedRoute requiredRole="user">
-      <Suspense fallback={<LoadingFallback />}>
-        <DashboardHub />
-      </Suspense>
-    </ProtectedRoute>
-  }
-/>
-
-{/* Dispute Hub - Dispute management panel */}
-<Route
-  path="dispute-hub"
-  element={
-    <ProtectedRoute requiredRole="admin">
-      <Suspense fallback={<LoadingFallback />}>
-        <DisputeHub />
-      </Suspense>
-    </ProtectedRoute>
-  }
-/>
-
-{/* Documents Hub - Document management system */}
-<Route
-  path="documents-hub"
-  element={
-    <ProtectedRoute requiredRole="user">
-      <Suspense fallback={<LoadingFallback />}>
-        <DocumentsHub />
-      </Suspense>
-    </ProtectedRoute>
-  }
-/>
-
-{/* Learning Hub - Training and education */}
-<Route
-  path="learning-hub"
-  element={
-    <ProtectedRoute requiredRole="user">
-      <Suspense fallback={<LoadingFallback />}>
-        <LearningHub />
-      </Suspense>
-    </ProtectedRoute>
-  }
-/>
-
-{/* Marketing Hub - Marketing campaigns and tools */}
-<Route
-  path="marketing-hub"
-  element={
-    <ProtectedRoute requiredRole="user">
-      <Suspense fallback={<LoadingFallback />}>
-        <MarketingHub />
-      </Suspense>
-    </ProtectedRoute>
-  }
-/>
-
-{/* Payment Integration Hub - Payment processing */}
-<Route
-  path="payment-hub"
-  element={
-    <ProtectedRoute requiredRole="admin">
-      <Suspense fallback={<LoadingFallback />}>
-        <PaymentIntegrationHub />
-      </Suspense>
-    </ProtectedRoute>
-  }
-/>
-
-{/* Reports Hub - Comprehensive reporting */}
-<Route
-  path="reports-hub"
-  element={
-    <ProtectedRoute requiredRole="user">
-      <Suspense fallback={<LoadingFallback />}>
-        <ReportsHub />
-      </Suspense>
-    </ProtectedRoute>
-  }
-/>
-
-{/* Revenue Hub - Revenue tracking and analytics */}
-<Route
-  path="revenue-hub"
-  element={
-    <ProtectedRoute requiredRole="admin">
-      <Suspense fallback={<LoadingFallback />}>
-        <RevenueHub />
-      </Suspense>
-    </ProtectedRoute>
-  }
-/>
-
-{/* Settings Hub - System configuration */}
-<Route
-  path="settings-hub"
-  element={
-    <ProtectedRoute requiredRole="admin">
-      <Suspense fallback={<LoadingFallback />}>
-        <SettingsHub />
-      </Suspense>
-    </ProtectedRoute>
-  }
-/>
-
-{/* Support Hub - Help desk and support resources */}
-<Route
-  path="support-hub"
-  element={
-    <ProtectedRoute requiredRole="user">
-      <Suspense fallback={<LoadingFallback />}>
-        <SupportHub />
-      </Suspense>
-    </ProtectedRoute>
-  }
-/>
-
-{/* Tasks & Scheduling Hub - Task and calendar management */}
-<Route
-  path="tasks-hub"
-  element={
-    <ProtectedRoute requiredRole="user">
-      <Suspense fallback={<LoadingFallback />}>
-        <TasksSchedulingHub />
-      </Suspense>
-    </ProtectedRoute>
-  }
-/>
-
   {/* 404 - NOT FOUND */}
         <Route path="*" element={
           <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 dark:from-gray-900 dark:to-purple-900">
             <div className="text-center max-w-md p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl">
-              <div className="text-8xl mb-4">🔍</div>
-              <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-                404 - Page Not Found
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
-                The page you're looking for doesn't exist or has been moved.
-              </p>
-              <button
-                onClick={() => window.location.href = '/'}
+              <div className="text-8xl mb-6 animate-bounce">🔍</div>
+              <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">404</h1>
+              <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">Page Not Found</h2>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">The page you're looking for doesn't exist or has been moved.</p>
+              <button 
+                onClick={() => window.location.href = '/'} 
                 className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-lg hover:shadow-xl transform hover:scale-105"
               >
                 🏠 Go to Dashboard
@@ -750,9 +477,7 @@ function App() {
         <ThemeProvider>
           <AuthProvider>
             <NotificationProvider>
-              <Suspense fallback={<LoadingFallback />}>
-                <AppContent />
-              </Suspense>
+              <AppContent />
             </NotificationProvider>
           </AuthProvider>
         </ThemeProvider>

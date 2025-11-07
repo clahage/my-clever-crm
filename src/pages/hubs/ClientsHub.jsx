@@ -65,26 +65,19 @@ import {
   Stepper,
   Step,
   StepLabel,
-  Timeline,
-  TimelineItem,
-  TimelineSeparator,
-  TimelineConnector,
-  TimelineContent,
-  TimelineDot,
-  TimelineOppositeContent,
 } from '@mui/material';
 import {
   Search,
-  Add,
+  Plus,
   Edit,
   Delete,
   Download,
   Upload,
   Filter,
-  MoreVert,
+  MoreVertical,
   Phone,
   Mail,
-  Message,
+  MessageSquare,
   FileText,
   Calendar,
   CheckCircle,
@@ -111,7 +104,6 @@ import {
   Award,
   Zap,
   Brain,
-  MessageSquare,
   ThumbsUp,
   ThumbsDown,
   ArrowUp,
@@ -125,6 +117,7 @@ import {
   HelpCircle,
   Info,
 } from 'lucide-react';
+import { Timeline, TimelineItem, TimelineSeparator, TimelineConnector, TimelineContent, TimelineDot, TimelineOppositeContent } from '@mui/lab';
 import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, where, orderBy, serverTimestamp, onSnapshot, getDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase';
@@ -182,7 +175,7 @@ const LEAD_SOURCES = [
 const COMMUNICATION_TYPES = [
   { value: 'call', label: 'Phone Call', icon: Phone, color: '#2196F3' },
   { value: 'email', label: 'Email', icon: Mail, color: '#4CAF50' },
-  { value: 'sms', label: 'SMS', icon: Message, color: '#FF9800' },
+  { value: 'sms', label: 'SMS', icon: MessageSquare, color: '#FF9800' },
   { value: 'meeting', label: 'Meeting', icon: Users, color: '#9C27B0' },
   { value: 'note', label: 'Note', icon: FileText, color: '#607D8B' },
 ];
@@ -231,7 +224,7 @@ const ClientsHub = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [selectedClients, setSelectedClients] = useState([]);
   
-  // Add/Edit Client State
+  // Plus/Edit Client State
   const [clientDialog, setClientDialog] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
   const [clientForm, setClientForm] = useState({
@@ -486,7 +479,7 @@ const ClientsHub = () => {
     });
     setFormErrors({});
     setClientDialog(true);
-    setActiveTab(1); // Switch to Add Client tab
+    setActiveTab(1); // Switch to Plus Client tab
   };
   
   const handleEditClient = (client) => {
@@ -1390,11 +1383,11 @@ const ClientsHub = () => {
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button
                   variant="contained"
-                  startIcon={<Add />}
+                  startIcon={<Plus />}
                   onClick={handleAddClient}
                   fullWidth
                 >
-                  Add Client
+                  Plus Client
                 </Button>
                 <IconButton onClick={() => filterClients(searchTerm, statusFilter)}>
                   <RefreshCw size={20} />
@@ -1569,7 +1562,7 @@ const ClientsHub = () => {
     <Card>
       <CardContent>
         <Typography variant="h6" gutterBottom>
-          {editingClient ? 'Edit Client' : 'Add New Client'}
+          {editingClient ? 'Edit Client' : 'Plus New Client'}
         </Typography>
         
         <Grid container spacing={3} sx={{ mt: 2 }}>
@@ -2040,11 +2033,11 @@ const ClientsHub = () => {
         </Typography>
         <Button
           variant="contained"
-          startIcon={<Add />}
+          startIcon={<Plus />}
           onClick={handleAddCommunication}
           disabled={!selectedClient}
         >
-          Add Communication
+          Plus Communication
         </Button>
       </Box>
       
@@ -2092,7 +2085,7 @@ const ClientsHub = () => {
       
       {selectedClient && communications.length === 0 && (
         <Alert severity="info">
-          No communications recorded yet. Click "Add Communication" to log your first interaction.
+          No communications recorded yet. Click "Plus Communication" to log your first interaction.
         </Alert>
       )}
     </Box>
@@ -2176,11 +2169,11 @@ const ClientsHub = () => {
         </Typography>
         <Button
           variant="contained"
-          startIcon={<Add />}
+          startIcon={<Plus />}
           onClick={handleAddNote}
           disabled={!selectedClient}
         >
-          Add Note
+          Plus Note
         </Button>
       </Box>
       
@@ -2221,7 +2214,7 @@ const ClientsHub = () => {
       
       {selectedClient && notes.length === 0 && (
         <Alert severity="info">
-          No notes added yet. Click "Add Note" to create your first note.
+          No notes added yet. Click "Plus Note" to create your first note.
         </Alert>
       )}
     </Box>
@@ -2235,11 +2228,11 @@ const ClientsHub = () => {
         </Typography>
         <Button
           variant="contained"
-          startIcon={<Add />}
+          startIcon={<Plus />}
           onClick={handleAddTask}
           disabled={!selectedClient}
         >
-          Add Task
+          Plus Task
         </Button>
       </Box>
       
@@ -2312,7 +2305,7 @@ const ClientsHub = () => {
       
       {selectedClient && tasks.length === 0 && (
         <Alert severity="info">
-          No tasks created yet. Click "Add Task" to create your first task.
+          No tasks created yet. Click "Plus Task" to create your first task.
         </Alert>
       )}
     </Box>
@@ -2322,7 +2315,7 @@ const ClientsHub = () => {
   
   const renderCommunicationDialog = () => (
     <Dialog open={commDialog} onClose={() => setCommDialog(false)} maxWidth="md" fullWidth>
-      <DialogTitle>Add Communication</DialogTitle>
+      <DialogTitle>Plus Communication</DialogTitle>
       <DialogContent>
         <Grid container spacing={2} sx={{ mt: 1 }}>
           <Grid item xs={12}>
@@ -2510,7 +2503,7 @@ const ClientsHub = () => {
   
   const renderNoteDialog = () => (
     <Dialog open={noteDialog} onClose={() => setNoteDialog(false)} maxWidth="md" fullWidth>
-      <DialogTitle>Add Note</DialogTitle>
+      <DialogTitle>Plus Note</DialogTitle>
       <DialogContent>
         <Grid container spacing={2} sx={{ mt: 1 }}>
           <Grid item xs={12}>
@@ -2563,7 +2556,7 @@ const ClientsHub = () => {
   
   const renderTaskDialog = () => (
     <Dialog open={taskDialog} onClose={() => setTaskDialog(false)} maxWidth="sm" fullWidth>
-      <DialogTitle>Add Task</DialogTitle>
+      <DialogTitle>Plus Task</DialogTitle>
       <DialogContent>
         <Grid container spacing={2} sx={{ mt: 1 }}>
           <Grid item xs={12}>
@@ -2666,7 +2659,7 @@ const ClientsHub = () => {
           scrollButtons="auto"
         >
           <Tab label="Client List" icon={<Users size={18} />} iconPosition="start" />
-          <Tab label="Add/Edit Client" icon={<UserPlus size={18} />} iconPosition="start" />
+          <Tab label="Plus/Edit Client" icon={<UserPlus size={18} />} iconPosition="start" />
           <Tab label="Client Profile" icon={<UserCheck size={18} />} iconPosition="start" />
           <Tab label="Communications" icon={<MessageSquare size={18} />} iconPosition="start" />
           <Tab label="Documents" icon={<FileText size={18} />} iconPosition="start" />

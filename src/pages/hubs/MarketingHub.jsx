@@ -1,5 +1,6 @@
 // src/pages/marketing/UltimateMarketingHub.jsx
 // ============================================================================
+import { Filter } from 'lucide-react';
 // 🎯 ULTIMATE MARKETING HUB - MEGA ULTRA MAXIMUM ENHANCEMENT
 // ============================================================================
 // FEATURES:
@@ -37,7 +38,7 @@ import {
   List, ListItem, ListItemText, ListItemIcon, Slider,
   Radio, RadioGroup, FormLabel, ButtonGroup, Stack,
   Autocomplete, ToggleButton, ToggleButtonGroup, Fade, Zoom,
-  CardActions, CardHeader,
+  CardActions, CardHeader, CardMedia,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -68,7 +69,6 @@ import {
   VideoLibrary as VideoIcon,
   Image as ImageIcon,
   Assessment as AssessmentIcon,
-  Funnel as FunnelIcon,
   FilterList as FilterIcon,
   Sort as SortIcon,
   MoreVert as MoreIcon,
@@ -3441,7 +3441,7 @@ const UltimateMarketingHub = () => {
           <Tab 
             label="Funnels" 
             value="funnels" 
-            icon={<FunnelIcon />}
+            icon={<Filter />}
             iconPosition="start"
           />
           <Tab 
