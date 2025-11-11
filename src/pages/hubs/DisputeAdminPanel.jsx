@@ -148,9 +148,7 @@ import {
   Share2,
   Navigation,
   MapPin,
-  Compass
-} ,
-  Plus
+  Compass, Plus
 } from 'lucide-react';
 
 import { db } from '@/lib/firebase';

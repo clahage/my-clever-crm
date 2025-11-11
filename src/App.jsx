@@ -490,7 +490,7 @@ const AppContent = () => {
 <Route
   path="affiliates-hub"
   element={
-    <ProtectedRoute requiredRole="user">
+    <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
         <AffiliatesHub />
       </Suspense>
@@ -503,7 +503,7 @@ const AppContent = () => {
 <Route
   path="automation-hub"
   element={
-    <ProtectedRoute requiredRole="user">
+    <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
         <AutomationHub />
       </Suspense>
@@ -515,7 +515,7 @@ const AppContent = () => {
   path="ai-hub"
 
   element={
-    <ProtectedRoute requiredRole="user">
+    <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
         <AIHub />
       </Suspense>
@@ -527,7 +527,7 @@ const AppContent = () => {
 <Route
   path="analytics-hub"
   element={
-    <ProtectedRoute requiredRole="user">
+    <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
         <AnalyticsHub />
       </Suspense>
@@ -551,7 +551,7 @@ const AppContent = () => {
 <Route
   path="clients-hub"
   element={
-    <ProtectedRoute requiredRole="user">
+    <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
         <ClientsHub />
       </Suspense>
@@ -563,7 +563,7 @@ const AppContent = () => {
 <Route
   path="comms-hub"
   element={
-    <ProtectedRoute requiredRole="user">
+    <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
         <CommunicationsHub />
       </Suspense>
@@ -587,7 +587,7 @@ const AppContent = () => {
 <Route
   path="dashboard-hub"
   element={
-    <ProtectedRoute requiredRole="user">
+    <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
         <DashboardHub />
       </Suspense>
@@ -611,7 +611,7 @@ const AppContent = () => {
 <Route
   path="documents-hub"
   element={
-    <ProtectedRoute requiredRole="user">
+    <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
         <DocumentsHub />
       </Suspense>
@@ -623,7 +623,7 @@ const AppContent = () => {
 <Route
   path="learning-hub"
   element={
-    <ProtectedRoute requiredRole="user">
+    <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
         <LearningHub />
       </Suspense>
@@ -635,7 +635,7 @@ const AppContent = () => {
 <Route
   path="marketing-hub"
   element={
-    <ProtectedRoute requiredRole="user">
+    <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
         <MarketingHub />
       </Suspense>
@@ -659,7 +659,7 @@ const AppContent = () => {
 <Route
   path="reports-hub"
   element={
-    <ProtectedRoute requiredRole="user">
+    <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
         <ReportsHub />
       </Suspense>
@@ -695,7 +695,7 @@ const AppContent = () => {
 <Route
   path="support-hub"
   element={
-    <ProtectedRoute requiredRole="user">
+    <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
         <SupportHub />
       </Suspense>
@@ -707,7 +707,7 @@ const AppContent = () => {
 <Route
   path="tasks-hub"
   element={
-    <ProtectedRoute requiredRole="user">
+    <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
         <TasksSchedulingHub />
       </Suspense>

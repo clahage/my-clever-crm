@@ -32,9 +32,10 @@ import {
   Link as LinkIcon, Unlink, Code, Terminal, Cpu, Brain,
   Sparkles, Bell, Share2, ExternalLink, BarChart, PieChart,
   LineChart as LineChartIcon, Workflow, Repeat, Timer, Send,
-  Phone, Smartphone, Globe, Cloud, Lock, Unlock, Key, LayoutDashboard
+  Phone, Smartphone, Globe, Cloud, Lock, Unlock, Key,
 } from 'lucide-react';
-import { LineChart as RechartsLineChart, Line, BarChart as RechartsBarChart, Bar, PieChart as RechartsPie, Pie, Cell,
+import {
+  LineChart, Line, BarChart, Bar, PieChart as RechartsPie, Pie, Cell,
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
   Legend, ResponsiveContainer, RadarChart, Radar, PolarGrid,
   PolarAngleAxis, PolarRadiusAxis,
@@ -1959,7 +1960,7 @@ const AutomationHub = () => {
 
         {/* Main Chart */}
         <ResponsiveContainer width="100%" height={400}>
-          <RechartsLineChart data={analytics.executionTrend}>
+          <LineChart data={analytics.executionTrend}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="date" />
             <YAxis />
@@ -1979,7 +1980,7 @@ const AutomationHub = () => {
               strokeWidth={3}
               name="Successful"
             />
-          </RechartsLineChart>
+          </LineChart>
         </ResponsiveContainer>
       </Paper>
 
@@ -1991,7 +1992,7 @@ const AutomationHub = () => {
               Execution by Workflow Type
             </Typography>
             <ResponsiveContainer width="100%" height={300}>
-              <RechartsBarChart data={[
+              <BarChart data={[
                 { type: 'Client Management', count: 89 },
                 { type: 'Communication', count: 67 },
                 { type: 'Billing', count: 45 },
@@ -2003,7 +2004,7 @@ const AutomationHub = () => {
                 <YAxis />
                 <RechartsTooltip />
                 <Bar dataKey="count" fill={COLORS.primary} />
-              </RechartsBarChart>
+              </BarChart>
             </ResponsiveContainer>
           </Paper>
         </Grid>
@@ -2094,7 +2095,7 @@ const AutomationHub = () => {
           <Tab icon={<Clock size={20} />} label="Scheduled Jobs" iconPosition="start" />
           <Tab icon={<LinkIcon size={20} />} label="Integrations" iconPosition="start" />
           <Tab icon={<Activity size={20} />} label="Monitoring" iconPosition="start" />
-          <Tab icon={<RechartsBarChart size={20} />} label="Analytics" iconPosition="start" />
+          <Tab icon={<BarChart size={20} />} label="Analytics" iconPosition="start" />
         </Tabs>
       </Paper>
 

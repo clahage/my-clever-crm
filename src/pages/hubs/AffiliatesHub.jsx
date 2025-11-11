@@ -302,9 +302,7 @@ import {
   Clipboard,
   Save,
   Crown,
-  Sparkles,
-} ,
-  Trophy
+  Sparkles, Trophy
 } from 'lucide-react';
 import { collection, doc, addDoc, updateDoc, getDoc, getDocs, query, where, orderBy, limit, serverTimestamp, deleteDoc, writeBatch } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
