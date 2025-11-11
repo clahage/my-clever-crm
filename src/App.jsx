@@ -11,7 +11,7 @@ import ProtectedLayout from '@/layout/ProtectedLayout';
 
 // Existing imports...
 import Products from '@/pages/Products';
-import IDIQEnrollmentWizard from './components/IDIQEnrollmentWizard';
+import { IDIQEnrollmentWizard } from '@/components/idiq';
 
 // ============================================================================
 // LOADING COMPONENT
@@ -136,7 +136,7 @@ const Login = lazy(() => import('@/pages/Login'));
 const Register = lazy(() => import('@/pages/Register'));
 const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'));
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
-const IDIQDashboard = lazy(() => import("@/components/IDIQDashboard"));
+const IDIQDashboard = lazy(() => import("@/components/idiq/dashboard/IDIQDashboard"));
 const CreditReports = lazy(() => import("@/components/CreditReports"));
 const Home = lazy(() => import('@/pages/Home'));
 const ClientPortal = lazy(() => import('@/pages/ClientPortal'));
@@ -231,28 +231,49 @@ const WhiteLabelPlans = lazy(() => import('@/pages/whitelabel/Plans'));
 const WhiteLabelTenants = lazy(() => import('@/pages/whitelabel/Tenants'));
 
 // ============================================================================
-// ===== 🎯 HYBRID HUB IMPORTS (18 Hubs) =====
+// ===== 🎯 HYBRID HUB IMPORTS (41 Complete Business Hubs) =====
 // ============================================================================
 const AffiliatesHub = lazy(() => import('@/pages/hubs/AffiliatesHub'));
-const AutomationHub = lazy(() => import('@/pages/hubs/AutomationHub'));
 const AIHub = lazy(() => import('@/pages/hubs/AIHub'));
 const AnalyticsHub = lazy(() => import('@/pages/hubs/AnalyticsHub'));
+const AutomationHub = lazy(() => import('@/pages/hubs/AutomationHub'));
 const BillingHub = lazy(() => import('@/pages/hubs/BillingHub'));
+const BillingPaymentsHub = lazy(() => import('@/pages/hubs/BillingPaymentsHub'));
+const BureauCommunicationHub = lazy(() => import('@/pages/hubs/BureauCommunicationHub'));
+const CalendarSchedulingHub = lazy(() => import('@/pages/hubs/CalendarSchedulingHub'));
+const CertificationSystem = lazy(() => import('@/pages/hubs/CertificationSystem'));
 const ClientsHub = lazy(() => import('@/pages/hubs/ClientsHub'));
+const ClientSuccessRetentionHub = lazy(() => import('@/pages/hubs/ClientSuccessRetentionHub'));
+const CollectionsARHub = lazy(() => import('@/pages/hubs/CollectionsARHub'));
 const CommunicationsHub = lazy(() => import('@/pages/hubs/CommunicationsHub'));
 const ComplianceHub = lazy(() => import('@/pages/hubs/ComplianceHub'));
+const ContentCreatorSEOHub = lazy(() => import('@/pages/hubs/ContentCreatorSEOHub'));
+const ContractManagementHub = lazy(() => import('@/pages/hubs/ContractManagementHub'));
 const CreditReportsHub = lazy(() => import('@/pages/hubs/CreditReportsHub'));
 const DashboardHub = lazy(() => import('@/pages/hubs/DashboardHub'));
 const DisputeHub = lazy(() => import('@/pages/hubs/DisputeAdminPanel'));
+const DisputeHubMain = lazy(() => import('@/pages/hubs/DisputeHub'));
 const DocumentsHub = lazy(() => import('@/pages/hubs/DocumentsHub'));
+const DripCampaignsHub = lazy(() => import('@/pages/hubs/DripCampaignsHub'));
 const LearningHub = lazy(() => import('@/pages/hubs/LearningHub'));
 const MarketingHub = lazy(() => import('@/pages/hubs/MarketingHub'));
+const MobileAppHub = lazy(() => import('@/pages/hubs/MobileAppHub'));
+const OnboardingWelcomeHub = lazy(() => import('@/pages/hubs/OnboardingWelcomeHub'));
 const PaymentIntegrationHub = lazy(() => import('@/pages/hubs/PaymentIntegrationHub'));
+const ProgressPortalHub = lazy(() => import('@/pages/hubs/ProgressPortalHub'));
+const ReferralEngineHub = lazy(() => import('@/pages/hubs/ReferralEngineHub'));
+const ReferralPartnerHub = lazy(() => import('@/pages/hubs/ReferralPartnerHub'));
 const ReportsHub = lazy(() => import('@/pages/hubs/ReportsHub'));
+const ResourceLibraryHub = lazy(() => import('@/pages/hubs/ResourceLibraryHub'));
 const RevenueHub = lazy(() => import('@/pages/hubs/RevenueHub'));
+const RevenuePartnershipsHub = lazy(() => import('@/pages/hubs/RevenuePartnershipsHub'));
+const ReviewsReputationHub = lazy(() => import('@/pages/hubs/ReviewsReputationHub'));
 const SettingsHub = lazy(() => import('@/pages/hubs/SettingsHub'));
+const SocialMediaHub = lazy(() => import('@/pages/hubs/SocialMediaHub'));
 const SupportHub = lazy(() => import('@/pages/hubs/SupportHub'));
 const TasksSchedulingHub = lazy(() => import('@/pages/hubs/TasksSchedulingHub'));
+const TrainingHub = lazy(() => import('@/pages/hubs/TrainingHub'));
+const WebsiteLandingPagesHub = lazy(() => import('@/pages/hubs/WebsiteLandingPagesHub'));
 
 // ============================================================================
 // PROTECTED ROUTE WRAPPER
@@ -710,6 +731,262 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
         <TasksSchedulingHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* ============================================================================ */}
+{/* ===== 🎯 ADDITIONAL HUB ROUTES (21 More Business Hubs) ===== */}
+{/* ============================================================================ */}
+
+{/* Billing & Payments Hub - Payment processing and billing */}
+<Route
+  path="billing-payments-hub"
+  element={
+    <ProtectedRoute requiredRole="admin">
+      <Suspense fallback={<LoadingFallback />}>
+        <BillingPaymentsHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Bureau Communication Hub - Credit bureau communications */}
+<Route
+  path="bureau-hub"
+  element={
+    <ProtectedRoute requiredRole="admin">
+      <Suspense fallback={<LoadingFallback />}>
+        <BureauCommunicationHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Calendar & Scheduling Hub - Advanced calendar features */}
+<Route
+  path="calendar-hub"
+  element={
+    <ProtectedRoute requiredRole="prospect">
+      <Suspense fallback={<LoadingFallback />}>
+        <CalendarSchedulingHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Certification System - Team certifications and training */}
+<Route
+  path="certification-hub"
+  element={
+    <ProtectedRoute requiredRole="admin">
+      <Suspense fallback={<LoadingFallback />}>
+        <CertificationSystem />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Client Success & Retention Hub - Client retention tools */}
+<Route
+  path="client-success-hub"
+  element={
+    <ProtectedRoute requiredRole="prospect">
+      <Suspense fallback={<LoadingFallback />}>
+        <ClientSuccessRetentionHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Collections & AR Hub - Accounts receivable management */}
+<Route
+  path="collections-hub"
+  element={
+    <ProtectedRoute requiredRole="admin">
+      <Suspense fallback={<LoadingFallback />}>
+        <CollectionsARHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Content Creator & SEO Hub - Content and SEO tools */}
+<Route
+  path="content-hub"
+  element={
+    <ProtectedRoute requiredRole="prospect">
+      <Suspense fallback={<LoadingFallback />}>
+        <ContentCreatorSEOHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Contract Management Hub - Contract lifecycle management */}
+<Route
+  path="contracts-hub"
+  element={
+    <ProtectedRoute requiredRole="admin">
+      <Suspense fallback={<LoadingFallback />}>
+        <ContractManagementHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Dispute Hub Main - Main dispute interface */}
+<Route
+  path="dispute-main-hub"
+  element={
+    <ProtectedRoute requiredRole="prospect">
+      <Suspense fallback={<LoadingFallback />}>
+        <DisputeHubMain />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Drip Campaigns Hub - Automated campaign management */}
+<Route
+  path="drip-hub"
+  element={
+    <ProtectedRoute requiredRole="prospect">
+      <Suspense fallback={<LoadingFallback />}>
+        <DripCampaignsHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Mobile App Hub - Mobile app management */}
+<Route
+  path="mobile-hub"
+  element={
+    <ProtectedRoute requiredRole="admin">
+      <Suspense fallback={<LoadingFallback />}>
+        <MobileAppHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Onboarding & Welcome Hub - Client onboarding flows */}
+<Route
+  path="onboarding-hub"
+  element={
+    <ProtectedRoute requiredRole="prospect">
+      <Suspense fallback={<LoadingFallback />}>
+        <OnboardingWelcomeHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Progress Portal Hub - Client progress tracking */}
+<Route
+  path="progress-hub"
+  element={
+    <ProtectedRoute requiredRole="prospect">
+      <Suspense fallback={<LoadingFallback />}>
+        <ProgressPortalHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Referral Engine Hub - Referral automation */}
+<Route
+  path="referral-engine-hub"
+  element={
+    <ProtectedRoute requiredRole="prospect">
+      <Suspense fallback={<LoadingFallback />}>
+        <ReferralEngineHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Referral Partner Hub - Partner referral management */}
+<Route
+  path="referral-partner-hub"
+  element={
+    <ProtectedRoute requiredRole="prospect">
+      <Suspense fallback={<LoadingFallback />}>
+        <ReferralPartnerHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Resource Library Hub - Resource and document library */}
+<Route
+  path="resources-hub"
+  element={
+    <ProtectedRoute requiredRole="prospect">
+      <Suspense fallback={<LoadingFallback />}>
+        <ResourceLibraryHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Revenue Partnerships Hub - Partnership revenue tracking */}
+<Route
+  path="revenue-partnerships-hub"
+  element={
+    <ProtectedRoute requiredRole="admin">
+      <Suspense fallback={<LoadingFallback />}>
+        <RevenuePartnershipsHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Reviews & Reputation Hub - Review and reputation management */}
+<Route
+  path="reviews-hub"
+  element={
+    <ProtectedRoute requiredRole="prospect">
+      <Suspense fallback={<LoadingFallback />}>
+        <ReviewsReputationHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Social Media Hub - Social media management */}
+<Route
+  path="social-hub"
+  element={
+    <ProtectedRoute requiredRole="prospect">
+      <Suspense fallback={<LoadingFallback />}>
+        <SocialMediaHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Training Hub - Training and education platform */}
+<Route
+  path="training-hub"
+  element={
+    <ProtectedRoute requiredRole="prospect">
+      <Suspense fallback={<LoadingFallback />}>
+        <TrainingHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Website & Landing Pages Hub - Website management */}
+<Route
+  path="website-hub"
+  element={
+    <ProtectedRoute requiredRole="prospect">
+      <Suspense fallback={<LoadingFallback />}>
+        <WebsiteLandingPagesHub />
       </Suspense>
     </ProtectedRoute>
   }
