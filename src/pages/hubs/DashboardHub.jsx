@@ -186,6 +186,7 @@ import {
   CreditCard as CardIcon,
   Wallet,
   Minus,
+  LayoutDashboard,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/lib/firebase';

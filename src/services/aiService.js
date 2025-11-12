@@ -116,6 +116,43 @@ class AIService {
     }
   }
 
+  /**
+   * Anthropic Claude Completion
+   * @param {string} prompt - The prompt to send to Claude
+   * @param {object} options - Optional parameters (model, maxTokens, temperature)
+   * @returns {Promise<object>} - Response with success, response text, tokens, cost
+   */
+  async anthropicComplete(prompt, options = {}) {
+    try {
+      const anthropicComplete = httpsCallable(functions, 'anthropicComplete');
+      const result = await anthropicComplete({
+        prompt,
+        model: options.model || 'claude-sonnet-4-20250514',
+        maxTokens: options.maxTokens || 1000,
+        temperature: options.temperature !== undefined ? options.temperature : 0.7
+      });
+      return result.data;
+    } catch (error) {
+      handleError(error);
+    }
+  }
+
+  /**
+   * Generate AI Insights (automatically uses best available model)
+   * @param {object} data - Data to analyze
+   * @param {string} type - Type of analysis (optional)
+   * @returns {Promise<object>} - Response with insights, tokens, cost, provider
+   */
+  async generateInsights(data, type = 'general') {
+    try {
+      const generateInsights = httpsCallable(functions, 'generateInsights');
+      const result = await generateInsights({ data, type });
+      return result.data;
+    } catch (error) {
+      handleError(error);
+    }
+  }
+
   isAuthenticated() {
     const auth = getAuth();
     return !!auth.currentUser;

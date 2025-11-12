@@ -25,6 +25,7 @@ import {
   Settings as ConfigIcon,
 } from '@mui/icons-material';
 import { useAuth } from '@/contexts/AuthContext';
+import { ROLE_HIERARCHY } from '@/layout/navConfig';
 
 // Lazy load components
 const IDIQEnrollment = lazy(() => import('../../components/credit/IDIQEnrollment'));
@@ -34,18 +35,6 @@ const AIDisputeGenerator = lazy(() => import('../../components/credit/AIDisputeG
 const CreditMonitoringSystem = lazy(() => import('../../components/credit/CreditMonitoringSystem'));
 const IDIQControlCenter = lazy(() => import('../../components/credit/IDIQControlCenter'));
 const IDIQConfig = lazy(() => import('../../components/credit/IDIQConfig'));
-
-// Role hierarchy
-const ROLE_HIERARCHY = {
-  viewer: 1,
-  prospect: 2,
-  client: 3,
-  affiliate: 4,
-  user: 5,
-  manager: 6,
-  admin: 7,
-  masterAdmin: 8,
-};
 
 // Tab configuration
 const TABS = [

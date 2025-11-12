@@ -15,7 +15,7 @@ import {
   CreditCard,
   User
 } from 'lucide-react';
-import { fetchCreditReport, PROVIDERS } from '@/services/creditReportService';
+import { fetchCreditReport, PROVIDERS } from '@/services/CreditReportService';
 import { generateInitialReview } from '@/services/aiCreditReviewService';
 
 // ============================================================================

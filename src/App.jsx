@@ -170,7 +170,6 @@ const CreditMonitoring = lazy(() => import('@/pages/CreditMonitoring'));
 // ===== COMMUNICATION =====
 const Letters = lazy(() => import('@/pages/Letters'));
 const Emails = lazy(() => import('@/pages/Emails'));
-const CommunicationsCenter = lazy(() => import('@/pages/CommunicationsCenter'));
 const SMS = lazy(() => import('@/pages/SMS'));
 const DripCampaigns = lazy(() => import('@/pages/DripCampaigns'));
 const Templates = lazy(() => import('@/pages/Templates'));
@@ -208,7 +207,6 @@ const Tasks = lazy(() => import('@/pages/Tasks'));
 const Reminders = lazy(() => import('@/pages/Reminders'));
 
 // ===== ANALYTICS & REPORTING =====
-const Analytics = lazy(() => import('@/pages/Analytics'));
 const Reports = lazy(() => import('@/pages/Reports'));
 const Goals = lazy(() => import('@/pages/Goals'));
 const ResourcesArticles = lazy(() => import('@/pages/resources/Articles'));
@@ -395,7 +393,7 @@ const AppContent = () => {
         <Route path="credit-monitoring" element={<Suspense fallback={<LoadingFallback />}><CreditMonitoring /></Suspense>} />
         <Route path="letters" element={<Suspense fallback={<LoadingFallback />}><Letters /></Suspense>} />
         <Route path="emails" element={<Suspense fallback={<LoadingFallback />}><Emails /></Suspense>} />
-        <Route path="communications" element={<Suspense fallback={<LoadingFallback />}><CommunicationsCenter /></Suspense>} />
+        <Route path="communications" element={<Navigate to="/comms-hub" replace />} />
         <Route path="email-workflows" element={<Suspense fallback={<LoadingFallback />}><EmailWorkflowDashboard /></Suspense>} />
         <Route path="sms" element={<Suspense fallback={<LoadingFallback />}><SMS /></Suspense>} />
         <Route path="drip-campaigns" element={<Suspense fallback={<LoadingFallback />}><DripCampaigns /></Suspense>} />
@@ -425,7 +423,7 @@ const AppContent = () => {
         <Route path="appointments" element={<Suspense fallback={<LoadingFallback />}><Appointments /></Suspense>} />
         <Route path="tasks" element={<Suspense fallback={<LoadingFallback />}><Tasks /></Suspense>} />
         <Route path="reminders" element={<Suspense fallback={<LoadingFallback />}><Reminders /></Suspense>} />
-        <Route path="analytics" element={<Suspense fallback={<LoadingFallback />}><Analytics /></Suspense>} />
+        <Route path="analytics" element={<Navigate to="/analytics-hub" replace />} />
         <Route path="reports" element={<Suspense fallback={<LoadingFallback />}><Reports /></Suspense>} />
         <Route path="goals" element={<Suspense fallback={<LoadingFallback />}><Goals /></Suspense>} />
         <Route path="resources/articles" element={<Suspense fallback={<LoadingFallback />}><ResourcesArticles /></Suspense>} />

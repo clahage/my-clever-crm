@@ -1,35 +1,39 @@
 /**
  * functions/aiService.js
- * 
- * SECURE OpenAI Cloud Function Wrapper
- * 
- * Purpose: Move all OpenAI API calls server-side to protect API keys
- * 
+ *
+ * SECURE AI Cloud Function Wrapper (OpenAI + Anthropic)
+ *
+ * Purpose: Move all AI API calls server-side to protect API keys
+ *
  * Features:
+ * - OpenAI GPT completions
+ * - Anthropic Claude completions
  * - Credit analysis and report parsing
  * - Dispute letter generation
  * - Lead scoring
- * - Generic AI completion endpoint
+ * - Generic AI completion endpoints
  * - Rate limiting per user
  * - Error handling and logging
  * - Cost tracking
- * 
+ *
  * Security:
- * - API key stored in Firebase Functions config (NOT in .env)
+ * - API keys stored in Firebase Functions config (NOT in .env)
  * - Request validation
  * - User authentication required
  * - Rate limiting
- * 
+ *
  * Setup:
  * firebase functions:config:set openai.api_key="sk-..."
- * 
+ * firebase functions:config:set anthropic.api_key="sk-ant-..."
+ *
  * Author: SpeedyCRM Audit Remediation
- * Last Updated: 2025-10-20
+ * Last Updated: 2025-11-12
  */
 
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const OpenAI = require('openai');
+const fetch = require('node-fetch');
 
 // Initialize Firebase Admin (if not already initialized)
 if (!admin.apps.length) {
@@ -41,8 +45,16 @@ const db = admin.firestore();
 // Initialize OpenAI with config from Firebase Functions config
 // NOT from environment variables to avoid client exposure
 const openai = new OpenAI({
-  apiKey: functions.config().openai.api_key,
+  apiKey: functions.config().openai?.api_key,
 });
+
+// Initialize Anthropic configuration
+// API key stored securely in Firebase Functions config
+const anthropicConfig = {
+  apiKey: functions.config().anthropic?.api_key,
+  apiVersion: '2023-06-01',
+  baseURL: 'https://api.anthropic.com/v1/messages'
+};
 
 // ============================================================================
 // RATE LIMITING HELPERS
@@ -199,10 +211,215 @@ exports.aiComplete = functions.https.onCall(async (data, context) => {
 });
 
 /**
+ * Anthropic Claude Completion Endpoint
+ *
+ * Handles all Claude API calls securely on the server side
+ *
+ * Usage:
+ * const result = await anthropicComplete({
+ *   model: 'claude-sonnet-4-20250514',
+ *   prompt: 'Hello',
+ *   maxTokens: 1000,
+ *   temperature: 0.7
+ * });
+ */
+exports.anthropicComplete = functions.https.onCall(async (data, context) => {
+  try {
+    const userId = await verifyAuth(context);
+
+    // Rate limiting
+    const withinLimit = await checkRateLimit(userId, 100);
+    if (!withinLimit) {
+      throw new functions.https.HttpsError(
+        'resource-exhausted',
+        'Rate limit exceeded. Please try again in an hour.'
+      );
+    }
+
+    // Validate input
+    if (!data.prompt) {
+      throw new functions.https.HttpsError(
+        'invalid-argument',
+        'Prompt is required.'
+      );
+    }
+
+    // Check if Anthropic API key is configured
+    if (!anthropicConfig.apiKey) {
+      throw new functions.https.HttpsError(
+        'failed-precondition',
+        'Anthropic API key not configured. Run: firebase functions:config:set anthropic.api_key="sk-ant-..."'
+      );
+    }
+
+    // Default values
+    const model = data.model || 'claude-sonnet-4-20250514';
+    const temperature = data.temperature !== undefined ? data.temperature : 0.7;
+    const maxTokens = data.maxTokens || 1000;
+
+    // Call Anthropic API
+    const response = await fetch(anthropicConfig.baseURL, {
+      method: 'POST',
+      headers: {
+        'x-api-key': anthropicConfig.apiKey,
+        'anthropic-version': anthropicConfig.apiVersion,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: maxTokens,
+        temperature,
+        messages: [{ role: 'user', content: data.prompt }]
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`Anthropic API error: ${errorData.error?.message || response.statusText}`);
+    }
+
+    const result = await response.json();
+    const responseText = result.content[0]?.text || '';
+    const tokensUsed = result.usage?.input_tokens + result.usage?.output_tokens || 0;
+    const estimatedCost = calculateAnthropicCost(model, result.usage);
+
+    // Log usage
+    await logAIUsage(userId, 'anthropicComplete', tokensUsed, estimatedCost);
+
+    return {
+      success: true,
+      response: responseText,
+      tokensUsed,
+      estimatedCost,
+      usage: result.usage
+    };
+
+  } catch (error) {
+    console.error('Anthropic Complete Error:', error);
+
+    if (error instanceof functions.https.HttpsError) {
+      throw error;
+    }
+
+    throw new functions.https.HttpsError(
+      'internal',
+      'Anthropic service error: ' + error.message
+    );
+  }
+});
+
+/**
+ * Generate AI Insights (works with both OpenAI and Anthropic)
+ *
+ * Automatically routes to the best model based on the task
+ *
+ * Usage:
+ * const result = await generateInsights({
+ *   data: {...},
+ *   type: 'credit-analysis' | 'lead-scoring' | 'general'
+ * });
+ */
+exports.generateInsights = functions.https.onCall(async (data, context) => {
+  try {
+    const userId = await verifyAuth(context);
+
+    // Rate limiting
+    const withinLimit = await checkRateLimit(userId, 100);
+    if (!withinLimit) {
+      throw new functions.https.HttpsError(
+        'resource-exhausted',
+        'Rate limit exceeded. Please try again in an hour.'
+      );
+    }
+
+    // Validate input
+    if (!data.data) {
+      throw new functions.https.HttpsError(
+        'invalid-argument',
+        'Data is required.'
+      );
+    }
+
+    const prompt = `Analyze this data and provide insights: ${JSON.stringify(data.data)}`;
+
+    // Use Anthropic for better reasoning if available, otherwise OpenAI
+    if (anthropicConfig.apiKey) {
+      const response = await fetch(anthropicConfig.baseURL, {
+        method: 'POST',
+        headers: {
+          'x-api-key': anthropicConfig.apiKey,
+          'anthropic-version': anthropicConfig.apiVersion,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 2000,
+          temperature: 0.7,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Anthropic API error: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      const insights = result.content[0]?.text || '';
+      const tokensUsed = result.usage?.input_tokens + result.usage?.output_tokens || 0;
+      const estimatedCost = calculateAnthropicCost('claude-sonnet-4-20250514', result.usage);
+
+      await logAIUsage(userId, 'generateInsights', tokensUsed, estimatedCost);
+
+      return {
+        success: true,
+        insights,
+        tokensUsed,
+        estimatedCost,
+        provider: 'anthropic'
+      };
+    } else {
+      // Fallback to OpenAI
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7,
+        max_tokens: 2000,
+      });
+
+      const insights = completion.choices[0].message.content;
+      const tokensUsed = completion.usage.total_tokens;
+      const estimatedCost = calculateCost('gpt-4', tokensUsed);
+
+      await logAIUsage(userId, 'generateInsights', tokensUsed, estimatedCost);
+
+      return {
+        success: true,
+        insights,
+        tokensUsed,
+        estimatedCost,
+        provider: 'openai'
+      };
+    }
+
+  } catch (error) {
+    console.error('Generate Insights Error:', error);
+
+    if (error instanceof functions.https.HttpsError) {
+      throw error;
+    }
+
+    throw new functions.https.HttpsError(
+      'internal',
+      'Insights generation error: ' + error.message
+    );
+  }
+});
+
+/**
  * Credit Report Analysis
- * 
+ *
  * Analyzes credit report data and provides recommendations
- * 
+ *
  * Usage:
  * const result = await analyzeCreditReport({
  *   reportData: {...},
@@ -649,6 +866,36 @@ function calculateCost(model, tokens) {
   const avgCostPerToken = (modelPricing.input + modelPricing.output) / 2;
   
   return (tokens * avgCostPerToken).toFixed(4);
+}
+
+/**
+ * Calculate estimated cost for Anthropic Claude models
+ */
+function calculateAnthropicCost(model, usage) {
+  if (!usage) return '0.0000';
+
+  // Pricing as of 2024-2025 (update as needed)
+  const pricing = {
+    'claude-sonnet-4-20250514': {
+      input: 0.003 / 1000,   // $3 per MTok input
+      output: 0.015 / 1000   // $15 per MTok output
+    },
+    'claude-opus-4-20250514': {
+      input: 0.015 / 1000,   // $15 per MTok input
+      output: 0.075 / 1000   // $75 per MTok output
+    },
+    'claude-3-5-sonnet-20241022': {
+      input: 0.003 / 1000,
+      output: 0.015 / 1000
+    }
+  };
+
+  const modelPricing = pricing[model] || pricing['claude-sonnet-4-20250514'];
+
+  const inputCost = (usage.input_tokens || 0) * modelPricing.input;
+  const outputCost = (usage.output_tokens || 0) * modelPricing.output;
+
+  return (inputCost + outputCost).toFixed(4);
 }
 
 /**

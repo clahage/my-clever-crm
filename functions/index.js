@@ -33,6 +33,8 @@ const aiService = require('./aiService');
 
 // Export all AI endpoints
 exports.aiComplete = aiService.aiComplete;
+exports.anthropicComplete = aiService.anthropicComplete;
+exports.generateInsights = aiService.generateInsights;
 exports.analyzeCreditReport = aiService.analyzeCreditReport;
 exports.generateDisputeLetter = aiService.generateDisputeLetter;
 exports.scoreLead = aiService.scoreLead;
