@@ -1,0 +1,84 @@
+# Log files
+# Dependencies
+node_modules/
+/.pnp
+.pnp.js
+
+# Testing
+/coverage
+
+# Production
+/build
+/dist
+
+# Sensitive files - NEVER commit these!
+*-key.json
+*-admin-key.json
+*admin*.json
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+firebase-debug.log
+firebase-debug.*.log
+*.log
+
+# Firebase secrets
+functions/serviceAccountKey.json
+serviceAccountKey.json
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!firebase.json
+!.firebaserc
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# IDE
+.vscode/
+.idea/
+
+# Backups
+backups/
+*_backup_*/
+src_broken_backup_*/
+src_working_backup_*/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Keep these
+!package.json
+!package-lock.json
+!tsconfig.json
+!jsconfig.json
+functions/serviceAccountKey.json
+serviceAccountKey.json
+serviceAccountKey.json
+
+# ============================================
+# Firebase Service Account Keys - NEVER COMMIT!
+# ============================================
+serviceAccountKey.json
+**/serviceAccountKey.json
+firebase-adminsdk-*.json
+*-firebase-adminsdk-*.json
+
+# ============================================
+# Firebase Service Account Keys - NEVER COMMIT!
+# ============================================
+serviceAccountKey.json
+**/serviceAccountKey.json
+firebase-adminsdk-*.json
+*-firebase-adminsdk-*.json

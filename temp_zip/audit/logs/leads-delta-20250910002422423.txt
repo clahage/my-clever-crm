@@ -1,0 +1,93 @@
+
+> scr-admin-vite@0.0.0 guard
+> npm run scan:dup && npm run lint
+
+
+> scr-admin-vite@0.0.0 scan:dup
+> node scripts/check-duplicates.mjs
+
+Type      Name                 Paths
+---------------------------------------------------------------------
+DUPLICATE firebase.js          "C:\SCR Project\my-clever-crm\src\auth\firebase.js", "C:\SCR Project\my-clever-crm\src\config\firebase.js", "C:\SCR Project\my-clever-crm\src\lib\firebase.js"
+DUPLICATE clientlayout.jsx     "C:\SCR Project\my-clever-crm\src\client\ClientLayout.jsx", "C:\SCR Project\my-clever-crm\src\pages\ClientPortal\ClientLayout.jsx"
+DUPLICATE dashboard.jsx        "C:\SCR Project\my-clever-crm\src\client\pages\Dashboard.jsx", "C:\SCR Project\my-clever-crm\src\components\Dashboard.jsx", "C:\SCR Project\my-clever-crm\src\pages\Dashboard.jsx"
+DUPLICATE disputes.jsx         "C:\SCR Project\my-clever-crm\src\client\pages\Disputes.jsx", "C:\SCR Project\my-clever-crm\src\pages\Disputes.jsx"
+DUPLICATE documents.jsx        "C:\SCR Project\my-clever-crm\src\client\pages\Documents.jsx", "C:\SCR Project\my-clever-crm\src\pages\Documents.jsx"
+DUPLICATE reports.jsx          "C:\SCR Project\my-clever-crm\src\client\pages\Reports.jsx", "C:\SCR Project\my-clever-crm\src\pages\Reports.jsx"
+DUPLICATE activitylog.jsx      "C:\SCR Project\my-clever-crm\src\components\ActivityLog.jsx", "C:\SCR Project\my-clever-crm\src\pages\restore\ActivityLog.jsx"
+DUPLICATE usermanagement.jsx   "C:\SCR Project\my-clever-crm\src\components\admin\UserManagement.jsx", "C:\SCR Project\my-clever-crm\src\pages\UserManagement.jsx"
+DUPLICATE billing.jsx          "C:\SCR Project\my-clever-crm\src\components\Billing.jsx", "C:\SCR Project\my-clever-crm\src\pages\Billing.jsx"
+DUPLICATE brandlogo.jsx        "C:\SCR Project\my-clever-crm\src\components\BrandLogo.jsx", "C:\SCR Project\my-clever-crm\src\skins\BrandLogo.jsx"
+DUPLICATE clients.jsx          "C:\SCR Project\my-clever-crm\src\components\Clients.jsx", "C:\SCR Project\my-clever-crm\src\pages\Clients.jsx"
+DUPLICATE disputecenter.jsx    "C:\SCR Project\my-clever-crm\src\components\DisputeCenter.jsx", "C:\SCR Project\my-clever-crm\src\pages\DisputeCenter.jsx", "C:\SCR Project\my-clever-crm\src\pages\restore\DisputeCenter.jsx"
+DUPLICATE home.jsx             "C:\SCR Project\my-clever-crm\src\components\Home.jsx", "C:\SCR Project\my-clever-crm\src\Home.jsx", "C:\SCR Project\my-clever-crm\src\pages\Home.jsx"
+DUPLICATE idiqdashboard.jsx    "C:\SCR Project\my-clever-crm\src\components\IDIQ\IDIQDashboard.jsx", "C:\SCR Project\my-clever-crm\src\components\IDIQIntegration\IDIQDashboard.jsx"
+DUPLICATE importcontactsmodal.jsx "C:\SCR Project\my-clever-crm\src\components\ImportContactsModal.jsx", "C:\SCR Project\my-clever-crm\src\components\leads\ImportContactsModal.jsx"
+DUPLICATE topnav.jsx           "C:\SCR Project\my-clever-crm\src\components\layout\TopNav.jsx", "C:\SCR Project\my-clever-crm\src\layout\TopNav.jsx"
+DUPLICATE leads.jsx            "C:\SCR Project\my-clever-crm\src\components\Leads.jsx", "C:\SCR Project\my-clever-crm\src\pages\Leads.jsx"
+DUPLICATE login.jsx            "C:\SCR Project\my-clever-crm\src\components\Login.jsx", "C:\SCR Project\my-clever-crm\src\pages\Login.jsx"
+DUPLICATE moderndashboard.jsx  "C:\SCR Project\my-clever-crm\src\components\ModernDashboard.jsx", "C:\SCR Project\my-clever-crm\src\modern\ModernDashboard.jsx"
+DUPLICATE progressportal.jsx   "C:\SCR Project\my-clever-crm\src\components\ProgressPortal.jsx", "C:\SCR Project\my-clever-crm\src\pages\restore\ProgressPortal.jsx"
+DUPLICATE protectedroute.jsx   "C:\SCR Project\my-clever-crm\src\components\ProtectedRoute.jsx", "C:\SCR Project\my-clever-crm\src\routes\ProtectedRoute.jsx"
+DUPLICATE settings.jsx         "C:\SCR Project\my-clever-crm\src\components\Settings.jsx", "C:\SCR Project\my-clever-crm\src\pages\Settings.jsx"
+DUPLICATE skinswitcher.jsx     "C:\SCR Project\my-clever-crm\src\components\skin\SkinSwitcher.jsx", "C:\SCR Project\my-clever-crm\src\skins\SkinSwitcher.jsx"
+DUPLICATE sidebar.jsx          "C:\SCR Project\my-clever-crm\src\layout\Sidebar.jsx", "C:\SCR Project\my-clever-crm\src\modern\Sidebar.jsx"
+DUPLICATE featurestutorials.jsx "C:\SCR Project\my-clever-crm\src\pages\FeaturesTutorials.jsx", "C:\SCR Project\my-clever-crm\src\pages\restore\FeaturesTutorials.jsx"
+DUPLICATE .gitkeep             "C:\SCR Project\my-clever-crm\src\skins\.gitkeep", "C:\SCR Project\my-clever-crm\src\skins\alt1\.gitkeep", "C:\SCR Project\my-clever-crm\src\skins\alt2\.gitkeep", "C:\SCR Project\my-clever-crm\src\skins\generic\.gitkeep", "C:\SCR Project\my-clever-crm\src\skins\speedy\.gitkeep"
+ROUTE     /client/*            "C:\SCR Project\my-clever-crm\src\App.jsx", "C:\SCR Project\my-clever-crm\src\client\router\clientRoutes.jsx"
+ROUTE     *                    "C:\SCR Project\my-clever-crm\src\App.jsx", "C:\SCR Project\my-clever-crm\src\client\router\clientRoutes.jsx"
+EXPORT    AuthProvider         "C:\SCR Project\my-clever-crm\src\auth\AuthProvider.jsx", "C:\SCR Project\my-clever-crm\src\contexts\AuthContext.jsx"
+EXPORT    useAuth              "C:\SCR Project\my-clever-crm\src\auth\AuthProvider.jsx", "C:\SCR Project\my-clever-crm\src\contexts\AuthContext.jsx"
+EXPORT    useTheme             "C:\SCR Project\my-clever-crm\src\theme\ThemeProvider.jsx", "C:\SCR Project\my-clever-crm\src\themeContext.jsx"
+
+> scr-admin-vite@0.0.0 prebuild
+> npm run snapshot
+
+
+> scr-admin-vite@0.0.0 snapshot
+> node scripts/snapshot.mjs
+
+Snapshot failed, but continuing.
+
+> scr-admin-vite@0.0.0 build
+> vite build
+
+[36mvite v5.4.19 [32mbuilding for production...[36m[39m
+transforming...
+[32m✓[39m 1748 modules transformed.
+Compress-Archive : A positional parameter cannot 
+be found that accepts argument 'Project\my-clever
+-crm\snapshots\snapshot-20250909-172425.zip'.
+At line:1 char:1
++ Compress-Archive -Path src, vite.config.* 
+-DestinationPath C:\SCR Pro ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : InvalidArgument: ( 
+   :) [Compress-Archive], ParameterBindingExcep  
+  tion
+    + FullyQualifiedErrorId : PositionalParamete 
+   rNotFound,Compress-Archive
+ 
+[31mx[39m Build failed in 5.65s
+[31merror during build:
+[31msrc/pages/Leads.jsx (13:9): "useRealtimeLeads" is not exported by "src/hooks/useRealtimeLeads.js", imported by "src/pages/Leads.jsx".[31m
+file: [36mC:/SCR Project/my-clever-crm/src/pages/Leads.jsx:13:9[31m
+[33m
+11: import LeadMigrationTool from "@/components/LeadMigrationTool";
+12: import ImportContactsModal from "@/components/leads/ImportContactsModal";
+13: import { useRealtimeLeads } from "@/hooks/useRealtimeLeads";
+             ^
+14: 
+15: // Firestore collection name
+[31m
+    at getRollupError (file:///C:/SCR%20Project/my-clever-crm/node_modules/rollup/dist/es/shared/parseAst.js:401:41)
+    at error (file:///C:/SCR%20Project/my-clever-crm/node_modules/rollup/dist/es/shared/parseAst.js:397:42)
+    at Module.error (file:///C:/SCR%20Project/my-clever-crm/node_modules/rollup/dist/es/shared/node-entry.js:16875:16)
+    at Module.traceVariable (file:///C:/SCR%20Project/my-clever-crm/node_modules/rollup/dist/es/shared/node-entry.js:17327:29)
+    at ModuleScope.findVariable (file:///C:/SCR%20Project/my-clever-crm/node_modules/rollup/dist/es/shared/node-entry.js:14997:39)
+    at FunctionScope.findVariable (file:///C:/SCR%20Project/my-clever-crm/node_modules/rollup/dist/es/shared/node-entry.js:5620:38)
+    at FunctionBodyScope.findVariable (file:///C:/SCR%20Project/my-clever-crm/node_modules/rollup/dist/es/shared/node-entry.js:5620:38)
+    at Identifier.bind (file:///C:/SCR%20Project/my-clever-crm/node_modules/rollup/dist/es/shared/node-entry.js:5394:40)
+    at CallExpression.bind (file:///C:/SCR%20Project/my-clever-crm/node_modules/rollup/dist/es/shared/node-entry.js:2785:23)
+    at CallExpression.bind (file:///C:/SCR%20Project/my-clever-crm/node_modules/rollup/dist/es/shared/node-entry.js:12058:15)[39m

@@ -1,0 +1,70 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // TEMPORARY - COMPLETELY OPEN FOR TESTING
+    // TODO: Remove this and use proper rules in production
+    match /{document=**} {
+      allow read, write: if true;
+    }
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isEmployee() {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.role in ['user', 'manager', 'admin', 'masterAdmin'];
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.role in ['admin', 'masterAdmin'];
+    }
+
+    // ============================================================================
+    // IDIQ CREDIT REPORT SYSTEM
+    // ============================================================================
+
+    // IDIQ Enrollments
+    match /idiqEnrollments/{enrollmentId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() || 
+        resource.data.clientId == request.auth.uid
+      );
+      allow create: if isAuthenticated() && isEmployee();
+      allow update, delete: if isAuthenticated() && isAdmin();
+    }
+
+    // Credit Reports
+    match /creditReports/{reportId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() || 
+        resource.data.clientId == request.auth.uid
+      );
+      allow create, update: if isAuthenticated() && isEmployee();
+      allow delete: if isAuthenticated() && isAdmin();
+    }
+
+    // Credit Monitors
+    match /creditMonitors/{monitorId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() || 
+        resource.data.clientId == request.auth.uid
+      );
+      allow create, update, delete: if isAuthenticated() && isEmployee();
+    }
+
+    // Disputes
+    match /disputes/{disputeId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() || 
+        resource.data.clientId == request.auth.uid
+      );
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() && isEmployee();
+    }
+
+  }
+}

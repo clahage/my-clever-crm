@@ -1,0 +1,130 @@
+ VITE v5.4.19  ready in 290 ms
+
+  ➜  Local:   http://localhost:5175/
+  ➜  Network: use --host to expose
+  ➜  press h + enter to show help
+7:49:27 PM [vite] Pre-transform error: C:\SCR Project\my-clever-crm\src\pages\EContracts.jsx: Unexpect
+ed token, expected "," (283:0)
+
+  281 |       ).length,
+  282 |       expiringS
+> 283 | oon: contracts.filter(c => {
+      | ^
+  284 |         if (!c.validityPeriod?.endDate) return false;
+  285 |         const endDate = new Date(c.validityPeriod.endDate);
+  286 |         const daysUntilExpiry = (endDate - new Date()) / (1000 * 60 * 60 * 24);
+7:49:28 PM [vite] Internal server error: C:\SCR Project\my-clever-crm\src\pages\EContracts.jsx: Unexpe
+cted token, expected "," (283:0)
+
+  281 |       ).length,
+  282 |       expiringS
+> 283 | oon: contracts.filter(c => {
+      | ^
+  284 |         if (!c.validityPeriod?.endDate) return false;
+  285 |         const endDate = new Date(c.validityPeriod.endDate);
+  286 |         const daysUntilExpiry = (endDate - new Date()) / (1000 * 60 * 60 * 24);
+  Plugin: vite:react-babel
+  File: C:/SCR Project/my-clever-crm/src/pages/EContracts.jsx:283:0
+  285|          const endDate = new Date(c.validityPeriod.endDate);
+  286|          const daysUntilExpiry = (endDate - new Date()) / (1000 * 60 * 60 * 24);
+  287|          return daysUntilExpiry > 0 && daysUntilExpiry <= 30;
+     |                                                             ^
+  288|        }).length
+  289|      };
+      at constructor (C:\SCR Project\my-clever-crm\node_modules\@babel\parser\lib\index.js:367:19)
+      at JSXParserMixin.raise (C:\SCR Project\my-clever-crm\node_modules\@babel\parser\lib\index.js:66
+27:19)
+      at JSXParserMixin.unexpected (C:\SCR Project\my-clever-crm\node_modules\@babel\parser\lib\index.
+js:6647:16)
+      at JSXParserMixin.expect (C:\SCR Project\my-clever-crm\node_modules\@babel\parser\lib\index.js:6
+927:12)
+      at JSXParserMixin.parseObjectLike (C:\SCR Project\my-clever-crm\node_modules\@babel\parser\lib\i
+ndex.js:11821:14)
+      at JSXParserMixin.parseExprAtom (C:\SCR Project\my-clever-crm\node_modules\@babel\parser\lib\ind
+ex.js:11334:23)
+      at JSXParserMixin.parseExprAtom (C:\SCR Project\my-clever-crm\node_modules\@babel\parser\lib\ind
+ex.js:4794:20)
+      at JSXParserMixin.parseExprSubscripts (C:\SCR Project\my-clever-crm\node_modules\@babel\parser\l
+ib\index.js:11076:23)
+      at JSXParserMixin.parseUpdate (C:\SCR Project\my-clever-crm\node_modules\@babel\parser\lib\index
+.js:11061:21)
+      at JSXParserMixin.parseMaybeUnary (C:\SCR Project\my-clever-crm\node_modules\@babel\parser\lib\i
+ndex.js:11041:23)
+      at JSXParserMixin.parseMaybeUnaryOrPrivate (C:\SCR Project\my-clever-crm\node_modules\@babel\par
+ser\lib\index.js:10894:61)
+      at JSXParserMixin.parseExprOps (C:\SCR Project\my-clever-crm\node_modules\@babel\parser\lib\inde
+x.js:10899:23)
+      at JSXParserMixin.parseMaybeConditional (C:\SCR Project\my-clever-crm\node_modules\@babel\parser
+\lib\index.js:10876:23)
+      at JSXParserMixin.parseMaybeAssign (C:\SCR Project\my-clever-crm\node_modules\@babel\parser\lib\
+index.js:10826:21)
+      at JSXParserMixin.parseExpressionBase (C:\SCR Project\my-clever-crm\node_modules\@babel\parser\l
+ib\index.js:10779:23)
+      at C:\SCR Project\my-clever-crm\node_modules\@babel\parser\lib\index.js:10775:39
+      at JSXParserMixin.allowInAnd (C:\SCR Project\my-clever-crm\node_modules\@babel\parser\lib\index.
+js:12422:16)
+      at JSXParserMixin.parseExpression (C:\SCR Project\my-clever-crm\node_modules\@babel\parser\lib\i
+ndex.js:10775:17)
+      at JSXParserMixin.parseReturnStatement (C:\SCR Project\my-clever-crm\node_modules\@babel\parser\
+lib\index.js:13142:28)
+      at JSXParserMixin.parseStatementContent (C:\SCR Project\my-clever-crm\node_modules\@babel\parser
+\lib\index.js:12798:21)
+      at JSXParserMixin.parseStatementLike (C:\SCR Project\my-clever-crm\node_modules\@babel\parser\li
+b\index.js:12767:17)
+      at JSXParserMixin.parseStatementListItem (C:\SCR Project\my-clever-crm\node_modules\@babel\parse
+r\lib\index.js:12747:17)
+      at JSXParserMixin.parseBlockOrModuleBlockBody (C:\SCR Project\my-clever-crm\node_modules\@babel\
+parser\lib\index.js:13316:61)
+      at JSXParserMixin.parseBlockBody (C:\SCR Project\my-clever-crm\node_modules\@babel\parser\lib\in
+dex.js:13309:10)
+      at JSXParserMixin.parseBlock (C:\SCR Project\my-clever-crm\node_modules\@babel\parser\lib\index.
+js:13297:10)
+      at JSXParserMixin.parseFunctionBody (C:\SCR Project\my-clever-crm\node_modules\@babel\parser\lib
+\index.js:12101:24)
+      at JSXParserMixin.parseArrowExpression (C:\SCR Project\my-clever-crm\node_modules\@babel\parser\
+lib\index.js:12076:10)
+      at JSXParserMixin.parseParenAndDistinguishExpression (C:\SCR Project\my-clever-crm\node_modules\
+@babel\parser\lib\index.js:11686:12)
+      at JSXParserMixin.parseExprAtom (C:\SCR Project\my-clever-crm\node_modules\@babel\parser\lib\ind
+ex.js:11326:23)
+      at JSXParserMixin.parseExprAtom (C:\SCR Project\my-clever-crm\node_modules\@babel\parser\lib\ind
+ex.js:4794:20)
+      at JSXParserMixin.parseExprSubscripts (C:\SCR Project\my-clever-crm\node_modules\@babel\parser\l
+ib\index.js:11076:23)
+      at JSXParserMixin.parseUpdate (C:\SCR Project\my-clever-crm\node_modules\@babel\parser\lib\index
+.js:11061:21)
+      at JSXParserMixin.parseMaybeUnary (C:\SCR Project\my-clever-crm\node_modules\@babel\parser\lib\i
+ndex.js:11041:23)
+      at JSXParserMixin.parseMaybeUnaryOrPrivate (C:\SCR Project\my-clever-crm\node_modules\@babel\par
+ser\lib\index.js:10894:61)
+      at JSXParserMixin.parseExprOps (C:\SCR Project\my-clever-crm\node_modules\@babel\parser\lib\inde
+x.js:10899:23)
+      at JSXParserMixin.parseMaybeConditional (C:\SCR Project\my-clever-crm\node_modules\@babel\parser
+\lib\index.js:10876:23)
+      at JSXParserMixin.parseMaybeAssign (C:\SCR Project\my-clever-crm\node_modules\@babel\parser\lib\
+index.js:10826:21)
+      at C:\SCR Project\my-clever-crm\node_modules\@babel\parser\lib\index.js:10795:39
+      at JSXParserMixin.allowInAnd (C:\SCR Project\my-clever-crm\node_modules\@babel\parser\lib\index.
+js:12427:12)
+      at JSXParserMixin.parseMaybeAssignAllowIn (C:\SCR Project\my-clever-crm\node_modules\@babel\pars
+er\lib\index.js:10795:17)
+      at JSXParserMixin.parseMaybeAssignAllowInOrVoidPattern (C:\SCR Project\my-clever-crm\node_module
+s\@babel\parser\lib\index.js:12494:17)
+      at JSXParserMixin.parseExprListItem (C:\SCR Project\my-clever-crm\node_modules\@babel\parser\lib
+\index.js:12176:18)
+      at JSXParserMixin.parseCallExpressionArguments (C:\SCR Project\my-clever-crm\node_modules\@babel
+\parser\lib\index.js:11247:22)
+      at JSXParserMixin.parseCoverCallAndAsyncArrowHead (C:\SCR Project\my-clever-crm\node_modules\@ba
+bel\parser\lib\index.js:11181:29)
+      at JSXParserMixin.parseSubscript (C:\SCR Project\my-clever-crm\node_modules\@babel\parser\lib\in
+dex.js:11115:19)
+      at JSXParserMixin.parseSubscripts (C:\SCR Project\my-clever-crm\node_modules\@babel\parser\lib\i
+ndex.js:11089:19)
+      at JSXParserMixin.parseExprSubscripts (C:\SCR Project\my-clever-crm\node_modules\@babel\parser\l
+ib\index.js:11080:17)
+      at JSXParserMixin.parseUpdate (C:\SCR Project\my-clever-crm\node_modules\@babel\parser\lib\index
+.js:11061:21)
+      at JSXParserMixin.parseMaybeUnary (C:\SCR Project\my-clever-crm\node_modules\@babel\parser\lib\i
+ndex.js:11041:23)
+      at JSXParserMixin.parseMaybeUnaryOrPrivate (C:\SCR Project\my-clever-crm\node_modules\@babel\par
+ser\lib\index.js:10894:61)

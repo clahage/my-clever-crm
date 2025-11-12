@@ -1,0 +1,91 @@
+@import './styles/animations.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base layout */
+html, body, #root { height: 100%; margin: 0; }
+
+/* Slightly better text rendering */
+@layer base {
+  html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+}
+
+/* === Project components & tokens === */
+@layer components {
+  /* Primary button used by <Button className="btn"> and others */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg
+           font-medium shadow-sm bg-blue-600 text-white hover:bg-blue-700
+           transition disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* Reusable info box (e.g., welcome + announcements) */
+  .scr-info-box {
+    @apply rounded-xl px-4 py-3 border backdrop-blur
+           bg-white/70 border-slate-200
+           dark:bg-slate-800/60 dark:border-slate-700;
+  }
+
+  /* Card shell used throughout dashboard tiles */
+  .scr-card {
+    @apply rounded-2xl border bg-white
+           border-slate-200 shadow-sm
+           dark:bg-slate-900 dark:border-slate-700;
+  }
+
+  /* Convenience padding token used in JSX */
+  .scr-p-6 { @apply p-6; }
+
+  /* Simple fade-in helper for dashboard tiles */
+  .scr-fade-in { @apply opacity-0; animation: fadeIn .6s ease-out forwards; }
+
+  /* ---- Optional: Glassmorphism (use sparingly) ---- */
+
+  /* Use on visual shells (cards/toolbars), not dense tables/text */
+  .glass-card {
+    @apply backdrop-blur-md rounded-2xl shadow-lg
+           ring-1 ring-black/10
+           bg-white/20 dark:bg-slate-900/30 dark:ring-white/10;
+  }
+
+  /* For top bars or utility trays */
+  .glass-toolbar {
+    @apply backdrop-blur rounded-xl shadow
+           ring-1 ring-black/10
+           px-4 py-2
+           bg-white/30 dark:bg-slate-800/40 dark:ring-white/10;
+  }
+
+  /* Floating action button style */
+  .glass-fab {
+    @apply backdrop-blur rounded-full shadow-lg
+           ring-1 ring-white/20
+           px-4 py-3
+           bg-white/30 dark:bg-slate-800/40;
+    transition: transform .15s ease;
+  }
+  .glass-fab:hover { transform: scale(1.05); }
+}
+
+/* Local utilities & accessibility */
+@layer utilities {
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scr-fade-in { animation: none !important; opacity: 1 !important; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .glass-card,
+  .glass-toolbar,
+  .glass-fab,
+  .scr-info-box { background-color: rgb(255 255 255 / 95%) !important; }
+  :root.dark .glass-card,
+  :root.dark .glass-toolbar,
+  :root.dark .glass-fab,
+  :root.dark .scr-info-box { background-color: rgb(15 23 42 / 95%) !important; }
+}
