@@ -54,6 +54,9 @@ backups/
 src_broken_backup_*/
 src_working_backup_*/
 
+# Build snapshots
+snapshots/
+
 # OS
 .DS_Store
 Thumbs.db
