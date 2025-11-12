@@ -33,6 +33,7 @@ import {
   Sparkles, Bell, Share2, ExternalLink, PieChart,
   LineChart as LineChartIcon, Workflow, Repeat, Timer, Send,
   Phone, Smartphone, Globe, Cloud, Lock, Unlock, Key,
+  LayoutDashboard,
 } from 'lucide-react';
 import {
   LineChart, Line, BarChart, Bar, PieChart as RechartsPie, Pie, Cell,

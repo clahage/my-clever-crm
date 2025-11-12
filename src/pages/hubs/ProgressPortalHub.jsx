@@ -117,8 +117,8 @@ import {
   Radar,
 } from 'recharts';
 import { collection, query, where, orderBy, getDocs, doc, updateDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../../firebase';
-import { useAuth } from '../../contexts/AuthContext';
+import { db } from '@/lib/firebase';
+import { useAuth } from '@/contexts/AuthContext';
 
 // ============================================
 // CONSTANTS & CONFIGURATION

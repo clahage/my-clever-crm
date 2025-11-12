@@ -54,7 +54,7 @@ import {
   BarChart3
 } from 'lucide-react';
 import { collection, query, where, onSnapshot, doc, getDoc, orderBy, limit } from 'firebase/firestore';
-import { db, auth } from '../../lib/firebase';
+import { db, auth } from '@/lib/firebase';
 
 // ===================================================================
 // LAZY LOAD COMPONENTS FOR PERFORMANCE

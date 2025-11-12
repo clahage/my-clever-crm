@@ -98,8 +98,8 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { collection, query, where, orderBy, getDocs, doc, setDoc, updateDoc, deleteDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
-import { db } from '../../firebase';
-import { useAuth } from '../../contexts/AuthContext';
+import { db } from '@/lib/firebase';
+import { useAuth } from '@/contexts/AuthContext';
 
 // ============================================
 // CONSTANTS & CONFIGURATION
