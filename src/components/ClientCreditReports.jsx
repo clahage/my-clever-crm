@@ -5,7 +5,6 @@ import { fetchIDIQReport } from "../utils/idiqProvider";
 import { parseCreditReport } from "../utils/aiCreditReportParser";
 import { exportToCSV, exportToPDF } from '../utils/exportUtils';
 import { saveAs } from 'file-saver';
-import { getApiKey } from "../openaiConfig";
 
 const ClientCreditReports = ({ clientId, enrollmentDate, refreshIntervalDays = 30 }) => {
   const [reports, setReports] = useState([]);

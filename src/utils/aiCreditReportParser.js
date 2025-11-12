@@ -1,27 +1,29 @@
 // aiCreditReportParser.js
 // Enhanced AI-assisted parsing and dispute suggestion
 
-import { getApiKey } from '../openaiConfig';
-import { callOpenAI } from '../openaiService';
+import aiService from '@/services/aiService';
 
-// In production, replace this with a call to OpenAI, Azure OpenAI, or similar LLM API
+// Modern implementation using secure aiService
 export async function parseCreditReport(rawReport) {
-  const apiKey = getApiKey();
-  if (!apiKey) {
-    // fallback to demo if no key
-    return demoParseCreditReport(rawReport);
-  }
   try {
-    const prompt = `Parse the following credit report JSON and extract tradelines, flag negative items, suggest dispute reasons, and provide a summary and recommendations.\n\nReport:\n${typeof rawReport === 'string' ? rawReport : JSON.stringify(rawReport)}`;
-    const result = await callOpenAI([
-      { role: 'system', content: 'You are an expert credit report analyst.' },
-      { role: 'user', content: prompt }
-    ], apiKey);
-    // Expecting result as JSON string
-    return JSON.parse(result);
+    // Use the secure aiService which handles authentication and rate limiting
+    const reportText = typeof rawReport === 'string' ? rawReport : JSON.stringify(rawReport);
+    const result = await aiService.parseCreditReport(reportText);
+
+    if (result && typeof result === 'object') {
+      return result;
+    }
+
+    // If result is a string, try to parse it
+    if (typeof result === 'string') {
+      return JSON.parse(result);
+    }
+
+    return result;
   } catch (err) {
-    console.error('OpenAI parseCreditReport error:', err);
-    return { summary: 'Failed to parse report with OpenAI.' };
+    console.error('AI parseCreditReport error:', err);
+    // Fallback to demo if aiService fails
+    return demoParseCreditReport(rawReport);
   }
 }
 

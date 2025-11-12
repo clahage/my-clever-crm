@@ -3,8 +3,7 @@ import React, { useState , useEffect } from "react";
 import { db } from '../firebaseConfig';
 import { collection, query, onSnapshot } from 'firebase/firestore';
 import { demoAnalytics } from "../data/demoData";
-import { getApiKey } from '../openaiConfig';
-import { callOpenAI } from '../openaiService';
+import aiService from '@/services/aiService';
 
 export default function Analytics() {
   const [stats, setStats] = useState([]);
@@ -21,17 +20,20 @@ export default function Analytics() {
             const firebaseData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             setStats(firebaseData);
             setUseDemo(false);
-            // LLM-powered insights
-            const apiKey = getApiKey();
-            if (apiKey && firebaseData.length > 0) {
-              const prompt = `Analyze the following CRM analytics data and provide 3 actionable insights for business growth. Data: ${JSON.stringify(firebaseData)}`;
+            // LLM-powered insights using secure aiService
+            if (firebaseData.length > 0) {
               try {
-                const result = await callOpenAI([
-                  { role: 'system', content: 'You are a CRM analytics expert.' },
-                  { role: 'user', content: prompt }
-                ], apiKey);
-                setInsights(result.split('\n').filter(Boolean));
+                const prompt = `Analyze the following CRM analytics data and provide 3 actionable insights for business growth. Data: ${JSON.stringify(firebaseData)}`;
+                const result = await aiService.complete({
+                  messages: [
+                    { role: 'system', content: 'You are a CRM analytics expert.' },
+                    { role: 'user', content: prompt }
+                  ]
+                });
+                const response = result.response || result;
+                setInsights(response.split('\n').filter(Boolean));
               } catch (err) {
+                console.error('AI insights error:', err);
                 setInsights(['AI insights unavailable.']);
               }
             }

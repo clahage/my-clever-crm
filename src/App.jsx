@@ -1,6 +1,6 @@
 // src/App.jsx - SpeedyCRM Complete Application Router
-// VERSION: 3.0 - HYBRID HUB ARCHITECTURE INTEGRATION
-// LAST UPDATED: 2025-11-06 - All 18 Hubs Integrated
+// VERSION: 4.0 - COMPLETE HUB ARCHITECTURE INTEGRATION
+// LAST UPDATED: 2025-11-12 - All 41 Business Hubs Fully Routed
 import EmailWorkflowDashboard from './components/EmailWorkflowDashboard';
 import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
@@ -231,7 +231,7 @@ const WhiteLabelPlans = lazy(() => import('@/pages/whitelabel/Plans'));
 const WhiteLabelTenants = lazy(() => import('@/pages/whitelabel/Tenants'));
 
 // ============================================================================
-// ===== 🎯 HYBRID HUB IMPORTS (18 Hubs) =====
+// ===== 🎯 HYBRID HUB IMPORTS (41 Total Business Hubs) =====
 // ============================================================================
 const AffiliatesHub = lazy(() => import('@/pages/hubs/AffiliatesHub'));
 const AutomationHub = lazy(() => import('@/pages/hubs/AutomationHub'));
@@ -253,6 +253,28 @@ const RevenueHub = lazy(() => import('@/pages/hubs/RevenueHub'));
 const SettingsHub = lazy(() => import('@/pages/hubs/SettingsHub'));
 const SupportHub = lazy(() => import('@/pages/hubs/SupportHub'));
 const TasksSchedulingHub = lazy(() => import('@/pages/hubs/TasksSchedulingHub'));
+
+// ===== 🎯 ADDITIONAL HUB IMPORTS (21 More Hubs) =====
+const BillingPaymentsHub = lazy(() => import('@/pages/hubs/BillingPaymentsHub'));
+const BureauCommunicationHub = lazy(() => import('@/pages/hubs/BureauCommunicationHub'));
+const CalendarSchedulingHub = lazy(() => import('@/pages/hubs/CalendarSchedulingHub'));
+const CertificationSystem = lazy(() => import('@/pages/hubs/CertificationSystem'));
+const ClientSuccessRetentionHub = lazy(() => import('@/pages/hubs/ClientSuccessRetentionHub'));
+const CollectionsARHub = lazy(() => import('@/pages/hubs/CollectionsARHub'));
+const ContentCreatorSEOHub = lazy(() => import('@/pages/hubs/ContentCreatorSEOHub'));
+const ContractManagementHub = lazy(() => import('@/pages/hubs/ContractManagementHub'));
+const DripCampaignsHub = lazy(() => import('@/pages/hubs/DripCampaignsHub'));
+const MobileAppHub = lazy(() => import('@/pages/hubs/MobileAppHub'));
+const OnboardingWelcomeHub = lazy(() => import('@/pages/hubs/OnboardingWelcomeHub'));
+const ProgressPortalHub = lazy(() => import('@/pages/hubs/ProgressPortalHub'));
+const ReferralEngineHub = lazy(() => import('@/pages/hubs/ReferralEngineHub'));
+const ReferralPartnerHub = lazy(() => import('@/pages/hubs/ReferralPartnerHub'));
+const ResourceLibraryHub = lazy(() => import('@/pages/hubs/ResourceLibraryHub'));
+const RevenuePartnershipsHub = lazy(() => import('@/pages/hubs/RevenuePartnershipsHub'));
+const ReviewsReputationHub = lazy(() => import('@/pages/hubs/ReviewsReputationHub'));
+const SocialMediaHub = lazy(() => import('@/pages/hubs/SocialMediaHub'));
+const TrainingHub = lazy(() => import('@/pages/hubs/TrainingHub'));
+const WebsiteLandingPagesHub = lazy(() => import('@/pages/hubs/WebsiteLandingPagesHub'));
 
 // ============================================================================
 // PROTECTED ROUTE WRAPPER
@@ -471,7 +493,7 @@ const AppContent = () => {
   />
 
 {/* ============================================================================ */}
-{/* ===== 🎯 HYBRID HUB ROUTES (18 Hubs) ===== */}
+{/* ===== 🎯 HYBRID HUB ROUTES (41 Complete Business Hubs) ===== */}
 {/* ============================================================================ */}
 
 {/* Credit Reports Hub - Consolidated IDIQ System */}
@@ -710,6 +732,250 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
         <TasksSchedulingHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* ============================================================================ */}
+{/* ===== 🎯 ADDITIONAL HUB ROUTES (21 More Hubs) ===== */}
+{/* ============================================================================ */}
+
+{/* Billing & Payments Hub - Payment processing and billing */}
+<Route
+  path="billing-payments-hub"
+  element={
+    <ProtectedRoute requiredRole="admin">
+      <Suspense fallback={<LoadingFallback />}>
+        <BillingPaymentsHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Bureau Communication Hub - Credit bureau communications */}
+<Route
+  path="bureau-communication-hub"
+  element={
+    <ProtectedRoute requiredRole="user">
+      <Suspense fallback={<LoadingFallback />}>
+        <BureauCommunicationHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Calendar & Scheduling Hub - Advanced scheduling */}
+<Route
+  path="calendar-scheduling-hub"
+  element={
+    <ProtectedRoute requiredRole="prospect">
+      <Suspense fallback={<LoadingFallback />}>
+        <CalendarSchedulingHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Certification System - Training certifications */}
+<Route
+  path="certification-hub"
+  element={
+    <ProtectedRoute requiredRole="prospect">
+      <Suspense fallback={<LoadingFallback />}>
+        <CertificationSystem />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Client Success & Retention Hub - Client retention strategies */}
+<Route
+  path="client-success-hub"
+  element={
+    <ProtectedRoute requiredRole="user">
+      <Suspense fallback={<LoadingFallback />}>
+        <ClientSuccessRetentionHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Collections & AR Hub - Accounts receivable management */}
+<Route
+  path="collections-hub"
+  element={
+    <ProtectedRoute requiredRole="admin">
+      <Suspense fallback={<LoadingFallback />}>
+        <CollectionsARHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Content Creator & SEO Hub - Content marketing and SEO */}
+<Route
+  path="content-seo-hub"
+  element={
+    <ProtectedRoute requiredRole="user">
+      <Suspense fallback={<LoadingFallback />}>
+        <ContentCreatorSEOHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Contract Management Hub - Contract lifecycle management */}
+<Route
+  path="contract-management-hub"
+  element={
+    <ProtectedRoute requiredRole="admin">
+      <Suspense fallback={<LoadingFallback />}>
+        <ContractManagementHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Drip Campaigns Hub - Automated email campaigns */}
+<Route
+  path="drip-campaigns-hub"
+  element={
+    <ProtectedRoute requiredRole="user">
+      <Suspense fallback={<LoadingFallback />}>
+        <DripCampaignsHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Mobile App Hub - Mobile app management and configuration */}
+<Route
+  path="mobile-app-hub"
+  element={
+    <ProtectedRoute requiredRole="admin">
+      <Suspense fallback={<LoadingFallback />}>
+        <MobileAppHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Onboarding & Welcome Hub - Client onboarding workflows */}
+<Route
+  path="onboarding-hub"
+  element={
+    <ProtectedRoute requiredRole="user">
+      <Suspense fallback={<LoadingFallback />}>
+        <OnboardingWelcomeHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Progress Portal Hub - Client progress tracking */}
+<Route
+  path="progress-portal-hub"
+  element={
+    <ProtectedRoute requiredRole="prospect">
+      <Suspense fallback={<LoadingFallback />}>
+        <ProgressPortalHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Referral Engine Hub - Referral program automation */}
+<Route
+  path="referral-engine-hub"
+  element={
+    <ProtectedRoute requiredRole="user">
+      <Suspense fallback={<LoadingFallback />}>
+        <ReferralEngineHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Referral Partner Hub - Partner relationship management */}
+<Route
+  path="referral-partner-hub"
+  element={
+    <ProtectedRoute requiredRole="user">
+      <Suspense fallback={<LoadingFallback />}>
+        <ReferralPartnerHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Resource Library Hub - Knowledge base and resources */}
+<Route
+  path="resource-library-hub"
+  element={
+    <ProtectedRoute requiredRole="prospect">
+      <Suspense fallback={<LoadingFallback />}>
+        <ResourceLibraryHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Revenue & Partnerships Hub - Revenue management */}
+<Route
+  path="revenue-partnerships-hub"
+  element={
+    <ProtectedRoute requiredRole="admin">
+      <Suspense fallback={<LoadingFallback />}>
+        <RevenuePartnershipsHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Reviews & Reputation Hub - Online reputation management */}
+<Route
+  path="reviews-reputation-hub"
+  element={
+    <ProtectedRoute requiredRole="user">
+      <Suspense fallback={<LoadingFallback />}>
+        <ReviewsReputationHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Social Media Hub - Social media management */}
+<Route
+  path="social-media-hub"
+  element={
+    <ProtectedRoute requiredRole="user">
+      <Suspense fallback={<LoadingFallback />}>
+        <SocialMediaHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Training Hub - Employee training and development */}
+<Route
+  path="training-hub"
+  element={
+    <ProtectedRoute requiredRole="prospect">
+      <Suspense fallback={<LoadingFallback />}>
+        <TrainingHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Website & Landing Pages Hub - Website management */}
+<Route
+  path="website-landing-hub"
+  element={
+    <ProtectedRoute requiredRole="admin">
+      <Suspense fallback={<LoadingFallback />}>
+        <WebsiteLandingPagesHub />
       </Suspense>
     </ProtectedRoute>
   }
