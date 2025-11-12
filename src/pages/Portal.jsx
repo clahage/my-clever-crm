@@ -469,7 +469,12 @@ export default function Portal() {
     const loadClients = async () => {
       setLoadingClients(true);
       try {
-        const clientsSnapshot = await getDocs(collection(db, 'contacts'));
+        // FIXED: Filter by type === 'client' to show only actual clients
+        const clientsQuery = query(
+          collection(db, 'contacts'),
+          where('type', '==', 'client')
+        );
+        const clientsSnapshot = await getDocs(clientsQuery);
         const clientsData = clientsSnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()

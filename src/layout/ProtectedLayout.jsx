@@ -442,9 +442,11 @@ const ProtectedLayout = () => {
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
           {isSidebarOpen && (
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <Zap className="w-5 h-5 text-white" />
-              </div>
+              <img
+                src="/brand/default/logo-brand-128.png"
+                alt="SpeedyCRM Logo"
+                className="w-8 h-8 object-contain"
+              />
               <div>
                 <h1 className="text-lg font-bold text-gray-800 dark:text-white leading-tight">
                   SpeedyCRM
