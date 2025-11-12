@@ -367,7 +367,7 @@ const OnboardingWelcomeHub = () => {
                 <Typography variant="body2" color="text.secondary">Avg Time</Typography>
                 <Clock size={20} color={COLORS.warning} />
               </Box>
-              <Typography variant="h3" sx={{ fontWeight: 700, color={COLORS.warning }}>
+              <Typography variant="h3" sx={{ fontWeight: 700, color: COLORS.warning }}>
                 {stats.avgCompletionTime}d
               </Typography>
               <Typography variant="caption" color="text.secondary">

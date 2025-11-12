@@ -30,7 +30,7 @@ import {
   Users, FileText, Settings, Database, GitBranch, Layers,
   ArrowRight, ArrowLeft, Save, RefreshCw, Eye, EyeOff,
   Link as LinkIcon, Unlink, Code, Terminal, Cpu, Brain,
-  Sparkles, Bell, Share2, ExternalLink, BarChart, PieChart,
+  Sparkles, Bell, Share2, ExternalLink, PieChart,
   LineChart as LineChartIcon, Workflow, Repeat, Timer, Send,
   Phone, Smartphone, Globe, Cloud, Lock, Unlock, Key,
 } from 'lucide-react';

@@ -1921,7 +1921,7 @@ const ReferralPartnerHub = () => {
                         <TableCell>
                           <Chip
                             size="small"
-                            icon={<PARTNER_STATUS[partner.status]?.icon size={14} />}
+                            icon={PARTNER_STATUS[partner.status]?.icon && React.createElement(PARTNER_STATUS[partner.status].icon, { size: 14 })}
                             label={PARTNER_STATUS[partner.status]?.label || 'Unknown'}
                             sx={{
                               bgcolor: `${PARTNER_STATUS[partner.status]?.color}20`,

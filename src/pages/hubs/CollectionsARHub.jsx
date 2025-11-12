@@ -136,7 +136,7 @@ const AGING_BUCKETS = [
   { id: 'current', label: 'Current', days: 0, color: COLORS.success },
   { id: '1-30', label: '1-30 Days', days: 30, color: COLORS.info },
   { id: '31-60', label: '31-60 Days', days: 60, color: COLORS.warning },
-  { id: '61-90', label: '61-90 Days', days: 90, color: '#f97316 },
+  { id: '61-90', label: '61-90 Days', days: 90, color: '#f97316' },
   { id: '91+', label: '91+ Days', days: 91, color: COLORS.error },
 ];
 

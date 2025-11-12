@@ -328,7 +328,7 @@ const ContentCreatorSEOHub = () => {
                 <Typography variant="body2" color="text.secondary">Drafts</Typography>
                 <Edit size={20} color={COLORS.warning} />
               </Box>
-              <Typography variant="h3" sx={{ fontWeight: 700, color={COLORS.warning }}>
+              <Typography variant="h3" sx={{ fontWeight: 700, color: COLORS.warning }}>
                 {stats.drafts}
               </Typography>
             </CardContent>

@@ -435,7 +435,7 @@ const DripCampaignsHub = () => {
         factors: [
           campaign.segmented ? 'Targeted audience (+8%)' : null,
           campaign.subject?.includes('{{') ? 'Personalization (+3%)' : null,
-          'Subject line length optimal (+5%)' : null,
+          'Subject line length optimal (+5%)' || null,
         ].filter(Boolean),
       };
 
