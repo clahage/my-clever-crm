@@ -668,7 +668,11 @@ const UltimateCommunicationsHub = () => {
   const [filterType, setFilterType] = useState('all');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  
+
+  // Render function states (moved from nested functions to fix Hooks violations)
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedConversation, setSelectedConversation] = useState(null);
+
   // Rich text editor
   const quillRef = useRef(null);
 
@@ -1326,8 +1330,6 @@ const UltimateCommunicationsHub = () => {
 
   // ===== TEMPLATES TAB =====
   const renderTemplatesTab = () => {
-    const [selectedCategory, setSelectedCategory] = useState('all');
-
     const filteredTemplates = templates.filter(
       template => selectedCategory === 'all' || template.category === selectedCategory
     );
@@ -1833,8 +1835,6 @@ const UltimateCommunicationsHub = () => {
 
   // ===== INBOX TAB =====
   const renderInboxTab = () => {
-    const [selectedConversation, setSelectedConversation] = useState(null);
-
     return (
       <div className="space-y-6">
         <Typography variant="h5" className="font-bold">Unified Inbox</Typography>

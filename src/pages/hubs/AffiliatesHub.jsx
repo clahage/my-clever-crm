@@ -846,7 +846,13 @@ const UltimateAffiliatesHub = () => {
   const [sortOrder, setSortOrder] = useState('desc');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  
+
+  // Render function states (moved from nested functions to fix Hooks violations)
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [generatedContent, setGeneratedContent] = useState(null);
+  const [expandedFAQ, setExpandedFAQ] = useState(null);
+
   // Form states
   const [linkForm, setLinkForm] = useState({
     name: '',
@@ -2750,10 +2756,6 @@ const UltimateAffiliatesHub = () => {
 
   // ===== MATERIALS TAB CONTENT =====
   const renderMaterialsTab = () => {
-    const [selectedCategory, setSelectedCategory] = useState('all');
-    const [aiGenerating, setAiGenerating] = useState(false);
-    const [generatedContent, setGeneratedContent] = useState(null);
-
     const filteredMaterials = materials.filter(
       material => selectedCategory === 'all' || material.category === selectedCategory
     );
@@ -3524,8 +3526,6 @@ const UltimateAffiliatesHub = () => {
 
   // ===== RESOURCES TAB CONTENT =====
   const renderResourcesTab = () => {
-    const [expandedFAQ, setExpandedFAQ] = useState(null);
-
     return (
       <div className="space-y-6">
         {/* Header */}
