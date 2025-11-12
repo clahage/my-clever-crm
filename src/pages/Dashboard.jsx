@@ -178,9 +178,16 @@ const Dashboard = () => {
     <div className="p-6 max-w-7xl mx-auto">
   {/* Header */}
       <div className="flex justify-between items-start mb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600 mt-1">Welcome back! Here's your business overview.</p>
+        <div className="flex items-center space-x-3">
+          <img
+            src="/brand/default/logo-brand-128.png"
+            alt="SpeedyCRM"
+            className="w-10 h-10 object-contain"
+          />
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+            <p className="text-gray-600 mt-1">Welcome back! Here's your business overview.</p>
+          </div>
         </div>
         <div className="flex items-center space-x-3">
           <div className="flex items-center space-x-2 bg-green-50 px-3 py-2 rounded-lg">

@@ -3034,8 +3034,20 @@ const FullAgreement = ({
         
         <Container sx={{ mt: 3, mb: 3 }} ref={printRef}>
           {/* Agreement Header */}
-          <Paper sx={{ p: 3, mb: 3 }}>
+          <Paper sx={{ p: 3, mb: 3 }} className="print-logo-container">
             <Box textAlign="center">
+              <img
+                src="/brand/default/logo-brand-512.png"
+                alt="Speedy Credit Repair"
+                className="print-logo"
+                style={{ width: '150px', height: 'auto', margin: '0 auto 16px' }}
+              />
+              <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1 }}>
+                Speedy Credit Repair
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Est. 1995 - 30 Years of Excellence
+              </Typography>
               <Typography variant="h4" gutterBottom>
                 CREDIT REPAIR SERVICE AGREEMENT
               </Typography>
