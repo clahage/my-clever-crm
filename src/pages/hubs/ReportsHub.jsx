@@ -308,12 +308,49 @@ const UltimateReportsHub = () => {
   // ===== PERMISSION CHECK =====
   const hasAccess = useMemo(() => {
     if (!userProfile) return false;
-    return (userProfile.role || 0) >= 5; // user(5) or higher
+
+    const role = userProfile.role;
+
+    // Master Admin has full access
+    if (role === 'masterAdmin') return true;
+
+    // Admin has full access
+    if (role === 'admin') return true;
+
+    // Manager has access
+    if (role === 'manager') return true;
+
+    // User/Employee has access
+    if (role === 'user') return true;
+
+    // Handle numeric roles (legacy support)
+    if (typeof role === 'number') {
+      return role >= 5; // user(5) or higher
+    }
+
+    return false;
   }, [userProfile]);
 
   const canExport = useMemo(() => {
     if (!userProfile) return false;
-    return (userProfile.role || 0) >= 6; // manager(6) or higher
+
+    const role = userProfile.role;
+
+    // Master Admin can export
+    if (role === 'masterAdmin') return true;
+
+    // Admin can export
+    if (role === 'admin') return true;
+
+    // Manager can export
+    if (role === 'manager') return true;
+
+    // Handle numeric roles (legacy support)
+    if (typeof role === 'number') {
+      return role >= 6; // manager(6) or higher
+    }
+
+    return false;
   }, [userProfile]);
 
   // ===== EFFECTS =====
@@ -886,6 +923,13 @@ const UltimateReportsHub = () => {
         <Alert severity="error">
           <AlertTitle>Access Denied</AlertTitle>
           You do not have permission to access the Reports Hub.
+          {userProfile && (
+            <div style={{ marginTop: '10px', fontSize: '12px' }}>
+              <strong>Your Role:</strong> {userProfile.role || 'Unknown'}<br />
+              <strong>Required:</strong> User, Manager, Admin, or Master Admin<br />
+              <strong>User ID:</strong> {currentUser?.uid}
+            </div>
+          )}
         </Alert>
       </Box>
     );

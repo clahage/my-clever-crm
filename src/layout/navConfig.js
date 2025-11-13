@@ -161,6 +161,21 @@ export function isVisible(item, userRole, isMobile = false) {
 
 export const navigationItems = [
   // ==========================================================================
+  // 🎯 SMART DASHBOARD - INTELLIGENT ROLE-BASED LANDING
+  // ==========================================================================
+  {
+    id: 'smart-dashboard',
+    title: '🎯 Smart Dashboard',
+    path: '/smart-dashboard',
+    icon: Sparkles,
+    permission: 'prospect', // Everyone sees smart dashboard
+    mobileHidden: false,
+    badge: 'AI',
+    description: 'Intelligent dashboard that adapts to your role',
+    category: 'core'
+  },
+
+  // ==========================================================================
   // 🏠 DASHBOARD - ALWAYS VISIBLE AT TOP
   // ==========================================================================
   {

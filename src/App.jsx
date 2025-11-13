@@ -673,7 +673,7 @@ const AppContent = () => {
 <Route
   path="reports-hub"
   element={
-    <ProtectedRoute requiredRole="prospect">
+    <ProtectedRoute requiredRoles={['user', 'manager', 'admin', 'masterAdmin']}>
       <Suspense fallback={<LoadingFallback />}>
         <ReportsHub />
       </Suspense>
