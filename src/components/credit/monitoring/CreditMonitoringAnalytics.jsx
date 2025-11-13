@@ -263,7 +263,7 @@ const CreditMonitoringAnalytics = ({ clientId }) => {
     const previousScore = scoreHistory[1]?.score || currentScore;
     const scoreDiff = currentScore - previousScore;
 
-    const positive Changes = changeHistory.filter(c => c.changeType === 'positive').length;
+    const positiveChanges = changeHistory.filter(c => c.changeType === 'positive').length;
     const negativeChanges = changeHistory.filter(c => c.changeType === 'negative').length;
 
     return {

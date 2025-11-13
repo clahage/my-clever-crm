@@ -115,9 +115,9 @@ import {
   Download,
   Search,
   FilterList,
-  ChevronDown,
+  ExpandMore,
   ChevronRight,
-  X,
+  Close,
   Info,
   Warning,
   Error as ErrorIcon,
@@ -1062,7 +1062,7 @@ const AIDisputeCoach = () => {
           </Typography>
           {qaResults.map((item, index) => (
             <Accordion key={index}>
-              <AccordionSummary expandIcon={<ChevronDown />}>
+              <AccordionSummary expandIcon={<ExpandMore />}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1 }}>
                   <HelpOutline color="primary" />
                   <Typography variant="subtitle1">{item.question}</Typography>
@@ -1466,7 +1466,7 @@ const AIDisputeCoach = () => {
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Typography variant="h6">{tutorialDialog.tutorial?.title}</Typography>
             <IconButton onClick={() => setTutorialDialog({ open: false, tutorial: null })}>
-              <X />
+              <Close />
             </IconButton>
           </Box>
         </DialogTitle>
@@ -1515,7 +1515,7 @@ const AIDisputeCoach = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setAchievementDialog({ open: false, achievement: null })}>
-            X
+            Close
           </Button>
           <Button variant="contained" startIcon={<Share />}>
             Share

@@ -84,7 +84,7 @@ const SAMPLE_QUIZZES = [
     description: 'Test your knowledge of credit report fundamentals',
     category: 'credit-repair',
     difficulty: 'Beginner',
-    questions: 10,
+    questionCount: 10,
     timeLimit: 15, // minutes
     passingScore: 80,
     attempts: 0,
