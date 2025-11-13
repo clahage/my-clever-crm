@@ -16,7 +16,7 @@ const Login = () => {
   // Redirect if already logged in
   useEffect(() => {
     if (currentUser && !loading) {
-      navigate('/dashboard', { replace: true });
+      navigate('/smart-dashboard', { replace: true });
     }
   }, [currentUser, loading, navigate]);
 
@@ -27,7 +27,7 @@ const Login = () => {
 
     try {
       await login(email, password);
-      navigate('/dashboard', { replace: true });
+      navigate('/smart-dashboard', { replace: true });
     } catch (err) {
       console.error('Login error:', err);
       

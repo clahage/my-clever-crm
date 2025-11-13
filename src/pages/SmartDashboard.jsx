@@ -32,6 +32,7 @@ import {
   InputLabel,
   Switch,
   FormControlLabel,
+  Checkbox,
   Divider,
   List,
   ListItem,
@@ -242,6 +243,11 @@ const DEFAULT_LAYOUTS = {
     { i: 'dispute-progress', x: 6, y: 0, w: 6, h: 4 },
     { i: 'communication-history', x: 0, y: 4, w: 12, h: 4 },
   ],
+  affiliate: [
+    { i: 'revenue-overview', x: 0, y: 0, w: 12, h: 4 },
+    { i: 'lead-scoring', x: 0, y: 4, w: 6, h: 4 },
+    { i: 'recent-activity', x: 6, y: 4, w: 6, h: 4 },
+  ],
 };
 
 // ============================================================================
@@ -443,14 +449,17 @@ const calculateLeadScore = (lead) => {
 // ============================================================================
 
 const MasterAdminViewSwitcher = ({ currentView, onViewChange, userRole }) => {
-  if (userRole !== 'master-admin') return null;
+  // FIXED: Support both naming conventions (masterAdmin and master-admin)
+  const adminRoles = ['masterAdmin', 'master-admin', 'admin'];
+  if (!adminRoles.includes(userRole)) return null;
 
   const views = [
-    { value: 'master-admin', label: 'Master Admin', icon: Crown },
+    { value: 'masterAdmin', label: 'Master Admin', icon: Crown },
     { value: 'admin', label: 'Admin', icon: Shield },
     { value: 'manager', label: 'Manager', icon: Briefcase },
     { value: 'staff', label: 'Staff', icon: UserCheck },
     { value: 'client', label: 'Client', icon: Users },
+    { value: 'affiliate', label: 'Affiliate', icon: Link2 },
   ];
 
   return (
@@ -950,7 +959,7 @@ const ClientOverviewWidget = () => {
       </Box>
 
       <Grid container spacing={2} sx={{ mb: 2 }}>
-        <Grid item xs={6}>
+        <Grid xs={6}>
           <Box sx={{ textAlign: 'center', p: 2, backgroundColor: 'rgba(16, 185, 129, 0.1)', borderRadius: 1 }}>
             <Typography variant="h5" fontWeight="bold" sx={{ color: COLORS.success }}>
               {data.active}
@@ -960,7 +969,7 @@ const ClientOverviewWidget = () => {
             </Typography>
           </Box>
         </Grid>
-        <Grid item xs={6}>
+        <Grid xs={6}>
           <Box sx={{ textAlign: 'center', p: 2, backgroundColor: 'rgba(59, 130, 246, 0.1)', borderRadius: 1 }}>
             <Typography variant="h5" fontWeight="bold" sx={{ color: COLORS.info }}>
               {data.new}
@@ -1095,7 +1104,7 @@ const DisputeOverviewWidget = () => {
       </Box>
 
       <Grid container spacing={2} sx={{ mb: 2 }}>
-        <Grid item xs={4}>
+        <Grid xs={4}>
           <Box sx={{ textAlign: 'center', p: 1.5, backgroundColor: 'rgba(59, 130, 246, 0.1)', borderRadius: 1 }}>
             <Typography variant="h6" fontWeight="bold" sx={{ color: COLORS.info }}>
               {data.active}
@@ -1105,7 +1114,7 @@ const DisputeOverviewWidget = () => {
             </Typography>
           </Box>
         </Grid>
-        <Grid item xs={4}>
+        <Grid xs={4}>
           <Box sx={{ textAlign: 'center', p: 1.5, backgroundColor: 'rgba(245, 158, 11, 0.1)', borderRadius: 1 }}>
             <Typography variant="h6" fontWeight="bold" sx={{ color: COLORS.warning }}>
               {data.pending}
@@ -1115,7 +1124,7 @@ const DisputeOverviewWidget = () => {
             </Typography>
           </Box>
         </Grid>
-        <Grid item xs={4}>
+        <Grid xs={4}>
           <Box sx={{ textAlign: 'center', p: 1.5, backgroundColor: 'rgba(16, 185, 129, 0.1)', borderRadius: 1 }}>
             <Typography variant="h6" fontWeight="bold" sx={{ color: COLORS.success }}>
               {data.resolved}
@@ -1262,7 +1271,7 @@ const EmailPerformanceWidget = () => {
       </Box>
 
       <Grid container spacing={2} sx={{ mb: 2 }}>
-        <Grid item xs={4}>
+        <Grid xs={4}>
           <Box sx={{ textAlign: 'center', p: 1.5, backgroundColor: 'rgba(102, 126, 234, 0.1)', borderRadius: 1 }}>
             <Typography variant="h6" fontWeight="bold">
               {stats.sent}
@@ -1272,7 +1281,7 @@ const EmailPerformanceWidget = () => {
             </Typography>
           </Box>
         </Grid>
-        <Grid item xs={4}>
+        <Grid xs={4}>
           <Box sx={{ textAlign: 'center', p: 1.5, backgroundColor: 'rgba(16, 185, 129, 0.1)', borderRadius: 1 }}>
             <Typography variant="h6" fontWeight="bold" sx={{ color: COLORS.success }}>
               {stats.opened}
@@ -1282,7 +1291,7 @@ const EmailPerformanceWidget = () => {
             </Typography>
           </Box>
         </Grid>
-        <Grid item xs={4}>
+        <Grid xs={4}>
           <Box sx={{ textAlign: 'center', p: 1.5, backgroundColor: 'rgba(59, 130, 246, 0.1)', borderRadius: 1 }}>
             <Typography variant="h6" fontWeight="bold" sx={{ color: COLORS.info }}>
               {stats.clicked}
@@ -1426,7 +1435,7 @@ const TaskOverviewWidget = () => {
       </Box>
 
       <Grid container spacing={2} sx={{ mb: 2 }}>
-        <Grid item xs={4}>
+        <Grid xs={4}>
           <Box sx={{ textAlign: 'center', p: 1.5, backgroundColor: 'rgba(102, 126, 234, 0.1)', borderRadius: 1 }}>
             <Typography variant="h6" fontWeight="bold">
               {data.total}
@@ -1436,7 +1445,7 @@ const TaskOverviewWidget = () => {
             </Typography>
           </Box>
         </Grid>
-        <Grid item xs={4}>
+        <Grid xs={4}>
           <Box sx={{ textAlign: 'center', p: 1.5, backgroundColor: 'rgba(16, 185, 129, 0.1)', borderRadius: 1 }}>
             <Typography variant="h6" fontWeight="bold" sx={{ color: COLORS.success }}>
               {data.completed}
@@ -1446,7 +1455,7 @@ const TaskOverviewWidget = () => {
             </Typography>
           </Box>
         </Grid>
-        <Grid item xs={4}>
+        <Grid xs={4}>
           <Box sx={{ textAlign: 'center', p: 1.5, backgroundColor: 'rgba(245, 158, 11, 0.1)', borderRadius: 1 }}>
             <Typography variant="h6" fontWeight="bold" sx={{ color: COLORS.warning }}>
               {data.pending}
@@ -1862,7 +1871,7 @@ const SystemHealthWidget = () => {
               </Box>
               
               <Grid container spacing={2}>
-                <Grid item xs={6}>
+                <Grid xs={6}>
                   <Typography variant="caption" color="text.secondary">
                     Uptime
                   </Typography>
@@ -1870,7 +1879,7 @@ const SystemHealthWidget = () => {
                     {system.uptime}%
                   </Typography>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid xs={6}>
                   <Typography variant="caption" color="text.secondary">
                     Response Time
                   </Typography>
@@ -2005,7 +2014,7 @@ const CreditScoreImprovementWidget = () => {
       </Box>
 
       <Grid container spacing={2} sx={{ mb: 2 }}>
-        <Grid item xs={6}>
+        <Grid xs={6}>
           <Box sx={{ textAlign: 'center', p: 1.5, backgroundColor: 'rgba(16, 185, 129, 0.1)', borderRadius: 1 }}>
             <Typography variant="h6" fontWeight="bold" sx={{ color: COLORS.success }}>
               {stats.improved}
@@ -2015,7 +2024,7 @@ const CreditScoreImprovementWidget = () => {
             </Typography>
           </Box>
         </Grid>
-        <Grid item xs={6}>
+        <Grid xs={6}>
           <Box sx={{ textAlign: 'center', p: 1.5, backgroundColor: 'rgba(239, 68, 68, 0.1)', borderRadius: 1 }}>
             <Typography variant="h6" fontWeight="bold" sx={{ color: COLORS.error }}>
               {stats.declined}
@@ -2216,7 +2225,7 @@ const TeamProductivityWidget = () => {
                   </Typography>
                   
                   <Grid container spacing={2} sx={{ mt: 1 }}>
-                    <Grid item xs={6}>
+                    <Grid xs={6}>
                       <Typography variant="caption" color="text.secondary">
                         Tasks Done
                       </Typography>
@@ -2227,7 +2236,7 @@ const TeamProductivityWidget = () => {
                         </Typography>
                       </Box>
                     </Grid>
-                    <Grid item xs={6}>
+                    <Grid xs={6}>
                       <Typography variant="caption" color="text.secondary">
                         Satisfaction
                       </Typography>
@@ -2399,7 +2408,7 @@ const LeadScoringWidget = () => {
               </Box>
               
               <Grid container spacing={1.5} sx={{ mb: 1 }}>
-                <Grid item xs={4}>
+                <Grid xs={4}>
                   <Typography variant="caption" color="text.secondary">
                     AI Score
                   </Typography>
@@ -2407,7 +2416,7 @@ const LeadScoringWidget = () => {
                     {lead.score}/100
                   </Typography>
                 </Grid>
-                <Grid item xs={4}>
+                <Grid xs={4}>
                   <Typography variant="caption" color="text.secondary">
                     Credit Score
                   </Typography>
@@ -2415,7 +2424,7 @@ const LeadScoringWidget = () => {
                     {lead.creditScore}
                   </Typography>
                 </Grid>
-                <Grid item xs={4}>
+                <Grid xs={4}>
                   <Typography variant="caption" color="text.secondary">
                     Engagement
                   </Typography>
@@ -2666,7 +2675,7 @@ const ClientHealthScoreWidget = () => {
       </Typography>
 
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={4}>
+        <Grid xs={4}>
           <Box sx={{ textAlign: 'center', p: 2, backgroundColor: 'rgba(16, 185, 129, 0.1)', borderRadius: 1 }}>
             <Heart size={24} color={COLORS.success} style={{ marginBottom: 8 }} />
             <Typography variant="h5" fontWeight="bold" sx={{ color: COLORS.success }}>
@@ -2677,7 +2686,7 @@ const ClientHealthScoreWidget = () => {
             </Typography>
           </Box>
         </Grid>
-        <Grid item xs={4}>
+        <Grid xs={4}>
           <Box sx={{ textAlign: 'center', p: 2, backgroundColor: 'rgba(245, 158, 11, 0.1)', borderRadius: 1 }}>
             <AlertCircle size={24} color={COLORS.warning} style={{ marginBottom: 8 }} />
             <Typography variant="h5" fontWeight="bold" sx={{ color: COLORS.warning }}>
@@ -2688,7 +2697,7 @@ const ClientHealthScoreWidget = () => {
             </Typography>
           </Box>
         </Grid>
-        <Grid item xs={4}>
+        <Grid xs={4}>
           <Box sx={{ textAlign: 'center', p: 2, backgroundColor: 'rgba(239, 68, 68, 0.1)', borderRadius: 1 }}>
             <AlertCircle size={24} color={COLORS.error} style={{ marginBottom: 8 }} />
             <Typography variant="h5" fontWeight="bold" sx={{ color: COLORS.error }}>
@@ -2939,7 +2948,7 @@ const CommunicationVolumeWidget = () => {
       </Typography>
 
       <Grid container spacing={2} sx={{ mb: 2 }}>
-        <Grid item xs={4}>
+        <Grid xs={4}>
           <Box sx={{ textAlign: 'center', p: 1.5, backgroundColor: 'rgba(102, 126, 234, 0.1)', borderRadius: 1 }}>
             <Mail size={20} color={COLORS.primary[0]} style={{ marginBottom: 4 }} />
             <Typography variant="h6" fontWeight="bold">
@@ -2950,7 +2959,7 @@ const CommunicationVolumeWidget = () => {
             </Typography>
           </Box>
         </Grid>
-        <Grid item xs={4}>
+        <Grid xs={4}>
           <Box sx={{ textAlign: 'center', p: 1.5, backgroundColor: 'rgba(16, 185, 129, 0.1)', borderRadius: 1 }}>
             <MessageSquare size={20} color={COLORS.success} style={{ marginBottom: 4 }} />
             <Typography variant="h6" fontWeight="bold">
@@ -2961,7 +2970,7 @@ const CommunicationVolumeWidget = () => {
             </Typography>
           </Box>
         </Grid>
-        <Grid item xs={4}>
+        <Grid xs={4}>
           <Box sx={{ textAlign: 'center', p: 1.5, backgroundColor: 'rgba(245, 158, 11, 0.1)', borderRadius: 1 }}>
             <Phone size={20} color={COLORS.warning} style={{ marginBottom: 4 }} />
             <Typography variant="h6" fontWeight="bold">
@@ -4240,15 +4249,15 @@ const ExportManager = ({ dashboardData, userRole }) => {
 
 const SmartDashboard = () => {
   const { currentUser, userProfile } = useAuth();
-  const [currentView, setCurrentView] = useState('master-admin');
+  const [currentView, setCurrentView] = useState('masterAdmin');
   const [dashboardData, setDashboardData] = useState({});
   const [loading, setLoading] = useState(true);
-  const [layout, setLayout] = useState(DEFAULT_LAYOUTS['master-admin']);
+  const [layout, setLayout] = useState(DEFAULT_LAYOUTS['masterAdmin']);
   const [aiInsights, setAIInsights] = useState([]);
 
   // Determine user role
   const userRole = userProfile?.role || 'staff';
-  const isMasterAdmin = userRole === 'master-admin';
+  const isMasterAdmin = userRole === 'masterAdmin' || userRole === 'master-admin';
   const activeView = isMasterAdmin ? currentView : userRole;
 
   console.log('📊 SmartDashboard loaded, role:', userRole, 'view:', activeView);
@@ -4388,7 +4397,7 @@ const SmartDashboard = () => {
         <Skeleton variant="rectangular" height={100} sx={{ mb: 3 }} />
         <Grid container spacing={3}>
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Grid item xs={12} md={6} lg={4} key={i}>
+            <Grid xs={12} md={6} lg={4} key={i}>
               <Skeleton variant="rectangular" height={300} />
             </Grid>
           ))}
@@ -4440,7 +4449,7 @@ const SmartDashboard = () => {
 
       {/* KPI Cards */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={4} lg={2}>
+        <Grid xs={12} sm={6} md={4} lg={2}>
           <KPICard
             title="Monthly Revenue"
             value={kpis.revenue.value}
@@ -4450,7 +4459,7 @@ const SmartDashboard = () => {
             color={kpis.revenue.color}
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={4} lg={2}>
+        <Grid xs={12} sm={6} md={4} lg={2}>
           <KPICard
             title="Total Clients"
             value={kpis.clients.value}
@@ -4460,7 +4469,7 @@ const SmartDashboard = () => {
             color={kpis.clients.color}
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={4} lg={2}>
+        <Grid xs={12} sm={6} md={4} lg={2}>
           <KPICard
             title="Active Disputes"
             value={kpis.disputes.value}
@@ -4470,7 +4479,7 @@ const SmartDashboard = () => {
             color={kpis.disputes.color}
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={4} lg={2}>
+        <Grid xs={12} sm={6} md={4} lg={2}>
           <KPICard
             title="Success Rate"
             value={kpis.successRate.value}
@@ -4480,7 +4489,7 @@ const SmartDashboard = () => {
             color={kpis.successRate.color}
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={4} lg={2}>
+        <Grid xs={12} sm={6} md={4} lg={2}>
           <KPICard
             title="Open Tasks"
             value={kpis.tasks.value}
@@ -4490,7 +4499,7 @@ const SmartDashboard = () => {
             color={kpis.tasks.color}
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={4} lg={2}>
+        <Grid xs={12} sm={6} md={4} lg={2}>
           <KPICard
             title="Satisfaction"
             value={kpis.satisfaction.value}
@@ -4504,7 +4513,7 @@ const SmartDashboard = () => {
 
       {/* Main Content with Widget Grid */}
       <Grid container spacing={3}>
-        <Grid item xs={12} lg={9}>
+        <Grid xs={12} lg={9}>
           <WidgetGrid
             widgets={WIDGET_MAP}
             layout={layout}
@@ -4514,7 +4523,7 @@ const SmartDashboard = () => {
         </Grid>
 
         {/* Quick Access Sidebar */}
-        <Grid item xs={12} lg={3}>
+        <Grid xs={12} lg={3}>
           <QuickAccessPanel />
           
           <Box sx={{ mt: 3 }}>
@@ -4534,7 +4543,7 @@ const SmartDashboard = () => {
         </Typography>
         
         <Grid container spacing={3}>
-          <Grid item xs={12} md={4}>
+          <Grid xs={12} md={4}>
             <Box>
               <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                 This Week
@@ -4551,7 +4560,7 @@ const SmartDashboard = () => {
             </Box>
           </Grid>
           
-          <Grid item xs={12} md={4}>
+          <Grid xs={12} md={4}>
             <Box>
               <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                 This Month
@@ -4568,7 +4577,7 @@ const SmartDashboard = () => {
             </Box>
           </Grid>
           
-          <Grid item xs={12} md={4}>
+          <Grid xs={12} md={4}>
             <Box>
               <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                 Goal Progress
