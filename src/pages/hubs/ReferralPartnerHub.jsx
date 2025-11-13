@@ -247,7 +247,7 @@ import {
   PolarRadiusAxis,
   Radar,
 } from 'recharts';
-import { db } from '../../firebase';
+import { db } from '@/lib/firebase';
 import {
   collection,
   addDoc,
@@ -263,7 +263,7 @@ import {
   serverTimestamp,
   increment,
 } from 'firebase/firestore';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 // ============================================================================
 // CONSTANTS & CONFIGURATION

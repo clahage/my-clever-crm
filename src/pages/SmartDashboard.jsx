@@ -149,7 +149,7 @@ import {
 } from 'recharts';
 
 // Firebase
-import { db, auth } from './firebase';
+import { db, auth } from '@/lib/firebase';
 import {
   collection,
   query,
@@ -169,7 +169,7 @@ import {
 } from 'firebase/firestore';
 
 // Context
-import { useAuth } from './contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Date utilities
 import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, parseISO, differenceInDays } from 'date-fns';

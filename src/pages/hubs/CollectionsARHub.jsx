@@ -149,7 +149,7 @@ const CollectionsARHub = () => {
     totalAR: 0,
     current: 0,
     pastDue: 0,
-    severely Overdue: 0,
+    severelyOverdue: 0,
     collectionRate: 0,
   });
 

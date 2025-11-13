@@ -105,8 +105,8 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { collection, query, where, orderBy, getDocs, doc, setDoc, updateDoc, deleteDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
-import { db } from '../../firebase';
-import { useAuth } from '../../contexts/AuthContext';
+import { db } from '@/lib/firebase';
+import { useAuth } from '@/contexts/AuthContext';
 
 // ============================================
 // CONSTANTS & CONFIGURATION
@@ -518,7 +518,7 @@ const DripCampaignsHub = () => {
       }
 
       // Check for call-to-action
-      const cta Keywords = ['click', 'download', 'sign up', 'buy', 'get started', 'learn more'];
+      const ctaKeywords = ['click', 'download', 'sign up', 'buy', 'get started', 'learn more'];
       const hasCTA = ctaKeywords.some(keyword => 
         content.toLowerCase().includes(keyword)
       );

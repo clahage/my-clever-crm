@@ -247,7 +247,6 @@ const LearningHub = lazy(() => import('@/pages/hubs/LearningHub'));
 const MarketingHub = lazy(() => import('@/pages/hubs/MarketingHub'));
 const MobileAppHub = lazy(() => import('@/pages/hubs/MobileAppHub'));
 const OnboardingWelcomeHub = lazy(() => import('@/pages/hubs/OnboardingWelcomeHub'));
-const PaymentIntegrationHub = lazy(() => import('@/pages/hubs/PaymentIntegrationHub'));
 const ProgressPortalHub = lazy(() => import('@/pages/hubs/ProgressPortalHub'));
 const ReferralEngineHub = lazy(() => import('@/pages/hubs/ReferralEngineHub'));
 const ReferralPartnerHub = lazy(() => import('@/pages/hubs/ReferralPartnerHub'));

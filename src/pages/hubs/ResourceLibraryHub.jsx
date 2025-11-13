@@ -122,8 +122,8 @@ import {
   increment,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { db, storage } from '../../firebase';
-import { useAuth } from '../../contexts/AuthContext';
+import { db, storage } from '@/lib/firebase';
+import { useAuth } from '@/contexts/AuthContext';
 
 // ===================================================================
 // MAIN HUB COMPONENT

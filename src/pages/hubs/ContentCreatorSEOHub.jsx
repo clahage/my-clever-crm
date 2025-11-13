@@ -342,7 +342,7 @@ const ContentCreatorSEOHub = () => {
                 <Typography variant="body2" color="text.secondary">Total Views</Typography>
                 <Eye size={20} color={COLORS.info} />
               </Box>
-              <Typography variant="h3" sx={{ fontWeight: 700, color={COLORS.info }}>
+              <Typography variant="h3" sx={{ fontWeight: 700, color: COLORS.info }}>
                 {stats.totalViews.toLocaleString()}
               </Typography>
             </CardContent>
@@ -356,7 +356,7 @@ const ContentCreatorSEOHub = () => {
                 <Typography variant="body2" color="text.secondary">Avg SEO Score</Typography>
                 <Target size={20} color={COLORS.primary} />
               </Box>
-              <Typography variant="h3" sx={{ fontWeight: 700, color={COLORS.primary }}>
+              <Typography variant="h3" sx={{ fontWeight: 700, color: COLORS.primary }}>
                 {stats.avgSEOScore}%
               </Typography>
             </CardContent>
