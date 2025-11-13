@@ -518,7 +518,7 @@ const DripCampaignsHub = () => {
       }
 
       // Check for call-to-action
-      const cta Keywords = ['click', 'download', 'sign up', 'buy', 'get started', 'learn more'];
+      const ctaKeywords = ['click', 'download', 'sign up', 'buy', 'get started', 'learn more'];
       const hasCTA = ctaKeywords.some(keyword => 
         content.toLowerCase().includes(keyword)
       );
