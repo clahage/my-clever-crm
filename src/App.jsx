@@ -154,7 +154,6 @@ const BusinessCredit = lazy(() => import('@/pages/BusinessCredit'));
 const CreditScores = lazy(() => import('@/pages/CreditScores'));
 const DisputeLetters = lazy(() => import('@/pages/DisputeLetters'));
 const DisputeStatus = lazy(() => import('@/pages/DisputeStatus'));
-const DisputeAdminPanel = lazy(() => import('@/pages/hubs/DisputeAdminPanel'));
 const CreditMonitoring = lazy(() => import('@/pages/CreditMonitoring'));
 
 // ===== COMMUNICATION =====
