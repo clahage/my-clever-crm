@@ -430,6 +430,24 @@ export const navigationItems = [
         description: 'Invoice and billing management'
       },
       {
+       id: 'billing-payments-hub',
+       title: 'Billing & Payments',
+       path: '/billing-payments-hub',
+       icon: 'Receipt',
+       requiredRole: 'admin',
+       badge: 'PRO',
+       description: 'Advanced billing & revenue management'
+     },
+     {
+       id: 'payment-integration-hub',
+       title: 'Payment Integrations',
+       path: '/payment-integration-hub',
+       icon: 'CreditCard',
+       requiredRole: 'admin',
+       badge: 'PRO',
+       description: 'Stripe & PayPal integration'
+  },
+      {
         id: 'payment-hub',
         title: 'Payment Integration',
         path: '/payment-hub',

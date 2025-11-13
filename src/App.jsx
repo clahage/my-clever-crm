@@ -226,6 +226,7 @@ const AnalyticsHub = lazy(() => import('@/pages/hubs/AnalyticsHub'));
 const AutomationHub = lazy(() => import('@/pages/hubs/AutomationHub'));
 const BillingHub = lazy(() => import('@/pages/hubs/BillingHub'));
 const BillingPaymentsHub = lazy(() => import('@/pages/hubs/BillingPaymentsHub'));
+const PaymentIntegrationHub = lazy(() => import('@/pages/hubs/PaymentIntegrationHub'));
 const BureauCommunicationHub = lazy(() => import('@/pages/hubs/BureauCommunicationHub'));
 const CalendarSchedulingHub = lazy(() => import('@/pages/hubs/CalendarSchedulingHub'));
 const CertificationSystem = lazy(() => import('@/pages/hubs/CertificationSystem'));
@@ -555,6 +556,30 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="admin">
       <Suspense fallback={<LoadingFallback />}>
         <BillingHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Billing Payments Hub - Comprehensive billing & revenue */}
+<Route
+  path="billing-payments-hub"
+  element={
+    <ProtectedRoute requiredRole="admin">
+      <Suspense fallback={<LoadingFallback />}>
+        <BillingPaymentsHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Payment Integration Hub - Stripe & PayPal integration */}
+<Route
+  path="payment-integration-hub"
+  element={
+    <ProtectedRoute requiredRole="admin">
+      <Suspense fallback={<LoadingFallback />}>
+        <PaymentIntegrationHub />
       </Suspense>
     </ProtectedRoute>
   }
