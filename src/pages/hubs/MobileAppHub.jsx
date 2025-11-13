@@ -140,7 +140,6 @@ import {
   Flag,
   Info,
   HelpCircle,
-  Tool,
   Wrench,
   Archive,
   Trash2,
@@ -171,7 +170,7 @@ import {
   Compass,
   QrCode,
   Fingerprint,
-  FaceSmile,
+  Smile,
 } from 'lucide-react';
 
 import {
