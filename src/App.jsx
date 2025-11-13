@@ -171,6 +171,15 @@ const LearningCenter = lazy(() => import('@/pages/LearningCenter'));
 const Achievements = lazy(() => import('@/pages/Achievements'));
 const Certificates = lazy(() => import('@/pages/Certificates'));
 
+// ===== PAYMENTS =====
+const PaymentsDashboard = lazy(() => import('@/pages/Payments/PaymentsDashboard'));
+const ClientPaymentSetup = lazy(() => import('@/pages/Payments/ClientPaymentSetup'));
+const PaymentTracking = lazy(() => import('@/pages/Payments/PaymentTracking'));
+const RecurringPayments = lazy(() => import('@/pages/Payments/RecurringPayments'));
+const PaymentHistory = lazy(() => import('@/pages/Payments/PaymentHistory'));
+const CollectionList = lazy(() => import('@/pages/Payments/CollectionList'));
+const PaymentReconciliation = lazy(() => import('@/pages/Payments/PaymentReconciliation'));
+
 // ===== DOCUMENTS =====
 const Documents = lazy(() => import('@/pages/Documents'));
 const EContracts = lazy(() => import('@/pages/EContracts'));
@@ -435,6 +444,15 @@ const AppContent = () => {
         <Route path="affiliates" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><Affiliates /></Suspense></ProtectedRoute>} />
         <Route path="billing" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><Billing /></Suspense></ProtectedRoute>} />
         <Route path="products" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><Products /></Suspense></ProtectedRoute>} />
+
+        {/* Payment Management System Routes */}
+        <Route path="payments" element={<ProtectedRoute requiredRoles={['admin', 'masterAdmin']}><Suspense fallback={<LoadingFallback />}><PaymentsDashboard /></Suspense></ProtectedRoute>} />
+        <Route path="payments/setup" element={<ProtectedRoute requiredRoles={['admin', 'masterAdmin', 'client']}><Suspense fallback={<LoadingFallback />}><ClientPaymentSetup /></Suspense></ProtectedRoute>} />
+        <Route path="payments/tracking" element={<ProtectedRoute requiredRoles={['admin', 'masterAdmin', 'client']}><Suspense fallback={<LoadingFallback />}><PaymentTracking /></Suspense></ProtectedRoute>} />
+        <Route path="payments/recurring" element={<ProtectedRoute requiredRoles={['admin', 'masterAdmin']}><Suspense fallback={<LoadingFallback />}><RecurringPayments /></Suspense></ProtectedRoute>} />
+        <Route path="payments/history" element={<ProtectedRoute requiredRoles={['admin', 'masterAdmin', 'client']}><Suspense fallback={<LoadingFallback />}><PaymentHistory /></Suspense></ProtectedRoute>} />
+        <Route path="payments/collections" element={<ProtectedRoute requiredRoles={['admin', 'masterAdmin']}><Suspense fallback={<LoadingFallback />}><CollectionList /></Suspense></ProtectedRoute>} />
+        <Route path="payments/reconciliation" element={<ProtectedRoute requiredRoles={['admin', 'masterAdmin']}><Suspense fallback={<LoadingFallback />}><PaymentReconciliation /></Suspense></ProtectedRoute>} />
         <Route path="calendar" element={<Suspense fallback={<LoadingFallback />}><Calendar /></Suspense>} />
         <Route path="appointments" element={<Suspense fallback={<LoadingFallback />}><Appointments /></Suspense>} />
         <Route path="tasks" element={<Suspense fallback={<LoadingFallback />}><Tasks /></Suspense>} />

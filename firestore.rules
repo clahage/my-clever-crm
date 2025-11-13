@@ -59,11 +59,42 @@ service cloud.firestore {
     // Disputes
     match /disputes/{disputeId} {
       allow read: if isAuthenticated() && (
-        isAdmin() || 
+        isAdmin() ||
         resource.data.clientId == request.auth.uid
       );
       allow create: if isAuthenticated();
       allow update, delete: if isAuthenticated() && isEmployee();
+    }
+
+    // ============================================================================
+    // PAYMENT MANAGEMENT SYSTEM
+    // ============================================================================
+
+    // Payment Methods (Bank Accounts, Zelle)
+    match /paymentMethods/{methodId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() ||
+        resource.data.clientId == request.auth.uid
+      );
+      allow create, update: if isAuthenticated() && (
+        isAdmin() ||
+        request.resource.data.clientId == request.auth.uid
+      );
+      allow delete: if isAuthenticated() && isAdmin();
+    }
+
+    // Payments (Transactions)
+    match /payments/{paymentId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() ||
+        resource.data.clientId == request.auth.uid
+      );
+      allow create: if isAuthenticated() && isAdmin();
+      allow update: if isAuthenticated() && (
+        isAdmin() ||
+        (resource.data.clientId == request.auth.uid && request.resource.data.status in ['pending', 'failed'])
+      );
+      allow delete: if isAuthenticated() && isAdmin();
     }
 
   }
