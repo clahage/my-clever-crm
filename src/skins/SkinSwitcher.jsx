@@ -1,17 +1,20 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useSkin } from "./SkinContext";
 
 /**
- * Self-contained Skin Switcher:
- * - No imports from SkinContext (avoids casing error 1149)
- * - Admin-only via localStorage("scr.role") — default "admin" so you can test
+ * Skin Switcher with Role Selection:
+ * - Theme switching (light/dark)
+ * - Role switching (admin/agent/viewer)
+ * - Admin-only visibility
  * - Persists theme in localStorage("speedycrm.theme")
+ * - Persists role via SkinContext
  * - Toggles Tailwind "dark" class on <html>
  */
 
 function getUserRole() {
   try {
     if (typeof window !== "undefined") {
-      const r = window.__SCR_USER_ROLE__ || localStorage.getItem("scr.role");
+      const r = window.__SCR_USER_ROLE__ || localStorage.getItem("mcc_role") || localStorage.getItem("scr.role");
       if (r) return r;
     }
   } catch {}
@@ -40,6 +43,7 @@ function SkinSwitcher() {
   const role = getUserRole();
   if (role !== "admin") return null;
 
+  const { role: currentRole, setRole } = useSkin();
   const [open, setOpen] = useState(false);
   const [theme, setTheme] = useState(getInitialTheme());
   const panelRef = useRef(null);
@@ -99,7 +103,7 @@ function SkinSwitcher() {
           <circle cx="12" cy="7.5" r="1.5"/>
           <circle cx="16.5" cy="10.5" r="1.5"/>
         </svg>
-        <span className="sr-only">Open theme switcher</span>
+        <span className="sr-only">Open theme & role switcher</span>
       </button>
 
       {/* Panel */}
@@ -107,27 +111,96 @@ function SkinSwitcher() {
         <div
           ref={panelRef}
           role="dialog"
-          aria-label="Theme Switcher"
-          className="fixed bottom-24 right-6 z-50 w-56 rounded-xl border border-gray-200 bg-white p-2 shadow-xl dark:border-gray-800 dark:bg-gray-900"
+          aria-label="Theme & Role Switcher"
+          className="fixed bottom-24 right-6 z-50 w-64 rounded-xl border border-gray-200 bg-white p-3 shadow-xl dark:border-gray-800 dark:bg-gray-900"
         >
-          <ul className="space-y-1">
-            <li>
-              <button
-                onClick={() => choose("light")}
-                className="w-full rounded-lg px-3 py-2 text-left text-sm text-gray-800 hover:bg-gray-100 focus:outline-none focus-visible:ring dark:text-gray-200 dark:hover:bg-gray-800"
-              >
-                Light
-              </button>
-            </li>
-            <li>
-              <button
-                onClick={() => choose("dark")}
-                className="w-full rounded-lg px-3 py-2 text-left text-sm text-gray-800 hover:bg-gray-100 focus:outline-none focus-visible:ring dark:text-gray-200 dark:hover:bg-gray-800"
-              >
-                Dark
-              </button>
-            </li>
-          </ul>
+          {/* Theme Section */}
+          <div className="mb-3">
+            <h3 className="px-3 py-1 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              Theme
+            </h3>
+            <ul className="space-y-1 mt-1">
+              <li>
+                <button
+                  onClick={() => choose("light")}
+                  className={`w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                    theme === "light"
+                      ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 font-medium"
+                      : "text-gray-800 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
+                  } focus:outline-none focus-visible:ring`}
+                >
+                  ☀️ Light
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => choose("dark")}
+                  className={`w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                    theme === "dark"
+                      ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 font-medium"
+                      : "text-gray-800 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
+                  } focus:outline-none focus-visible:ring`}
+                >
+                  🌙 Dark
+                </button>
+              </li>
+            </ul>
+          </div>
+
+          {/* Divider */}
+          <div className="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+
+          {/* Role Section */}
+          <div>
+            <h3 className="px-3 py-1 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              View as Role
+            </h3>
+            <ul className="space-y-1 mt-1">
+              <li>
+                <button
+                  onClick={() => setRole("admin")}
+                  className={`w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                    currentRole === "admin"
+                      ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 font-medium"
+                      : "text-gray-800 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
+                  } focus:outline-none focus-visible:ring`}
+                >
+                  👑 Admin
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => setRole("agent")}
+                  className={`w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                    currentRole === "agent"
+                      ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 font-medium"
+                      : "text-gray-800 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
+                  } focus:outline-none focus-visible:ring`}
+                >
+                  👤 Agent
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => setRole("viewer")}
+                  className={`w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                    currentRole === "viewer"
+                      ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 font-medium"
+                      : "text-gray-800 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
+                  } focus:outline-none focus-visible:ring`}
+                >
+                  👁️ Viewer
+                </button>
+              </li>
+            </ul>
+          </div>
+
+          {/* Info Footer */}
+          <div className="mt-3 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+            <p className="text-xs text-blue-700 dark:text-blue-400">
+              <strong>Note:</strong> Switching roles will reload the page to update navigation and permissions.
+            </p>
+          </div>
         </div>
       )}
     </>

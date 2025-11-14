@@ -75,8 +75,26 @@ const ProtectedLayout = () => {
   // Determine if mobile
   const isMobile = windowWidth < 768;
 
-  // Get user role
-  const userRole = userProfile?.role || user?.role || 'user';
+  // Get user role - Check localStorage first for role switcher override (testing/demo mode)
+  // This allows admins to "view as" different roles
+  // useMemo ensures it updates when user/userProfile changes
+  const userRole = useMemo(() => {
+    try {
+      const actualRole = userProfile?.role || user?.role || 'user';
+
+      // Only admins can use role override for testing
+      if (actualRole === 'admin') {
+        const overrideRole = localStorage.getItem('mcc_role');
+        if (overrideRole) {
+          return overrideRole;
+        }
+      }
+
+      return actualRole;
+    } catch {
+      return userProfile?.role || user?.role || 'user';
+    }
+  }, [userProfile, user]);
 
   // ===== WINDOW RESIZE HANDLER =====
   useEffect(() => {
