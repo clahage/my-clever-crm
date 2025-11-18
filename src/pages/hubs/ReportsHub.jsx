@@ -403,11 +403,23 @@ const UltimateReportsHub = () => {
       if (executiveSnap.exists()) {
         setExecutiveData(executiveSnap.data());
       } else {
-        setExecutiveData({});
+        setExecutiveData({
+          kpis: [],
+          topPerformers: [],
+          disputeBreakdown: [],
+          revenueChart: [],
+          clientGrowth: []
+        });
       }
     } catch (err) {
       console.error('Error loading executive data:', err);
-      setExecutiveData({});
+      setExecutiveData({
+        kpis: [],
+        topPerformers: [],
+        disputeBreakdown: [],
+        revenueChart: [],
+        clientGrowth: []
+      });
     }
   };
 
@@ -420,11 +432,21 @@ const UltimateReportsHub = () => {
       if (clientSnap.exists()) {
         setClientData(clientSnap.data());
       } else {
-        setClientData({});
+        setClientData({
+          clientsByStatus: [],
+          acquisitionSources: [],
+          clientGrowth: [],
+          topClients: []
+        });
       }
     } catch (err) {
       console.error('Error loading client data:', err);
-      setClientData({});
+      setClientData({
+        clientsByStatus: [],
+        acquisitionSources: [],
+        clientGrowth: [],
+        topClients: []
+      });
     }
   };
 
@@ -437,11 +459,21 @@ const UltimateReportsHub = () => {
       if (disputeSnap.exists()) {
         setDisputeData(disputeSnap.data());
       } else {
-        setDisputeData({});
+        setDisputeData({
+          disputesByBureau: [],
+          disputesByStatus: [],
+          monthlyDisputes: [],
+          successRates: []
+        });
       }
     } catch (err) {
       console.error('Error loading dispute data:', err);
-      setDisputeData({});
+      setDisputeData({
+        disputesByBureau: [],
+        disputesByStatus: [],
+        monthlyDisputes: [],
+        successRates: []
+      });
     }
   };
 
@@ -454,11 +486,21 @@ const UltimateReportsHub = () => {
       if (revenueSnap.exists()) {
         setRevenueData(revenueSnap.data());
       } else {
-        setRevenueData({});
+        setRevenueData({
+          revenueByMonth: [],
+          revenueByService: [],
+          revenueByTier: [],
+          projections: []
+        });
       }
     } catch (err) {
       console.error('Error loading revenue data:', err);
-      setRevenueData({});
+      setRevenueData({
+        revenueByMonth: [],
+        revenueByService: [],
+        revenueByTier: [],
+        projections: []
+      });
     }
   };
 
@@ -471,11 +513,19 @@ const UltimateReportsHub = () => {
       if (performanceSnap.exists()) {
         setPerformanceData(performanceSnap.data());
       } else {
-        setPerformanceData({});
+        setPerformanceData({
+          teamMembers: [],
+          performanceTrends: [],
+          activities: []
+        });
       }
     } catch (err) {
       console.error('Error loading performance data:', err);
-      setPerformanceData({});
+      setPerformanceData({
+        teamMembers: [],
+        performanceTrends: [],
+        activities: []
+      });
     }
   };
 
@@ -488,11 +538,19 @@ const UltimateReportsHub = () => {
       if (complianceSnap.exists()) {
         setComplianceData(complianceSnap.data());
       } else {
-        setComplianceData({});
+        setComplianceData({
+          audits: [],
+          violations: [],
+          complianceScore: []
+        });
       }
     } catch (err) {
       console.error('Error loading compliance data:', err);
-      setComplianceData({});
+      setComplianceData({
+        audits: [],
+        violations: [],
+        complianceScore: []
+      });
     }
   };
 
