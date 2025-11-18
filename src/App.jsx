@@ -230,7 +230,7 @@ const BillingPaymentsHub = lazy(() => import('@/pages/hubs/BillingPaymentsHub'))
 const PaymentIntegrationHub = lazy(() => import('@/pages/hubs/PaymentIntegrationHub'));
 const BureauCommunicationHub = lazy(() => import('@/pages/hubs/BureauCommunicationHub'));
 const CalendarSchedulingHub = lazy(() => import('@/pages/hubs/CalendarSchedulingHub'));
-const CertificationSystem = lazy(() => import('@/pages/hubs/CertificationSystem'));
+const CertificationSystem = lazy(() => import('@/pages/CertificationSystem')); // Restored - correct path
 const ClientSuccessRetentionHub = lazy(() => import('@/pages/hubs/ClientSuccessRetentionHub'));
 const ClientsHub = lazy(() => import('@/pages/hubs/ClientsHub'));
 const CollectionsARHub = lazy(() => import('@/pages/hubs/CollectionsARHub'));

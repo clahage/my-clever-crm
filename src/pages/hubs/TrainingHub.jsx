@@ -62,7 +62,7 @@ import { db, auth } from '../../lib/firebase';
 
 const OnboardingWizard = lazy(() => import('./OnboardingWizard'));
 const TrainingLibrary = lazy(() => import('./TrainingLibrary'));
-const CertificationSystem = lazy(() => import('./CertificationSystem'));
+const CertificationSystem = lazy(() => import('@/pages/CertificationSystem'));
 const RoleBasedTraining = lazy(() => import('./RoleBasedTraining'));
 const LiveTrainingSessions = lazy(() => import('./LiveTrainingSessions'));
 const KnowledgeBase = lazy(() => import('./KnowledgeBase'));

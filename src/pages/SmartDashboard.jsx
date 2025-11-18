@@ -726,20 +726,36 @@ const RevenueOverviewWidget = ({ dateRange = 30, onExport }) => {
       try {
         setLoading(true);
         
-        // Generate sample revenue data (replace with real Firebase query)
-        const sampleData = [];
+        // Fetch real revenue data from Firebase
+        const invoicesSnapshot = await getDocs(collection(db, 'invoices'));
+        const invoices = invoicesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        const revenueData = [];
         const today = new Date();
+        
         for (let i = dateRange; i >= 0; i--) {
           const date = new Date(today);
           date.setDate(today.getDate() - i);
-          sampleData.push({
+          const dayStart = new Date(date);
+          dayStart.setHours(0, 0, 0, 0);
+          const dayEnd = new Date(date);
+          dayEnd.setHours(23, 59, 59, 999);
+          
+          const dayInvoices = invoices.filter(inv => {
+            const invDate = inv.paidAt?.toDate?.() || inv.createdAt?.toDate?.();
+            return invDate >= dayStart && invDate <= dayEnd && inv.status === 'paid';
+          });
+          
+          const dailyRevenue = dayInvoices.reduce((sum, inv) => sum + (inv.amount || 0), 0);
+          
+          revenueData.push({
             date: format(date, 'MMM dd'),
-            amount: Math.floor(Math.random() * 5000) + 10000 + (dateRange - i) * 100,
-            clients: Math.floor(Math.random() * 20) + 30,
+            amount: Math.round(dailyRevenue),
+            clients: dayInvoices.length,
           });
         }
         
-        setData(sampleData);
+        setData(revenueData);
         
         // Generate forecast
         const forecastData = generateRevenueForecast(sampleData, 7);
@@ -2760,20 +2776,35 @@ const RevenueBreakdownWidget = () => {
       try {
         setLoading(true);
         
-        // Generate sample data
-        const breakdown = [
-          { name: 'Premium Package', value: 45230, percentage: 42, color: COLORS.charts[0] },
-          { name: 'Standard Package', value: 32150, percentage: 30, color: COLORS.charts[1] },
-          { name: 'Credit Monitoring', value: 18420, percentage: 17, color: COLORS.charts[2] },
-          { name: 'Consultation Fees', value: 8950, percentage: 8, color: COLORS.charts[3] },
-          { name: 'Other Services', value: 3250, percentage: 3, color: COLORS.charts[4] },
-        ];
+        // Fetch real revenue breakdown from Firebase invoices
+        const invoicesSnapshot = await getDocs(collection(db, 'invoices'));
+        const invoices = invoicesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const paidInvoices = invoices.filter(i => i.status === 'paid');
         
-        setData(breakdown);
+        // Group by service type
+        const serviceRevenue = {};
+        paidInvoices.forEach(inv => {
+          const service = inv.service || inv.type || 'Other Services';
+          serviceRevenue[service] = (serviceRevenue[service] || 0) + (inv.amount || 0);
+        });
+        
+        const totalRevenue = Object.values(serviceRevenue).reduce((sum, val) => sum + val, 0);
+        
+        const breakdown = Object.entries(serviceRevenue).map(([name, value], index) => ({
+          name,
+          value: Math.round(value),
+          percentage: totalRevenue > 0 ? Math.round((value / totalRevenue) * 100) : 0,
+          color: COLORS.charts[index % COLORS.charts.length],
+        }));
+        
+        setData(breakdown.length > 0 ? breakdown : [
+          { name: 'No Revenue Data', value: 0, percentage: 0, color: COLORS.charts[0] }
+        ]);
         setLoading(false);
-        console.log('💰 Revenue breakdown loaded');
+        console.log('💰 Revenue breakdown loaded:', breakdown.length, 'services');
       } catch (error) {
         console.error('Error fetching revenue breakdown:', error);
+        setData([{ name: 'No Revenue Data', value: 0, percentage: 0, color: COLORS.charts[0] }]);
         setLoading(false);
       }
     };

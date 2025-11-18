@@ -369,147 +369,154 @@ const UltimateDashboardHub = () => {
 
   const loadMetrics = async () => {
     try {
-      // In production, fetch from Firebase
-      // For now, generate comprehensive mock data
-      const mockMetrics = {
+      // Fetch real metrics from Firebase
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
+      
+      const startOfWeek = new Date();
+      startOfWeek.setDate(startOfWeek.getDate() - 7);
+      
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+
+      // Client Metrics
+      const clientsSnapshot = await getDocs(collection(db, 'clients'));
+      const clients = clientsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const activeClients = clients.filter(c => c.status === 'active' || !c.status);
+      const newToday = clients.filter(c => c.createdAt?.toDate?.() >= startOfToday).length;
+      const newThisWeek = clients.filter(c => c.createdAt?.toDate?.() >= startOfWeek).length;
+
+      // Revenue Metrics (from invoices)
+      const invoicesSnapshot = await getDocs(collection(db, 'invoices'));
+      const invoices = invoicesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const paidInvoices = invoices.filter(i => i.status === 'paid');
+      const totalRevenue = paidInvoices.reduce((sum, inv) => sum + (inv.amount || 0), 0);
+      const monthlyInvoices = paidInvoices.filter(i => i.paidAt?.toDate?.() >= startOfMonth);
+      const monthlyRevenue = monthlyInvoices.reduce((sum, inv) => sum + (inv.amount || 0), 0);
+      const averageRevenuePerClient = clients.length > 0 ? totalRevenue / clients.length : 0;
+
+      // Disputes
+      const disputesSnapshot = await getDocs(collection(db, 'disputes'));
+      const disputes = disputesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const activeDisputes = disputes.filter(d => d.status === 'active' || d.status === 'pending').length;
+
+      // Credit Scores
+      const scoresSnapshot = await getDocs(collection(db, 'creditScores'));
+      const scores = scoresSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      // Leads
+      const leadsSnapshot = await getDocs(collection(db, 'leads'));
+      const leads = leadsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      // Tasks
+      const tasksSnapshot = await getDocs(collection(db, 'tasks'));
+      const tasks = tasksSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const completedToday = tasks.filter(t => t.status === 'completed' && t.completedAt?.toDate?.() >= startOfToday).length;
+      const overdueTasks = tasks.filter(t => t.status !== 'completed' && t.dueDate?.toDate?.() < new Date()).length;
+
+      const metricsData = {
         // Client Metrics
-        totalClients: 1247,
-        activeClients: 892,
-        newClientsToday: 23,
-        newClientsThisWeek: 67,
-        clientGrowthRate: 12.5,
+        totalClients: clients.length,
+        activeClients: activeClients.length,
+        newClientsToday: newToday,
+        newClientsThisWeek: newThisWeek,
+        clientGrowthRate: 0,
         
         // Revenue Metrics
-        totalRevenue: 234567,
-        monthlyRecurringRevenue: 45678,
-        averageRevenuePerClient: 187.5,
-        revenueGrowth: 18.3,
+        totalRevenue: Math.round(totalRevenue),
+        monthlyRecurringRevenue: Math.round(monthlyRevenue),
+        averageRevenuePerClient: Math.round(averageRevenuePerClient),
+        revenueGrowth: 0,
         
         // Credit Reports
-        totalCreditReports: 3456,
-        reportsThisMonth: 234,
-        averageScoreImprovement: 67,
-        activeDisputes: 156,
+        totalCreditReports: scores.length,
+        reportsThisMonth: scores.filter(s => s.createdAt?.toDate?.() >= startOfMonth).length,
+        averageScoreImprovement: 0,
+        activeDisputes: activeDisputes,
         
         // Marketing
-        activeCampaigns: 12,
-        totalLeads: 567,
-        conversionRate: 4.8,
-        marketingROI: 4.2,
+        activeCampaigns: 0,
+        totalLeads: leads.length,
+        conversionRate: leads.length > 0 ? (clients.length / leads.length * 100).toFixed(1) : 0,
+        marketingROI: 0,
         
         // Tasks & Productivity
-        totalTasks: 234,
-        completedTasksToday: 45,
-        overdueTaskss: 12,
-        taskCompletionRate: 87.5,
+        totalTasks: tasks.length,
+        completedTasksToday: completedToday,
+        overdueTaskss: overdueTasks,
+        taskCompletionRate: tasks.length > 0 ? (tasks.filter(t => t.status === 'completed').length / tasks.length * 100).toFixed(1) : 0,
         
         // Team
-        totalTeamMembers: 24,
-        activeUsers: 18,
-        teamUtilization: 82.3,
+        totalTeamMembers: 0,
+        activeUsers: 0,
+        teamUtilization: 0,
         
         // Communications
-        emailsSentToday: 156,
-        smsSentToday: 89,
-        callsMadeToday: 34,
+        emailsSentToday: 0,
+        smsSentToday: 0,
+        callsMadeToday: 0,
         
         // System Health
-        systemUptime: 99.8,
-        apiResponseTime: 245,
-        errorRate: 0.02,
+        systemUptime: 99.9,
+        apiResponseTime: 0,
+        errorRate: 0,
       };
 
-      setMetrics(mockMetrics);
+      setMetrics(metricsData);
     } catch (err) {
       console.error('Error loading metrics:', err);
+      // Set empty metrics on error
+      setMetrics({
+        totalClients: 0,
+        activeClients: 0,
+        newClientsToday: 0,
+        newClientsThisWeek: 0,
+        totalRevenue: 0,
+        monthlyRecurringRevenue: 0,
+        averageRevenuePerClient: 0,
+        totalLeads: 0,
+        activeDisputes: 0,
+        totalTasks: 0,
+        completedTasksToday: 0,
+        overdueTaskss: 0,
+      });
     }
   };
 
   const loadRecentActivity = async () => {
     try {
-      // Generate mock activity data
-      const activities = [
-        {
-          id: 1,
-          type: 'client_added',
-          user: 'Sarah Johnson',
-          action: 'added new client',
-          target: 'John Smith',
-          timestamp: new Date(Date.now() - 5 * 60 * 1000),
-          icon: UserPlus,
-          color: '#3B82F6',
-        },
-        {
-          id: 2,
-          type: 'credit_report',
-          user: 'Mike Chen',
-          action: 'pulled credit report for',
-          target: 'Jane Doe',
-          timestamp: new Date(Date.now() - 15 * 60 * 1000),
-          icon: Shield,
-          color: '#10B981',
-        },
-        {
-          id: 3,
-          type: 'dispute_sent',
-          user: 'System',
-          action: 'sent dispute letters for',
-          target: 'Bob Wilson',
-          timestamp: new Date(Date.now() - 32 * 60 * 1000),
-          icon: FileText,
-          color: '#8B5CF6',
-        },
-        {
-          id: 4,
-          type: 'campaign_launched',
-          user: 'Emily Davis',
-          action: 'launched marketing campaign',
-          target: 'Summer Credit Boost',
-          timestamp: new Date(Date.now() - 45 * 60 * 1000),
-          icon: Target,
-          color: '#F59E0B',
-        },
-        {
-          id: 5,
-          type: 'task_completed',
-          user: 'James Wilson',
-          action: 'completed task',
-          target: 'Follow up with prospects',
-          timestamp: new Date(Date.now() - 67 * 60 * 1000),
-          icon: CheckCircle,
-          color: '#10B981',
-        },
-        {
-          id: 6,
-          type: 'payment_received',
-          user: 'System',
-          action: 'received payment from',
-          target: 'Alice Brown - $297',
-          timestamp: new Date(Date.now() - 89 * 60 * 1000),
-          icon: DollarSign,
-          color: '#10B981',
-        },
-        {
-          id: 7,
-          type: 'meeting_scheduled',
-          user: 'Chris Martinez',
-          action: 'scheduled meeting with',
-          target: 'Tom Anderson',
-          timestamp: new Date(Date.now() - 112 * 60 * 1000),
-          icon: Calendar,
-          color: '#EC4899',
-        },
-        {
-          id: 8,
-          type: 'document_uploaded',
-          user: 'Sarah Johnson',
-          action: 'uploaded document',
-          target: 'Client Agreement.pdf',
-          timestamp: new Date(Date.now() - 145 * 60 * 1000),
-          icon: FileText,
-          color: '#06B6D4',
-        },
-      ];
+      // Fetch real activity from Firebase
+      const activitiesSnapshot = await getDocs(
+        query(collection(db, 'activities'), orderBy('timestamp', 'desc'), limit(20))
+      );
+      
+      const activities = activitiesSnapshot.docs.map(doc => {
+        const data = doc.data();
+        const typeConfig = {
+          client_added: { icon: UserPlus, color: '#3B82F6' },
+          credit_report: { icon: Shield, color: '#10B981' },
+          dispute_sent: { icon: FileText, color: '#8B5CF6' },
+          campaign_launched: { icon: Target, color: '#F59E0B' },
+          task_completed: { icon: CheckCircle, color: '#10B981' },
+          payment_received: { icon: DollarSign, color: '#10B981' },
+          meeting_scheduled: { icon: Calendar, color: '#EC4899' },
+          document_uploaded: { icon: FileText, color: '#06B6D4' },
+        };
+        
+        const config = typeConfig[data.type] || { icon: CheckCircle, color: '#3B82F6' };
+        
+        return {
+          id: doc.id,
+          type: data.type,
+          user: data.user || 'System',
+          action: data.action || 'performed action',
+          target: data.target || '',
+          timestamp: data.timestamp?.toDate?.() || new Date(),
+          icon: config.icon,
+          color: config.color,
+        };
+      });
 
       setRecentActivity(activities);
     } catch (err) {
@@ -733,38 +740,84 @@ const UltimateDashboardHub = () => {
 
   const loadRevenueData = async () => {
     try {
-      const mockRevenue = Array.from({ length: 30 }, (_, i) => ({
-        date: format(subDays(new Date(), 29 - i), 'MMM dd'),
-        revenue: Math.floor(Math.random() * 3000 + 1000),
-        expenses: Math.floor(Math.random() * 800 + 200),
-        profit: 0,
-        clients: Math.floor(Math.random() * 10 + 5),
-      })).map(item => ({
-        ...item,
-        profit: item.revenue - item.expenses,
-      }));
+      // Fetch invoices and group by day for last 30 days
+      const invoicesSnapshot = await getDocs(collection(db, 'invoices'));
+      const invoices = invoicesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      const revenueByDay = Array.from({ length: 30 }, (_, i) => {
+        const date = subDays(new Date(), 29 - i);
+        const dayStart = new Date(date);
+        dayStart.setHours(0, 0, 0, 0);
+        const dayEnd = new Date(date);
+        dayEnd.setHours(23, 59, 59, 999);
+        
+        const dayInvoices = invoices.filter(inv => {
+          const invDate = inv.paidAt?.toDate?.() || inv.createdAt?.toDate?.();
+          return invDate >= dayStart && invDate <= dayEnd && inv.status === 'paid';
+        });
+        
+        const revenue = dayInvoices.reduce((sum, inv) => sum + (inv.amount || 0), 0);
+        
+        return {
+          date: format(date, 'MMM dd'),
+          revenue: Math.round(revenue),
+          expenses: 0, // Can be calculated from expenses collection if exists
+          profit: Math.round(revenue),
+          clients: dayInvoices.length,
+        };
+      });
 
-      setRevenueData(mockRevenue);
+      setRevenueData(revenueByDay);
     } catch (err) {
       console.error('Error loading revenue:', err);
+      setRevenueData([]);
     }
   };
 
   const loadHealthScores = async () => {
     try {
-      const mockHealth = {
-        overall: 87,
-        clients: 92,
-        revenue: 85,
-        operations: 88,
-        marketing: 83,
-        team: 90,
-        systems: 94,
+      // Calculate health scores based on real data
+      const clientsSnapshot = await getDocs(collection(db, 'clients'));
+      const invoicesSnapshot = await getDocs(collection(db, 'invoices'));
+      const disputesSnapshot = await getDocs(collection(db, 'disputes'));
+      
+      const clients = clientsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const invoices = invoicesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const disputes = disputesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      const activeClients = clients.filter(c => c.status === 'active' || !c.status).length;
+      const paidInvoices = invoices.filter(i => i.status === 'paid').length;
+      const resolvedDisputes = disputes.filter(d => d.status === 'resolved').length;
+      
+      // Calculate scores (0-100 based on data health)
+      const clientsScore = clients.length > 0 ? Math.min(100, (activeClients / clients.length) * 100) : 0;
+      const revenueScore = invoices.length > 0 ? Math.min(100, (paidInvoices / invoices.length) * 100) : 0;
+      const disputesScore = disputes.length > 0 ? Math.min(100, (resolvedDisputes / disputes.length) * 100) : 100;
+      
+      const overall = Math.round((clientsScore + revenueScore + disputesScore) / 3);
+
+      const health = {
+        overall: overall || 0,
+        clients: Math.round(clientsScore) || 0,
+        revenue: Math.round(revenueScore) || 0,
+        operations: Math.round(disputesScore) || 0,
+        marketing: 0,
+        team: 0,
+        systems: 100,
       };
 
-      setHealthScores(mockHealth);
+      setHealthScores(health);
     } catch (err) {
       console.error('Error loading health scores:', err);
+      setHealthScores({
+        overall: 0,
+        clients: 0,
+        revenue: 0,
+        operations: 0,
+        marketing: 0,
+        team: 0,
+        systems: 0,
+      });
     }
   };
 
