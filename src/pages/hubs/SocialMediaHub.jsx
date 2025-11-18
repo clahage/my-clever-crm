@@ -291,38 +291,94 @@ const SocialMediaHub = () => {
       })
     );
 
-    // Generate performance data
-    generatePerformanceData();
+    // Load performance data from Firebase
+    loadPerformanceData();
 
     setLoading(false);
 
     return () => unsubscribers.forEach(unsub => unsub());
   }, [currentUser]);
 
-  // ===== DATA GENERATION =====
-  const generatePerformanceData = () => {
-    // Generate sample performance data for last 7 days
-    const data = [];
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      data.push({
-        date: format(date, 'MMM dd'),
-        posts: Math.floor(Math.random() * 10) + 5,
-        engagement: Math.floor(Math.random() * 500) + 100,
-        reach: Math.floor(Math.random() * 2000) + 500,
-      });
-    }
-    setPerformanceData(data);
+  // ===== LOAD PERFORMANCE DATA FROM FIREBASE =====
+  const loadPerformanceData = async () => {
+    try {
+      // Load performance analytics from Firebase
+      const analyticsRef = collection(db, 'socialMedia', 'analytics', 'daily');
+      const analyticsQuery = query(
+        analyticsRef,
+        where('userId', '==', currentUser.uid),
+        orderBy('date', 'desc'),
+        limit(7)
+      );
 
-    // Generate engagement breakdown
-    const engagement = [
-      { name: 'Likes', value: 450, color: CHART_COLORS[0] },
-      { name: 'Comments', value: 120, color: CHART_COLORS[1] },
-      { name: 'Shares', value: 80, color: CHART_COLORS[2] },
-      { name: 'Clicks', value: 200, color: CHART_COLORS[3] },
-    ];
-    setEngagementData(engagement);
+      const snapshot = await getDocs(analyticsQuery);
+
+      if (snapshot.empty) {
+        // No data yet - show empty state with placeholder structure
+        const emptyData = [];
+        for (let i = 6; i >= 0; i--) {
+          const date = new Date();
+          date.setDate(date.getDate() - i);
+          emptyData.push({
+            date: format(date, 'MMM dd'),
+            posts: 0,
+            engagement: 0,
+            reach: 0,
+          });
+        }
+        setPerformanceData(emptyData);
+        setEngagementData([
+          { name: 'Likes', value: 0, color: CHART_COLORS[0] },
+          { name: 'Comments', value: 0, color: CHART_COLORS[1] },
+          { name: 'Shares', value: 0, color: CHART_COLORS[2] },
+          { name: 'Clicks', value: 0, color: CHART_COLORS[3] },
+        ]);
+        return;
+      }
+
+      // Map real Firebase data
+      const data = snapshot.docs.map(doc => ({
+        date: format(doc.data().date.toDate(), 'MMM dd'),
+        posts: doc.data().posts || 0,
+        engagement: doc.data().engagement || 0,
+        reach: doc.data().reach || 0,
+      })).reverse();
+
+      setPerformanceData(data);
+
+      // Calculate engagement totals from data
+      const totals = snapshot.docs.reduce((acc, doc) => ({
+        likes: acc.likes + (doc.data().likes || 0),
+        comments: acc.comments + (doc.data().comments || 0),
+        shares: acc.shares + (doc.data().shares || 0),
+        clicks: acc.clicks + (doc.data().clicks || 0),
+      }), { likes: 0, comments: 0, shares: 0, clicks: 0 });
+
+      setEngagementData([
+        { name: 'Likes', value: totals.likes, color: CHART_COLORS[0] },
+        { name: 'Comments', value: totals.comments, color: CHART_COLORS[1] },
+        { name: 'Shares', value: totals.shares, color: CHART_COLORS[2] },
+        { name: 'Clicks', value: totals.clicks, color: CHART_COLORS[3] },
+      ]);
+
+      // Update dashboard totals
+      setDashboardData(prev => ({
+        ...prev,
+        totalEngagement: totals.likes + totals.comments + totals.shares + totals.clicks,
+        totalReach: data.reduce((sum, d) => sum + d.reach, 0),
+      }));
+
+    } catch (error) {
+      console.error('Error loading performance data:', error);
+      // Set empty state on error
+      setPerformanceData([]);
+      setEngagementData([]);
+    }
+  };
+
+  // Handler to connect platform from overview
+  const handleConnectPlatform = (platformId) => {
+    setActiveTab('platforms');
   };
 
   // ===== EVENT HANDLERS =====
@@ -333,8 +389,7 @@ const SocialMediaHub = () => {
   const handleRefreshData = async () => {
     setLoading(true);
     // Refresh data from Firebase
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    generatePerformanceData();
+    await loadPerformanceData();
     setLoading(false);
   };
 
@@ -413,13 +468,16 @@ const SocialMediaHub = () => {
                 <Grid item xs={6} sm={4} md={2} key={platform.id}>
                   <Card
                     variant="outlined"
+                    onClick={() => !isConnected && handleConnectPlatform(platform.id)}
                     sx={{
                       textAlign: 'center',
                       p: 2,
                       bgcolor: isConnected ? 'action.hover' : 'transparent',
-                      cursor: 'pointer',
+                      cursor: isConnected ? 'default' : 'pointer',
+                      transition: 'all 0.2s ease',
                       '&:hover': {
-                        boxShadow: 2,
+                        boxShadow: isConnected ? 0 : 3,
+                        transform: isConnected ? 'none' : 'translateY(-2px)',
                       },
                     }}
                   >
@@ -447,8 +505,9 @@ const SocialMediaHub = () => {
                       />
                     ) : (
                       <Chip
-                        label="Connect"
+                        label="Click to Connect"
                         size="small"
+                        color="primary"
                         variant="outlined"
                         sx={{ mt: 1 }}
                       />
