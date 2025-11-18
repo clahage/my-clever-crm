@@ -1,0 +1,49 @@
+/* Speedy CRM Theme Colors and Utilities */
+:root {
+  --color-primary-green: #1C9A3E;
+  --color-secondary-blue: #003C71;
+}
+
+.bg-primary {
+  background-color: var(--color-primary-green);
+}
+.text-primary {
+  color: var(--color-primary-green);
+}
+.bg-secondary {
+  background-color: var(--color-secondary-blue);
+}
+.text-secondary {
+  color: var(--color-secondary-blue);
+}
+
+body {
+  background-color: #f8fafc;
+  color: #1e293b;
+}
+:root {
+  --color-primary-green: #1C9A3E;
+  --color-secondary-blue: #003C71;
+  --brand-primary: #2563eb;
+  --brand-secondary: #6366f1;
+  --brand-accent: #f59e42;
+  --brand-bg: #f8fafc;
+  --brand-text: #1e293b;
+  --brand-success: #22c55e;
+  --brand-danger: #ef4444;
+  --brand-warning: #facc15;
+  --brand-info: #38bdf8;
+}
+
+.bg-primary {
+  background-color: var(--color-primary-green);
+}
+.text-primary {
+  color: var(--color-primary-green);
+}
+.bg-secondary {
+  background-color: var(--color-secondary-blue);
+}
+.text-secondary {
+  color: var(--color-secondary-blue);
+}
