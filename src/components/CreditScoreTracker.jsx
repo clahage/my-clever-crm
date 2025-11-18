@@ -1,6 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { Line } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Title } from 'chart.js';
+import { db } from '../lib/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { showSuccess, showError, showPromise } from '../utils/toast';
+
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Title);
 
 // Example Firestore schema for reference
@@ -20,7 +24,7 @@ const SCORE_COLORS = score => {
   return '#ef4444'; // red
 };
 
-function CreditScoreTracker({ scoreHistory = [], goal = 750 }) {
+function CreditScoreTracker({ scoreHistory = [], goal = 750, clientId = null }) {
   const [newScores, setNewScores] = useState({ experian: '', equifax: '', transunion: '', notes: '' });
   const [selectedDate, setSelectedDate] = useState('');
 
@@ -89,12 +93,41 @@ function CreditScoreTracker({ scoreHistory = [], goal = 750 }) {
     setSelectedDate(e.target.value);
   };
 
-  const handleSubmit = e => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO: Add Firestore integration to save new score
-    alert('Score submitted! (Firestore integration pending)');
-    setNewScores({ experian: '', equifax: '', transunion: '', notes: '' });
-    setSelectedDate('');
+
+    if (!clientId) {
+      showError('Client ID is required to save credit scores');
+      return;
+    }
+
+    try {
+      const scoreData = {
+        clientId,
+        date: selectedDate || new Date().toISOString(),
+        experian: parseInt(newScores.experian) || 0,
+        equifax: parseInt(newScores.equifax) || 0,
+        transunion: parseInt(newScores.transunion) || 0,
+        notes: newScores.notes || '',
+        createdAt: serverTimestamp(),
+      };
+
+      await showPromise(
+        addDoc(collection(db, 'creditScores'), scoreData),
+        {
+          loading: 'Saving credit scores...',
+          success: 'Credit scores saved successfully!',
+          error: 'Failed to save credit scores'
+        }
+      );
+
+      // Reset form
+      setNewScores({ experian: '', equifax: '', transunion: '', notes: '' });
+      setSelectedDate('');
+    } catch (error) {
+      console.error('Error saving credit scores:', error);
+      showError('An error occurred while saving credit scores');
+    }
   };
 
   // Milestone detection

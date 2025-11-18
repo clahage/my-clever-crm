@@ -26,6 +26,7 @@ import {
   MousePointer, MousePointerClick, Move, Grab, GripVertical, Menu as MenuIcon
 } from 'lucide-react';
 import { db } from '../lib/firebase';
+import { showSuccess, showError, showInfo } from '../utils/toast';
 import { 
   collection, query, orderBy, getDocs, doc, updateDoc, deleteDoc, addDoc,
   serverTimestamp, writeBatch, where, arrayUnion, arrayRemove, onSnapshot,
@@ -308,8 +309,16 @@ const Contacts = () => {
 
   // ===== NOTIFICATION HELPER =====
   const showNotification = useCallback((message, type = 'info') => {
-    console.log(`[${type.toUpperCase()}] ${message}`);
-    // TODO: Implement toast notification system
+    switch(type) {
+      case 'success':
+        showSuccess(message);
+        break;
+      case 'error':
+        showError(message);
+        break;
+      default:
+        showInfo(message);
+    }
   }, []);
 
   // ===== REAL-TIME LISTENER FOR HOT LEADS =====
@@ -519,7 +528,16 @@ const Contacts = () => {
         growth: growth.toFixed(1),
         topSources,
         topStates,
-        recentActivity: [] // TODO: Implement activity tracking
+        recentActivity: contactsData
+          .filter(c => c.lastActivity)
+          .sort((a, b) => new Date(b.lastActivity) - new Date(a.lastActivity))
+          .slice(0, 10)
+          .map(c => ({
+            id: c.id,
+            name: `${c.firstName} ${c.lastName}`,
+            action: c.lastActivityType || 'Contact updated',
+            timestamp: c.lastActivity
+          }))
       });
       
       setContacts(contactsData);

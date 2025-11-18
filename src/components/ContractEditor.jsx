@@ -1,5 +1,8 @@
 import React, { useState } from "react";
 import { SIGNATURE_PROVIDERS, getProviderHandler } from "../utils/eSignatureProviders";
+import { db } from "../lib/firebase";
+import { collection, addDoc, updateDoc, doc, serverTimestamp } from "firebase/firestore";
+import { showSuccess, showError, showPromise } from "../utils/toast";
 
 // For MVP, use a textarea for template, and a simple signature pad
 const defaultTemplate = `Contract Title: {{title}}
@@ -32,10 +35,43 @@ const ContractEditor = ({ contract, onClose }) => {
     handler({ ...fields, template });
   };
 
-  const handleSave = () => {
-    // TODO: Save to Firestore
-    alert("Contract saved (Firestore integration needed)");
-    onClose();
+  const handleSave = async () => {
+    try {
+      const contractData = {
+        template,
+        ...fields,
+        signed,
+        updatedAt: serverTimestamp(),
+      };
+
+      if (contract?.id) {
+        // Update existing contract
+        await showPromise(
+          updateDoc(doc(db, 'contracts', contract.id), contractData),
+          {
+            loading: 'Saving contract...',
+            success: 'Contract updated successfully!',
+            error: 'Failed to update contract'
+          }
+        );
+      } else {
+        // Create new contract
+        contractData.createdAt = serverTimestamp();
+        await showPromise(
+          addDoc(collection(db, 'contracts'), contractData),
+          {
+            loading: 'Creating contract...',
+            success: 'Contract created successfully!',
+            error: 'Failed to create contract'
+          }
+        );
+      }
+
+      onClose();
+    } catch (error) {
+      console.error('Error saving contract:', error);
+      showError('An error occurred while saving the contract');
+    }
   };
 
   const filledTemplate = template

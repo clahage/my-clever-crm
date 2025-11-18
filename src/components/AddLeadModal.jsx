@@ -40,8 +40,9 @@ function validatePlatformFields(formData) {
   return errors;
 }
 import React, { useState, useRef } from 'react';
-import { db } from '../firebaseConfig';
-import { collection, addDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { collection, addDoc, query, where, getDocs, or } from 'firebase/firestore';
+import { showSuccess, showError } from '../utils/toast';
 
 const AddLeadModal = ({ isOpen, onClose, onSave }) => {
   const LEAD_SOURCES = [
@@ -80,10 +81,40 @@ const AddLeadModal = ({ isOpen, onClose, onSave }) => {
 
   // Duplicate detection (Prompt #10)
   const checkDuplicate = async (contact) => {
-    // Query Firestore for similar name, email, or phone
-    // For demo: simulate with empty result (replace with Firestore query in production)
-    // TODO: Replace with actual Firestore query for contacts
-    return null;
+    try {
+      const contactsRef = collection(db, 'contacts');
+      const queries = [];
+
+      // Build query conditions for potential duplicates
+      if (contact.email && contact.email.trim()) {
+        queries.push(where('email', '==', contact.email.trim().toLowerCase()));
+      }
+      if (contact.phone && contact.phone.trim()) {
+        const cleanPhone = contact.phone.replace(/\D/g, '');
+        queries.push(where('phone', '==', cleanPhone));
+      }
+
+      // If we have query conditions, check for duplicates
+      if (queries.length === 0) {
+        return null; // No email or phone to check
+      }
+
+      // Firestore doesn't support OR queries directly, so we need to run multiple queries
+      const duplicatePromises = queries.map(async (whereClause) => {
+        const q = query(contactsRef, whereClause);
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      });
+
+      const results = await Promise.all(duplicatePromises);
+      const allDuplicates = results.flat();
+
+      // Return first duplicate found
+      return allDuplicates.length > 0 ? allDuplicates[0] : null;
+    } catch (error) {
+      console.error('Error checking for duplicates:', error);
+      return null; // Continue with save if duplicate check fails
+    }
   };
 
   // Bulk Import CSV parsing (Prompt #9)
@@ -128,9 +159,12 @@ const AddLeadModal = ({ isOpen, onClose, onSave }) => {
         createdAt: new Date().toISOString(),
         status: 'New',
       };
-      // TODO: Add duplicate detection here if needed
-      await addDoc(collection(db, 'contacts'), contactData);
-      imported++;
+      // Check for duplicates before importing
+      const duplicate = await checkDuplicate(contactData);
+      if (!duplicate) {
+        await addDoc(collection(db, 'contacts'), contactData);
+        imported++;
+      }
       setImportProgress(Math.round((imported / csvRows.length) * 100));
     }
     setLoading(false);
