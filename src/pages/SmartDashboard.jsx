@@ -983,7 +983,7 @@ const ClientOverviewWidget = () => {
       </Box>
 
       <Grid container spacing={2} sx={{ mb: 2 }}>
-        <Grid xs={6}>
+        <Grid xs={12} sm={6}>
           <Box sx={{ textAlign: 'center', p: 2, backgroundColor: 'rgba(16, 185, 129, 0.1)', borderRadius: 1 }}>
             <Typography variant="h5" fontWeight="bold" sx={{ color: COLORS.success }}>
               {data.active}
@@ -993,7 +993,7 @@ const ClientOverviewWidget = () => {
             </Typography>
           </Box>
         </Grid>
-        <Grid xs={6}>
+        <Grid xs={12} sm={6}>
           <Box sx={{ textAlign: 'center', p: 2, backgroundColor: 'rgba(59, 130, 246, 0.1)', borderRadius: 1 }}>
             <Typography variant="h5" fontWeight="bold" sx={{ color: COLORS.info }}>
               {data.new}
@@ -1132,7 +1132,7 @@ const DisputeOverviewWidget = () => {
       </Box>
 
       <Grid container spacing={2} sx={{ mb: 2 }}>
-        <Grid xs={4}>
+        <Grid xs={12} sm={6} md={4}>
           <Box sx={{ textAlign: 'center', p: 1.5, backgroundColor: 'rgba(59, 130, 246, 0.1)', borderRadius: 1 }}>
             <Typography variant="h6" fontWeight="bold" sx={{ color: COLORS.info }}>
               {data.active}
@@ -1142,7 +1142,7 @@ const DisputeOverviewWidget = () => {
             </Typography>
           </Box>
         </Grid>
-        <Grid xs={4}>
+        <Grid xs={12} sm={6} md={4}>
           <Box sx={{ textAlign: 'center', p: 1.5, backgroundColor: 'rgba(245, 158, 11, 0.1)', borderRadius: 1 }}>
             <Typography variant="h6" fontWeight="bold" sx={{ color: COLORS.warning }}>
               {data.pending}
@@ -1152,7 +1152,7 @@ const DisputeOverviewWidget = () => {
             </Typography>
           </Box>
         </Grid>
-        <Grid xs={4}>
+        <Grid xs={12} sm={6} md={4}>
           <Box sx={{ textAlign: 'center', p: 1.5, backgroundColor: 'rgba(16, 185, 129, 0.1)', borderRadius: 1 }}>
             <Typography variant="h6" fontWeight="bold" sx={{ color: COLORS.success }}>
               {data.resolved}
@@ -1303,7 +1303,7 @@ const EmailPerformanceWidget = () => {
       </Box>
 
       <Grid container spacing={2} sx={{ mb: 2 }}>
-        <Grid xs={4}>
+        <Grid xs={12} sm={6} md={4}>
           <Box sx={{ textAlign: 'center', p: 1.5, backgroundColor: 'rgba(102, 126, 234, 0.1)', borderRadius: 1 }}>
             <Typography variant="h6" fontWeight="bold">
               {stats.sent}
@@ -1313,7 +1313,7 @@ const EmailPerformanceWidget = () => {
             </Typography>
           </Box>
         </Grid>
-        <Grid xs={4}>
+        <Grid xs={12} sm={6} md={4}>
           <Box sx={{ textAlign: 'center', p: 1.5, backgroundColor: 'rgba(16, 185, 129, 0.1)', borderRadius: 1 }}>
             <Typography variant="h6" fontWeight="bold" sx={{ color: COLORS.success }}>
               {stats.opened}
@@ -1323,7 +1323,7 @@ const EmailPerformanceWidget = () => {
             </Typography>
           </Box>
         </Grid>
-        <Grid xs={4}>
+        <Grid xs={12} sm={6} md={4}>
           <Box sx={{ textAlign: 'center', p: 1.5, backgroundColor: 'rgba(59, 130, 246, 0.1)', borderRadius: 1 }}>
             <Typography variant="h6" fontWeight="bold" sx={{ color: COLORS.info }}>
               {stats.clicked}
@@ -1491,7 +1491,7 @@ const TaskOverviewWidget = () => {
       </Box>
 
       <Grid container spacing={2} sx={{ mb: 2 }}>
-        <Grid xs={4}>
+        <Grid xs={12} sm={6} md={4}>
           <Box sx={{ textAlign: 'center', p: 1.5, backgroundColor: 'rgba(102, 126, 234, 0.1)', borderRadius: 1 }}>
             <Typography variant="h6" fontWeight="bold">
               {data.total}
@@ -1501,7 +1501,7 @@ const TaskOverviewWidget = () => {
             </Typography>
           </Box>
         </Grid>
-        <Grid xs={4}>
+        <Grid xs={12} sm={6} md={4}>
           <Box sx={{ textAlign: 'center', p: 1.5, backgroundColor: 'rgba(16, 185, 129, 0.1)', borderRadius: 1 }}>
             <Typography variant="h6" fontWeight="bold" sx={{ color: COLORS.success }}>
               {data.completed}
@@ -1511,7 +1511,7 @@ const TaskOverviewWidget = () => {
             </Typography>
           </Box>
         </Grid>
-        <Grid xs={4}>
+        <Grid xs={12} sm={6} md={4}>
           <Box sx={{ textAlign: 'center', p: 1.5, backgroundColor: 'rgba(245, 158, 11, 0.1)', borderRadius: 1 }}>
             <Typography variant="h6" fontWeight="bold" sx={{ color: COLORS.warning }}>
               {data.pending}
@@ -1949,7 +1949,7 @@ const SystemHealthWidget = () => {
               </Box>
               
               <Grid container spacing={2}>
-                <Grid xs={6}>
+                <Grid xs={12} sm={6}>
                   <Typography variant="caption" color="text.secondary">
                     Uptime
                   </Typography>
@@ -1957,7 +1957,7 @@ const SystemHealthWidget = () => {
                     {system.uptime}%
                   </Typography>
                 </Grid>
-                <Grid xs={6}>
+                <Grid xs={12} sm={6}>
                   <Typography variant="caption" color="text.secondary">
                     Response Time
                   </Typography>
@@ -2108,7 +2108,7 @@ const CreditScoreImprovementWidget = () => {
       </Box>
 
       <Grid container spacing={2} sx={{ mb: 2 }}>
-        <Grid xs={6}>
+        <Grid xs={12} sm={6}>
           <Box sx={{ textAlign: 'center', p: 1.5, backgroundColor: 'rgba(16, 185, 129, 0.1)', borderRadius: 1 }}>
             <Typography variant="h6" fontWeight="bold" sx={{ color: COLORS.success }}>
               {stats.improved}
@@ -2118,7 +2118,7 @@ const CreditScoreImprovementWidget = () => {
             </Typography>
           </Box>
         </Grid>
-        <Grid xs={6}>
+        <Grid xs={12} sm={6}>
           <Box sx={{ textAlign: 'center', p: 1.5, backgroundColor: 'rgba(239, 68, 68, 0.1)', borderRadius: 1 }}>
             <Typography variant="h6" fontWeight="bold" sx={{ color: COLORS.error }}>
               {stats.declined}
@@ -2319,7 +2319,7 @@ const TeamProductivityWidget = () => {
                   </Typography>
                   
                   <Grid container spacing={2} sx={{ mt: 1 }}>
-                    <Grid xs={6}>
+                    <Grid xs={12} sm={6}>
                       <Typography variant="caption" color="text.secondary">
                         Tasks Done
                       </Typography>
@@ -2330,7 +2330,7 @@ const TeamProductivityWidget = () => {
                         </Typography>
                       </Box>
                     </Grid>
-                    <Grid xs={6}>
+                    <Grid xs={12} sm={6}>
                       <Typography variant="caption" color="text.secondary">
                         Satisfaction
                       </Typography>
@@ -2502,7 +2502,7 @@ const LeadScoringWidget = () => {
               </Box>
               
               <Grid container spacing={1.5} sx={{ mb: 1 }}>
-                <Grid xs={4}>
+                <Grid xs={12} sm={6} md={4}>
                   <Typography variant="caption" color="text.secondary">
                     AI Score
                   </Typography>
@@ -2510,7 +2510,7 @@ const LeadScoringWidget = () => {
                     {lead.score}/100
                   </Typography>
                 </Grid>
-                <Grid xs={4}>
+                <Grid xs={12} sm={6} md={4}>
                   <Typography variant="caption" color="text.secondary">
                     Credit Score
                   </Typography>
@@ -2518,7 +2518,7 @@ const LeadScoringWidget = () => {
                     {lead.creditScore}
                   </Typography>
                 </Grid>
-                <Grid xs={4}>
+                <Grid xs={12} sm={6} md={4}>
                   <Typography variant="caption" color="text.secondary">
                     Engagement
                   </Typography>
@@ -2751,7 +2751,7 @@ const ClientHealthScoreWidget = () => {
       </Typography>
 
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid xs={4}>
+        <Grid xs={12} sm={6} md={4}>
           <Box sx={{ textAlign: 'center', p: 2, backgroundColor: 'rgba(16, 185, 129, 0.1)', borderRadius: 1 }}>
             <Heart size={24} color={COLORS.success} style={{ marginBottom: 8 }} />
             <Typography variant="h5" fontWeight="bold" sx={{ color: COLORS.success }}>
@@ -2762,7 +2762,7 @@ const ClientHealthScoreWidget = () => {
             </Typography>
           </Box>
         </Grid>
-        <Grid xs={4}>
+        <Grid xs={12} sm={6} md={4}>
           <Box sx={{ textAlign: 'center', p: 2, backgroundColor: 'rgba(245, 158, 11, 0.1)', borderRadius: 1 }}>
             <AlertCircle size={24} color={COLORS.warning} style={{ marginBottom: 8 }} />
             <Typography variant="h5" fontWeight="bold" sx={{ color: COLORS.warning }}>
@@ -2773,7 +2773,7 @@ const ClientHealthScoreWidget = () => {
             </Typography>
           </Box>
         </Grid>
-        <Grid xs={4}>
+        <Grid xs={12} sm={6} md={4}>
           <Box sx={{ textAlign: 'center', p: 2, backgroundColor: 'rgba(239, 68, 68, 0.1)', borderRadius: 1 }}>
             <AlertCircle size={24} color={COLORS.error} style={{ marginBottom: 8 }} />
             <Typography variant="h5" fontWeight="bold" sx={{ color: COLORS.error }}>
@@ -3068,7 +3068,7 @@ const CommunicationVolumeWidget = () => {
       </Typography>
 
       <Grid container spacing={2} sx={{ mb: 2 }}>
-        <Grid xs={4}>
+        <Grid xs={12} sm={6} md={4}>
           <Box sx={{ textAlign: 'center', p: 1.5, backgroundColor: 'rgba(102, 126, 234, 0.1)', borderRadius: 1 }}>
             <Mail size={20} color={COLORS.primary[0]} style={{ marginBottom: 4 }} />
             <Typography variant="h6" fontWeight="bold">
@@ -3079,7 +3079,7 @@ const CommunicationVolumeWidget = () => {
             </Typography>
           </Box>
         </Grid>
-        <Grid xs={4}>
+        <Grid xs={12} sm={6} md={4}>
           <Box sx={{ textAlign: 'center', p: 1.5, backgroundColor: 'rgba(16, 185, 129, 0.1)', borderRadius: 1 }}>
             <MessageSquare size={20} color={COLORS.success} style={{ marginBottom: 4 }} />
             <Typography variant="h6" fontWeight="bold">
@@ -3090,7 +3090,7 @@ const CommunicationVolumeWidget = () => {
             </Typography>
           </Box>
         </Grid>
-        <Grid xs={4}>
+        <Grid xs={12} sm={6} md={4}>
           <Box sx={{ textAlign: 'center', p: 1.5, backgroundColor: 'rgba(245, 158, 11, 0.1)', borderRadius: 1 }}>
             <Phone size={20} color={COLORS.warning} style={{ marginBottom: 4 }} />
             <Typography variant="h6" fontWeight="bold">
