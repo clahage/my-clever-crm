@@ -58,11 +58,6 @@ const Login = () => {
     }
   };
 
-  const useDemoAccount = () => {
-    setEmail('test@test.com');
-    setPassword('test123');
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -173,14 +168,6 @@ const Login = () => {
                 <span className="px-2 bg-white text-gray-500">Or continue with</span>
               </div>
             </div>
-
-            <button
-              type="button"
-              onClick={useDemoAccount}
-              className="w-full py-3 px-4 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
-            >
-              Use Demo Account
-            </button>
           </form>
 
           <div className="mt-6 text-center">
@@ -194,10 +181,6 @@ const Login = () => {
         </div>
 
         <div className="mt-8 text-center">
-          <div className="bg-blue-50 rounded-lg p-3 mb-3">
-            <p className="text-sm text-gray-600">Demo credentials:</p>
-            <p className="font-mono text-blue-700 font-semibold">test@test.com / test123</p>
-          </div>
           <p className="text-sm text-gray-500">
             © 2024 SpeedyCRM. All rights reserved.
           </p>
