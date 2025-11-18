@@ -475,7 +475,7 @@ const Affiliates = () => {
         </div>
 
         {/* Quick Stats Grid */}
-        <div className="grid grid-cols-6 gap-4 mt-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mt-6">
           <div className="bg-white/10 backdrop-blur rounded-lg p-3">
             <DollarSign className="w-6 h-6 mb-2" />
             <div className="text-2xl font-bold">${(affiliateData.totalEarnings / 1000).toFixed(1)}K</div>
@@ -1139,7 +1139,7 @@ const Affiliates = () => {
                       </div>
 
                       {/* Link Metrics */}
-                      <div className="grid grid-cols-4 gap-4 pt-4 border-t border-gray-200">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-gray-200">
                         <div className="text-center">
                           <div className="flex items-center justify-center text-gray-500 text-sm mb-1">
                             <MousePointer className="w-4 h-4 mr-1" />
@@ -1666,7 +1666,7 @@ const Affiliates = () => {
                     </div>
 
                     {/* Campaign Metrics */}
-                    <div className="grid grid-cols-6 gap-4 mb-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-4">
                       <div className="text-center">
                         <div className="text-2xl font-bold text-gray-900">{campaign.reach.toLocaleString()}</div>
                         <div className="text-xs text-gray-500">Reach</div>
@@ -2370,7 +2370,7 @@ const Affiliates = () => {
               </div>
 
               {/* Top 3 Podium */}
-              <div className="grid grid-cols-3 gap-6 mb-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 {[
                   { rank: 2, name: 'Sarah Johnson', tier: 'Diamond', earnings: 98750, avatar: 'SJ', color: 'gray', height: 'h-48' },
                   { rank: 1, name: 'Michael Chen', tier: 'Diamond', earnings: 125400, avatar: 'MC', color: 'yellow', height: 'h-56' },
