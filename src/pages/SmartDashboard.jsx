@@ -173,7 +173,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 
 // Date utilities
-import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths, isWithinInterval, parseISO, differenceInDays } from 'date-fns';
+import { format, formatDistanceToNow, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths, isWithinInterval, parseISO, differenceInDays } from 'date-fns';
 
 // Export libraries
 import jsPDF from 'jspdf';
@@ -912,23 +912,31 @@ const ClientOverviewWidget = () => {
       try {
         setLoading(true);
         
-        // Generate sample data (replace with real Firebase query)
-        const stats = {
-          total: 247,
-          active: 215,
-          new: 32,
-          churned: 8,
-          growth: 14.8,
-        };
+        // Query Firebase for real client data
+        const clientsSnapshot = await getDocs(collection(db, 'contacts'));
+        const clients = clientsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         
+        const total = clients.length;
+        const active = clients.filter(c => c.status === 'active').length;
+        const newClients = clients.filter(c => {
+          const createdAt = c.createdAt?.toDate?.() || new Date(c.createdAt);
+          const thirtyDaysAgo = new Date();
+          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+          return createdAt >= thirtyDaysAgo;
+        }).length;
+        const churned = clients.filter(c => c.status === 'churned' || c.status === 'inactive').length;
+        const growth = total > 0 ? ((newClients / total) * 100).toFixed(1) : 0;
+        
+        const stats = { total, active, new: newClients, churned, growth };
         setData(stats);
         
         // Chart data
+        const atRisk = clients.filter(c => c.status === 'at-risk').length;
         const chart = [
-          { name: 'Active', value: stats.active, color: COLORS.success },
-          { name: 'New', value: stats.new, color: COLORS.info },
-          { name: 'At Risk', value: 12, color: COLORS.warning },
-          { name: 'Churned', value: stats.churned, color: COLORS.error },
+          { name: 'Active', value: active, color: COLORS.success },
+          { name: 'New', value: newClients, color: COLORS.info },
+          { name: 'At Risk', value: atRisk, color: COLORS.warning },
+          { name: 'Churned', value: churned, color: COLORS.error },
         ];
         
         setChartData(chart);
@@ -1054,23 +1062,27 @@ const DisputeOverviewWidget = () => {
       try {
         setLoading(true);
         
-        // Generate sample data
-        const stats = {
-          total: 486,
-          active: 123,
-          pending: 87,
-          resolved: 276,
-          successRate: 78,
-        };
+        // Query Firebase for real dispute data
+        const disputesSnapshot = await getDocs(collection(db, 'disputes'));
+        const disputes = disputesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         
+        const total = disputes.length;
+        const active = disputes.filter(d => d.status === 'active').length;
+        const pending = disputes.filter(d => d.status === 'pending' || d.status === 'submitted').length;
+        const resolved = disputes.filter(d => d.status === 'resolved' || d.status === 'successful').length;
+        const successRate = total > 0 ? Math.round((resolved / total) * 100) : 0;
+        
+        const stats = { total, active, pending, resolved, successRate };
         setData(stats);
         
         // Chart data by bureau
-        const chart = [
-          { bureau: 'Experian', success: 82, failed: 18 },
-          { bureau: 'Equifax', success: 75, failed: 25 },
-          { bureau: 'TransUnion', success: 79, failed: 21 },
-        ];
+        const bureaus = ['Experian', 'Equifax', 'TransUnion'];
+        const chart = bureaus.map(bureau => {
+          const bureauDisputes = disputes.filter(d => d.bureau === bureau);
+          const success = bureauDisputes.filter(d => d.status === 'resolved' || d.status === 'successful').length;
+          const failed = bureauDisputes.filter(d => d.status === 'failed' || d.status === 'rejected').length;
+          return { bureau, success, failed };
+        });
         
         setChartData(chart);
         setLoading(false);
@@ -1211,35 +1223,39 @@ const EmailPerformanceWidget = () => {
       try {
         setLoading(true);
         
-        // Generate sample data
-        const campaigns = [];
-        const campaignNames = ['Welcome Series', 'Monthly Newsletter', 'Promotion', 'Re-engagement', 'Credit Tips'];
+        // Query Firebase for real email campaign data
+        const emailsSnapshot = await getDocs(collection(db, 'emails'));
+        const emails = emailsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         
-        for (let i = 0; i < 5; i++) {
-          campaigns.push({
-            name: campaignNames[i],
-            sent: Math.floor(Math.random() * 500) + 200,
-            opened: Math.floor(Math.random() * 300) + 100,
-            clicked: Math.floor(Math.random() * 100) + 20,
-          });
-        }
+        // Group by campaign
+        const campaignMap = {};
+        emails.forEach(email => {
+          const campaign = email.campaign || 'Uncategorized';
+          if (!campaignMap[campaign]) {
+            campaignMap[campaign] = { name: campaign, sent: 0, opened: 0, clicked: 0 };
+          }
+          campaignMap[campaign].sent++;
+          if (email.opened) campaignMap[campaign].opened++;
+          if (email.clicked) campaignMap[campaign].clicked++;
+        });
         
+        const campaigns = Object.values(campaignMap);
         campaigns.forEach(c => {
-          c.openRate = ((c.opened / c.sent) * 100).toFixed(1);
-          c.clickRate = ((c.clicked / c.sent) * 100).toFixed(1);
+          c.openRate = c.sent > 0 ? ((c.opened / c.sent) * 100).toFixed(1) : '0.0';
+          c.clickRate = c.sent > 0 ? ((c.clicked / c.sent) * 100).toFixed(1) : '0.0';
         });
         
         setData(campaigns);
         
         // Calculate totals
         const totals = {
-          sent: campaigns.reduce((sum, c) => sum + c.sent, 0),
-          opened: campaigns.reduce((sum, c) => sum + c.opened, 0),
-          clicked: campaigns.reduce((sum, c) => sum + c.clicked, 0),
+          sent: emails.length,
+          opened: emails.filter(e => e.opened).length,
+          clicked: emails.filter(e => e.clicked).length,
         };
         
-        totals.openRate = ((totals.opened / totals.sent) * 100).toFixed(1);
-        totals.clickRate = ((totals.clicked / totals.sent) * 100).toFixed(1);
+        totals.openRate = totals.sent > 0 ? ((totals.opened / totals.sent) * 100).toFixed(1) : '0.0';
+        totals.clickRate = totals.sent > 0 ? ((totals.clicked / totals.sent) * 100).toFixed(1) : '0.0';
         
         setStats(totals);
         setLoading(false);
@@ -1378,26 +1394,50 @@ const TaskOverviewWidget = () => {
       try {
         setLoading(true);
         
-        // Generate sample data
-        const stats = {
-          total: 89,
-          completed: 54,
-          pending: 28,
-          overdue: 7,
-        };
+        // Query Firebase for real task data
+        const tasksSnapshot = await getDocs(collection(db, 'tasks'));
+        const tasks = tasksSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         
-        stats.completionRate = ((stats.completed / stats.total) * 100).toFixed(0);
+        const total = tasks.length;
+        const completed = tasks.filter(t => t.status === 'completed' || t.status === 'done').length;
+        const pending = tasks.filter(t => t.status === 'pending' || t.status === 'in-progress').length;
+        const now = new Date();
+        const overdue = tasks.filter(t => {
+          const dueDate = t.dueDate?.toDate?.() || new Date(t.dueDate);
+          return t.status !== 'completed' && dueDate < now;
+        }).length;
+        
+        const stats = {
+          total,
+          completed,
+          pending,
+          overdue,
+          completionRate: total > 0 ? ((completed / total) * 100).toFixed(0) : '0',
+        };
         setData(stats);
         
-        // Trend data
+        // Trend data (last 7 days)
         const trend = [];
         for (let i = 6; i >= 0; i--) {
           const date = new Date();
           date.setDate(date.getDate() - i);
+          const dayStart = new Date(date.setHours(0, 0, 0, 0));
+          const dayEnd = new Date(date.setHours(23, 59, 59, 999));
+          
+          const dayCompleted = tasks.filter(t => {
+            const completedAt = t.completedAt?.toDate?.() || new Date(t.completedAt);
+            return completedAt >= dayStart && completedAt <= dayEnd;
+          }).length;
+          
+          const dayCreated = tasks.filter(t => {
+            const createdAt = t.createdAt?.toDate?.() || new Date(t.createdAt);
+            return createdAt >= dayStart && createdAt <= dayEnd;
+          }).length;
+          
           trend.push({
             date: format(date, 'EEE'),
-            completed: Math.floor(Math.random() * 15) + 5,
-            created: Math.floor(Math.random() * 20) + 8,
+            completed: dayCompleted,
+            created: dayCreated,
           });
         }
         
@@ -1549,54 +1589,76 @@ const AIInsightsWidget = () => {
       try {
         setLoading(true);
         
-        // Generate AI insights
-        const generatedInsights = [
-          {
+        // Query Firebase data to generate real AI insights
+        const [clientsSnap, invoicesSnap, tasksSnap] = await Promise.all([
+          getDocs(collection(db, 'contacts')),
+          getDocs(collection(db, 'invoices')),
+          getDocs(collection(db, 'tasks')),
+        ]);
+        
+        const clients = clientsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const invoices = invoicesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const tasks = tasksSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        const generatedInsights = [];
+        
+        // Revenue forecast insight
+        const totalRevenue = invoices.reduce((sum, inv) => sum + (inv.amount || 0), 0);
+        if (totalRevenue > 0) {
+          generatedInsights.push({
             type: 'prediction',
             title: 'Revenue Forecast',
-            description: 'Based on current trends, projected to exceed monthly goal by 12%',
-            confidence: 87,
+            description: `Current revenue: $${totalRevenue.toLocaleString()}. Continue monitoring trends.`,
+            confidence: 75,
             action: 'View Details',
             icon: TrendingUp,
             color: COLORS.success,
-          },
-          {
+          });
+        }
+        
+        // Churn risk insight
+        const atRiskClients = clients.filter(c => c.status === 'at-risk').length;
+        if (atRiskClients > 0) {
+          generatedInsights.push({
             type: 'risk',
             title: 'Churn Risk Alert',
-            description: '8 clients showing signs of disengagement - immediate action recommended',
-            confidence: 92,
+            description: `${atRiskClients} clients showing signs of disengagement - immediate action recommended`,
+            confidence: 85,
             action: 'Review Clients',
             icon: AlertCircle,
             color: COLORS.error,
-          },
-          {
-            type: 'opportunity',
-            title: 'Upsell Opportunity',
-            description: '23 clients eligible for premium service upgrade',
-            confidence: 78,
-            action: 'See Prospects',
-            icon: Sparkles,
-            color: COLORS.info,
-          },
-          {
+          });
+        }
+        
+        // Task efficiency insight
+        const overdueTasks = tasks.filter(t => {
+          const dueDate = t.dueDate?.toDate?.() || new Date(t.dueDate);
+          return t.status !== 'completed' && dueDate < new Date();
+        }).length;
+        if (overdueTasks > 0) {
+          generatedInsights.push({
             type: 'optimization',
-            title: 'Workflow Efficiency',
-            description: 'Automating follow-ups could save 12 hours per week',
+            title: 'Task Management',
+            description: `${overdueTasks} overdue tasks need attention. Automate follow-ups to improve efficiency.`,
             confidence: 85,
             action: 'Optimize',
             icon: Zap,
             color: COLORS.warning,
-          },
-          {
+          });
+        }
+        
+        // Add general insight if no specific insights
+        if (generatedInsights.length === 0) {
+          generatedInsights.push({
             type: 'insight',
-            title: 'Best Time to Contact',
-            description: 'Clients most responsive between 10 AM - 2 PM on Tuesdays',
-            confidence: 81,
-            action: 'Schedule',
-            icon: Clock,
+            title: 'Getting Started',
+            description: 'AI insights will appear here as you add more data to your CRM.',
+            confidence: 100,
+            action: 'Learn More',
+            icon: Brain,
             color: COLORS.info,
-          },
-        ];
+          });
+        }
         
         setInsights(generatedInsights);
         setLoading(false);
@@ -1958,15 +2020,31 @@ const CreditScoreImprovementWidget = () => {
       try {
         setLoading(true);
         
-        // Generate sample data
+        // Query Firebase for real credit score history
+        const scoresSnapshot = await getDocs(collection(db, 'creditScores'));
+        const scores = scoresSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        // Calculate improvements by month (last 6 months)
         const improvements = [];
-        for (let i = 0; i < 6; i++) {
+        for (let i = 5; i >= 0; i--) {
           const date = new Date();
-          date.setMonth(date.getMonth() - (5 - i));
+          date.setMonth(date.getMonth() - i);
+          const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+          const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+          
+          const monthScores = scores.filter(s => {
+            const scoreDate = s.date?.toDate?.() || new Date(s.date);
+            return scoreDate >= monthStart && scoreDate <= monthEnd && s.improvement;
+          });
+          
+          const avgImprovement = monthScores.length > 0
+            ? Math.round(monthScores.reduce((sum, s) => sum + (s.improvement || 0), 0) / monthScores.length)
+            : 0;
+          
           improvements.push({
             month: format(date, 'MMM'),
-            avgImprovement: Math.floor(Math.random() * 40) + 30,
-            clients: Math.floor(Math.random() * 20) + 25,
+            avgImprovement,
+            clients: monthScores.length,
           });
         }
         
@@ -2496,65 +2574,38 @@ const RecentActivityWidget = () => {
       try {
         setLoading(true);
         
-        // Generate sample activity data
-        const activityData = [
-          {
-            type: 'client',
-            icon: Users,
-            color: COLORS.success,
-            title: 'New client enrolled',
-            description: 'Sarah Martinez joined Premium Package',
-            time: '5 minutes ago',
-          },
-          {
-            type: 'dispute',
-            icon: FileText,
-            color: COLORS.info,
-            title: 'Dispute resolved',
-            description: 'Experian collection account removed',
-            time: '12 minutes ago',
-          },
-          {
-            type: 'payment',
-            icon: DollarSign,
-            color: COLORS.success,
-            title: 'Payment received',
-            description: '$497.00 from John Smith',
-            time: '23 minutes ago',
-          },
-          {
-            type: 'email',
-            icon: Mail,
-            color: COLORS.info,
-            title: 'Campaign sent',
-            description: 'Monthly newsletter to 247 clients',
-            time: '1 hour ago',
-          },
-          {
-            type: 'task',
-            icon: CheckCircle,
-            color: COLORS.success,
-            title: 'Task completed',
-            description: 'Follow-up call with Lisa Anderson',
-            time: '1 hour ago',
-          },
-          {
-            type: 'alert',
-            icon: AlertCircle,
-            color: COLORS.warning,
-            title: 'Client at risk',
-            description: 'Mike Johnson missed payment deadline',
-            time: '2 hours ago',
-          },
-          {
-            type: 'score',
-            icon: TrendingUp,
-            color: COLORS.success,
-            title: 'Credit score improved',
-            description: 'David Kim: +45 points this month',
-            time: '3 hours ago',
-          },
-        ];
+        // Query Firebase for real activity data
+        const activitiesSnapshot = await getDocs(
+          query(collection(db, 'activities'), orderBy('timestamp', 'desc'), limit(20))
+        );
+        
+        const activityData = activitiesSnapshot.docs.map(doc => {
+          const data = doc.data();
+          const timestamp = data.timestamp?.toDate?.() || new Date(data.timestamp || data.createdAt);
+          const timeAgo = formatDistanceToNow(timestamp, { addSuffix: true });
+          
+          // Map activity type to icon and color
+          const typeConfig = {
+            client: { icon: Users, color: COLORS.success },
+            dispute: { icon: FileText, color: COLORS.info },
+            payment: { icon: DollarSign, color: COLORS.success },
+            email: { icon: Mail, color: COLORS.info },
+            task: { icon: CheckCircle, color: COLORS.success },
+            alert: { icon: AlertCircle, color: COLORS.warning },
+            score: { icon: TrendingUp, color: COLORS.info },
+          };
+          
+          const config = typeConfig[data.type] || { icon: Activity, color: COLORS.info };
+          
+          return {
+            type: data.type || 'activity',
+            icon: config.icon,
+            color: config.color,
+            title: data.title || 'Activity',
+            description: data.description || 'No description',
+            time: timeAgo,
+          };
+        });
         
         setActivities(activityData);
         setLoading(false);
@@ -2647,21 +2698,30 @@ const ClientHealthScoreWidget = () => {
       try {
         setLoading(true);
         
-        // Generate sample distribution data
-        const data = [
-          { range: '90-100', count: 78, color: '#10b981', label: 'Excellent' },
-          { range: '80-89', count: 92, color: '#84cc16', label: 'Good' },
-          { range: '70-79', count: 45, color: '#f59e0b', label: 'Fair' },
-          { range: '60-69', count: 22, color: '#f97316', label: 'At Risk' },
-          { range: '0-59', count: 10, color: '#ef4444', label: 'Critical' },
+        // Query Firebase for real credit score data
+        const scoresSnapshot = await getDocs(collection(db, 'creditScores'));
+        const scores = scoresSnapshot.docs.map(doc => doc.data().score || 0);
+        
+        // Calculate distribution
+        const ranges = [
+          { range: '90-100', min: 90, max: 100, color: '#10b981', label: 'Excellent', count: 0 },
+          { range: '80-89', min: 80, max: 89, color: '#84cc16', label: 'Good', count: 0 },
+          { range: '70-79', min: 70, max: 79, color: '#f59e0b', label: 'Fair', count: 0 },
+          { range: '60-69', min: 60, max: 69, color: '#f97316', label: 'At Risk', count: 0 },
+          { range: '0-59', min: 0, max: 59, color: '#ef4444', label: 'Critical', count: 0 },
         ];
         
-        setDistribution(data);
+        scores.forEach(score => {
+          const range = ranges.find(r => score >= r.min && score <= r.max);
+          if (range) range.count++;
+        });
+        
+        setDistribution(ranges);
         
         setStats({
-          healthy: 170,
-          warning: 67,
-          critical: 10,
+          healthy: ranges[0].count + ranges[1].count,
+          warning: ranges[2].count + ranges[3].count,
+          critical: ranges[4].count,
         });
         
         setLoading(false);
@@ -2930,16 +2990,45 @@ const CommunicationVolumeWidget = () => {
       try {
         setLoading(true);
         
-        // Generate sample data
+        // Query Firebase for real communication data
+        const [emailsSnap, smsSnap, callsSnap] = await Promise.all([
+          getDocs(collection(db, 'emails')),
+          getDocs(collection(db, 'sms')),
+          getDocs(collection(db, 'calls')),
+        ]);
+        
+        const emails = emailsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const smsList = smsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const calls = callsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        // Group by day (last 7 days)
         const volumeData = [];
         for (let i = 6; i >= 0; i--) {
           const date = new Date();
           date.setDate(date.getDate() - i);
+          const dayStart = new Date(date.setHours(0, 0, 0, 0));
+          const dayEnd = new Date(date.setHours(23, 59, 59, 999));
+          
+          const dayEmails = emails.filter(e => {
+            const sentAt = e.sentAt?.toDate?.() || new Date(e.sentAt || e.createdAt);
+            return sentAt >= dayStart && sentAt <= dayEnd;
+          }).length;
+          
+          const daySms = smsList.filter(s => {
+            const sentAt = s.sentAt?.toDate?.() || new Date(s.sentAt || s.createdAt);
+            return sentAt >= dayStart && sentAt <= dayEnd;
+          }).length;
+          
+          const dayCalls = calls.filter(c => {
+            const callAt = c.callAt?.toDate?.() || new Date(c.callAt || c.createdAt);
+            return callAt >= dayStart && callAt <= dayEnd;
+          }).length;
+          
           volumeData.push({
             date: format(date, 'EEE'),
-            email: Math.floor(Math.random() * 100) + 50,
-            sms: Math.floor(Math.random() * 50) + 20,
-            calls: Math.floor(Math.random() * 30) + 10,
+            email: dayEmails,
+            sms: daySms,
+            calls: dayCalls,
           });
         }
         
@@ -3257,16 +3346,21 @@ const DisputeSuccessRateWidget = () => {
       try {
         setLoading(true);
         
-        // Generate sample data
-        const strategyData = [
-          { strategy: 'Verification', success: 85, attempts: 120 },
-          { strategy: 'Goodwill', success: 72, attempts: 95 },
-          { strategy: 'Validation', success: 78, attempts: 110 },
-          { strategy: 'Dispute Inaccuracy', success: 81, attempts: 105 },
-          { strategy: 'Credit Mix', success: 68, attempts: 75 },
-        ];
+        // Query Firebase for real dispute data by strategy
+        const disputesSnapshot = await getDocs(collection(db, 'disputes'));
+        const disputes = disputesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         
-        setData(strategyData);
+        // Group by strategy and calculate success rate
+        const strategies = ['Verification', 'Goodwill', 'Validation', 'Dispute Inaccuracy', 'Credit Mix'];
+        const strategyData = strategies.map(strategy => {
+          const strategyDisputes = disputes.filter(d => d.strategy === strategy || d.type === strategy);
+          const attempts = strategyDisputes.length;
+          const successful = strategyDisputes.filter(d => d.status === 'resolved' || d.status === 'successful').length;
+          const success = attempts > 0 ? Math.round((successful / attempts) * 100) : 0;
+          return { strategy, success, attempts };
+        }).filter(s => s.attempts > 0); // Only show strategies with data
+        
+        setData(strategyData.length > 0 ? strategyData : []);
         setLoading(false);
         console.log('📊 Dispute strategy data loaded');
       } catch (error) {
@@ -3352,29 +3446,49 @@ const MRRWidget = () => {
       try {
         setLoading(true);
         
-        // Generate sample MRR data
+        // Query Firebase for real recurring invoices
+        const invoicesSnapshot = await getDocs(collection(db, 'invoices'));
+        const allInvoices = invoicesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const recurringInvoices = allInvoices.filter(inv => inv.recurring === true || inv.type === 'recurring');
+        
+        // Calculate MRR by month (last 12 months)
         const mrrData = [];
         for (let i = 11; i >= 0; i--) {
           const date = new Date();
           date.setMonth(date.getMonth() - i);
+          const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+          const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+          
+          const monthInvoices = recurringInvoices.filter(inv => {
+            const invDate = inv.date?.toDate?.() || new Date(inv.date || inv.createdAt);
+            return invDate >= monthStart && invDate <= monthEnd;
+          });
+          
+          const mrr = monthInvoices.reduce((sum, inv) => sum + (inv.amount || 0), 0);
+          const newMrr = monthInvoices.filter(inv => inv.status === 'new').reduce((sum, inv) => sum + (inv.amount || 0), 0);
+          const churnedMrr = monthInvoices.filter(inv => inv.status === 'cancelled' || inv.status === 'churned').reduce((sum, inv) => sum + (inv.amount || 0), 0);
+          
           mrrData.push({
             month: format(date, 'MMM'),
-            mrr: 45000 + (11 - i) * 2500 + Math.random() * 1000,
-            newMrr: Math.floor(Math.random() * 5000) + 2000,
-            churnedMrr: Math.floor(Math.random() * 1500) + 500,
+            mrr,
+            newMrr,
+            churnedMrr,
           });
         }
         
         setData(mrrData);
         
-        const current = mrrData[mrrData.length - 1].mrr;
-        const previous = mrrData[mrrData.length - 2].mrr;
-        const growthRate = ((current - previous) / previous * 100).toFixed(1);
+        const current = mrrData[mrrData.length - 1]?.mrr || 0;
+        const previous = mrrData[mrrData.length - 2]?.mrr || 0;
+        const growthRate = previous > 0 ? ((current - previous) / previous * 100).toFixed(1) : '0.0';
+        const totalChurned = mrrData.reduce((sum, m) => sum + m.churnedMrr, 0);
+        const avgMrr = mrrData.reduce((sum, m) => sum + m.mrr, 0) / mrrData.length;
+        const churnRate = avgMrr > 0 ? ((totalChurned / (avgMrr * 12)) * 100).toFixed(1) : '0.0';
         
         setStats({
           current: Math.floor(current),
           growth: growthRate,
-          churnRate: 2.3,
+          churnRate,
         });
         
         setLoading(false);
