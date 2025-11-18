@@ -387,79 +387,107 @@ const AppContent = () => {
         <Route path="predictive-analytics" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><PredictiveAnalytics /></Suspense></ProtectedRoute>} />
 
         {/* CONTACTS ROUTE - This should work */}
-        <Route path="contacts" element={<Suspense fallback={<LoadingFallback />}><Contacts /></Suspense>} />
+        {/* ============================================================================ */}
+        {/* REDIRECTS: Standalone pages → Parent Hubs */}
+        {/* ============================================================================ */}
+
+        {/* Clients Hub redirects */}
+        <Route path="contacts" element={<Navigate to="/clients-hub" replace />} />
         <Route path="contacts/:id" element={<Suspense fallback={<LoadingFallback />}><ContactDetailPage /></Suspense>} />
-        {/* Client Intake (full intake form wrapper) */}
-        <Route path="intake" element={<Suspense fallback={<LoadingFallback />}><ClientIntake /></Suspense>} />
-        <Route path="new-client" element={<Suspense fallback={<LoadingFallback />}><ClientIntake /></Suspense>} />
-        <Route path="pipeline" element={<Suspense fallback={<LoadingFallback />}><Pipeline /></Suspense>} />
-        <Route path="import" element={<Suspense fallback={<LoadingFallback />}><ContactImport /></Suspense>} />
-        <Route path="export" element={<Suspense fallback={<LoadingFallback />}><ContactExport /></Suspense>} />
-        <Route path="contact-reports" element={<Suspense fallback={<LoadingFallback />}><ContactReports /></Suspense>} />
-        <Route path="segments" element={<Suspense fallback={<LoadingFallback />}><Segments /></Suspense>} />
-        <Route path="credit-simulator" element={<Suspense fallback={<LoadingFallback />}><CreditSimulator /></Suspense>} />
-        <Route path="business-credit" element={<Suspense fallback={<LoadingFallback />}><BusinessCredit /></Suspense>} />
-        <Route path="credit-scores" element={<Suspense fallback={<LoadingFallback />}><CreditScores /></Suspense>} />
-        <Route path="dispute-letters" element={<Suspense fallback={<LoadingFallback />}><DisputeLetters /></Suspense>} />
-        <Route path="dispute-center" element={<Navigate to="/dispute-letters" replace />} />
-        <Route path="dispute-status" element={<Suspense fallback={<LoadingFallback />}><DisputeStatus /></Suspense>} />
+        <Route path="intake" element={<Navigate to="/clients-hub" replace />} />
+        <Route path="new-client" element={<Navigate to="/clients-hub" replace />} />
+        <Route path="pipeline" element={<Navigate to="/clients-hub" replace />} />
+        <Route path="segments" element={<Navigate to="/clients-hub" replace />} />
+        <Route path="import" element={<Navigate to="/clients-hub" replace />} />
+        <Route path="export" element={<Navigate to="/clients-hub" replace />} />
+        <Route path="contact-reports" element={<Navigate to="/analytics-hub" replace />} />
+
+        {/* Disputes Hub redirects */}
+        <Route path="credit-simulator" element={<Navigate to="/dispute-hub" replace />} />
+        <Route path="business-credit" element={<Navigate to="/dispute-hub" replace />} />
+        <Route path="credit-scores" element={<Navigate to="/dispute-hub" replace />} />
+        <Route path="dispute-letters" element={<Navigate to="/dispute-hub" replace />} />
+        <Route path="dispute-center" element={<Navigate to="/dispute-hub" replace />} />
+        <Route path="dispute-status" element={<Navigate to="/dispute-hub" replace />} />
         <Route path="admin/dispute-admin-panel" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><DisputeAdminPanel /></Suspense></ProtectedRoute>} />
-        <Route path="credit-reports" element={<Suspense fallback={<LoadingFallback />}><CreditReports /></Suspense>} />
-        <Route path="idiq-dashboard" element={<Suspense fallback={<LoadingFallback />}><IDIQDashboard /></Suspense>} />
-        <Route path="credit-monitoring" element={<Suspense fallback={<LoadingFallback />}><CreditMonitoring /></Suspense>} />
-        <Route path="letters" element={<Suspense fallback={<LoadingFallback />}><Letters /></Suspense>} />
-        <Route path="emails" element={<Suspense fallback={<LoadingFallback />}><Emails /></Suspense>} />
+        <Route path="credit-reports" element={<Navigate to="/credit-hub" replace />} />
+        <Route path="idiq-dashboard" element={<Navigate to="/credit-hub" replace />} />
+        <Route path="credit-monitoring" element={<Navigate to="/credit-hub" replace />} />
+        <Route path="letters" element={<Navigate to="/dispute-hub" replace />} />
+
+        {/* Communications Hub redirects */}
+        <Route path="emails" element={<Navigate to="/comms-hub" replace />} />
         <Route path="communications" element={<Navigate to="/comms-hub" replace />} />
-        <Route path="email-workflows" element={<Suspense fallback={<LoadingFallback />}><EmailWorkflowDashboard /></Suspense>} />
-        <Route path="sms" element={<Suspense fallback={<LoadingFallback />}><SMS /></Suspense>} />
-        <Route path="drip-campaigns" element={<Suspense fallback={<LoadingFallback />}><DripCampaigns /></Suspense>} />
-        <Route path="templates" element={<Suspense fallback={<LoadingFallback />}><Templates /></Suspense>} />
-        <Route path="call-logs" element={<Suspense fallback={<LoadingFallback />}><CallLogs /></Suspense>} />
-        <Route path="notifications" element={<Suspense fallback={<LoadingFallback />}><Notifications /></Suspense>} />
-        <Route path="learning-center" element={<Suspense fallback={<LoadingFallback />}><LearningCenter /></Suspense>} />
-        <Route path="achievements" element={<Suspense fallback={<LoadingFallback />}><Achievements /></Suspense>} />
-        <Route path="certificates" element={<Suspense fallback={<LoadingFallback />}><Certificates /></Suspense>} />
-        <Route path="documents" element={<Suspense fallback={<LoadingFallback />}><Documents /></Suspense>} />
-        <Route path="econtracts" element={<Suspense fallback={<LoadingFallback />}><EContracts /></Suspense>} />
-        <Route path="forms" element={<Suspense fallback={<LoadingFallback />}><Forms /></Suspense>} />
-        <Route path="full-agreement" element={<Suspense fallback={<LoadingFallback />}><FullAgreement /></Suspense>} />
-        <Route path="information-sheet" element={<Suspense fallback={<LoadingFallback />}><InformationSheet /></Suspense>} />
-        <Route path="power-of-attorney" element={<Suspense fallback={<LoadingFallback />}><PowerOfAttorney /></Suspense>} />
-        <Route path="ach-authorization" element={<Suspense fallback={<LoadingFallback />}><ACHAuthorization /></Suspense>} />
-        <Route path="addendums" element={<Suspense fallback={<LoadingFallback />}><Addendums /></Suspense>} />
-        <Route path="document-storage" element={<Suspense fallback={<LoadingFallback />}><DocumentStorage /></Suspense>} />
-        <Route path="companies" element={<Suspense fallback={<LoadingFallback />}><Companies /></Suspense>} />
-        <Route path="location" element={<Suspense fallback={<LoadingFallback />}><Location /></Suspense>} />
-        <Route path="invoices" element={<Suspense fallback={<LoadingFallback />}><Invoices /></Suspense>} />
+        <Route path="email-workflows" element={<Navigate to="/comms-hub" replace />} />
+        <Route path="sms" element={<Navigate to="/comms-hub" replace />} />
+        <Route path="drip-campaigns" element={<Navigate to="/marketing-hub" replace />} />
+        <Route path="templates" element={<Navigate to="/documents-hub" replace />} />
+        <Route path="call-logs" element={<Navigate to="/comms-hub" replace />} />
+        <Route path="notifications" element={<Navigate to="/comms-hub" replace />} />
+
+        {/* Learning Hub redirects */}
+        <Route path="learning-center" element={<Navigate to="/learning-hub" replace />} />
+        <Route path="achievements" element={<Navigate to="/learning-hub" replace />} />
+        <Route path="certificates" element={<Navigate to="/learning-hub" replace />} />
+
+        {/* Documents Hub redirects */}
+        <Route path="documents" element={<Navigate to="/documents-hub" replace />} />
+        <Route path="econtracts" element={<Navigate to="/documents-hub" replace />} />
+        <Route path="forms" element={<Navigate to="/documents-hub" replace />} />
+        <Route path="full-agreement" element={<Navigate to="/documents-hub" replace />} />
+        <Route path="information-sheet" element={<Navigate to="/documents-hub" replace />} />
+        <Route path="power-of-attorney" element={<Navigate to="/documents-hub" replace />} />
+        <Route path="ach-authorization" element={<Navigate to="/documents-hub" replace />} />
+        <Route path="addendums" element={<Navigate to="/documents-hub" replace />} />
+        <Route path="document-storage" element={<Navigate to="/documents-hub" replace />} />
+        <Route path="document-center" element={<Navigate to="/documents-hub" replace />} />
+
+        {/* Settings Hub redirects */}
+        <Route path="companies" element={<Navigate to="/settings-hub" replace />} />
+        <Route path="location" element={<Navigate to="/settings-hub" replace />} />
+        <Route path="settings" element={<Navigate to="/settings-hub" replace />} />
+        <Route path="team" element={<Navigate to="/settings-hub" replace />} />
+        <Route path="roles" element={<Navigate to="/settings-hub" replace />} />
+        <Route path="user-roles" element={<Navigate to="/settings-hub" replace />} />
+        <Route path="integrations" element={<Navigate to="/settings-hub" replace />} />
+
+        {/* Billing Hub redirects */}
+        <Route path="invoices" element={<Navigate to="/billing-hub" replace />} />
         <Route path="payment-success" element={<Suspense fallback={<LoadingFallback />}><PaymentSuccess /></Suspense>} />
-        <Route path="affiliates" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><Affiliates /></Suspense></ProtectedRoute>} />
-        <Route path="billing" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><Billing /></Suspense></ProtectedRoute>} />
-        <Route path="products" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><Products /></Suspense></ProtectedRoute>} />
-        <Route path="calendar" element={<Suspense fallback={<LoadingFallback />}><Calendar /></Suspense>} />
-        <Route path="appointments" element={<Suspense fallback={<LoadingFallback />}><Appointments /></Suspense>} />
-        <Route path="tasks" element={<Suspense fallback={<LoadingFallback />}><Tasks /></Suspense>} />
-        <Route path="reminders" element={<Suspense fallback={<LoadingFallback />}><Reminders /></Suspense>} />
+        <Route path="affiliates" element={<Navigate to="/affiliates-hub" replace />} />
+        <Route path="billing" element={<Navigate to="/billing-hub" replace />} />
+        <Route path="products" element={<Navigate to="/billing-hub" replace />} />
+
+        {/* Tasks/Calendar Hub redirects */}
+        <Route path="calendar" element={<Navigate to="/calendar-hub" replace />} />
+        <Route path="appointments" element={<Navigate to="/calendar-hub" replace />} />
+        <Route path="tasks" element={<Navigate to="/tasks-hub" replace />} />
+        <Route path="reminders" element={<Navigate to="/tasks-hub" replace />} />
+
+        {/* Analytics Hub redirects */}
         <Route path="analytics" element={<Navigate to="/analytics-hub" replace />} />
-        <Route path="reports" element={<Suspense fallback={<LoadingFallback />}><Reports /></Suspense>} />
-        <Route path="goals" element={<Suspense fallback={<LoadingFallback />}><Goals /></Suspense>} />
-        <Route path="resources/articles" element={<Suspense fallback={<LoadingFallback />}><ResourcesArticles /></Suspense>} />
-        <Route path="resources/faq" element={<Suspense fallback={<LoadingFallback />}><ResourcesFAQ /></Suspense>} />
-        <Route path="apps/overview" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><AppsOverview /></Suspense></ProtectedRoute>} />
-        <Route path="apps/employee" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><AppsEmployee /></Suspense></ProtectedRoute>} />
-        <Route path="apps/client" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><AppsClient /></Suspense></ProtectedRoute>} />
-        <Route path="apps/affiliate" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><AppsAffiliate /></Suspense></ProtectedRoute>} />
-        <Route path="settings" element={<Suspense fallback={<LoadingFallback />}><Settings /></Suspense>} />
-        <Route path="team" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><Team /></Suspense></ProtectedRoute>} />
-        <Route path="document-center" element={<Suspense fallback={<LoadingFallback />}><DocumentCenter /></Suspense>} />
-        <Route path="roles" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><Roles /></Suspense></ProtectedRoute>} />
-        <Route path="user-roles" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><UserRoles /></Suspense></ProtectedRoute>} />
-        <Route path="integrations" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><Integrations /></Suspense></ProtectedRoute>} />
-        <Route path="support" element={<Suspense fallback={<LoadingFallback />}><Support /></Suspense>} />
+        <Route path="reports" element={<Navigate to="/reports-hub" replace />} />
+        <Route path="goals" element={<Navigate to="/analytics-hub" replace />} />
+
+        {/* Resources & Support redirects */}
+        <Route path="resources/articles" element={<Navigate to="/resources-hub" replace />} />
+        <Route path="resources/faq" element={<Navigate to="/support-hub" replace />} />
+        <Route path="support" element={<Navigate to="/support-hub" replace />} />
+
+        {/* Apps redirects */}
+        <Route path="apps/overview" element={<Navigate to="/mobile-app-hub" replace />} />
+        <Route path="apps/employee" element={<Navigate to="/mobile-app-hub" replace />} />
+        <Route path="apps/client" element={<Navigate to="/mobile-app-hub" replace />} />
+        <Route path="apps/affiliate" element={<Navigate to="/mobile-app-hub" replace />} />
+
+        {/* WhiteLabel redirects → Settings Hub */}
+        <Route path="whitelabel/branding" element={<Navigate to="/settings-hub" replace />} />
+        <Route path="whitelabel/domains" element={<Navigate to="/settings-hub" replace />} />
+        <Route path="whitelabel/plans" element={<Navigate to="/settings-hub" replace />} />
+        <Route path="whitelabel/tenants" element={<Navigate to="/settings-hub" replace />} />
+
+        {/* System Map - keep as utility */}
         <Route path="system-map" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><SystemMap /></Suspense></ProtectedRoute>} />
-        <Route path="whitelabel/branding" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><WhiteLabelBranding /></Suspense></ProtectedRoute>} />
-        <Route path="whitelabel/domains" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><WhiteLabelDomains /></Suspense></ProtectedRoute>} />
-        <Route path="whitelabel/plans" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><WhiteLabelPlans /></Suspense></ProtectedRoute>} />
-        <Route path="whitelabel/tenants" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><WhiteLabelTenants /></Suspense></ProtectedRoute>} />
         
   {/* IDIQ Enrollment / Reporting */}
   <Route
