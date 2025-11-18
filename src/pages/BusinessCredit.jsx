@@ -756,7 +756,7 @@ const BusinessCredit = () => {
                 )}
               </select>
             </div>
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
                 <div className="text-sm opacity-75">Business Name</div>
                 <div className="font-semibold">{currentBusiness.name}</div>
@@ -788,7 +788,7 @@ const BusinessCredit = () => {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-8 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
           <div className="bg-white/10 backdrop-blur rounded-lg p-3">
             <Shield className="w-6 h-6 mb-2" />
             <div className="text-2xl font-bold">{currentBusiness.score?.paydex || 0}</div>
@@ -892,7 +892,7 @@ const BusinessCredit = () => {
           {activeTab === 'dashboard' && (
             <div className="space-y-6">
               {/* Financial Overview */}
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-3">
                     <CreditCard className="w-8 h-8 text-blue-600" />
@@ -1035,7 +1035,7 @@ const BusinessCredit = () => {
               {/* Quick Actions */}
               <div>
                 <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
-                <div className="grid grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <button 
                     onClick={() => setShowAddTradeline(true)}
                     className="bg-white border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-blue-500 hover:bg-blue-50 transition-colors"
@@ -1064,7 +1064,7 @@ const BusinessCredit = () => {
           {activeTab === 'tradelines' && (
             <div className="space-y-6">
               {/* Tradeline Summary */}
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-green-50 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
                     <CheckCircle className="w-6 h-6 text-green-600" />
@@ -1239,7 +1239,7 @@ const BusinessCredit = () => {
               {/* Recommended Tradelines */}
               <div className="bg-blue-50 rounded-lg p-6">
                 <h3 className="text-lg font-semibold mb-4">Recommended Next Tradelines</h3>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="bg-white rounded-lg p-4">
                     <div className="flex items-center justify-between mb-2">
                       <span className="font-medium">HD Supply</span>
@@ -1558,7 +1558,7 @@ const BusinessCredit = () => {
               {/* Milestone Achievements */}
               <div className="bg-purple-50 rounded-lg p-6">
                 <h3 className="text-lg font-semibold mb-4">Milestone Achievements</h3>
-                <div className="grid grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="text-center">
                     <Trophy className="w-12 h-12 text-yellow-500 mx-auto mb-2" />
                     <div className="font-medium">First Tradeline</div>
