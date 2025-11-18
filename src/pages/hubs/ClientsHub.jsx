@@ -2284,7 +2284,7 @@ const ClientsHub = () => {
             startIcon={<Plus size={18} />}
             onClick={handleAddClient}
           >
-            Add Client
+            Add Contact
           </Button>
           
           <Button
@@ -2660,7 +2660,7 @@ const ClientsHub = () => {
     <Card>
       <CardContent>
         <Typography variant="h6" gutterBottom>
-          {selectedClient ? 'Edit Client' : 'Add New Client'}
+          {selectedClient ? 'Edit Contact' : 'Add New Contact'}
         </Typography>
         
         <Grid container spacing={3}>

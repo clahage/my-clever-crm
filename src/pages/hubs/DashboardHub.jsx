@@ -226,7 +226,7 @@ const DASHBOARD_VIEWS = [
 
 // Quick action items
 const QUICK_ACTIONS = [
-  { id: 'add-client', label: 'Add Client', icon: UserPlus, color: '#3B82F6', route: '/clients/add' },
+  { id: 'add-contact', label: 'Add Contact', icon: UserPlus, color: '#3B82F6', route: '/contacts' },
   { id: 'enroll-idiq', label: 'Credit Report', icon: Shield, color: '#10B981', route: '/credit-hub' },
   { id: 'send-email', label: 'Send Email', icon: Mail, color: '#8B5CF6', route: '/communications' },
   { id: 'create-task', label: 'Create Task', icon: CheckCircle, color: '#F59E0B', route: '/tasks' },

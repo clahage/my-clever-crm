@@ -4000,7 +4000,7 @@ const QuickAccessPanel = () => {
           startIcon={<Plus size={16} />}
           sx={{ mb: 1, justifyContent: 'flex-start' }}
         >
-          Add Client
+          Add Contact
         </Button>
         <Button
           fullWidth

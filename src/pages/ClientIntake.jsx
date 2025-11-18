@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import UltimateClientForm from '../components/UltimateClientForm';
+import UltimateContactForm from '../components/UltimateContactForm';
 import { db } from '../lib/firebase';
 import { collection, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 
@@ -12,7 +12,7 @@ export default function ClientIntake() {
   const handleSave = async (formData) => {
     setSaving(true);
     try {
-      console.log(contactId ? 'Updating client:' : 'Saving new client:', formData);
+      console.log(contactId ? 'Updating contact:' : 'Saving new contact:', formData);
 
       let docRef;
       if (contactId) {
@@ -21,7 +21,7 @@ export default function ClientIntake() {
           ...formData,
           updatedAt: new Date()
         });
-        alert('Client updated successfully!');
+        alert('Contact updated successfully!');
         navigate(`/contacts/${contactId}`);
       } else {
         // Create new contact
@@ -48,8 +48,8 @@ export default function ClientIntake() {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-semibold mb-4">Client Intake</h1>
-      <UltimateClientForm
+      <h1 className="text-2xl font-semibold mb-4">Contact Intake</h1>
+      <UltimateContactForm
         initialData={contactData || {}}
         onSave={handleSave}
         onCancel={handleCancel}

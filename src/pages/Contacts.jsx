@@ -3,7 +3,7 @@
 // 3000+ LINES - PRODUCTION READY
 // LAST UPDATED: 2025-10-12
 
-import UltimateClientForm from '@/components/UltimateClientForm';
+import UltimateContactForm from '@/components/UltimateContactForm';
 import ImportContactsModal from '../components/ImportContactsModal';
 import ExportModal from '../components/ExportModal';
 import BulkActions from '../components/BulkActions';
@@ -1486,8 +1486,8 @@ const Contacts = () => {
             onClick={() => {
               console.log('🟡 TOP BUTTON CLICKED!');
               console.log('🟡 showMegaForm BEFORE:', showMegaForm);
-              console.log('🟡 UltimateClientForm exists?', !!UltimateClientForm);  // ✅
-              console.log('🟡 UltimateClientForm type:', typeof UltimateClientForm);  // ✅
+              console.log('🟡 UltimateContactForm exists?', !!UltimateContactForm);  // ✅
+              console.log('🟡 UltimateContactForm type:', typeof UltimateContactForm);  // ✅
               setEditingContact(null);
               setFormMode('create');
               setShowMegaForm(true);
@@ -1774,7 +1774,7 @@ const Contacts = () => {
                           className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
                         >
                           <UserPlus className="h-5 w-5" />
-                          Full Client Intake
+                          Full Contact Intake
                         </button>
                     </optgroup>
                     <optgroup label="Change Urgency">
@@ -2636,7 +2636,7 @@ const Contacts = () => {
       {/* ========== MODALS ========== */}
                  
       {showMegaForm && (
-  <UltimateClientForm
+  <UltimateContactForm
     initialData={editingContact || {}}
     contactId={editingContact?.id || null}
     onSave={async (savedContact) => {
