@@ -758,23 +758,23 @@ const RevenueOverviewWidget = ({ dateRange = 30, onExport }) => {
         setData(revenueData);
         
         // Generate forecast
-        const forecastData = generateRevenueForecast(sampleData, 7);
+        const forecastData = generateRevenueForecast(revenueData, 7);
         setForecast(forecastData);
         
         // Calculate totals
-        const total = sampleData.reduce((sum, d) => sum + d.amount, 0);
+        const total = revenueData.reduce((sum, d) => sum + d.amount, 0);
         setTotalRevenue(total);
         
         // Calculate growth
-        const firstHalf = sampleData.slice(0, Math.floor(sampleData.length / 2));
-        const secondHalf = sampleData.slice(Math.floor(sampleData.length / 2));
-        const firstHalfAvg = firstHalf.reduce((sum, d) => sum + d.amount, 0) / firstHalf.length;
-        const secondHalfAvg = secondHalf.reduce((sum, d) => sum + d.amount, 0) / secondHalf.length;
-        const growthPercent = ((secondHalfAvg - firstHalfAvg) / firstHalfAvg * 100).toFixed(1);
+        const firstHalf = revenueData.slice(0, Math.floor(revenueData.length / 2));
+        const secondHalf = revenueData.slice(Math.floor(revenueData.length / 2));
+        const firstHalfAvg = firstHalf.length > 0 ? firstHalf.reduce((sum, d) => sum + d.amount, 0) / firstHalf.length : 0;
+        const secondHalfAvg = secondHalf.length > 0 ? secondHalf.reduce((sum, d) => sum + d.amount, 0) / secondHalf.length : 0;
+        const growthPercent = firstHalfAvg > 0 ? ((secondHalfAvg - firstHalfAvg) / firstHalfAvg * 100).toFixed(1) : '0';
         setGrowth(growthPercent);
         
         setLoading(false);
-        console.log('📊 Revenue data loaded:', sampleData.length, 'days');
+        console.log('📊 Revenue data loaded:', revenueData.length, 'days');
       } catch (error) {
         console.error('Error fetching revenue:', error);
         setLoading(false);
