@@ -1445,7 +1445,7 @@ export default function UltimateClientForm({ initialData = {}, onSave, onCancel,
                     placeholder="Unit/Apt (optional)"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
                   />
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <div className="relative">
                       <input
                         type="text"
@@ -1964,7 +1964,7 @@ export default function UltimateClientForm({ initialData = {}, onSave, onCancel,
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Bureaus to Dispute</label>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 {['Equifax', 'Experian', 'TransUnion'].map(bureau => (
                   <label key={bureau} className="flex items-center gap-2 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
                     <input
@@ -2566,7 +2566,7 @@ export default function UltimateClientForm({ initialData = {}, onSave, onCancel,
         {expandedSections.aiInsights && (
           <div className="p-4 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg space-y-4">
             {/* Engagement Metrics Grid */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="bg-white p-3 rounded-lg border border-gray-200">
                 <p className="text-xs text-gray-600 mb-1">Email Open Rate</p>
                 <p className="text-xl font-bold text-gray-900">
