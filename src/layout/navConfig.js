@@ -175,20 +175,6 @@ export const navigationItems = [
   },
 
   // ==========================================================================
-  // 🏡 HOME - WELCOME/LANDING PAGE
-  // ==========================================================================
-  {
-    id: 'home',
-    title: 'Home',
-    path: '/home',
-    icon: LayoutDashboard,
-    permission: 'prospect',
-    mobileHidden: false,
-    description: 'Welcome page with feature overview',
-    category: 'core'
-  },
-
-  // ==========================================================================
   // 🎯 ADMIN COMMAND CENTER
   // ==========================================================================
   {
@@ -386,6 +372,43 @@ export const navigationItems = [
     category: 'core'
   },
 
+  // 13. REPORTS HUB - Business Reports
+  {
+    id: 'reports-hub',
+    title: 'Reports Hub',
+    path: '/reports-hub',
+    icon: FileText,
+    permission: 'user',
+    mobileHidden: false,
+    description: 'Business reports & exports',
+    category: 'core'
+  },
+
+  // 14. REPUTATION HUB - Reviews & Reputation
+  {
+    id: 'reputation-hub',
+    title: 'Reputation Hub',
+    path: '/reputation-hub',
+    icon: Star,
+    permission: 'user',
+    mobileHidden: false,
+    description: 'Reviews & reputation management',
+    category: 'core'
+  },
+
+  // 15. SOCIAL MEDIA HUB - Social Management
+  {
+    id: 'social-media-hub',
+    title: 'Social Media Hub',
+    path: '/social-media-hub',
+    icon: Share2,
+    permission: 'user',
+    mobileHidden: false,
+    badge: 'AI',
+    description: 'Social media management',
+    category: 'core'
+  },
+
   // ==========================================================================
   // 📊 CREDIT REPORT WORKFLOW (Admin Only)
   // ==========================================================================
@@ -444,18 +467,6 @@ export const navigationItems = [
   // ==========================================================================
   // ⚙️ ADMIN-ONLY ITEMS (Not in core 12 hubs)
   // ==========================================================================
-
-  // Client Portal (for clients/prospects to access their info)
-  {
-    id: 'client-portal',
-    title: 'My Portal',
-    path: '/client-portal',
-    icon: User,
-    permission: 'client',
-    mobileHidden: false,
-    description: 'Your progress & scores',
-    category: 'client'
-  },
 
   // White Label (Master Admin Only)
   {
