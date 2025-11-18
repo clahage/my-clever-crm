@@ -258,110 +258,7 @@ const CHART_COLORS = {
   mixed: '#9C27B0',
 };
 
-// ============================================================================
-// 🎭 MOCK DATA GENERATORS
-// ============================================================================
-
-// Generate mock reviews
-const generateMockReviews = (count = 100) => {
-  const reviewTexts = {
-    positive: [
-      'Excellent service! Highly recommend.',
-      'Amazing experience from start to finish.',
-      'Professional team and great results.',
-      'Best decision I ever made!',
-      'Outstanding service and support.',
-    ],
-    neutral: [
-      'Service was okay, nothing special.',
-      'Average experience overall.',
-      'Decent service, but room for improvement.',
-      'Not bad, but not great either.',
-      'It was fine, met my expectations.',
-    ],
-    negative: [
-      'Very disappointed with the service.',
-      'Poor communication and slow response.',
-      'Would not recommend to others.',
-      'Had some issues that were not resolved.',
-      'Expected better quality for the price.',
-    ],
-  };
-
-  const names = [
-    'John Smith', 'Sarah Johnson', 'Michael Brown', 'Emily Davis',
-    'David Wilson', 'Jessica Martinez', 'James Anderson', 'Jennifer Taylor',
-    'Robert Thomas', 'Linda Garcia', 'William Rodriguez', 'Mary Martinez',
-    'Christopher Lee', 'Patricia White', 'Daniel Harris', 'Barbara Clark',
-  ];
-
-  const reviews = [];
-  for (let i = 0; i < count; i++) {
-    const sentiment = Math.random() > 0.3 ? 'positive' : (Math.random() > 0.5 ? 'neutral' : 'negative');
-    const rating = sentiment === 'positive' ? (4 + Math.random()) : 
-                   sentiment === 'neutral' ? (2.5 + Math.random() * 1.5) : 
-                   (1 + Math.random() * 2);
-    
-    const platform = PLATFORMS[Math.floor(Math.random() * PLATFORMS.length)];
-    const texts = reviewTexts[sentiment];
-    const text = texts[Math.floor(Math.random() * texts.length)];
-    const name = names[Math.floor(Math.random() * names.length)];
-    
-    const daysAgo = Math.floor(Math.random() * 365);
-    const date = new Date();
-    date.setDate(date.getDate() - daysAgo);
-
-    reviews.push({
-      id: `review-${i + 1}`,
-      platform: platform.id,
-      platformName: platform.name,
-      platformColor: platform.color,
-      author: name,
-      rating: Math.round(rating * 10) / 10,
-      text: text,
-      sentiment: sentiment,
-      date: date.toISOString(),
-      responded: Math.random() > 0.5,
-      response: Math.random() > 0.5 ? 'Thank you for your feedback! We appreciate your business.' : null,
-      helpful: Math.floor(Math.random() * 50),
-      verified: Math.random() > 0.3,
-      tags: [],
-      flagged: Math.random() > 0.95,
-      aiScore: Math.random() * 100,
-    });
-  }
-  
-  return reviews.sort((a, b) => new Date(b.date) - new Date(a.date));
-};
-
-// Generate analytics data
-const generateAnalyticsData = () => {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const data = months.map((month, index) => ({
-    month,
-    reviews: Math.floor(Math.random() * 50) + 20,
-    avgRating: (4 + Math.random()).toFixed(1),
-    positive: Math.floor(Math.random() * 40) + 15,
-    neutral: Math.floor(Math.random() * 10) + 3,
-    negative: Math.floor(Math.random() * 8) + 2,
-    responseRate: Math.floor(Math.random() * 30) + 70,
-  }));
-  
-  return data;
-};
-
-// Generate competitor data
-const generateCompetitorData = () => {
-  const competitors = [
-    { name: 'Speedy Credit Repair', rating: 4.9, reviews: 580, rank: 1 },
-    { name: 'Quick Fix Credit', rating: 4.2, reviews: 342, rank: 2 },
-    { name: 'Credit Masters', rating: 3.8, reviews: 256, rank: 3 },
-    { name: 'Fast Credit Solutions', rating: 4.5, reviews: 189, rank: 4 },
-    { name: 'Credit Boost Pro', rating: 3.9, reviews: 421, rank: 5 },
-  ];
-  
-  return competitors;
-};
+// Note: Mock data generators removed - now using Firebase data
 
 // ============================================================================
 // 🤖 AI FUNCTIONS
@@ -541,37 +438,51 @@ const ReviewsReputationHub = () => {
   const loadReviews = async () => {
     try {
       setLoading(true);
-      // TODO: Fetch real reviews from Firebase/Firestore
-      // const reviewsSnapshot = await getDocs(collection(db, 'reviews'));
-      // const realReviews = reviewsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      
-      // For now, show empty state - no fake data
-      const realReviews = [];
+      const reviewsQuery = query(
+        collection(db, 'reviews'),
+        orderBy('date', 'desc')
+      );
+      const reviewsSnapshot = await getDocs(reviewsQuery);
+      const realReviews = reviewsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        date: doc.data().date?.toDate?.() ? doc.data().date.toDate().toISOString() : doc.data().date,
+      }));
+
       setReviews(realReviews);
       setFilteredReviews(realReviews);
-      
-      // TEMPORARY: Uncomment below line ONLY for demo/presentation purposes
-      // const mockReviews = generateMockReviews(100);
-      // setReviews(mockReviews);
-      // setFilteredReviews(mockReviews);
     } catch (err) {
       setError('Failed to load reviews');
       console.error('Error loading reviews:', err);
+      setReviews([]);
+      setFilteredReviews([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const loadAnalytics = () => {
-    // TODO: Load real analytics from Firebase
-    const data = []; // Empty until real data connected
-    setAnalyticsData(data);
+  const loadAnalytics = async () => {
+    try {
+      const analyticsQuery = query(collection(db, 'reviewAnalytics'));
+      const snapshot = await getDocs(analyticsQuery);
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setAnalyticsData(data);
+    } catch (err) {
+      console.error('Error loading analytics:', err);
+      setAnalyticsData([]);
+    }
   };
 
-  const loadCompetitors = () => {
-    // TODO: Load real competitor data from research API
-    const data = []; // Empty until real data connected
-    setCompetitorData(data);
+  const loadCompetitors = async () => {
+    try {
+      const competitorQuery = query(collection(db, 'competitors'), orderBy('rank', 'asc'));
+      const snapshot = await getDocs(competitorQuery);
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setCompetitorData(data);
+    } catch (err) {
+      console.error('Error loading competitors:', err);
+      setCompetitorData([]);
+    }
   };
 
   // ===== FILTERING & SEARCH =====

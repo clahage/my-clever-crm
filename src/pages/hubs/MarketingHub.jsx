@@ -378,164 +378,7 @@ Return JSON with: score (0-100), issues (array), recommendations (array), keywor
 // ============================================================================
 // MOCK DATA GENERATORS
 // ============================================================================
-
-const generateMockCampaigns = () => {
-  const campaigns = [];
-  const types = CAMPAIGN_TYPES.map(t => t.value);
-  const statuses = ['active', 'paused', 'completed', 'draft'];
-
-  for (let i = 1; i <= 15; i++) {
-    const type = types[Math.floor(Math.random() * types.length)];
-    const status = statuses[Math.floor(Math.random() * statuses.length)];
-    const budget = Math.floor(Math.random() * 10000) + 1000;
-    const spent = Math.floor(budget * (Math.random() * 0.8 + 0.2));
-    const clicks = Math.floor(Math.random() * 5000) + 100;
-    const conversions = Math.floor(clicks * (Math.random() * 0.1));
-    const revenue = conversions * (Math.floor(Math.random() * 500) + 200);
-
-    campaigns.push({
-      id: `camp-${i}`,
-      name: `${type.charAt(0).toUpperCase() + type.slice(1)} Campaign ${i}`,
-      type,
-      status,
-      budget,
-      spent,
-      clicks,
-      conversions,
-      conversionRate: ((conversions / clicks) * 100).toFixed(2),
-      revenue,
-      roi: (((revenue - spent) / spent) * 100).toFixed(1),
-      cpa: (spent / (conversions || 1)).toFixed(2),
-      startDate: new Date(2024, 0, Math.floor(Math.random() * 30) + 1),
-      endDate: new Date(2024, 2, Math.floor(Math.random() * 30) + 1),
-      duration: Math.floor(Math.random() * 60) + 30,
-    });
-  }
-
-  return campaigns;
-};
-
-const generateMockLeads = () => {
-  const leads = [];
-  const sources = LEAD_SOURCES.map(s => s.value);
-  const statuses = LEAD_STATUSES.map(s => s.value);
-  const names = ['John Smith', 'Jane Doe', 'Mike Johnson', 'Sarah Williams', 'David Brown'];
-
-  for (let i = 1; i <= 50; i++) {
-    const source = sources[Math.floor(Math.random() * sources.length)];
-    const status = statuses[Math.floor(Math.random() * statuses.length)];
-    const lead = {
-      id: `lead-${i}`,
-      name: names[Math.floor(Math.random() * names.length)],
-      email: `lead${i}@example.com`,
-      phone: `555-${Math.floor(Math.random() * 900) + 100}-${Math.floor(Math.random() * 9000) + 1000}`,
-      source,
-      status,
-      creditScore: Math.floor(Math.random() * 300) + 450,
-      hasDebt: Math.random() > 0.5,
-      emailOpens: Math.floor(Math.random() * 15),
-      emailClicks: Math.floor(Math.random() * 8),
-      pageViews: Math.floor(Math.random() * 20),
-      requestedDemo: Math.random() > 0.7,
-      downloadedContent: Math.random() > 0.6,
-      daysSinceContact: Math.floor(Math.random() * 180),
-      estimatedValue: Math.floor(Math.random() * 2000) + 500,
-      createdAt: new Date(2024, Math.floor(Math.random() * 3), Math.floor(Math.random() * 28) + 1),
-    };
-    lead.score = calculateLeadScore(lead);
-    leads.push(lead);
-  }
-
-  return leads.sort((a, b) => b.score - a.score);
-};
-
-const generateMockContent = () => {
-  const content = [];
-  const types = CONTENT_TYPES.map(t => t.value);
-  const statuses = ['draft', 'scheduled', 'published', 'archived'];
-
-  for (let i = 1; i <= 20; i++) {
-    const type = types[Math.floor(Math.random() * types.length)];
-    const status = statuses[Math.floor(Math.random() * statuses.length)];
-
-    content.push({
-      id: `content-${i}`,
-      title: `${type.charAt(0).toUpperCase() + type.slice(1)} Content ${i}`,
-      type,
-      status,
-      author: 'Marketing Team',
-      views: Math.floor(Math.random() * 5000) + 100,
-      shares: Math.floor(Math.random() * 500) + 10,
-      likes: Math.floor(Math.random() * 1000) + 50,
-      comments: Math.floor(Math.random() * 200) + 5,
-      seoScore: Math.floor(Math.random() * 40) + 60,
-      publishedDate: status === 'published' ? new Date(2024, Math.floor(Math.random() * 3), Math.floor(Math.random() * 28) + 1) : null,
-      scheduledDate: status === 'scheduled' ? new Date(2024, 3, Math.floor(Math.random() * 30) + 1) : null,
-      keywords: ['credit', 'repair', 'finance', 'score'].slice(0, Math.floor(Math.random() * 3) + 2),
-    });
-  }
-
-  return content;
-};
-
-const generateMockSocialPosts = () => {
-  const posts = [];
-  const platforms = SOCIAL_PLATFORMS.map(p => p.value);
-  const statuses = ['draft', 'scheduled', 'published'];
-
-  for (let i = 1; i <= 25; i++) {
-    const platform = platforms[Math.floor(Math.random() * platforms.length)];
-    const status = statuses[Math.floor(Math.random() * statuses.length)];
-
-    posts.push({
-      id: `post-${i}`,
-      platform,
-      content: `Sample social media post content for ${platform} #${i}`,
-      status,
-      likes: Math.floor(Math.random() * 1000) + 50,
-      comments: Math.floor(Math.random() * 100) + 5,
-      shares: Math.floor(Math.random() * 200) + 10,
-      reach: Math.floor(Math.random() * 10000) + 500,
-      engagementRate: (Math.random() * 10).toFixed(2),
-      scheduledTime: status === 'scheduled' ? new Date(2024, 3, Math.floor(Math.random() * 30) + 1) : null,
-      publishedTime: status === 'published' ? new Date(2024, Math.floor(Math.random() * 3), Math.floor(Math.random() * 28) + 1) : null,
-      imageUrl: `https://via.placeholder.com/400x300?text=Post+${i}`,
-    });
-  }
-
-  return posts;
-};
-
-const generateMockAnalytics = () => {
-  return {
-    overview: {
-      totalLeads: 1247,
-      totalCampaigns: 15,
-      totalSpent: 45670,
-      totalRevenue: 123890,
-      roi: 171,
-      avgConversionRate: 3.4,
-    },
-    performance: Array.from({ length: 30 }, (_, i) => ({
-      date: `Day ${i + 1}`,
-      leads: Math.floor(Math.random() * 50) + 20,
-      conversions: Math.floor(Math.random() * 10) + 2,
-      revenue: Math.floor(Math.random() * 5000) + 1000,
-      spend: Math.floor(Math.random() * 2000) + 500,
-    })),
-    channelPerformance: [
-      { channel: 'Email', leads: 350, conversions: 45, spend: 5000, revenue: 32000, roi: 540 },
-      { channel: 'Social', leads: 420, conversions: 38, spend: 8000, revenue: 28000, roi: 250 },
-      { channel: 'PPC', leads: 280, conversions: 52, spend: 15000, revenue: 45000, roi: 200 },
-      { channel: 'SEO', leads: 197, conversions: 28, spend: 3000, revenue: 18890, roi: 530 },
-    ],
-    leadsBySource: LEAD_SOURCES.map(source => ({
-      name: source.label,
-      value: Math.floor(Math.random() * 300) + 50,
-      color: source.color,
-    })),
-  };
-};
+// Note: Mock data generators removed - now using Firebase data
 
 // ============================================================================
 // MAIN MARKETING HUB COMPONENT
@@ -617,16 +460,81 @@ const UltimateMarketingHub = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      // In production, load from Firebase
-      // For now, use mock data
-      setCampaigns(generateMockCampaigns());
-      setLeads(generateMockLeads());
-      setContent(generateMockContent());
-      setSocialPosts(generateMockSocialPosts());
-      setAnalytics(generateMockAnalytics());
+      // Load campaigns from Firebase
+      const campaignsQuery = query(collection(db, 'campaigns'), orderBy('createdAt', 'desc'));
+      const campaignsSnap = await getDocs(campaignsQuery);
+      const campaignData = campaignsSnap.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        startDate: doc.data().startDate?.toDate() || new Date(),
+        endDate: doc.data().endDate?.toDate() || new Date(),
+      }));
+      setCampaigns(campaignData);
+
+      // Load leads from Firebase
+      const leadsQuery = query(collection(db, 'leads'), orderBy('createdAt', 'desc'));
+      const leadsSnap = await getDocs(leadsQuery);
+      const leadData = leadsSnap.docs.map(doc => {
+        const lead = { id: doc.id, ...doc.data(), createdAt: doc.data().createdAt?.toDate() || new Date() };
+        lead.score = calculateLeadScore(lead);
+        return lead;
+      });
+      setLeads(leadData.sort((a, b) => b.score - a.score));
+
+      // Load content from Firebase
+      const contentQuery = query(collection(db, 'content'), orderBy('publishedDate', 'desc'));
+      const contentSnap = await getDocs(contentQuery);
+      const contentData = contentSnap.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        publishedDate: doc.data().publishedDate?.toDate() || null,
+        scheduledDate: doc.data().scheduledDate?.toDate() || null,
+      }));
+      setContent(contentData);
+
+      // Load social posts from Firebase
+      const postsQuery = query(collection(db, 'socialPosts'), orderBy('createdAt', 'desc'));
+      const postsSnap = await getDocs(postsQuery);
+      const postsData = postsSnap.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        scheduledTime: doc.data().scheduledTime?.toDate() || null,
+        publishedTime: doc.data().publishedTime?.toDate() || null,
+      }));
+      setSocialPosts(postsData);
+
+      // Load analytics - use aggregated document or calculate
+      setAnalytics({
+        overview: {
+          totalLeads: leadData.length,
+          totalCampaigns: campaignData.length,
+          totalSpent: campaignData.reduce((sum, c) => sum + (c.spent || 0), 0),
+          totalRevenue: campaignData.reduce((sum, c) => sum + (c.revenue || 0), 0),
+          roi: 0,
+          avgConversionRate: 0,
+        },
+        performance: [],
+        channelPerformance: [],
+        leadsBySource: LEAD_SOURCES.map(source => ({
+          name: source.label,
+          value: leadData.filter(l => l.source === source.value).length,
+          color: source.color,
+        })),
+      });
     } catch (err) {
       console.error('Error loading data:', err);
       setError('Failed to load marketing data');
+      // Set empty states on error
+      setCampaigns([]);
+      setLeads([]);
+      setContent([]);
+      setSocialPosts([]);
+      setAnalytics({
+        overview: { totalLeads: 0, totalCampaigns: 0, totalSpent: 0, totalRevenue: 0, roi: 0, avgConversionRate: 0 },
+        performance: [],
+        channelPerformance: [],
+        leadsBySource: [],
+      });
     } finally {
       setLoading(false);
     }

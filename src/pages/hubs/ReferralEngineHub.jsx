@@ -278,87 +278,6 @@ const CHART_COLORS = {
   diamond: '#B9F2FF',
 };
 
-// ============================================================================
-// 🎭 MOCK DATA GENERATORS
-// ============================================================================
-
-// Generate mock referrals
-const generateMockReferrals = (count = 50) => {
-  const referrers = [
-    'John Smith', 'Sarah Johnson', 'Michael Brown', 'Emily Davis',
-    'David Wilson', 'Jessica Martinez', 'James Anderson', 'Jennifer Taylor',
-  ];
-
-  const referrals = [];
-  for (let i = 0; i < count; i++) {
-    const status = ['pending', 'contacted', 'qualified', 'converted', 'rejected'][
-      Math.floor(Math.random() * 5)
-    ];
-    
-    const daysAgo = Math.floor(Math.random() * 90);
-    const date = new Date();
-    date.setDate(date.getDate() - daysAgo);
-
-    const referrer = referrers[Math.floor(Math.random() * referrers.length)];
-    const refereeNames = ['Bob Anderson', 'Alice Cooper', 'Tom Harris', 'Jane Williams'];
-    const referee = refereeNames[Math.floor(Math.random() * refereeNames.length)];
-
-    const rewardAmount = status === 'converted' ? [50, 100, 150, 200][Math.floor(Math.random() * 4)] : 0;
-
-    referrals.push({
-      id: `ref-${i + 1}`,
-      referrer,
-      referee,
-      refereeEmail: `${referee.toLowerCase().replace(' ', '.')}@email.com`,
-      refereePhone: `+1 (555) ${Math.floor(Math.random() * 900 + 100)}-${Math.floor(Math.random() * 9000 + 1000)}`,
-      status,
-      date: date.toISOString(),
-      code: `REF${Math.random().toString(36).substring(7).toUpperCase()}`,
-      clicks: Math.floor(Math.random() * 50),
-      rewardAmount,
-      rewardPaid: status === 'converted' && Math.random() > 0.5,
-      tier: REWARD_TIERS[Math.min(Math.floor(Math.random() * 5), 4)].id,
-      source: ['email', 'sms', 'social', 'direct'][Math.floor(Math.random() * 4)],
-      notes: Math.random() > 0.7 ? 'Follow up needed' : '',
-    });
-  }
-  
-  return referrals.sort((a, b) => new Date(b.date) - new Date(a.date));
-};
-
-// Generate analytics data
-const generateAnalyticsData = () => {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  return months.map((month, index) => ({
-    month,
-    referrals: Math.floor(Math.random() * 30) + 10,
-    conversions: Math.floor(Math.random() * 15) + 5,
-    revenue: Math.floor(Math.random() * 5000) + 1000,
-    clicks: Math.floor(Math.random() * 200) + 50,
-    conversionRate: (Math.random() * 30 + 10).toFixed(1),
-  }));
-};
-
-// Generate leaderboard data
-const generateLeaderboardData = () => {
-  const names = [
-    'John Smith', 'Sarah Johnson', 'Michael Brown', 'Emily Davis',
-    'David Wilson', 'Jessica Martinez', 'James Anderson', 'Jennifer Taylor',
-    'Robert Thomas', 'Linda Garcia', 'William Rodriguez', 'Mary Martinez',
-  ];
-
-  return names.map((name, index) => ({
-    rank: index + 1,
-    name,
-    referrals: Math.floor(Math.random() * 50) + 10,
-    conversions: Math.floor(Math.random() * 30) + 5,
-    revenue: Math.floor(Math.random() * 10000) + 2000,
-    tier: REWARD_TIERS[Math.min(Math.floor(Math.random() * 5), 4)].id,
-    badges: Math.floor(Math.random() * 8),
-    points: Math.floor(Math.random() * 5000) + 500,
-    trend: Math.random() > 0.5 ? 'up' : 'down',
-  })).sort((a, b) => b.revenue - a.revenue);
-};
 
 // ============================================================================
 // 🤖 AI FUNCTIONS
@@ -544,26 +463,58 @@ const ReferralEngineHub = () => {
   const loadReferrals = async () => {
     try {
       setLoading(true);
-      // In production, this would fetch from Firebase
-      const mockReferrals = generateMockReferrals(50);
-      setReferrals(mockReferrals);
-      setFilteredReferrals(mockReferrals);
+      const referralsQuery = query(
+        collection(db, 'referrals'),
+        orderBy('date', 'desc')
+      );
+      const snapshot = await getDocs(referralsQuery);
+      const referralData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setReferrals(referralData);
+      setFilteredReferrals(referralData);
     } catch (err) {
       setError('Failed to load referrals');
       console.error('Error loading referrals:', err);
+      setReferrals([]);
+      setFilteredReferrals([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const loadAnalytics = () => {
-    const data = generateAnalyticsData();
-    setAnalyticsData(data);
+  const loadAnalytics = async () => {
+    try {
+      const analyticsQuery = query(
+        collection(db, 'referralAnalytics'),
+        orderBy('month', 'asc')
+      );
+      const snapshot = await getDocs(analyticsQuery);
+      const data = snapshot.docs.map(doc => doc.data());
+      setAnalyticsData(data);
+    } catch (err) {
+      console.error('Error loading analytics:', err);
+      setAnalyticsData([]);
+    }
   };
 
-  const loadLeaderboard = () => {
-    const data = generateLeaderboardData();
-    setLeaderboardData(data);
+  const loadLeaderboard = async () => {
+    try {
+      const leaderboardQuery = query(
+        collection(db, 'referralLeaderboard'),
+        orderBy('revenue', 'desc')
+      );
+      const snapshot = await getDocs(leaderboardQuery);
+      const data = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setLeaderboardData(data);
+    } catch (err) {
+      console.error('Error loading leaderboard:', err);
+      setLeaderboardData([]);
+    }
   };
 
   // ===== FILTERING & SEARCH =====

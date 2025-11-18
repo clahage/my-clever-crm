@@ -954,8 +954,7 @@ const UltimateAffiliatesHub = () => {
       console.log(`✅ Loaded ${links.length} referral links`);
     } catch (err) {
       console.error('❌ Error loading referral links:', err);
-      // Use mock data as fallback
-      setReferralLinks(generateMockReferralLinks(userId));
+      setReferralLinks([]);
     }
   };
 
@@ -979,7 +978,7 @@ const UltimateAffiliatesHub = () => {
       console.log(`✅ Loaded ${members.length} team members`);
     } catch (err) {
       console.error('❌ Error loading team members:', err);
-      setTeamMembers(generateMockTeamMembers());
+      setTeamMembers([]);
     }
   };
 
@@ -1004,7 +1003,7 @@ const UltimateAffiliatesHub = () => {
       console.log(`✅ Loaded ${commissionData.length} commissions`);
     } catch (err) {
       console.error('❌ Error loading commissions:', err);
-      setCommissions(generateMockCommissions());
+      setCommissions([]);
     }
   };
 
@@ -1028,7 +1027,7 @@ const UltimateAffiliatesHub = () => {
       console.log(`✅ Loaded ${payoutData.length} payouts`);
     } catch (err) {
       console.error('❌ Error loading payouts:', err);
-      setPayouts(generateMockPayouts());
+      setPayouts([]);
     }
   };
 
@@ -1051,7 +1050,7 @@ const UltimateAffiliatesHub = () => {
       console.log(`✅ Loaded ${materialData.length} materials`);
     } catch (err) {
       console.error('❌ Error loading materials:', err);
-      setMaterials(generateMockMaterials());
+      setMaterials([]);
     }
   };
 
@@ -1075,7 +1074,7 @@ const UltimateAffiliatesHub = () => {
       console.log(`✅ Loaded ${contestData.length} contests`);
     } catch (err) {
       console.error('❌ Error loading contests:', err);
-      setContests(generateMockContests());
+      setContests([]);
     }
   };
 
@@ -1090,168 +1089,14 @@ const UltimateAffiliatesHub = () => {
         setAnalytics(analyticsSnap.data());
         console.log('✅ Analytics loaded');
       } else {
-        setAnalytics(generateMockAnalytics());
+        setAnalytics({});
       }
     } catch (err) {
       console.error('❌ Error loading analytics:', err);
-      setAnalytics(generateMockAnalytics());
+      setAnalytics({});
     }
   };
 
-  // ===== MOCK DATA GENERATORS =====
-  const generateMockReferralLinks = (userId) => {
-    const types = ['general', 'trial', 'demo', 'pricing', 'webinar'];
-    return Array.from({ length: 5 }, (_, i) => ({
-      id: `link-${i + 1}`,
-      affiliateId: userId,
-      name: `Campaign ${i + 1}`,
-      type: types[i % types.length],
-      shortCode: generateShortCode(),
-      shortUrl: `${BASE_URL}/r/${generateShortCode()}`,
-      destination: '/signup',
-      clicks: Math.floor(Math.random() * 1000),
-      conversions: Math.floor(Math.random() * 100),
-      conversionRate: (Math.random() * 20).toFixed(2),
-      revenue: Math.floor(Math.random() * 5000),
-      status: 'active',
-      createdAt: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000),
-      lastClick: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000),
-    }));
-  };
-
-  const generateMockTeamMembers = () => {
-    const statuses = ['active', 'pending', 'inactive'];
-    const tiers = ['bronze', 'silver', 'gold', 'platinum'];
-    
-    return Array.from({ length: 8 }, (_, i) => ({
-      id: `member-${i + 1}`,
-      name: `Team Member ${i + 1}`,
-      email: `member${i + 1}@example.com`,
-      tier: tiers[Math.floor(Math.random() * tiers.length)],
-      status: statuses[Math.floor(Math.random() * statuses.length)],
-      referrals: Math.floor(Math.random() * 50),
-      conversions: Math.floor(Math.random() * 30),
-      earnings: Math.floor(Math.random() * 3000),
-      teamSize: Math.floor(Math.random() * 10),
-      joined: new Date(Date.now() - Math.random() * 180 * 24 * 60 * 60 * 1000),
-      lastActive: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000),
-    }));
-  };
-
-  const generateMockCommissions = () => {
-    const types = ['initial', 'recurring', 'team'];
-    const statuses = ['pending', 'approved', 'paid'];
-    
-    return Array.from({ length: 20 }, (_, i) => ({
-      id: `commission-${i + 1}`,
-      type: types[Math.floor(Math.random() * types.length)],
-      amount: parseFloat((Math.random() * 200).toFixed(2)),
-      status: statuses[Math.floor(Math.random() * statuses.length)],
-      referralId: `ref-${i + 1}`,
-      customerName: `Customer ${i + 1}`,
-      date: new Date(Date.now() - Math.random() * 60 * 24 * 60 * 60 * 1000),
-      paidDate: Math.random() > 0.5 ? new Date() : null,
-    }));
-  };
-
-  const generateMockPayouts = () => {
-    const methods = ['paypal', 'bank', 'stripe'];
-    const statuses = ['completed', 'processing', 'pending'];
-    
-    return Array.from({ length: 10 }, (_, i) => ({
-      id: `payout-${i + 1}`,
-      amount: parseFloat((Math.random() * 1000 + 100).toFixed(2)),
-      method: methods[Math.floor(Math.random() * methods.length)],
-      status: statuses[Math.floor(Math.random() * statuses.length)],
-      requestDate: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000),
-      processedDate: Math.random() > 0.5 ? new Date() : null,
-    }));
-  };
-
-  const generateMockMaterials = () => {
-    const categories = ['social', 'email', 'banners', 'videos'];
-    const types = ['image', 'video', 'document', 'template'];
-    
-    return Array.from({ length: 15 }, (_, i) => ({
-      id: `material-${i + 1}`,
-      name: `Marketing Material ${i + 1}`,
-      category: categories[Math.floor(Math.random() * categories.length)],
-      type: types[Math.floor(Math.random() * types.length)],
-      downloads: Math.floor(Math.random() * 500),
-      rating: (Math.random() * 2 + 3).toFixed(1),
-      size: `${Math.floor(Math.random() * 50 + 1)} MB`,
-      uploadedAt: new Date(Date.now() - Math.random() * 180 * 24 * 60 * 60 * 1000),
-    }));
-  };
-
-  const generateMockContests = () => {
-    return [
-      {
-        id: 'contest-1',
-        name: 'Q4 Sales Sprint',
-        description: 'Top 10 affiliates by revenue this quarter win amazing prizes!',
-        status: 'active',
-        prize: '$5,000 Cash + Luxury Retreat',
-        startDate: subMonths(new Date(), 1),
-        endDate: addMonths(new Date(), 2),
-        participants: 234,
-        myRank: 15,
-        topPerformers: [
-          { name: 'Alex Chen', earnings: 8500, avatar: '👨‍💼' },
-          { name: 'Sarah Johnson', earnings: 7200, avatar: '👩‍💼' },
-          { name: 'Mike Rodriguez', earnings: 6800, avatar: '👨‍💻' },
-        ],
-      },
-      {
-        id: 'contest-2',
-        name: 'Referral Marathon',
-        description: 'Most referrals in 30 days wins!',
-        status: 'active',
-        prize: '$2,500 + Exclusive Training',
-        startDate: new Date(),
-        endDate: addMonths(new Date(), 1),
-        participants: 189,
-        myRank: 23,
-        topPerformers: [
-          { name: 'Jennifer Lee', earnings: 5400, avatar: '👩‍💼' },
-          { name: 'David Park', earnings: 4900, avatar: '👨‍💼' },
-          { name: 'Emma Wilson', earnings: 4500, avatar: '👩‍💻' },
-        ],
-      },
-    ];
-  };
-
-  const generateMockAnalytics = () => {
-    return {
-      overview: {
-        totalClicks: 12543,
-        totalConversions: 856,
-        conversionRate: 6.82,
-        totalRevenue: 42850,
-        avgOrderValue: 50.06,
-        avgCommission: 12.52,
-      },
-      timeSeriesData: Array.from({ length: 30 }, (_, i) => ({
-        date: format(new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000), 'MMM dd'),
-        clicks: Math.floor(Math.random() * 100 + 50),
-        conversions: Math.floor(Math.random() * 10 + 1),
-        revenue: Math.floor(Math.random() * 500 + 100),
-      })),
-      sourceBreakdown: [
-        { name: 'Facebook', value: 35, clicks: 4390, conversions: 312 },
-        { name: 'Instagram', value: 25, clicks: 3136, conversions: 215 },
-        { name: 'Twitter', value: 15, clicks: 1881, conversions: 128 },
-        { name: 'LinkedIn', value: 12, clicks: 1505, conversions: 103 },
-        { name: 'Email', value: 8, clicks: 1003, conversions: 68 },
-        { name: 'Other', value: 5, clicks: 628, conversions: 30 },
-      ],
-      deviceBreakdown: [
-        { name: 'Desktop', value: 45, color: '#3B82F6' },
-        { name: 'Mobile', value: 40, color: '#10B981' },
-        { name: 'Tablet', value: 15, color: '#F59E0B' },
-      ],
-    };
-  };
 
   // ===== ACTION HANDLERS =====
   const handleCreateLink = async () => {

@@ -379,8 +379,21 @@ const UltimateSettingsHub = () => {
   };
 
   const loadUsers = async () => {
-    // Mock data for now
-    setUsers(generateMockUsers());
+    try {
+      const usersQuery = query(
+        collection(db, 'users'),
+        orderBy('createdAt', 'desc')
+      );
+      const snapshot = await getDocs(usersQuery);
+      const userData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setUsers(userData);
+    } catch (err) {
+      console.error('Error loading users:', err);
+      setUsers([]);
+    }
   };
 
   const loadRoles = async () => {
@@ -388,85 +401,57 @@ const UltimateSettingsHub = () => {
   };
 
   const loadAPIKeys = async () => {
-    setApiKeys(generateMockAPIKeys());
+    try {
+      const keysQuery = query(
+        collection(db, 'apiKeys'),
+        orderBy('created', 'desc')
+      );
+      const snapshot = await getDocs(keysQuery);
+      const keyData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setApiKeys(keyData);
+    } catch (err) {
+      console.error('Error loading API keys:', err);
+      setApiKeys([]);
+    }
   };
 
   const loadAuditLogs = async () => {
-    setAuditLogs(generateMockAuditLogs());
+    try {
+      const logsQuery = query(
+        collection(db, 'auditLogs'),
+        orderBy('timestamp', 'desc'),
+        limit(50)
+      );
+      const snapshot = await getDocs(logsQuery);
+      const logData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setAuditLogs(logData);
+    } catch (err) {
+      console.error('Error loading audit logs:', err);
+      setAuditLogs([]);
+    }
   };
 
   const loadSystemInfo = async () => {
-    setSystemInfo({
-      version: '2.1.0',
-      uptime: '45 days',
-      lastBackup: new Date(Date.now() - 24 * 60 * 60 * 1000),
-      databaseSize: '2.4 GB',
-      activeUsers: 245,
-      totalContacts: 12543,
-      apiCalls: 89234,
-    });
+    try {
+      const systemRef = doc(db, 'system', 'info');
+      const systemSnap = await getDoc(systemRef);
+      if (systemSnap.exists()) {
+        setSystemInfo(systemSnap.data());
+      } else {
+        setSystemInfo({});
+      }
+    } catch (err) {
+      console.error('Error loading system info:', err);
+      setSystemInfo({});
+    }
   };
 
-  // ===== MOCK DATA GENERATORS =====
-  const generateMockUsers = () => {
-    return Array.from({ length: 25 }, (_, i) => ({
-      id: `user-${i + 1}`,
-      name: `User ${i + 1}`,
-      email: `user${i + 1}@example.com`,
-      role: ROLE_LEVELS[Math.floor(Math.random() * 8)].value,
-      status: Math.random() > 0.2 ? 'active' : 'inactive',
-      lastLogin: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000),
-      createdAt: new Date(Date.now() - Math.random() * 180 * 24 * 60 * 60 * 1000),
-      twoFactorEnabled: Math.random() > 0.5,
-    }));
-  };
-
-  const generateMockAPIKeys = () => {
-    return [
-      {
-        id: 'key-1',
-        name: 'IDIQ API Key',
-        key: 'idiq_live_xxxxxxxxxxxxxxxx',
-        service: 'IDIQ',
-        created: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000),
-        lastUsed: new Date(Date.now() - 2 * 60 * 60 * 1000),
-        usageCount: 12543,
-        status: 'active',
-      },
-      {
-        id: 'key-2',
-        name: 'OpenAI API Key',
-        key: 'sk-xxxxxxxxxxxxxxxxxxxxxxxx',
-        service: 'OpenAI',
-        created: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
-        lastUsed: new Date(Date.now() - 5 * 60 * 1000),
-        usageCount: 45678,
-        status: 'active',
-      },
-      {
-        id: 'key-3',
-        name: 'Telnyx API Key',
-        key: 'KEY_xxxxxxxxxxxxxxxx',
-        service: 'Telnyx',
-        created: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000),
-        lastUsed: new Date(Date.now() - 30 * 60 * 1000),
-        usageCount: 8934,
-        status: 'active',
-      },
-    ];
-  };
-
-  const generateMockAuditLogs = () => {
-    const actions = ['User Login', 'Settings Changed', 'User Created', 'Report Generated', 'API Key Created', 'Integration Added'];
-    return Array.from({ length: 50 }, (_, i) => ({
-      id: `log-${i + 1}`,
-      action: actions[Math.floor(Math.random() * actions.length)],
-      user: `User ${Math.floor(Math.random() * 20 + 1)}`,
-      timestamp: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000),
-      ipAddress: `192.168.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
-      details: 'Action completed successfully',
-    }));
-  };
 
   // ===== TAB RENDERERS =====
   

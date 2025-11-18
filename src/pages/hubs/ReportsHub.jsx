@@ -176,6 +176,7 @@ import {
   query,
   where,
   getDocs,
+  getDoc,
   addDoc,
   updateDoc,
   deleteDoc,
@@ -365,224 +366,124 @@ const UltimateReportsHub = () => {
 
   const loadExecutiveData = async () => {
     console.log('Loading executive dashboard data...');
-    
-    // Mock data - replace with real Firebase queries
-    setExecutiveData({
-      kpis: [
-        { label: 'Total Clients', value: 342, change: 12, trend: 'up', icon: <Users className="w-6 h-6" /> },
-        { label: 'Monthly Revenue', value: '$48.2K', change: 18, trend: 'up', icon: <DollarSign className="w-6 h-6" /> },
-        { label: 'Active Disputes', value: 89, change: 5, trend: 'up', icon: <Shield className="w-6 h-6" /> },
-        { label: 'Success Rate', value: '76%', change: 3, trend: 'up', icon: <Target className="w-6 h-6" /> }
-      ],
-      revenueChart: [
-        { month: 'Jan', revenue: 35000, expenses: 22000, profit: 13000 },
-        { month: 'Feb', revenue: 38000, expenses: 23000, profit: 15000 },
-        { month: 'Mar', revenue: 42000, expenses: 24000, profit: 18000 },
-        { month: 'Apr', revenue: 45000, expenses: 25000, profit: 20000 },
-        { month: 'May', revenue: 47000, expenses: 26000, profit: 21000 },
-        { month: 'Jun', revenue: 48200, expenses: 27000, profit: 21200 }
-      ],
-      clientGrowth: [
-        { month: 'Jan', clients: 280 },
-        { month: 'Feb', clients: 295 },
-        { month: 'Mar', clients: 310 },
-        { month: 'Apr', clients: 320 },
-        { month: 'May', clients: 335 },
-        { month: 'Jun', clients: 342 }
-      ],
-      disputeBreakdown: [
-        { name: 'Equifax', value: 35, color: CHART_COLORS.primary },
-        { name: 'Experian', value: 32, color: CHART_COLORS.secondary },
-        { name: 'TransUnion', value: 22, color: CHART_COLORS.info }
-      ],
-      topPerformers: [
-        { name: 'John Smith', score: 745, increase: 68, disputes: 12, removed: 9 },
-        { name: 'Emma Wilson', score: 720, increase: 55, disputes: 8, removed: 6 },
-        { name: 'Michael Brown', score: 695, increase: 42, disputes: 10, removed: 7 }
-      ]
-    });
+
+    try {
+      const executiveRef = doc(db, 'reports', 'executive');
+      const executiveSnap = await getDoc(executiveRef);
+      if (executiveSnap.exists()) {
+        setExecutiveData(executiveSnap.data());
+      } else {
+        setExecutiveData({});
+      }
+    } catch (err) {
+      console.error('Error loading executive data:', err);
+      setExecutiveData({});
+    }
   };
 
   const loadClientData = async () => {
     console.log('Loading client analytics data...');
-    
-    setClientData({
-      totalClients: 342,
-      activeClients: 289,
-      newThisMonth: 23,
-      churnRate: 2.8,
-      clientsByStatus: [
-        { status: 'Active', count: 289, color: CHART_COLORS.success },
-        { status: 'On Hold', count: 34, color: CHART_COLORS.warning },
-        { status: 'Completed', count: 12, color: CHART_COLORS.info },
-        { status: 'Inactive', count: 7, color: CHART_COLORS.danger }
-      ],
-      clientsByTier: [
-        { tier: 'Premium', count: 87, revenue: 26100 },
-        { tier: 'Standard', count: 198, revenue: 19800 },
-        { tier: 'Basic', count: 57, revenue: 2850 }
-      ],
-      acquisitionSources: [
-        { source: 'Website', count: 142, percentage: 41.5 },
-        { source: 'Referral', count: 98, percentage: 28.7 },
-        { source: 'Social Media', count: 67, percentage: 19.6 },
-        { source: 'Other', count: 35, percentage: 10.2 }
-      ],
-      clientRetention: [
-        { month: 'Jan', retained: 95, churned: 8 },
-        { month: 'Feb', retained: 96, churned: 7 },
-        { month: 'Mar', retained: 94, churned: 9 },
-        { month: 'Apr', retained: 97, churned: 5 },
-        { month: 'May', retained: 96, churned: 6 },
-        { month: 'Jun', retained: 97, churned: 5 }
-      ]
-    });
+
+    try {
+      const clientRef = doc(db, 'reports', 'clientAnalytics');
+      const clientSnap = await getDoc(clientRef);
+      if (clientSnap.exists()) {
+        setClientData(clientSnap.data());
+      } else {
+        setClientData({});
+      }
+    } catch (err) {
+      console.error('Error loading client data:', err);
+      setClientData({});
+    }
   };
 
   const loadDisputeData = async () => {
     console.log('Loading dispute performance data...');
-    
-    setDisputeData({
-      totalDisputes: 234,
-      successful: 178,
-      pending: 42,
-      unsuccessful: 14,
-      successRate: 76.1,
-      disputesByBureau: [
-        { bureau: 'Equifax', total: 89, successful: 68, pending: 15, unsuccessful: 6, successRate: 76.4 },
-        { bureau: 'Experian', total: 82, successful: 67, pending: 12, unsuccessful: 3, successRate: 81.7 },
-        { bureau: 'TransUnion', total: 63, successful: 43, pending: 15, unsuccessful: 5, successRate: 68.3 }
-      ],
-      disputesByType: [
-        { type: 'Late Payment', count: 78, success: 65 },
-        { type: 'Collection', count: 56, success: 42 },
-        { type: 'Inquiry', count: 45, success: 38 },
-        { type: 'Account Status', count: 32, success: 21 },
-        { type: 'Balance', count: 23, success: 12 }
-      ],
-      disputeTrend: [
-        { month: 'Jan', filed: 35, resolved: 28 },
-        { month: 'Feb', filed: 38, resolved: 31 },
-        { month: 'Mar', filed: 42, resolved: 35 },
-        { month: 'Apr', filed: 39, resolved: 32 },
-        { month: 'May', filed: 41, resolved: 33 },
-        { month: 'Jun', filed: 39, resolved: 19 }
-      ],
-      avgResolutionTime: 32, // days
-      itemsRemoved: 178
-    });
+
+    try {
+      const disputeRef = doc(db, 'reports', 'disputePerformance');
+      const disputeSnap = await getDoc(disputeRef);
+      if (disputeSnap.exists()) {
+        setDisputeData(disputeSnap.data());
+      } else {
+        setDisputeData({});
+      }
+    } catch (err) {
+      console.error('Error loading dispute data:', err);
+      setDisputeData({});
+    }
   };
 
   const loadRevenueData = async () => {
     console.log('Loading revenue analysis data...');
-    
-    setRevenueData({
-      totalRevenue: 289400,
-      monthlyRevenue: 48200,
-      avgRevenuePerClient: 846,
-      revenueGrowth: 18.3,
-      revenueByMonth: [
-        { month: 'Jan', revenue: 35000, target: 40000 },
-        { month: 'Feb', revenue: 38000, target: 40000 },
-        { month: 'Mar', revenue: 42000, target: 45000 },
-        { month: 'Apr', revenue: 45000, target: 45000 },
-        { month: 'May', revenue: 47000, target: 48000 },
-        { month: 'Jun', revenue: 48200, target: 50000 }
-      ],
-      revenueByService: [
-        { service: 'Credit Repair', revenue: 173640, percentage: 60 },
-        { service: 'Consultation', revenue: 57880, percentage: 20 },
-        { service: 'Monitoring', revenue: 34692, percentage: 12 },
-        { service: 'Other', revenue: 23188, percentage: 8 }
-      ],
-      revenueByTier: [
-        { tier: 'Premium', revenue: 156804, clients: 87 },
-        { tier: 'Standard', revenue: 115760, clients: 198 },
-        { tier: 'Basic', revenue: 16836, clients: 57 }
-      ],
-      projectedRevenue: 58000 // next month
-    });
+
+    try {
+      const revenueRef = doc(db, 'reports', 'revenueAnalysis');
+      const revenueSnap = await getDoc(revenueRef);
+      if (revenueSnap.exists()) {
+        setRevenueData(revenueSnap.data());
+      } else {
+        setRevenueData({});
+      }
+    } catch (err) {
+      console.error('Error loading revenue data:', err);
+      setRevenueData({});
+    }
   };
 
   const loadPerformanceData = async () => {
     console.log('Loading team performance data...');
-    
-    setPerformanceData({
-      teamMembers: [
-        { name: 'Sarah Johnson', clients: 67, disputes: 89, successRate: 82, revenue: 12340 },
-        { name: 'Mike Chen', clients: 54, disputes: 72, successRate: 78, revenue: 10890 },
-        { name: 'Emily Davis', clients: 48, disputes: 65, successRate: 76, revenue: 9870 },
-        { name: 'Robert Wilson', clients: 42, disputes: 58, successRate: 74, revenue: 8560 },
-        { name: 'Lisa Anderson', clients: 38, disputes: 52, successRate: 71, revenue: 7450 }
-      ],
-      productivityTrend: [
-        { week: 'Week 1', tasksCompleted: 145 },
-        { week: 'Week 2', tasksCompleted: 158 },
-        { week: 'Week 3', tasksCompleted: 162 },
-        { week: 'Week 4', tasksCompleted: 171 }
-      ],
-      performanceMetrics: {
-        avgResponseTime: 2.3, // hours
-        clientSatisfaction: 4.7, // out of 5
-        taskCompletionRate: 94, // percentage
-        avgCaseResolution: 28 // days
+
+    try {
+      const performanceRef = doc(db, 'reports', 'teamPerformance');
+      const performanceSnap = await getDoc(performanceRef);
+      if (performanceSnap.exists()) {
+        setPerformanceData(performanceSnap.data());
+      } else {
+        setPerformanceData({});
       }
-    });
+    } catch (err) {
+      console.error('Error loading performance data:', err);
+      setPerformanceData({});
+    }
   };
 
   const loadComplianceData = async () => {
     console.log('Loading compliance & audit data...');
-    
-    setComplianceData({
-      complianceScore: 96,
-      recentAudits: [
-        { date: '2024-06-01', type: 'FCRA Compliance', result: 'Passed', score: 98 },
-        { date: '2024-05-15', type: 'Data Security', result: 'Passed', score: 95 },
-        { date: '2024-05-01', type: 'Client Records', result: 'Passed', score: 97 }
-      ],
-      documentRetention: {
-        total: 3456,
-        compliant: 3398,
-        needsReview: 58
-      },
-      fcraViolations: 0,
-      dataBreaches: 0,
-      clientComplaints: 3,
-      averageResolutionTime: 1.2 // days
-    });
+
+    try {
+      const complianceRef = doc(db, 'reports', 'complianceAudit');
+      const complianceSnap = await getDoc(complianceRef);
+      if (complianceSnap.exists()) {
+        setComplianceData(complianceSnap.data());
+      } else {
+        setComplianceData({});
+      }
+    } catch (err) {
+      console.error('Error loading compliance data:', err);
+      setComplianceData({});
+    }
   };
 
   const loadScheduledReports = async () => {
     console.log('Loading scheduled reports...');
-    
-    setScheduledReports([
-      {
-        id: 1,
-        name: 'Weekly Executive Summary',
-        type: 'executive',
-        frequency: 'weekly',
-        day: 'Monday',
-        time: '09:00',
-        recipients: ['chris@speedycrm.com', 'admin@speedycrm.com'],
-        format: 'pdf',
-        status: 'active',
-        lastSent: '2024-06-03',
-        nextRun: '2024-06-10'
-      },
-      {
-        id: 2,
-        name: 'Monthly Revenue Report',
-        type: 'revenue',
-        frequency: 'monthly',
-        day: 1,
-        time: '08:00',
-        recipients: ['chris@speedycrm.com'],
-        format: 'xlsx',
-        status: 'active',
-        lastSent: '2024-06-01',
-        nextRun: '2024-07-01'
-      }
-    ]);
+
+    try {
+      const reportsQuery = query(
+        collection(db, 'scheduledReports'),
+        orderBy('nextRun', 'asc')
+      );
+      const snapshot = await getDocs(reportsQuery);
+      const reportsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setScheduledReports(reportsData);
+    } catch (err) {
+      console.error('Error loading scheduled reports:', err);
+      setScheduledReports([]);
+    }
   };
 
   // ===== AI FUNCTIONS =====

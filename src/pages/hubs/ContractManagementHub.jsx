@@ -252,87 +252,6 @@ const CHART_COLORS = {
   expired: '#F44336',
 };
 
-// ============================================================================
-// 🎭 MOCK DATA GENERATORS
-// ============================================================================
-
-// Generate mock contracts
-const generateMockContracts = (count = 30) => {
-  const clientNames = [
-    'John Smith', 'Sarah Johnson', 'Michael Brown', 'Emily Davis',
-    'David Wilson', 'Jessica Martinez', 'James Anderson', 'Jennifer Taylor',
-  ];
-
-  const contracts = [];
-  for (let i = 0; i < count; i++) {
-    const type = CONTRACT_TYPES[Math.floor(Math.random() * CONTRACT_TYPES.length)];
-    const status = CONTRACT_STATUSES[Math.floor(Math.random() * CONTRACT_STATUSES.length)];
-    const client = clientNames[Math.floor(Math.random() * clientNames.length)];
-    
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - Math.floor(Math.random() * 365));
-    
-    const endDate = new Date(startDate);
-    endDate.setMonth(endDate.getMonth() + 12);
-    
-    const value = Math.floor(Math.random() * 5000) + 500;
-
-    contracts.push({
-      id: `contract-${i + 1}`,
-      title: `${type.name} - ${client}`,
-      type: type.id,
-      typeName: type.name,
-      typeColor: type.color,
-      status: status.id,
-      statusLabel: status.label,
-      statusColor: status.color,
-      client,
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-      value,
-      signed: status.id !== 'draft' && status.id !== 'pending',
-      signedDate: status.id !== 'draft' && status.id !== 'pending' ? startDate.toISOString() : null,
-      version: Math.floor(Math.random() * 5) + 1,
-      renewalNotice: 30,
-      autoRenew: Math.random() > 0.5,
-      tags: ['credit-repair', 'standard'].filter(() => Math.random() > 0.5),
-      createdBy: 'Admin User',
-      createdDate: startDate.toISOString(),
-      lastModified: new Date().toISOString(),
-    });
-  }
-  
-  return contracts.sort((a, b) => new Date(b.createdDate) - new Date(a.createdDate));
-};
-
-// Generate analytics data
-const generateAnalyticsData = () => {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  return months.map((month) => ({
-    month,
-    created: Math.floor(Math.random() * 20) + 5,
-    signed: Math.floor(Math.random() * 15) + 3,
-    expired: Math.floor(Math.random() * 5) + 1,
-    renewed: Math.floor(Math.random() * 8) + 2,
-    value: Math.floor(Math.random() * 50000) + 10000,
-  }));
-};
-
-// Generate template data
-const generateTemplateData = () => {
-  return CONTRACT_TYPES.map((type, index) => ({
-    id: `template-${index + 1}`,
-    name: `Standard ${type.name}`,
-    type: type.id,
-    typeName: type.name,
-    description: `Default template for ${type.name.toLowerCase()}`,
-    usageCount: Math.floor(Math.random() * 50) + 5,
-    lastUsed: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-    createdBy: 'Admin User',
-    version: '1.0',
-    tags: ['standard', 'approved'],
-  }));
-};
 
 // ============================================================================
 // 🤖 AI FUNCTIONS
@@ -514,26 +433,58 @@ const ContractManagementHub = () => {
   const loadContracts = async () => {
     try {
       setLoading(true);
-      // In production, this would fetch from Firebase
-      const mockContracts = generateMockContracts(30);
-      setContracts(mockContracts);
-      setFilteredContracts(mockContracts);
+      const contractsQuery = query(
+        collection(db, 'contracts'),
+        orderBy('createdDate', 'desc')
+      );
+      const snapshot = await getDocs(contractsQuery);
+      const contractData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setContracts(contractData);
+      setFilteredContracts(contractData);
     } catch (err) {
       setError('Failed to load contracts');
       console.error('Error loading contracts:', err);
+      setContracts([]);
+      setFilteredContracts([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const loadTemplates = () => {
-    const mockTemplates = generateTemplateData();
-    setTemplates(mockTemplates);
+  const loadTemplates = async () => {
+    try {
+      const templatesQuery = query(
+        collection(db, 'contractTemplates'),
+        orderBy('usageCount', 'desc')
+      );
+      const snapshot = await getDocs(templatesQuery);
+      const templateData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setTemplates(templateData);
+    } catch (err) {
+      console.error('Error loading templates:', err);
+      setTemplates([]);
+    }
   };
 
-  const loadAnalytics = () => {
-    const data = generateAnalyticsData();
-    setAnalyticsData(data);
+  const loadAnalytics = async () => {
+    try {
+      const analyticsQuery = query(
+        collection(db, 'contractAnalytics'),
+        orderBy('month', 'asc')
+      );
+      const snapshot = await getDocs(analyticsQuery);
+      const data = snapshot.docs.map(doc => doc.data());
+      setAnalyticsData(data);
+    } catch (err) {
+      console.error('Error loading analytics:', err);
+      setAnalyticsData([]);
+    }
   };
 
   // ===== FILTERING & SEARCH =====

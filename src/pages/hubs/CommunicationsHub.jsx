@@ -216,7 +216,7 @@ import {
 } from 'lucide-react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
-import { collection, doc, addDoc, updateDoc, getDoc, getDocs, query, where, orderBy, limit, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { collection, doc, addDoc, updateDoc, getDoc, getDocs, query, where, orderBy, limit, serverTimestamp, deleteDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
 import { format, formatDistanceToNow, subDays, subMonths, startOfMonth, endOfMonth } from 'date-fns';
@@ -708,192 +708,171 @@ const UltimateCommunicationsHub = () => {
   };
 
   const loadEmails = async () => {
-    // In production, load from Firebase
-    // For now, use mock data
-    setEmails(generateMockEmails());
+    try {
+      const emailsQuery = query(
+        collection(db, 'emails'),
+        orderBy('createdAt', 'desc'),
+        limit(100)
+      );
+      const snapshot = await getDocs(emailsQuery);
+      const emailData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        sentAt: doc.data().sentAt?.toDate() || new Date(),
+        scheduledFor: doc.data().scheduledFor?.toDate() || null
+      }));
+      setEmails(emailData);
+    } catch (error) {
+      console.error('Error loading emails:', error);
+      setEmails([]);
+    }
   };
 
   const loadSMS = async () => {
-    setSmsMessages(generateMockSMS());
+    try {
+      const smsQuery = query(
+        collection(db, 'sms'),
+        orderBy('sentAt', 'desc'),
+        limit(100)
+      );
+      const snapshot = await getDocs(smsQuery);
+      const smsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        sentAt: doc.data().sentAt?.toDate() || new Date(),
+        deliveredAt: doc.data().deliveredAt?.toDate() || null
+      }));
+      setSmsMessages(smsData);
+    } catch (error) {
+      console.error('Error loading SMS:', error);
+      setSmsMessages([]);
+    }
   };
 
   const loadTemplates = async () => {
-    setTemplates(generateMockTemplates());
+    try {
+      const templatesQuery = query(
+        collection(db, 'emailTemplates'),
+        orderBy('lastUsed', 'desc')
+      );
+      const snapshot = await getDocs(templatesQuery);
+      const templateData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        lastUsed: doc.data().lastUsed?.toDate() || new Date()
+      }));
+      setTemplates(templateData);
+    } catch (error) {
+      console.error('Error loading templates:', error);
+      setTemplates([]);
+    }
   };
 
   const loadCampaigns = async () => {
-    setCampaigns(generateMockCampaigns());
+    try {
+      const campaignsQuery = query(
+        collection(db, 'campaigns'),
+        orderBy('createdAt', 'desc'),
+        limit(50)
+      );
+      const snapshot = await getDocs(campaignsQuery);
+      const campaignData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt?.toDate() || new Date(),
+        scheduledFor: doc.data().scheduledFor?.toDate() || null
+      }));
+      setCampaigns(campaignData);
+    } catch (error) {
+      console.error('Error loading campaigns:', error);
+      setCampaigns([]);
+    }
   };
 
   const loadAutomations = async () => {
-    setAutomations(generateMockAutomations());
+    try {
+      const automationsQuery = query(
+        collection(db, 'automations'),
+        orderBy('createdAt', 'desc')
+      );
+      const snapshot = await getDocs(automationsQuery);
+      const automationData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt?.toDate() || new Date()
+      }));
+      setAutomations(automationData);
+    } catch (error) {
+      console.error('Error loading automations:', error);
+      setAutomations([]);
+    }
   };
 
   const loadConversations = async () => {
-    setConversations(generateMockConversations());
+    try {
+      const conversationsQuery = query(
+        collection(db, 'conversations'),
+        orderBy('lastMessageAt', 'desc'),
+        limit(50)
+      );
+      const snapshot = await getDocs(conversationsQuery);
+      const conversationData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        lastMessageAt: doc.data().lastMessageAt?.toDate() || new Date()
+      }));
+      setConversations(conversationData);
+    } catch (error) {
+      console.error('Error loading conversations:', error);
+      setConversations([]);
+    }
   };
 
   const loadAnalytics = async () => {
-    setAnalytics(generateMockAnalytics());
+    try {
+      // Load real analytics from aggregated data
+      const analyticsDoc = await getDoc(doc(db, 'analytics', 'communications'));
+      if (analyticsDoc.exists()) {
+        setAnalytics(analyticsDoc.data());
+      } else {
+        // Default empty analytics structure
+        setAnalytics({
+          overview: {
+            emailsSent: 0,
+            smsSent: 0,
+            openRate: 0,
+            clickRate: 0,
+            deliveryRate: 0,
+            bounceRate: 0,
+            unsubscribeRate: 0,
+            conversions: 0,
+            revenue: 0,
+          },
+          timeSeriesData: [],
+          topCampaigns: [],
+        });
+      }
+    } catch (error) {
+      console.error('Error loading analytics:', error);
+      setAnalytics({
+        overview: {
+          emailsSent: 0,
+          smsSent: 0,
+          openRate: 0,
+          clickRate: 0,
+          deliveryRate: 0,
+          bounceRate: 0,
+          unsubscribeRate: 0,
+          conversions: 0,
+          revenue: 0,
+        },
+        timeSeriesData: [],
+        topCampaigns: [],
+      });
+    }
   };
 
-  // ===== MOCK DATA GENERATORS =====
-  const generateMockEmails = () => {
-    const statuses = ['draft', 'scheduled', 'sent', 'failed'];
-    return Array.from({ length: 25 }, (_, i) => ({
-      id: `email-${i + 1}`,
-      subject: `Email Campaign ${i + 1}`,
-      to: `client${i + 1}@example.com`,
-      from: 'support@speedycrm.com',
-      body: 'Lorem ipsum dolor sit amet...',
-      status: statuses[Math.floor(Math.random() * statuses.length)],
-      opens: Math.floor(Math.random() * 100),
-      clicks: Math.floor(Math.random() * 50),
-      sentAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000),
-      scheduledFor: Math.random() > 0.5 ? new Date(Date.now() + Math.random() * 7 * 24 * 60 * 60 * 1000) : null,
-      recipientCount: Math.floor(Math.random() * 500 + 50),
-    }));
-  };
-
-  const generateMockSMS = () => {
-    const statuses = ['sent', 'delivered', 'failed', 'pending'];
-    return Array.from({ length: 30 }, (_, i) => ({
-      id: `sms-${i + 1}`,
-      to: `+1555000${String(i).padStart(4, '0')}`,
-      from: '+15551234567',
-      message: 'Your credit report update is ready!',
-      status: statuses[Math.floor(Math.random() * statuses.length)],
-      sentAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000),
-      deliveredAt: Math.random() > 0.3 ? new Date() : null,
-      cost: (Math.random() * 0.02 + 0.01).toFixed(3),
-    }));
-  };
-
-  const generateMockTemplates = () => {
-    return [
-      {
-        id: 'template-1',
-        name: 'Welcome Email',
-        category: 'welcome',
-        type: 'email',
-        subject: 'Welcome to SpeedyCRM!',
-        body: '<h1>Welcome {{first_name}}!</h1><p>We\'re excited to have you...</p>',
-        uses: 234,
-        lastUsed: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-        openRate: 68.5,
-        clickRate: 12.3,
-      },
-      {
-        id: 'template-2',
-        name: 'Payment Reminder',
-        category: 'transactional',
-        type: 'email',
-        subject: 'Payment Due: {{company}}',
-        body: '<p>Hi {{first_name}},</p><p>Your payment is due...</p>',
-        uses: 567,
-        lastUsed: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-        openRate: 78.2,
-        clickRate: 34.5,
-      },
-      {
-        id: 'template-3',
-        name: 'Report Ready SMS',
-        category: 'notification',
-        type: 'sms',
-        subject: null,
-        body: 'Hi {{first_name}}, your credit report is ready! View it here: {{report_link}}',
-        uses: 892,
-        lastUsed: new Date(),
-        deliveryRate: 98.5,
-      },
-    ];
-  };
-
-  const generateMockCampaigns = () => {
-    const statuses = ['draft', 'scheduled', 'sending', 'sent', 'paused'];
-    return Array.from({ length: 10 }, (_, i) => ({
-      id: `campaign-${i + 1}`,
-      name: `Campaign ${i + 1}`,
-      type: CAMPAIGN_TYPES[Math.floor(Math.random() * CAMPAIGN_TYPES.length)].value,
-      status: statuses[Math.floor(Math.random() * statuses.length)],
-      recipients: Math.floor(Math.random() * 1000 + 100),
-      sent: Math.floor(Math.random() * 900),
-      opens: Math.floor(Math.random() * 600),
-      clicks: Math.floor(Math.random() * 200),
-      conversions: Math.floor(Math.random() * 50),
-      createdAt: new Date(Date.now() - Math.random() * 60 * 24 * 60 * 60 * 1000),
-      scheduledFor: Math.random() > 0.5 ? new Date(Date.now() + Math.random() * 7 * 24 * 60 * 60 * 1000) : null,
-    }));
-  };
-
-  const generateMockAutomations = () => {
-    return [
-      {
-        id: 'auto-1',
-        name: 'Welcome Series',
-        trigger: 'client_signup',
-        status: 'active',
-        steps: 5,
-        recipients: 1234,
-        completionRate: 78.5,
-        conversionRate: 12.3,
-        createdAt: subMonths(new Date(), 3),
-      },
-      {
-        id: 'auto-2',
-        name: 'Payment Failed Follow-up',
-        trigger: 'payment_failed',
-        status: 'active',
-        steps: 3,
-        recipients: 456,
-        completionRate: 85.2,
-        conversionRate: 45.6,
-        createdAt: subMonths(new Date(), 2),
-      },
-    ];
-  };
-
-  const generateMockConversations = () => {
-    return Array.from({ length: 15 }, (_, i) => ({
-      id: `conv-${i + 1}`,
-      clientName: `Client ${i + 1}`,
-      clientEmail: `client${i + 1}@example.com`,
-      clientPhone: `+1555000${String(i).padStart(4, '0')}`,
-      lastMessage: 'Thanks for the update!',
-      lastMessageAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000),
-      unreadCount: Math.floor(Math.random() * 5),
-      channel: Math.random() > 0.5 ? 'email' : 'sms',
-      status: Math.random() > 0.7 ? 'active' : 'closed',
-    }));
-  };
-
-  const generateMockAnalytics = () => {
-    return {
-      overview: {
-        emailsSent: 12543,
-        smsSent: 8934,
-        openRate: 42.5,
-        clickRate: 8.7,
-        deliveryRate: 98.2,
-        bounceRate: 1.8,
-        unsubscribeRate: 0.3,
-        conversions: 856,
-        revenue: 42850,
-      },
-      timeSeriesData: Array.from({ length: 30 }, (_, i) => ({
-        date: format(subDays(new Date(), 29 - i), 'MMM dd'),
-        emailsSent: Math.floor(Math.random() * 500 + 200),
-        smsSent: Math.floor(Math.random() * 300 + 100),
-        opens: Math.floor(Math.random() * 200 + 80),
-        clicks: Math.floor(Math.random() * 50 + 10),
-      })),
-      topCampaigns: [
-        { name: 'Welcome Series', sent: 2340, opens: 1560, clicks: 312, conversions: 45 },
-        { name: 'Monthly Newsletter', sent: 1890, opens: 1134, clicks: 227, conversions: 23 },
-        { name: 'Special Offer', sent: 1560, opens: 936, clicks: 187, conversions: 34 },
-      ],
-    };
-  };
+  // Note: Mock data generators removed - now using Firebase data
 
   // ===== EMAIL MANAGER TAB =====
   const renderEmailManagerTab = () => (

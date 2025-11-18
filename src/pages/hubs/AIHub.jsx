@@ -166,7 +166,7 @@ import {
   GridView as GridViewIcon,
 } from '@mui/icons-material';
 import { useAuth } from '@/contexts/AuthContext';
-import { collection, query, where, getDocs, addDoc, updateDoc, doc, serverTimestamp, orderBy, limit } from 'firebase/firestore';
+import { collection, query, where, getDocs, getDoc, addDoc, updateDoc, doc, serverTimestamp, orderBy, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
@@ -348,39 +348,56 @@ const AISuperHub = () => {
   // DATA LOADING FUNCTIONS
   // ============================================================================
 
-  const loadAIStats = () => {
-    // Mock data - replace with actual API calls
-    setStats({
-      totalAICalls: 45280,
-      thisMonth: 12430,
-      cost: 247.85,
-      avgResponseTime: 1.8,
-      successRate: 98.5,
-      modelsActive: 3,
-    });
+  const loadAIStats = async () => {
+    try {
+      const statsRef = doc(db, 'aiStats', 'current');
+      const statsSnap = await getDoc(statsRef);
+      if (statsSnap.exists()) {
+        setStats(statsSnap.data());
+      } else {
+        setStats({});
+      }
+    } catch (err) {
+      console.error('Error loading AI stats:', err);
+      setStats({});
+    }
   };
 
-  const loadAIActivity = () => {
-    // Mock recent AI activity
-    const activity = [
-      { type: 'lead-scoring', user: 'John Smith', result: 'Score: 85/100', timestamp: new Date(Date.now() - 5 * 60000) },
-      { type: 'content-gen', user: 'Sarah Johnson', result: 'Email created', timestamp: new Date(Date.now() - 12 * 60000) },
-      { type: 'prediction', user: 'System', result: 'Revenue forecast updated', timestamp: new Date(Date.now() - 25 * 60000) },
-      { type: 'dispute', user: 'Mike Davis', result: 'Dispute letter generated', timestamp: new Date(Date.now() - 38 * 60000) },
-      { type: 'analysis', user: 'AI Assistant', result: 'Credit report analyzed', timestamp: new Date(Date.now() - 52 * 60000) },
-    ];
-    setAiActivity(activity);
+  const loadAIActivity = async () => {
+    try {
+      const activityQuery = query(
+        collection(db, 'aiActivity'),
+        orderBy('timestamp', 'desc'),
+        limit(10)
+      );
+      const snapshot = await getDocs(activityQuery);
+      const activityData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setAiActivity(activityData);
+    } catch (err) {
+      console.error('Error loading AI activity:', err);
+      setAiActivity([]);
+    }
   };
 
-  const loadModelPerformance = () => {
-    // Mock model performance data
-    const performance = [
-      { model: 'Lead Scorer', accuracy: 94.2, calls: 3420, cost: 34.20, avgTime: 0.3 },
-      { model: 'Content Generator', quality: 91.5, calls: 1250, cost: 125.00, avgTime: 2.1 },
-      { model: 'Predictor', accuracy: 87.8, calls: 890, cost: 89.00, avgTime: 1.5 },
-      { model: 'Sentiment Analyzer', accuracy: 96.1, calls: 5200, cost: 52.00, avgTime: 0.2 },
-    ];
-    setModelPerformance(performance);
+  const loadModelPerformance = async () => {
+    try {
+      const performanceQuery = query(
+        collection(db, 'modelPerformance'),
+        orderBy('calls', 'desc')
+      );
+      const snapshot = await getDocs(performanceQuery);
+      const performanceData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setModelPerformance(performanceData);
+    } catch (err) {
+      console.error('Error loading model performance:', err);
+      setModelPerformance([]);
+    }
   };
 
   // ============================================================================

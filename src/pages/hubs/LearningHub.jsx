@@ -272,209 +272,6 @@ const DIFFICULTY_LEVELS = [
 // Chart colors for analytics
 const CHART_COLORS = ['#2196F3', '#4CAF50', '#FF9800', '#F44336', '#9C27B0', '#00BCD4', '#607D8B', '#E91E63'];
 
-// Mock courses (replace with Firebase data in production)
-const MOCK_COURSES = [
-  {
-    id: '1',
-    title: 'Credit Repair Fundamentals',
-    description: 'Master the basics of credit repair, FCRA laws, and client onboarding. Perfect for beginners starting their credit repair journey.',
-    category: 'credit-basics',
-    difficulty: 'beginner',
-    duration: '4 hours',
-    lessons: 12,
-    students: 245,
-    rating: 4.8,
-    reviews: 89,
-    progress: 65,
-    thumbnail: 'https://via.placeholder.com/400x200/2196F3/fff?text=Credit+Basics',
-    instructor: 'Sarah Johnson',
-    instructorAvatar: 'SJ',
-    lastUpdated: '2025-01-15',
-    enrolled: true,
-    completed: false,
-    syllabus: [
-      'Introduction to FCRA',
-      'Understanding Credit Scores',
-      'Client Onboarding Process',
-      'Setting Up Your Business',
-    ],
-  },
-  {
-    id: '2',
-    title: 'Advanced Dispute Strategies',
-    description: 'Learn advanced techniques for writing effective dispute letters that get results. Includes real-world case studies.',
-    category: 'dispute-letters',
-    difficulty: 'advanced',
-    duration: '6 hours',
-    lessons: 18,
-    students: 189,
-    rating: 4.9,
-    reviews: 67,
-    progress: 30,
-    thumbnail: 'https://via.placeholder.com/400x200/4CAF50/fff?text=Disputes',
-    instructor: 'Michael Chen',
-    instructorAvatar: 'MC',
-    lastUpdated: '2025-01-10',
-    enrolled: true,
-    completed: false,
-    syllabus: [
-      'Advanced Dispute Techniques',
-      'Case Studies',
-      'Legal Strategies',
-      'Follow-up Methods',
-    ],
-  },
-  {
-    id: '3',
-    title: 'Sales Mastery for Credit Repair',
-    description: 'Close more deals and grow your credit repair business with proven sales techniques and scripts.',
-    category: 'sales-training',
-    difficulty: 'intermediate',
-    duration: '5 hours',
-    lessons: 15,
-    students: 312,
-    rating: 4.7,
-    reviews: 124,
-    progress: 0,
-    thumbnail: 'https://via.placeholder.com/400x200/9C27B0/fff?text=Sales',
-    instructor: 'David Martinez',
-    instructorAvatar: 'DM',
-    lastUpdated: '2025-01-08',
-    enrolled: false,
-    completed: false,
-    syllabus: [
-      'Sales Fundamentals',
-      'Objection Handling',
-      'Closing Techniques',
-      'Follow-up Strategies',
-    ],
-  },
-  {
-    id: '4',
-    title: 'FCRA Compliance Masterclass',
-    description: 'Comprehensive guide to staying compliant with federal regulations and avoiding legal pitfalls.',
-    category: 'compliance',
-    difficulty: 'intermediate',
-    duration: '4.5 hours',
-    lessons: 14,
-    students: 156,
-    rating: 4.8,
-    reviews: 45,
-    progress: 0,
-    thumbnail: 'https://via.placeholder.com/400x200/F44336/fff?text=Compliance',
-    instructor: 'Lisa Anderson',
-    instructorAvatar: 'LA',
-    lastUpdated: '2025-01-05',
-    enrolled: false,
-    completed: false,
-    syllabus: [
-      'FCRA Overview',
-      'State Regulations',
-      'Common Violations',
-      'Best Practices',
-    ],
-  },
-];
-
-// Mock videos
-const MOCK_VIDEOS = [
-  {
-    id: 'v1',
-    title: 'Introduction to FCRA',
-    course: 'Credit Repair Fundamentals',
-    duration: '12:45',
-    watched: true,
-    progress: 100,
-    thumbnail: 'https://via.placeholder.com/200x120/2196F3/fff?text=Video+1',
-    views: 1234,
-    likes: 89,
-  },
-  {
-    id: 'v2',
-    title: 'Understanding Credit Scores',
-    course: 'Credit Repair Fundamentals',
-    duration: '18:32',
-    watched: true,
-    progress: 100,
-    thumbnail: 'https://via.placeholder.com/200x120/4CAF50/fff?text=Video+2',
-    views: 1156,
-    likes: 78,
-  },
-  {
-    id: 'v3',
-    title: 'Client Onboarding Process',
-    course: 'Credit Repair Fundamentals',
-    duration: '24:15',
-    watched: false,
-    progress: 45,
-    thumbnail: 'https://via.placeholder.com/200x120/FF9800/fff?text=Video+3',
-    views: 987,
-    likes: 67,
-  },
-  {
-    id: 'v4',
-    title: 'Advanced Dispute Techniques',
-    course: 'Advanced Dispute Strategies',
-    duration: '28:45',
-    watched: false,
-    progress: 0,
-    thumbnail: 'https://via.placeholder.com/200x120/9C27B0/fff?text=Video+4',
-    views: 856,
-    likes: 54,
-  },
-];
-
-// Mock articles
-const MOCK_ARTICLES = [
-  {
-    id: 'a1',
-    title: 'Complete Guide to FCRA Section 609',
-    category: 'credit-basics',
-    readTime: '8 min',
-    views: 1234,
-    likes: 89,
-    bookmarked: true,
-    author: 'Sarah Johnson',
-    publishedDate: '2025-01-10',
-    excerpt: 'Learn everything about FCRA Section 609 and how to use it effectively...',
-  },
-  {
-    id: 'a2',
-    title: 'Top 10 Dispute Letter Templates',
-    category: 'dispute-letters',
-    readTime: '12 min',
-    views: 2156,
-    likes: 145,
-    bookmarked: false,
-    author: 'Michael Chen',
-    publishedDate: '2025-01-08',
-    excerpt: 'Download and customize these proven dispute letter templates...',
-  },
-  {
-    id: 'a3',
-    title: 'State-by-State Credit Repair Laws',
-    category: 'compliance',
-    readTime: '15 min',
-    views: 987,
-    likes: 67,
-    bookmarked: true,
-    author: 'Lisa Anderson',
-    publishedDate: '2025-01-05',
-    excerpt: 'Navigate the complex landscape of state credit repair regulations...',
-  },
-  {
-    id: 'a4',
-    title: 'How to Close More Credit Repair Sales',
-    category: 'sales-training',
-    readTime: '10 min',
-    views: 1456,
-    likes: 112,
-    bookmarked: false,
-    author: 'David Martinez',
-    publishedDate: '2025-01-03',
-    excerpt: 'Proven sales techniques that convert prospects into paying clients...',
-  },
-];
 
 // ============================================================================
 // 🤖 AI FUNCTIONS
@@ -749,7 +546,7 @@ const LearningHub = () => {
   const [success, setSuccess] = useState(null);
 
   // Course Library State
-  const [courses, setCourses] = useState(MOCK_COURSES);
+  const [courses, setCourses] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [courseFilter, setCourseFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -757,13 +554,13 @@ const LearningHub = () => {
   const [courseDialogOpen, setCourseDialogOpen] = useState(false);
 
   // Video Training State
-  const [videos, setVideos] = useState(MOCK_VIDEOS);
+  const [videos, setVideos] = useState([]);
   const [currentVideo, setCurrentVideo] = useState(null);
   const [videoProgress, setVideoProgress] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
 
   // Knowledge Base State
-  const [articles, setArticles] = useState(MOCK_ARTICLES);
+  const [articles, setArticles] = useState([]);
   const [selectedArticle, setSelectedArticle] = useState(null);
   const [articleSearch, setArticleSearch] = useState('');
   const [articleDialogOpen, setArticleDialogOpen] = useState(false);
@@ -861,10 +658,19 @@ const LearningHub = () => {
       const coursesRef = collection(db, 'courses');
       const coursesSnapshot = await getDocs(query(coursesRef, orderBy('createdAt', 'desc')));
       const coursesData = coursesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      
-      if (coursesData.length > 0) {
-        setCourses(coursesData);
-      }
+      setCourses(coursesData);
+
+      // Load videos from Firebase
+      const videosRef = collection(db, 'videos');
+      const videosSnapshot = await getDocs(query(videosRef, orderBy('createdAt', 'desc')));
+      const videosData = videosSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setVideos(videosData);
+
+      // Load articles from Firebase
+      const articlesRef = collection(db, 'articles');
+      const articlesSnapshot = await getDocs(query(articlesRef, orderBy('createdAt', 'desc')));
+      const articlesData = articlesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setArticles(articlesData);
 
       // Load user progress
       if (currentUser) {
@@ -879,6 +685,9 @@ const LearningHub = () => {
       console.log('✅ Learning data loaded');
     } catch (error) {
       console.error('❌ Error loading learning data:', error);
+      setCourses([]);
+      setVideos([]);
+      setArticles([]);
     } finally {
       setLoading(false);
     }

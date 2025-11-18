@@ -144,71 +144,52 @@ const BillingHub = () => {
   const loadBillingData = async () => {
     setLoading(true);
     try {
-      // Mock data - replace with real Firebase queries
-      setInvoices(generateMockInvoices(50));
-      setPayments(generateMockPayments(100));
-      setSubscriptions(generateMockSubscriptions(89));
+      // Load invoices
+      const invoicesQuery = query(
+        collection(db, 'invoices'),
+        orderBy('createdAt', 'desc')
+      );
+      const invoicesSnapshot = await getDocs(invoicesQuery);
+      const invoiceData = invoicesSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setInvoices(invoiceData);
+
+      // Load payments
+      const paymentsQuery = query(
+        collection(db, 'payments'),
+        orderBy('date', 'desc')
+      );
+      const paymentsSnapshot = await getDocs(paymentsQuery);
+      const paymentData = paymentsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setPayments(paymentData);
+
+      // Load subscriptions
+      const subscriptionsQuery = query(
+        collection(db, 'subscriptions'),
+        orderBy('nextBilling', 'asc')
+      );
+      const subscriptionsSnapshot = await getDocs(subscriptionsQuery);
+      const subscriptionData = subscriptionsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setSubscriptions(subscriptionData);
     } catch (error) {
       console.error('Load Billing Data Error:', error);
       setError('Failed to load billing data');
+      setInvoices([]);
+      setPayments([]);
+      setSubscriptions([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Mock data generators
-  const generateMockInvoices = (count) => {
-    const invoices = [];
-    const statuses = ['paid', 'pending', 'overdue', 'draft'];
-    
-    for (let i = 0; i < count; i++) {
-      invoices.push({
-        id: `INV-${1000 + i}`,
-        clientName: `Client ${i + 1}`,
-        amount: Math.round(Math.random() * 2000 + 500),
-        status: statuses[Math.floor(Math.random() * statuses.length)],
-        dueDate: new Date(Date.now() + Math.random() * 30 * 86400000).toLocaleDateString(),
-        createdAt: new Date(Date.now() - Math.random() * 60 * 86400000).toLocaleDateString(),
-      });
-    }
-    return invoices;
-  };
-
-  const generateMockPayments = (count) => {
-    const payments = [];
-    const methods = ['Credit Card', 'ACH', 'PayPal', 'Stripe', 'Check'];
-    
-    for (let i = 0; i < count; i++) {
-      payments.push({
-        id: `PAY-${2000 + i}`,
-        clientName: `Client ${i + 1}`,
-        amount: Math.round(Math.random() * 2000 + 100),
-        method: methods[Math.floor(Math.random() * methods.length)],
-        status: 'completed',
-        date: new Date(Date.now() - Math.random() * 90 * 86400000).toLocaleDateString(),
-      });
-    }
-    return payments;
-  };
-
-  const generateMockSubscriptions = (count) => {
-    const subscriptions = [];
-    const plans = ['Basic', 'Professional', 'Premium', 'Enterprise'];
-    const intervals = ['monthly', 'quarterly', 'annual'];
-    
-    for (let i = 0; i < count; i++) {
-      subscriptions.push({
-        id: `SUB-${3000 + i}`,
-        clientName: `Client ${i + 1}`,
-        plan: plans[Math.floor(Math.random() * plans.length)],
-        amount: Math.round(Math.random() * 500 + 99),
-        interval: intervals[Math.floor(Math.random() * intervals.length)],
-        status: Math.random() > 0.1 ? 'active' : 'cancelled',
-        nextBilling: new Date(Date.now() + Math.random() * 30 * 86400000).toLocaleDateString(),
-      });
-    }
-    return subscriptions;
-  };
 
   const handleCreateInvoice = async () => {
     try {
