@@ -73,8 +73,9 @@ export default function Portal() {
   const loadDashboardData = async () => {
     setLoading(true);
     try {
-      // Load real clients from Firestore
-      const clientsSnapshot = await getDocs(collection(db, 'contacts'));
+      // Load real clients from Firestore - only those with role='client'
+      const clientsQuery = query(collection(db, 'contacts'), where('role', '==', 'client'));
+      const clientsSnapshot = await getDocs(clientsQuery);
       const allClients = clientsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       
       // Count active clients (those with recent activity)
@@ -274,7 +275,7 @@ export default function Portal() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Add New Contact */}
         <button
-          onClick={() => navigate('/credit-report-workflow')}
+          onClick={() => navigate('/contacts')}
           className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 hover:shadow-lg transition-all group text-left"
         >
           <div className="flex items-start gap-4">
@@ -283,10 +284,10 @@ export default function Portal() {
             </div>
             <div className="flex-1">
               <h3 className="font-bold text-gray-900 dark:text-white mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                New Credit Report
+                Add New Contact
               </h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Pull credit report and generate AI review
+                Add a new contact to the system
               </p>
             </div>
           </div>
@@ -506,7 +507,7 @@ export default function Portal() {
             <p className="text-gray-600 dark:text-gray-400">Manage and view all your clients</p>
           </div>
           <button
-            onClick={() => navigate('/credit-report-workflow')}
+            onClick={() => navigate('/contacts')}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
           >
             <Plus className="w-5 h-5" />

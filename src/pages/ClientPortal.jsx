@@ -2409,7 +2409,7 @@ const ClientPortal = () => {
         </Button>
       </Box>
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-        Earn $100 for every friend who signs up using your link!
+        Earn rewards for every referral! <Link href="/affiliates-hub" style={{ textDecoration: 'underline' }}>Learn more about our affiliate program</Link>
       </Typography>
     </Paper>
 

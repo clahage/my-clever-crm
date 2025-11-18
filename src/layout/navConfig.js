@@ -165,7 +165,7 @@ export const navigationItems = [
   // ==========================================================================
   {
     id: 'dashboard',
-    title: 'Dashboard',
+    title: 'Home',
     path: '/dashboard',
     icon: Home,
     permission: 'prospect', // Everyone sees dashboard

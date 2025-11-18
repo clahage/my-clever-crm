@@ -3999,6 +3999,7 @@ const QuickAccessPanel = () => {
           variant="outlined"
           startIcon={<Plus size={16} />}
           sx={{ mb: 1, justifyContent: 'flex-start' }}
+          onClick={() => window.location.href = '/contacts'}
         >
           Add Contact
         </Button>
@@ -4007,6 +4008,7 @@ const QuickAccessPanel = () => {
           variant="outlined"
           startIcon={<FileText size={16} />}
           sx={{ mb: 1, justifyContent: 'flex-start' }}
+          onClick={() => window.location.href = '/dispute-hub'}
         >
           New Dispute
         </Button>
@@ -4015,6 +4017,7 @@ const QuickAccessPanel = () => {
           variant="outlined"
           startIcon={<Mail size={16} />}
           sx={{ mb: 1, justifyContent: 'flex-start' }}
+          onClick={() => window.location.href = '/comms-hub'}
         >
           Send Email
         </Button>
