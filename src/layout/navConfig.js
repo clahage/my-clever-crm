@@ -31,7 +31,7 @@ import {
   Smartphone, Palette, Brush, Info,
 
   // ===== MISC =====
-  MapPin, AlertCircle, Eye, Wrench, Lock, Key, HelpCircle, ExternalLink
+  MapPin, AlertCircle, Eye, Wrench, Lock, Key, HelpCircle, ExternalLink, Share2
 } from 'lucide-react';
 
 // ============================================================================
