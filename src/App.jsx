@@ -588,17 +588,8 @@ const AppContent = () => {
   }
 />
 
-{/* Billing Payments Hub - Comprehensive billing & revenue */}
-<Route
-  path="billing-payments-hub"
-  element={
-    <ProtectedRoute requiredRole="admin">
-      <Suspense fallback={<LoadingFallback />}>
-        <BillingPaymentsHub />
-      </Suspense>
-    </ProtectedRoute>
-  }
-/>
+{/* Billing Payments Hub - Redirect to main Billing Hub */}
+<Route path="billing-payments-hub" element={<Navigate to="/billing-hub" replace />} />
 
 {/* Payment Integration Hub - Stripe & PayPal integration */}
 <Route

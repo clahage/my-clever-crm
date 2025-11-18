@@ -306,15 +306,45 @@ const UltimateReportsHub = () => {
     source: 'all'
   });
 
-  // ===== PERMISSION CHECK =====
+  // ===== PERMISSION CHECK (Case-Insensitive) =====
   const hasAccess = useMemo(() => {
     if (!userProfile) return false;
-    return (userProfile.role || 0) >= 5; // user(5) or higher
+
+    const userRole = userProfile.role;
+
+    // Handle string roles (case-insensitive)
+    if (typeof userRole === 'string') {
+      const roleLower = userRole.toLowerCase().replace(/[-_]/g, '');
+      // Allow: user, manager, admin, masteradmin (any case/format)
+      return ['user', 'manager', 'admin', 'masteradmin'].includes(roleLower);
+    }
+
+    // Handle numeric roles
+    if (typeof userRole === 'number') {
+      return userRole >= 5; // user(5) or higher
+    }
+
+    return false;
   }, [userProfile]);
 
   const canExport = useMemo(() => {
     if (!userProfile) return false;
-    return (userProfile.role || 0) >= 6; // manager(6) or higher
+
+    const userRole = userProfile.role;
+
+    // Handle string roles (case-insensitive)
+    if (typeof userRole === 'string') {
+      const roleLower = userRole.toLowerCase().replace(/[-_]/g, '');
+      // Allow: manager, admin, masteradmin (any case/format)
+      return ['manager', 'admin', 'masteradmin'].includes(roleLower);
+    }
+
+    // Handle numeric roles
+    if (typeof userRole === 'number') {
+      return userRole >= 6; // manager(6) or higher
+    }
+
+    return false;
   }, [userProfile]);
 
   // ===== EFFECTS =====

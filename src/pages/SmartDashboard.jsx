@@ -3179,46 +3179,35 @@ const MyTasksWidget = () => {
       try {
         setLoading(true);
         
-        // Generate sample task data
-        const taskData = [
-          {
-            title: 'Follow up with Sarah Martinez',
-            dueDate: new Date(),
-            priority: 'high',
-            client: 'Sarah Martinez',
-            status: 'pending',
-          },
-          {
-            title: 'Submit dispute letters to Experian',
-            dueDate: new Date(Date.now() + 86400000),
-            priority: 'high',
-            client: client.name || client.firstName + ' ' + client.lastName || 'Client',
-            status: 'pending',
-          },
-          {
-            title: 'Review credit report analysis',
-            dueDate: new Date(Date.now() + 86400000),
-            priority: 'medium',
-            client: 'Lisa Anderson',
-            status: 'in-progress',
-          },
-          {
-            title: 'Schedule consultation call',
-            dueDate: new Date(Date.now() + 172800000),
-            priority: 'medium',
-            client: 'Mike Johnson',
-            status: 'pending',
-          },
-          {
-            title: 'Update client portal documents',
-            dueDate: new Date(Date.now() + 172800000),
-            priority: 'low',
-            client: 'Emily Taylor',
-            status: 'pending',
-          },
-        ];
-        
-        setTasks(taskData);
+        // Load tasks from Firebase
+        const tasksRef = collection(db, 'tasks');
+        const tasksSnap = await getDocs(query(tasksRef, orderBy('dueDate', 'asc'), limit(10)));
+        const taskData = tasksSnap.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          dueDate: doc.data().dueDate?.toDate?.() || new Date(doc.data().dueDate) || new Date()
+        }));
+
+        // If no tasks exist, show empty state placeholder
+        if (taskData.length === 0) {
+          setTasks([]);
+          setLoading(false);
+          return;
+        }
+
+        // Use first task's client name for display
+        const client = { name: taskData[0]?.client || 'Client' };
+
+        // Map tasks to expected format
+        const formattedTasks = taskData.map(task => ({
+          title: task.title || 'Untitled Task',
+          dueDate: task.dueDate,
+          priority: task.priority || 'medium',
+          client: task.client || 'Unassigned',
+          status: task.status || 'pending',
+        }));
+
+        setTasks(formattedTasks);
         setLoading(false);
         console.log('✅ Personal tasks loaded');
       } catch (error) {
@@ -3732,34 +3721,19 @@ const ChurnPredictionWidget = () => {
       try {
         setLoading(true);
         
-        // Generate at-risk clients
-        const atRiskClients = [
-          {
-            name: 'Michael Brown',
-            riskScore: 85,
-            reasons: ['No contact in 45 days', '2 missed payments', 'No score improvement'],
-            lastContact: '45 days ago',
-          },
-          {
-            name: 'Patricia Wilson',
-            riskScore: 78,
-            reasons: ['Low engagement', '1 missed payment', 'Support tickets'],
-            lastContact: '32 days ago',
-          },
-          {
-            name: 'Robert Davis',
-            riskScore: 72,
-            reasons: ['No recent disputes', 'Declining satisfaction'],
-            lastContact: '28 days ago',
-          },
-          {
-            name: 'Linda Garcia',
-            riskScore: 68,
-            reasons: ['Payment delays', 'Reduced portal usage'],
-            lastContact: '21 days ago',
-          },
-        ];
-        
+        // Load at-risk clients from Firebase
+        const clientsRef = collection(db, 'clients');
+        const clientsSnap = await getDocs(query(clientsRef, orderBy('riskScore', 'desc'), limit(10)));
+        const atRiskClients = clientsSnap.docs
+          .map(doc => ({
+            id: doc.id,
+            name: doc.data().name || doc.data().firstName + ' ' + doc.data().lastName || 'Client',
+            riskScore: doc.data().riskScore || 0,
+            reasons: doc.data().riskReasons || [],
+            lastContact: doc.data().lastContact ? `${Math.floor((Date.now() - doc.data().lastContact.toDate()) / (1000 * 60 * 60 * 24))} days ago` : 'Never',
+          }))
+          .filter(client => client.riskScore >= 50); // Only show clients with risk score >= 50
+
         setClients(atRiskClients);
         setLoading(false);
         console.log('⚠️ Churn prediction data loaded');

@@ -427,17 +427,8 @@ export const navigationItems = [
         icon: Receipt,
         permission: 'admin',
         badge: 'ADMIN',
-        description: 'Invoice and billing management'
+        description: 'Invoices, payments, subscriptions & revenue'
       },
-      {
-       id: 'billing-payments-hub',
-       title: 'Billing & Payments',
-       path: '/billing-payments-hub',
-       icon: 'Receipt',
-       requiredRole: 'admin',
-       badge: 'PRO',
-       description: 'Advanced billing & revenue management'
-     },
      {
        id: 'payment-integration-hub',
        title: 'Payment Integrations',
@@ -1107,32 +1098,14 @@ export const navigationItems = [
         mobileHidden: true,
         description: 'Office locations'
       },
-      { 
-        id: 'invoices', 
-        title: 'Invoices', 
-        path: '/invoices', 
-        icon: Receipt, 
-        permission: 'user',
-        mobileHidden: true,
-        description: 'Billing & invoices'
-      },
-      { 
-        id: 'affiliates', 
-        title: 'Affiliates', 
-        path: '/affiliates', 
-        icon: Handshake, 
+      {
+        id: 'affiliates',
+        title: 'Affiliates',
+        path: '/affiliates',
+        icon: Handshake,
         permission: 'user',
         mobileHidden: true,
         description: 'Partner program'
-      },
-      { 
-        id: 'billing', 
-        title: 'Billing', 
-        path: '/billing', 
-        icon: DollarSign, 
-        permission: 'user',
-        mobileHidden: true,
-        description: 'Payment processing'
       }
     ]
   },
