@@ -4,6 +4,7 @@
 import EmailWorkflowDashboard from './components/EmailWorkflowDashboard';
 import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
@@ -1031,6 +1032,35 @@ function App() {
         <ThemeProvider>
           <AuthProvider>
             <NotificationProvider>
+              <Toaster
+                position="top-right"
+                reverseOrder={false}
+                gutter={8}
+                toastOptions={{
+                  // Default options
+                  duration: 4000,
+                  style: {
+                    background: '#363636',
+                    color: '#fff',
+                  },
+                  // Success
+                  success: {
+                    duration: 4000,
+                    iconTheme: {
+                      primary: '#10b981',
+                      secondary: '#fff',
+                    },
+                  },
+                  // Error
+                  error: {
+                    duration: 5000,
+                    iconTheme: {
+                      primary: '#ef4444',
+                      secondary: '#fff',
+                    },
+                  },
+                }}
+              />
               <Suspense fallback={<LoadingFallback />}>
                 <AppContent />
               </Suspense>
