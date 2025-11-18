@@ -198,7 +198,7 @@ export default function CreditReportWorkflow() {
 
         <form onSubmit={handleIDIQSubmit} className="space-y-4">
           {/* Personal Info */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 First Name *
@@ -243,7 +243,7 @@ export default function CreditReportWorkflow() {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Date of Birth *
@@ -291,7 +291,7 @@ export default function CreditReportWorkflow() {
             />
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 City *
@@ -411,7 +411,7 @@ export default function CreditReportWorkflow() {
 
         <form onSubmit={handleManualSubmit} className="space-y-4">
           {/* Client Info (reuse) */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 First Name *
@@ -460,7 +460,7 @@ export default function CreditReportWorkflow() {
               Credit Scores (Enter at least one)
             </h3>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   VantageScore
@@ -612,7 +612,7 @@ export default function CreditReportWorkflow() {
 
         <form onSubmit={handlePDFSubmit} className="space-y-4">
           {/* Client Info */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 First Name *
