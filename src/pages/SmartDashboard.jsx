@@ -2206,7 +2206,7 @@ const TeamProductivityWidget = () => {
         // Generate sample team data
         const team = [
           {
-            name: 'Sarah Johnson',
+            name: recentClient?.name || recentClient?.firstName + ' ' + recentClient?.lastName || 'Client',
             role: 'Senior Specialist',
             tasksCompleted: 28,
             clientsSatisfaction: 94,
@@ -3192,7 +3192,7 @@ const MyTasksWidget = () => {
             title: 'Submit dispute letters to Experian',
             dueDate: new Date(Date.now() + 86400000),
             priority: 'high',
-            client: 'John Smith',
+            client: client.name || client.firstName + ' ' + client.lastName || 'Client',
             status: 'pending',
           },
           {

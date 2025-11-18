@@ -541,10 +541,19 @@ const ReviewsReputationHub = () => {
   const loadReviews = async () => {
     try {
       setLoading(true);
-      // In production, this would fetch from Firebase
-      const mockReviews = generateMockReviews(100);
-      setReviews(mockReviews);
-      setFilteredReviews(mockReviews);
+      // TODO: Fetch real reviews from Firebase/Firestore
+      // const reviewsSnapshot = await getDocs(collection(db, 'reviews'));
+      // const realReviews = reviewsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      // For now, show empty state - no fake data
+      const realReviews = [];
+      setReviews(realReviews);
+      setFilteredReviews(realReviews);
+      
+      // TEMPORARY: Uncomment below line ONLY for demo/presentation purposes
+      // const mockReviews = generateMockReviews(100);
+      // setReviews(mockReviews);
+      // setFilteredReviews(mockReviews);
     } catch (err) {
       setError('Failed to load reviews');
       console.error('Error loading reviews:', err);
@@ -554,12 +563,14 @@ const ReviewsReputationHub = () => {
   };
 
   const loadAnalytics = () => {
-    const data = generateAnalyticsData();
+    // TODO: Load real analytics from Firebase
+    const data = []; // Empty until real data connected
     setAnalyticsData(data);
   };
 
   const loadCompetitors = () => {
-    const data = generateCompetitorData();
+    // TODO: Load real competitor data from research API
+    const data = []; // Empty until real data connected
     setCompetitorData(data);
   };
 

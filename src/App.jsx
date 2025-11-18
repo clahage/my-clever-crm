@@ -725,7 +725,7 @@ const AppContent = () => {
 <Route
   path="reports-hub"
   element={
-    <ProtectedRoute requiredRole="prospect">
+    <ProtectedRoute requiredRole="user">
       <Suspense fallback={<LoadingFallback />}>
         <ReportsHub />
       </Suspense>
