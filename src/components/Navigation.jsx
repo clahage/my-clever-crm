@@ -1,94 +1,100 @@
-// Moved console.log after navSections declaration to fix initialization error
+// Navigation.jsx - 12-Hub Consolidated Navigation Structure
+// Updated: Phase 3 Navigation Consolidation
 
 import React, { useState } from "react";
-import { FaBars ,
+import {
+  FaBars,
   FaHome,
   FaUsers,
-  FaUser,
-  FaRocket,
-  FaLayerGroup,
   FaFileAlt,
   FaChartBar,
-  FaTools,
-  FaMoneyBill,
-  FaCalendarAlt,
   FaEnvelope,
+  FaRocket,
+  FaMoneyBill,
+  FaGraduationCap,
+  FaRobot,
+  FaFolder,
   FaCogs,
-  FaShieldAlt,
   FaQuestionCircle
 } from "react-icons/fa";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 
-
-const navSections = [
+// ============================================================================
+// 12 CORE HUBS - Consolidated Navigation Structure
+// ============================================================================
+const coreHubs = [
   {
     label: "Dashboard",
-    icon: <FaHome className="mr-2" />,
-    links: [
-      { label: "Dashboard", to: "/dashboard", icon: <FaHome /> },
-    ],
+    icon: <FaHome />,
+    to: "/smart-dashboard",
+    description: "Main command center"
   },
   {
-    label: "Client Management",
-    icon: <FaUsers className="mr-2" />,
-    links: [
-      { label: "Contacts", to: "/contacts", icon: <FaUser /> },
-      { label: "Clients", to: "/client-management", icon: <FaUsers /> },
-    ],
+    label: "Clients Hub",
+    icon: <FaUsers />,
+    to: "/clients-hub",
+    description: "Client management"
   },
   {
-    label: "Credit Repair/Services",
-    icon: <FaLayerGroup className="mr-2" />,
-    links: [
-      { label: "IDIQ Integration", to: "/idiq", icon: <FaRocket />, requiresIdiq: true },
-      { label: "Dispute Center", to: "/dispute-center", icon: <FaFileAlt /> },
-      { label: "Progress Portal", to: "/progress-portal", icon: <FaChartBar /> },
-      { label: "Analytics", to: "/analytics", icon: <FaChartBar /> },
-      { label: "Contact Reports", to: "/contact-reports", icon: <FaChartBar /> },
-      { label: "Letters", to: "/letters", icon: <FaFileAlt /> },
-      { label: "Credit Scores", to: "/credit-scores", icon: <FaChartBar /> },
-      { label: "Dispute Letters", to: "/dispute-letters", icon: <FaFileAlt /> },
-    ],
+    label: "Disputes Hub",
+    icon: <FaFileAlt />,
+    to: "/dispute-hub",
+    description: "Dispute management"
   },
   {
-    label: "Business Tools (Tools & Utilities)",
-    icon: <FaTools className="mr-2" />,
-    links: [
-      { label: "Billing", to: "/billing", icon: <FaMoneyBill /> },
-      { label: "Calendar", to: "/calendar", icon: <FaCalendarAlt /> },
-      { label: "Communications", to: "/communications", icon: <FaEnvelope /> },
-      { label: "Export", to: "/export", icon: <FaFileAlt /> },
-      { label: "Bulk Actions", to: "/bulk", icon: <FaLayerGroup /> },
-    ],
+    label: "Analytics Hub",
+    icon: <FaChartBar />,
+    to: "/analytics-hub",
+    description: "Reports & insights"
   },
   {
-    label: "Automation & AI",
-    icon: <FaCogs className="mr-2" />,
-    links: [
-      { label: "Automation Rules", to: "/automation", icon: <FaCogs /> },
-      { label: "Drip Campaigns", to: "/drip-campaigns", icon: <FaRocket /> },
-      { label: "OpenAI Integration", to: "/openai", icon: <FaRocket /> },
-      { label: "AI Command Center", to: "/ai-command-center", icon: <FaChartBar /> },
-    ],
+    label: "Communications",
+    icon: <FaEnvelope />,
+    to: "/comms-hub",
+    description: "Email, SMS, calls"
   },
   {
-    label: "Administration",
-    icon: <FaShieldAlt className="mr-2" />,
-    links: [
-      { label: "Permissions", to: "/permissions", icon: <FaShieldAlt /> },
-      { label: "Setup", to: "/setup", icon: <FaCogs /> },
-      { label: "User Management", to: "/user-management", icon: <FaUsers /> },
-      { label: "Roles & Permissions", to: "/roles", icon: <FaShieldAlt /> },
-      { label: "Location", to: "/location", icon: <FaUser /> },
-    ],
+    label: "Marketing Hub",
+    icon: <FaRocket />,
+    to: "/marketing-hub",
+    description: "Campaigns & outreach"
   },
   {
-    label: "Support",
-    icon: <FaQuestionCircle className="mr-2" />,
-    links: [
-      { label: "Help", to: "/help", icon: <FaQuestionCircle /> },
-    ],
+    label: "Billing Hub",
+    icon: <FaMoneyBill />,
+    to: "/billing-hub",
+    description: "Invoices & payments"
+  },
+  {
+    label: "Learning Hub",
+    icon: <FaGraduationCap />,
+    to: "/learning-hub",
+    description: "Training & resources"
+  },
+  {
+    label: "AI Hub",
+    icon: <FaRobot />,
+    to: "/ai-hub",
+    description: "AI-powered tools"
+  },
+  {
+    label: "Documents Hub",
+    icon: <FaFolder />,
+    to: "/documents-hub",
+    description: "Files & templates"
+  },
+  {
+    label: "Settings Hub",
+    icon: <FaCogs />,
+    to: "/settings-hub",
+    description: "Configuration"
+  },
+  {
+    label: "Support Hub",
+    icon: <FaQuestionCircle />,
+    to: "/support-hub",
+    description: "Help & resources"
   },
 ];
 
@@ -97,16 +103,11 @@ import NotificationPanel from './NotificationPanel';
 
 export default function Navigation() {
   const location = useLocation();
-  const [openSection, setOpenSection] = useState(null);
   const [showPanel, setShowPanel] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { urgentCount } = useNotification();
   const { user, loading, claims } = useAuth();
-  if (loading) return null; // don’t render menu until ready
-
-  const handleAccordion = idx => {
-    setOpenSection(openSection === idx ? null : idx);
-  };
+  if (loading) return null; // don't render menu until ready
 
   // Responsive: show hamburger on mobile
   return (
@@ -156,40 +157,50 @@ export default function Navigation() {
           </div>
         </div>
 
-        {/* Accordion Sidebar */}
-        <div className="flex-1">
-          {navSections.map((section, idx) => (
-            <div key={section.label} className="mb-2">
-              <button
-                className={`w-full flex items-center justify-between px-3 py-2 font-semibold text-left rounded transition-colors duration-350 focus:outline-none ${openSection === idx ? 'bg-blue-800' : 'bg-blue-900 hover:bg-blue-800'}`}
-                onClick={() => handleAccordion(idx)}
-                aria-expanded={openSection === idx}
+        {/* 12 Core Hubs - Flat Navigation */}
+        <div className="flex-1 space-y-1">
+          {coreHubs.map((hub) => {
+            const isActive = location.pathname === hub.to ||
+              (hub.to !== '/smart-dashboard' && location.pathname.startsWith(hub.to.replace('-hub', '')));
+
+            return (
+              <Link
+                key={hub.label}
+                to={hub.to}
+                className={`flex items-center px-3 py-2.5 rounded-lg transition-all duration-200 group ${
+                  isActive
+                    ? 'bg-blue-700 text-white shadow-lg'
+                    : 'text-blue-100 hover:bg-blue-800 hover:text-white'
+                }`}
+                onClick={() => setMobileOpen(false)}
               >
-                <span className="flex items-center">{section.icon}{section.label}</span>
-                <span className={`ml-2 transition-transform duration-350 ${openSection === idx ? 'rotate-90' : ''}`}>▶</span>
-              </button>
-              <div
-                className={`overflow-hidden transition-all duration-350 ${openSection === idx ? 'max-h-96 py-2' : 'max-h-0 py-0'}`}
-              >
-                <ul className="pl-6">
-                  {section.links
-                    .filter(link => !link.requiresIdiq || claims?.idiq)
-                    .map(link => (
-                      <li key={link.label} className="mb-1">
-                        <Link
-                          to={link.to}
-                          className={`flex items-center px-2 py-2 rounded text-sm font-medium transition-colors duration-350 ${location.pathname === link.to ? 'bg-blue-700 text-white' : 'text-blue-100 hover:bg-blue-700 hover:text-white'}`}
-                          onClick={() => setMobileOpen(false)}
-                        >
-                          <span className="mr-2">{link.icon}</span>
-                          {link.label}
-                        </Link>
-                      </li>
-                    ))}
-                </ul>
-              </div>
-            </div>
-          ))}
+                <span className={`text-lg mr-3 ${isActive ? 'text-white' : 'text-blue-300 group-hover:text-white'}`}>
+                  {hub.icon}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm truncate">{hub.label}</div>
+                  <div className={`text-xs truncate ${isActive ? 'text-blue-200' : 'text-blue-400 group-hover:text-blue-200'}`}>
+                    {hub.description}
+                  </div>
+                </div>
+                {isActive && (
+                  <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full ml-2"></div>
+                )}
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* Quick Links Footer */}
+        <div className="mt-4 pt-4 border-t border-blue-700">
+          <Link
+            to="/home"
+            className="flex items-center px-3 py-2 text-xs text-blue-300 hover:text-white transition-colors"
+            onClick={() => setMobileOpen(false)}
+          >
+            <FaHome className="mr-2" />
+            Welcome Hub
+          </Link>
         </div>
       </nav>
     </>
