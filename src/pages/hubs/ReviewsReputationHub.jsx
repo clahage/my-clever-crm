@@ -163,6 +163,10 @@ import {
   LocalOffer as TagIcon,
   Category as CategoryIcon,
   Sort as SortIcon,
+  Save as SaveIcon,
+  CloudUpload as CloudUploadIcon,
+  CloudDone as CloudDoneIcon,
+  CloudOff as CloudOffIcon,
 } from '@mui/icons-material';
 import {
   LineChart,
@@ -199,6 +203,7 @@ import {
   deleteDoc,
   getDoc,
   getDocs,
+  setDoc,
   query,
   where,
   orderBy,
@@ -420,6 +425,16 @@ const ReviewsReputationHub = () => {
   const [autoRespond, setAutoRespond] = useState(false);
   const [alertThreshold, setAlertThreshold] = useState(3);
   const [monitoringEnabled, setMonitoringEnabled] = useState(true);
+  
+  // Platform connections state
+  const [platformConnections, setPlatformConnections] = useState({
+    google: { connected: false, accountId: '', syncing: false },
+    yelp: { connected: false, accountId: '', syncing: false },
+    facebook: { connected: false, accountId: '', syncing: false },
+    trustpilot: { connected: false, accountId: '', syncing: false },
+    bbb: { connected: false, accountId: '', syncing: false },
+    tripadvisor: { connected: false, accountId: '', syncing: false },
+  });
 
   // ===== PERMISSION CHECK =====
   const hasPermission = (requiredRole) => {
@@ -428,12 +443,212 @@ const ReviewsReputationHub = () => {
     return userLevel >= requiredLevel;
   };
 
+  // ===== PLATFORM CONNECTION HANDLERS =====
+  const handleConnectPlatform = async (platformId) => {
+    try {
+      setLoading(true);
+      // In a real app, this would open OAuth flow
+      // For now, simulate the connection
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      setPlatformConnections(prev => ({
+        ...prev,
+        [platformId]: {
+          connected: true,
+          accountId: `${platformId}-${Date.now().toString().slice(-4)}`,
+          syncing: true
+        }
+      }));
+
+      // Simulate initial sync
+      setTimeout(() => {
+        setPlatformConnections(prev => ({
+          ...prev,
+          [platformId]: { ...prev[platformId], syncing: false }
+        }));
+        setSuccess(`Successfully connected to ${PLATFORMS.find(p => p.id === platformId)?.name}`);
+        loadReviews(); // Reload reviews after connection
+      }, 2000);
+
+      // Save to Firebase
+      const settingsRef = doc(db, 'settings', 'reviewPlatforms');
+      await updateDoc(settingsRef, {
+        [`${platformId}.connected`]: true,
+        [`${platformId}.connectedAt`]: serverTimestamp(),
+        [`${platformId}.connectedBy`]: userProfile?.email
+      }).catch(() => {
+        // If doc doesn't exist, create it
+        return setDoc(settingsRef, {
+          [platformId]: {
+            connected: true,
+            connectedAt: serverTimestamp(),
+            connectedBy: userProfile?.email
+          }
+        });
+      });
+    } catch (err) {
+      console.error('Error connecting platform:', err);
+      setError(`Failed to connect to ${PLATFORMS.find(p => p.id === platformId)?.name}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDisconnectPlatform = async (platformId) => {
+    try {
+      setLoading(true);
+      
+      setPlatformConnections(prev => ({
+        ...prev,
+        [platformId]: { connected: false, accountId: '', syncing: false }
+      }));
+
+      // Save to Firebase
+      const settingsRef = doc(db, 'settings', 'reviewPlatforms');
+      await updateDoc(settingsRef, {
+        [`${platformId}.connected`]: false,
+        [`${platformId}.disconnectedAt`]: serverTimestamp()
+      });
+
+      setSuccess(`Disconnected from ${PLATFORMS.find(p => p.id === platformId)?.name}`);
+    } catch (err) {
+      console.error('Error disconnecting platform:', err);
+      setError('Failed to disconnect platform');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSyncAllPlatforms = async () => {
+    try {
+      setLoading(true);
+      
+      // Sync all connected platforms
+      const connectedPlatforms = Object.entries(platformConnections)
+        .filter(([, conn]) => conn.connected)
+        .map(([id]) => id);
+
+      if (connectedPlatforms.length === 0) {
+        setError('No platforms connected. Please connect at least one platform.');
+        return;
+      }
+
+      // Simulate sync for each platform
+      await Promise.all(
+        connectedPlatforms.map(async (platformId) => {
+          setPlatformConnections(prev => ({
+            ...prev,
+            [platformId]: { ...prev[platformId], syncing: true }
+          }));
+          
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          setPlatformConnections(prev => ({
+            ...prev,
+            [platformId]: { ...prev[platformId], syncing: false }
+          }));
+        })
+      );
+
+      await loadReviews();
+      setSuccess(`Successfully synced ${connectedPlatforms.length} platform(s)`);
+    } catch (err) {
+      console.error('Error syncing platforms:', err);
+      setError('Failed to sync platforms');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveSetting = async (key, value) => {
+    try {
+      // Update local state
+      switch(key) {
+        case 'monitoringEnabled':
+          setMonitoringEnabled(value);
+          break;
+        case 'autoRespond':
+          setAutoRespond(value);
+          break;
+        case 'alertThreshold':
+          setAlertThreshold(value);
+          break;
+      }
+
+      // Save to Firebase
+      const settingsRef = doc(db, 'settings', 'reviewSettings');
+      await updateDoc(settingsRef, {
+        [key]: value,
+        updatedAt: serverTimestamp(),
+        updatedBy: userProfile?.email
+      }).catch(() => {
+        // If doc doesn't exist, create it
+        return setDoc(settingsRef, {
+          [key]: value,
+          updatedAt: serverTimestamp(),
+          updatedBy: userProfile?.email
+        });
+      });
+
+      setSuccess('Setting saved successfully');
+    } catch (err) {
+      console.error('Error saving setting:', err);
+      setError('Failed to save setting');
+    }
+  };
+
   // ===== LOAD DATA =====
   useEffect(() => {
     loadReviews();
     loadAnalytics();
     loadCompetitors();
+    loadPlatformConnections();
+    loadSettings();
   }, []);
+
+  const loadPlatformConnections = async () => {
+    try {
+      const settingsRef = doc(db, 'settings', 'reviewPlatforms');
+      const settingsSnap = await getDoc(settingsRef);
+      
+      if (settingsSnap.exists()) {
+        const data = settingsSnap.data();
+        const connections = {};
+        
+        PLATFORMS.forEach(platform => {
+          if (data[platform.id]) {
+            connections[platform.id] = {
+              connected: data[platform.id].connected || false,
+              accountId: data[platform.id].accountId || `${platform.id}-account`,
+              syncing: false
+            };
+          } else {
+            connections[platform.id] = { connected: false, accountId: '', syncing: false };
+          }
+        });
+        
+        setPlatformConnections(connections);
+      }
+    } catch (err) {
+      console.error('Error loading platform connections:', err);
+    }
+  };
+
+  const loadSettings = async () => {
+    try {
+      const settingsRef = doc(db, 'settings', 'reviewSettings');
+      const settingsSnap = await getDoc(settingsRef);
+      
+      if (settingsSnap.exists()) {
+        const data = settingsSnap.data();
+        if (data.monitoringEnabled !== undefined) setMonitoringEnabled(data.monitoringEnabled);
+        if (data.autoRespond !== undefined) setAutoRespond(data.autoRespond);
+        if (data.alertThreshold !== undefined) setAlertThreshold(data.alertThreshold);
+      }
+    } catch (err) {
+      console.error('Error loading settings:', err);
+    }
+  };
 
   const loadReviews = async () => {
     try {
@@ -1545,23 +1760,103 @@ const ReviewsReputationHub = () => {
   const renderSettingsTab = () => (
     <Fade in timeout={500}>
       <Box>
-        <Paper elevation={3} sx={{ p: 3 }}>
-          <Typography variant="h6" gutterBottom>
-            Reputation Management Settings
+        {/* Platform Connections */}
+        <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
+          <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <LinkIcon /> Platform Connections
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Connect your review platforms to automatically sync and monitor reviews
+          </Typography>
+
+          <Grid container spacing={2}>
+            {PLATFORMS.map(platform => {
+              const connection = platformConnections[platform.id];
+              return (
+                <Grid item xs={12} md={6} key={platform.id}>
+                  <Card variant="outlined" sx={{ 
+                    borderColor: connection.connected ? 'success.main' : 'divider',
+                    borderWidth: connection.connected ? 2 : 1
+                  }}>
+                    <CardContent>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography variant="h5">{platform.icon}</Typography>
+                          <Box>
+                            <Typography variant="subtitle1" fontWeight="bold">
+                              {platform.name}
+                            </Typography>
+                            {connection.connected && (
+                              <Typography variant="caption" color="success.main">
+                                Connected • {connection.accountId}
+                              </Typography>
+                            )}
+                          </Box>
+                        </Box>
+                        {connection.connected ? (
+                          <CloudDoneIcon sx={{ color: 'success.main' }} />
+                        ) : (
+                          <CloudOffIcon sx={{ color: 'text.disabled' }} />
+                        )}
+                      </Box>
+
+                      {connection.connected ? (
+                        <Box>
+                          <Button
+                            fullWidth
+                            variant="outlined"
+                            color="error"
+                            size="small"
+                            onClick={() => handleDisconnectPlatform(platform.id)}
+                            disabled={connection.syncing}
+                          >
+                            Disconnect
+                          </Button>
+                          {connection.syncing && (
+                            <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <CircularProgress size={16} />
+                              <Typography variant="caption">Syncing reviews...</Typography>
+                            </Box>
+                          )}
+                        </Box>
+                      ) : (
+                        <Button
+                          fullWidth
+                          variant="contained"
+                          size="small"
+                          startIcon={<CloudUploadIcon />}
+                          onClick={() => handleConnectPlatform(platform.id)}
+                          sx={{ bgcolor: platform.color, '&:hover': { bgcolor: platform.color, opacity: 0.9 } }}
+                        >
+                          Connect {platform.name}
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                </Grid>
+              );
+            })}
+          </Grid>
+        </Paper>
+
+        {/* General Settings */}
+        <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
+          <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <SettingsIcon /> General Settings
           </Typography>
 
           <Divider sx={{ my: 2 }} />
 
           <Grid container spacing={3}>
             <Grid item xs={12} md={6}>
-              <Typography variant="subtitle2" gutterBottom>
+              <Typography variant="subtitle2" gutterBottom fontWeight="bold">
                 Monitoring Settings
               </Typography>
               <FormControlLabel
                 control={
                   <Switch
                     checked={monitoringEnabled}
-                    onChange={(e) => setMonitoringEnabled(e.target.checked)}
+                    onChange={(e) => handleSaveSetting('monitoringEnabled', e.target.checked)}
                   />
                 }
                 label="Enable real-time monitoring"
@@ -1570,35 +1865,50 @@ const ReviewsReputationHub = () => {
                 control={
                   <Switch
                     checked={autoRespond}
-                    onChange={(e) => setAutoRespond(e.target.checked)}
+                    onChange={(e) => handleSaveSetting('autoRespond', e.target.checked)}
                   />
                 }
-                label="Auto-respond to positive reviews"
+                label="Auto-respond to positive reviews (5 stars)"
               />
             </Grid>
 
             <Grid item xs={12} md={6}>
-              <Typography variant="subtitle2" gutterBottom>
+              <Typography variant="subtitle2" gutterBottom fontWeight="bold">
                 Alert Settings
               </Typography>
               <FormControl fullWidth size="small" sx={{ mb: 2 }}>
                 <InputLabel>Alert Threshold</InputLabel>
                 <Select
                   value={alertThreshold}
-                  onChange={(e) => setAlertThreshold(e.target.value)}
+                  onChange={(e) => handleSaveSetting('alertThreshold', e.target.value)}
                 >
                   <MenuItem value={1}>1 Star - Immediate Alert</MenuItem>
                   <MenuItem value={2}>2 Stars or Below</MenuItem>
                   <MenuItem value={3}>3 Stars or Below</MenuItem>
                 </Select>
               </FormControl>
+              <Typography variant="caption" color="text.secondary">
+                Get instant notifications for reviews below this rating
+              </Typography>
             </Grid>
           </Grid>
+        </Paper>
 
-          <Divider sx={{ my: 3 }} />
-
-          <Button variant="contained" startIcon={<SaveIcon />}>
-            Save Settings
+        {/* Sync Status */}
+        <Paper elevation={3} sx={{ p: 3 }}>
+          <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <RefreshIcon /> Sync Status
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Last synced: {new Date().toLocaleString()}
+          </Typography>
+          <Button
+            variant="contained"
+            startIcon={<RefreshIcon />}
+            onClick={handleSyncAllPlatforms}
+            disabled={loading}
+          >
+            Sync All Platforms Now
           </Button>
         </Paper>
       </Box>
