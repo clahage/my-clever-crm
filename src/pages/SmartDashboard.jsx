@@ -183,6 +183,12 @@ import html2canvas from 'html2canvas';
 // Drag and Drop
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 
+// Router
+import { useNavigate } from 'react-router-dom';
+
+// Contact Form
+import UltimateContactForm from '@/components/UltimateContactForm';
+
 // ============================================================================
 // 🎨 COLOR PALETTE & THEME
 // ============================================================================
@@ -3879,7 +3885,7 @@ const ChurnPredictionWidget = () => {
 // 🎯 QUICK ACCESS PANEL (SIDEBAR)
 // ============================================================================
 
-const QuickAccessPanel = () => {
+const QuickAccessPanel = ({ onAddClient, onNewDispute, onSendEmail }) => {
   const [notifications, setNotifications] = useState([]);
   const [upcomingTasks, setUpcomingTasks] = useState([]);
 
@@ -3973,6 +3979,7 @@ const QuickAccessPanel = () => {
           variant="outlined"
           startIcon={<Plus size={16} />}
           sx={{ mb: 1, justifyContent: 'flex-start' }}
+          onClick={onAddClient}
         >
           Add Client
         </Button>
@@ -3981,6 +3988,7 @@ const QuickAccessPanel = () => {
           variant="outlined"
           startIcon={<FileText size={16} />}
           sx={{ mb: 1, justifyContent: 'flex-start' }}
+          onClick={onNewDispute}
         >
           New Dispute
         </Button>
@@ -3989,6 +3997,7 @@ const QuickAccessPanel = () => {
           variant="outlined"
           startIcon={<Mail size={16} />}
           sx={{ mb: 1, justifyContent: 'flex-start' }}
+          onClick={onSendEmail}
         >
           Send Email
         </Button>
@@ -4368,11 +4377,20 @@ const ExportManager = ({ dashboardData, userRole }) => {
 
 const SmartDashboard = () => {
   const { currentUser, userProfile } = useAuth();
+  const navigate = useNavigate();
   const [currentView, setCurrentView] = useState('masterAdmin');
   const [dashboardData, setDashboardData] = useState({});
   const [loading, setLoading] = useState(true);
   const [layout, setLayout] = useState(DEFAULT_LAYOUTS['masterAdmin']);
   const [aiInsights, setAIInsights] = useState([]);
+
+  // Quick Actions modal states
+  const [showContactForm, setShowContactForm] = useState(false);
+
+  // Quick Actions handlers
+  const handleAddClient = () => setShowContactForm(true);
+  const handleNewDispute = () => navigate('/dispute-hub?action=create');
+  const handleSendEmail = () => navigate('/comms-hub?tab=email');
 
   // Determine user role
   const userRole = userProfile?.role || 'staff';
@@ -4812,7 +4830,11 @@ const SmartDashboard = () => {
 
         {/* Quick Access Sidebar */}
         <Grid xs={12} lg={3}>
-          <QuickAccessPanel />
+          <QuickAccessPanel
+            onAddClient={handleAddClient}
+            onNewDispute={handleNewDispute}
+            onSendEmail={handleSendEmail}
+          />
           
           <Box sx={{ mt: 3 }}>
             <LayoutManager
@@ -4904,6 +4926,35 @@ const SmartDashboard = () => {
           SpeedyCRM © {new Date().getFullYear()} - Powered by AI
         </Typography>
       </Box>
+
+      {/* Add Contact Modal */}
+      <Dialog
+        open={showContactForm}
+        onClose={() => setShowContactForm(false)}
+        maxWidth="lg"
+        fullWidth
+        PaperProps={{
+          sx: { borderRadius: 2 }
+        }}
+      >
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="h6" fontWeight="bold">
+            Add New Contact
+          </Typography>
+          <IconButton onClick={() => setShowContactForm(false)} size="small">
+            <X size={20} />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers>
+          <UltimateContactForm
+            onSuccess={(newContact) => {
+              setShowContactForm(false);
+              console.log('✅ New contact created:', newContact);
+            }}
+            onCancel={() => setShowContactForm(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 };
