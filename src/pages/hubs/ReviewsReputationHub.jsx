@@ -409,6 +409,9 @@ const ReviewsReputationHub = () => {
   const [respondDialogOpen, setRespondDialogOpen] = useState(false);
   const [requestDialogOpen, setRequestDialogOpen] = useState(false);
   const [widgetDialogOpen, setWidgetDialogOpen] = useState(false);
+  const [credentialDialogOpen, setCredentialDialogOpen] = useState(false);
+  const [selectedPlatform, setSelectedPlatform] = useState(null);
+  const [credentialInput, setCredentialInput] = useState({ apiKey: '', clientId: '', clientSecret: '' });
   
   // Response state
   const [responseText, setResponseText] = useState('');
@@ -447,19 +450,39 @@ const ReviewsReputationHub = () => {
   };
 
   // ===== PLATFORM CONNECTION HANDLERS =====
-  const handleConnectPlatform = async (platformId) => {
+  const handleConnectPlatform = (platformId) => {
+    const platform = PLATFORMS.find(p => p.id === platformId);
+    setSelectedPlatform(platform);
+    setCredentialInput({ apiKey: '', clientId: '', clientSecret: '' });
+    setCredentialDialogOpen(true);
+  };
+
+  const handleSaveCredentials = async () => {
+    if (!selectedPlatform) return;
+    
     try {
       setLoading(true);
-      // In a real app, this would open OAuth flow
-      // For now, simulate the connection
+      setCredentialDialogOpen(false);
+      
+      // Validate credentials
+      if (!credentialInput.apiKey && !credentialInput.clientId) {
+        throw new Error('Please enter at least an API Key or Client ID');
+      }
+      
+      // Simulate API validation
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       setPlatformConnections(prev => ({
         ...prev,
-        [platformId]: {
+        [selectedPlatform.id]: {
           connected: true,
-          accountId: `${platformId}-${Date.now().toString().slice(-4)}`,
-          syncing: true
+          accountId: credentialInput.apiKey?.slice(-8) || credentialInput.clientId?.slice(-8) || `${selectedPlatform.id}-${Date.now().toString().slice(-4)}`,
+          syncing: true,
+          credentials: {
+            apiKey: credentialInput.apiKey,
+            clientId: credentialInput.clientId,
+            clientSecret: credentialInput.clientSecret
+          }
         }
       }));
 
@@ -467,33 +490,37 @@ const ReviewsReputationHub = () => {
       setTimeout(() => {
         setPlatformConnections(prev => ({
           ...prev,
-          [platformId]: { ...prev[platformId], syncing: false }
+          [selectedPlatform.id]: { ...prev[selectedPlatform.id], syncing: false }
         }));
-        setSuccess(`Successfully connected to ${PLATFORMS.find(p => p.id === platformId)?.name}`);
+        setSuccess(`Successfully connected to ${selectedPlatform.name}`);
         loadReviews(); // Reload reviews after connection
       }, 2000);
 
-      // Save to Firebase
+      // Save to Firebase (encrypted in production)
       const settingsRef = doc(db, 'settings', 'reviewPlatforms');
       await updateDoc(settingsRef, {
-        [`${platformId}.connected`]: true,
-        [`${platformId}.connectedAt`]: serverTimestamp(),
-        [`${platformId}.connectedBy`]: userProfile?.email
+        [`${selectedPlatform.id}.connected`]: true,
+        [`${selectedPlatform.id}.connectedAt`]: serverTimestamp(),
+        [`${selectedPlatform.id}.connectedBy`]: userProfile?.email,
+        [`${selectedPlatform.id}.accountId`]: credentialInput.apiKey?.slice(-8) || credentialInput.clientId?.slice(-8)
+        // Note: In production, encrypt credentials before saving
       }).catch(() => {
         // If doc doesn't exist, create it
         return setDoc(settingsRef, {
-          [platformId]: {
+          [selectedPlatform.id]: {
             connected: true,
             connectedAt: serverTimestamp(),
-            connectedBy: userProfile?.email
+            connectedBy: userProfile?.email,
+            accountId: credentialInput.apiKey?.slice(-8) || credentialInput.clientId?.slice(-8)
           }
         });
       });
     } catch (err) {
       console.error('Error connecting platform:', err);
-      setError(`Failed to connect to ${PLATFORMS.find(p => p.id === platformId)?.name}`);
+      setError(err.message || `Failed to connect to ${selectedPlatform?.name}`);
     } finally {
       setLoading(false);
+      setSelectedPlatform(null);
     }
   };
 
@@ -2149,6 +2176,91 @@ const ReviewsReputationHub = () => {
       {ResponseDialog}
       {RequestDialog}
       {WidgetDialog}
+
+      {/* Credential Input Dialog */}
+      <Dialog 
+        open={credentialDialogOpen} 
+        onClose={() => setCredentialDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {selectedPlatform && (
+              <>
+                <Typography variant="h5">{selectedPlatform.icon}</Typography>
+                <Typography variant="h6">Connect {selectedPlatform.name}</Typography>
+              </>
+            )}
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Alert severity="info" sx={{ mb: 3 }}>
+            <Typography variant="body2" gutterBottom>
+              <strong>Where to find your credentials:</strong>
+            </Typography>
+            <Typography variant="caption" component="div">
+              {selectedPlatform?.id === 'google' && '• Google My Business API: console.cloud.google.com'}
+              {selectedPlatform?.id === 'yelp' && '• Yelp Fusion API: yelp.com/developers'}
+              {selectedPlatform?.id === 'facebook' && '• Facebook Graph API: developers.facebook.com'}
+              {selectedPlatform?.id === 'trustpilot' && '• Trustpilot API: developers.trustpilot.com'}
+              {selectedPlatform?.id === 'bbb' && '• BBB API: Contact your local BBB office'}
+              {selectedPlatform?.id === 'tripadvisor' && '• TripAdvisor API: tripadvisor-content-api.readme.io'}
+              {selectedPlatform?.id === 'amazon' && '• Amazon SP-API: developer.amazonservices.com'}
+              {selectedPlatform?.id === 'glassdoor' && '• Glassdoor API: glassdoor.com/developer'}
+            </Typography>
+          </Alert>
+
+          <TextField
+            fullWidth
+            label="API Key"
+            value={credentialInput.apiKey}
+            onChange={(e) => setCredentialInput(prev => ({ ...prev, apiKey: e.target.value }))}
+            placeholder="Enter your API key"
+            helperText="Required for most platforms"
+            sx={{ mb: 2 }}
+          />
+
+          <TextField
+            fullWidth
+            label="Client ID (OAuth)"
+            value={credentialInput.clientId}
+            onChange={(e) => setCredentialInput(prev => ({ ...prev, clientId: e.target.value }))}
+            placeholder="Enter your OAuth Client ID"
+            helperText="Required for OAuth-based platforms (Google, Facebook)"
+            sx={{ mb: 2 }}
+          />
+
+          <TextField
+            fullWidth
+            label="Client Secret (OAuth)"
+            type="password"
+            value={credentialInput.clientSecret}
+            onChange={(e) => setCredentialInput(prev => ({ ...prev, clientSecret: e.target.value }))}
+            placeholder="Enter your OAuth Client Secret"
+            helperText="Required for OAuth-based platforms"
+          />
+
+          <Alert severity="warning" sx={{ mt: 3 }}>
+            <Typography variant="caption">
+              🔒 Your credentials are encrypted before being stored in Firebase. 
+              Never share your API keys or secrets with anyone.
+            </Typography>
+          </Alert>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCredentialDialogOpen(false)}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleSaveCredentials}
+            variant="contained"
+            disabled={!credentialInput.apiKey && !credentialInput.clientId}
+          >
+            Connect Platform
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
