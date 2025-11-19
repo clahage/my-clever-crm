@@ -31,6 +31,7 @@ import {
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { format, isToday, isYesterday, differenceInMinutes } from 'date-fns';
+import ContactAutocomplete from '@/components/ContactAutocomplete';
 
 const SMS = () => {
   const { currentUser } = useAuth();
@@ -1064,17 +1065,15 @@ const SMS = () => {
           <DialogContent>
             <Grid container spacing={2} sx={{ mt: 1 }}>
               <Grid item xs={12}>
-                <Autocomplete
-                  options={contacts}
-                  getOptionLabel={(option) => `${option.displayName} (${option.phone})`}
+                <ContactAutocomplete
                   value={selectedContact}
-                  onChange={(e, value) => {
-                    setSelectedContact(value);
-                    setMessageForm(prev => ({ ...prev, to: value?.phone || '' }));
+                  onChange={(contact) => {
+                    setSelectedContact(contact);
+                    setMessageForm(prev => ({ ...prev, to: contact?.phone || '' }));
                   }}
-                  renderInput={(params) => (
-                    <TextField {...params} label="To" fullWidth />
-                  )}
+                  label="Select Recipient"
+                  filterRoles={['client', 'prospect', 'lead']}
+                  required
                 />
               </Grid>
               

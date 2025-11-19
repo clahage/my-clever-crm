@@ -60,6 +60,7 @@ import {
   // Tools
   Link2, FileText, FolderOpen, Archive, Package, Tag
 } from 'lucide-react';
+import ContactAutocomplete from '@/components/ContactAutocomplete';
 
 // ============================================================================
 // AI APPOINTMENT ENGINE
@@ -2172,24 +2173,33 @@ const Appointments = () => {
               </Grid>
 
               <Grid item xs={12} sm={6}>
-                <Autocomplete
-                  options={contacts}
-                  getOptionLabel={(option) => option.fullName || option.email || ''}
-                  value={contacts.find(c => c.id === appointmentForm.clientId) || null}
-                  onChange={(e, newValue) => {
-                    if (newValue) {
+                <ContactAutocomplete
+                  value={appointmentForm.clientId ? {
+                    id: appointmentForm.clientId,
+                    firstName: appointmentForm.clientName?.split(' ')[0] || '',
+                    lastName: appointmentForm.clientName?.split(' ')[1] || ''
+                  } : null}
+                  onChange={(contact) => {
+                    if (contact) {
                       setAppointmentForm(prev => ({
                         ...prev,
-                        clientId: newValue.id,
-                        clientName: newValue.fullName || newValue.email,
-                        clientEmail: newValue.email,
-                        clientPhone: newValue.phone
+                        clientId: contact.id,
+                        clientName: `${contact.firstName || ''} ${contact.lastName || ''}`.trim(),
+                        clientEmail: contact.email,
+                        clientPhone: contact.phone
+                      }));
+                    } else {
+                      setAppointmentForm(prev => ({
+                        ...prev,
+                        clientId: '',
+                        clientName: '',
+                        clientEmail: '',
+                        clientPhone: ''
                       }));
                     }
                   }}
-                  renderInput={(params) => (
-                    <TextField {...params} label="Client" placeholder="Select or type name" />
-                  )}
+                  label="Select Client"
+                  filterRoles={['client', 'prospect', 'lead']}
                 />
               </Grid>
 

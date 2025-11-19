@@ -56,6 +56,7 @@ import {
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import ContactAutocomplete from '@/components/ContactAutocomplete';
 import {
   DollarSign,
   FileText,
@@ -1243,14 +1244,23 @@ const Invoices = () => {
                     </FormControl>
                   </Grid>
                   <Grid item xs={12}>
-                    <Autocomplete
-                      options={contacts}
-                      getOptionLabel={(option) => option.displayName || ''}
+                    <ContactAutocomplete
                       value={invoiceForm.client}
-                      onChange={(e, value) => setInvoiceForm(prev => ({ ...prev, client: value }))}
-                      renderInput={(params) => (
-                        <TextField {...params} label="Client" fullWidth />
-                      )}
+                      onChange={(contact) => setInvoiceForm(prev => ({
+                        ...prev,
+                        client: contact ? {
+                          id: contact.id,
+                          firstName: contact.firstName,
+                          lastName: contact.lastName,
+                          email: contact.email,
+                          phone: contact.phone,
+                          address: contact.address,
+                          displayName: `${contact.firstName || ''} ${contact.lastName || ''}`.trim()
+                        } : null
+                      }))}
+                      label="Select Client"
+                      filterRoles={['client', 'prospect']}
+                      required
                     />
                   </Grid>
                   <Grid item xs={12} md={6}>

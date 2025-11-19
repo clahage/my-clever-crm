@@ -22,6 +22,7 @@ import {
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { format, differenceInMinutes, differenceInSeconds } from 'date-fns';
+import ContactAutocomplete from '@/components/ContactAutocomplete';
 
 const CallLogs = () => {
   const { currentUser } = useAuth();
@@ -542,14 +543,12 @@ const CallLogs = () => {
           <DialogContent>
             <Grid container spacing={3} sx={{ mt: 1 }}>
               <Grid item xs={12}>
-                <Autocomplete
-                  options={contacts}
-                  getOptionLabel={(option) => option.displayName || ''}
+                <ContactAutocomplete
                   value={callForm.contact}
-                  onChange={(e, value) => setCallForm(prev => ({ ...prev, contact: value }))}
-                  renderInput={(params) => (
-                    <TextField {...params} label="Contact *" fullWidth />
-                  )}
+                  onChange={(contact) => setCallForm(prev => ({ ...prev, contact }))}
+                  label="Contact"
+                  filterRoles={['client', 'prospect', 'lead']}
+                  required
                 />
               </Grid>
 

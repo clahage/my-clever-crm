@@ -64,6 +64,7 @@ import {
   Mail,
   MessageSquare,
   CheckCircle,
+  CheckSquare,
   Clock,
   AlertCircle,
   Target,
@@ -3885,7 +3886,7 @@ const ChurnPredictionWidget = () => {
 // 🎯 QUICK ACCESS PANEL (SIDEBAR)
 // ============================================================================
 
-const QuickAccessPanel = ({ onAddClient, onNewDispute, onSendEmail }) => {
+const QuickAccessPanel = ({ onAddClient, onNewDispute, onSendEmail, onScheduleCall, onCreateTask, onNewInvoice }) => {
   const [notifications, setNotifications] = useState([]);
   const [upcomingTasks, setUpcomingTasks] = useState([]);
 
@@ -4000,6 +4001,33 @@ const QuickAccessPanel = ({ onAddClient, onNewDispute, onSendEmail }) => {
           onClick={onSendEmail}
         >
           Send Email
+        </Button>
+        <Button
+          fullWidth
+          variant="outlined"
+          startIcon={<Phone size={16} />}
+          sx={{ mb: 1, justifyContent: 'flex-start' }}
+          onClick={onScheduleCall}
+        >
+          Schedule Call
+        </Button>
+        <Button
+          fullWidth
+          variant="outlined"
+          startIcon={<CheckSquare size={16} />}
+          sx={{ mb: 1, justifyContent: 'flex-start' }}
+          onClick={onCreateTask}
+        >
+          Create Task
+        </Button>
+        <Button
+          fullWidth
+          variant="outlined"
+          startIcon={<DollarSign size={16} />}
+          sx={{ mb: 1, justifyContent: 'flex-start' }}
+          onClick={onNewInvoice}
+        >
+          New Invoice
         </Button>
       </Box>
     </Paper>
@@ -4391,6 +4419,9 @@ const SmartDashboard = () => {
   const handleAddClient = () => setShowContactForm(true);
   const handleNewDispute = () => navigate('/dispute-hub?action=create');
   const handleSendEmail = () => navigate('/comms-hub?tab=email');
+  const handleScheduleCall = () => navigate('/call-logs?action=create');
+  const handleCreateTask = () => navigate('/tasks?action=create');
+  const handleNewInvoice = () => navigate('/invoices?action=create');
 
   // Determine user role
   const userRole = userProfile?.role || 'staff';
@@ -4834,6 +4865,9 @@ const SmartDashboard = () => {
             onAddClient={handleAddClient}
             onNewDispute={handleNewDispute}
             onSendEmail={handleSendEmail}
+            onScheduleCall={handleScheduleCall}
+            onCreateTask={handleCreateTask}
+            onNewInvoice={handleNewInvoice}
           />
           
           <Box sx={{ mt: 3 }}>

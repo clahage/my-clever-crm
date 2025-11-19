@@ -49,6 +49,7 @@ import {
   Minus,
   ListPlusIcon
 } from 'lucide-react';
+import ContactAutocomplete from '@/components/ContactAutocomplete';
 
 // ============================================================================
 // AI TASK ENGINE - Advanced Intelligence
@@ -2538,6 +2539,20 @@ const Tasks = () => {
                   multiline
                   rows={3}
                   placeholder="Add details about this task..."
+                />
+              </Grid>
+
+              <Grid item xs={12}>
+                <ContactAutocomplete
+                  value={taskForm.assignee ? { id: taskForm.assignee, firstName: taskForm.assigneeName?.split(' ')[0] || '', lastName: taskForm.assigneeName?.split(' ')[1] || '' } : null}
+                  onChange={(contact) => setTaskForm(prev => ({
+                    ...prev,
+                    assignee: contact?.id || '',
+                    assigneeName: contact ? `${contact.firstName || ''} ${contact.lastName || ''}`.trim() : '',
+                    assigneeEmail: contact?.email || ''
+                  }))}
+                  label="Assign To (Contact)"
+                  filterRoles={['client', 'prospect', 'lead']}
                 />
               </Grid>
 

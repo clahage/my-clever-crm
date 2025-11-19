@@ -38,6 +38,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { format, addDays, subDays, differenceInMinutes, parseISO } from 'date-fns';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
+import ContactAutocomplete from '@/components/ContactAutocomplete';
 
 const Email = () => {
   const { currentUser } = useAuth();
