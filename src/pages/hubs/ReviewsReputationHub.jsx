@@ -435,6 +435,8 @@ const ReviewsReputationHub = () => {
     trustpilot: { connected: false, accountId: '', syncing: false },
     bbb: { connected: false, accountId: '', syncing: false },
     tripadvisor: { connected: false, accountId: '', syncing: false },
+    amazon: { connected: false, accountId: '', syncing: false },
+    glassdoor: { connected: false, accountId: '', syncing: false },
   });
 
   // ===== PERMISSION CHECK =====
@@ -1772,7 +1774,7 @@ const ReviewsReputationHub = () => {
 
           <Grid container spacing={2}>
             {PLATFORMS.map(platform => {
-              const connection = platformConnections[platform.id];
+              const connection = platformConnections[platform.id] || { connected: false, accountId: '', syncing: false };
               return (
                 <Grid item xs={12} md={6} key={platform.id}>
                   <Card variant="outlined" sx={{ 
