@@ -391,7 +391,7 @@ const detectFraudulentReferral = (referral) => {
 // ============================================================================
 
 const ReferralEngineHub = () => {
-  const { userProfile } = useAuth();
+  const { userProfile, currentUser } = useAuth();
   const userRole = userProfile?.role || 'user';
 
   // ===== STATE MANAGEMENT =====
