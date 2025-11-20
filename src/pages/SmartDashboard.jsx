@@ -918,11 +918,16 @@ const ClientOverviewWidget = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        
-        // Query Firebase for real client data
-        const clientsSnapshot = await getDocs(collection(db, 'contacts'));
-        const clients = clientsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        
+
+        // Query Firebase for real CLIENT data (role='client' only, not all contacts)
+        const allContactsSnapshot = await getDocs(collection(db, 'contacts'));
+        const allContacts = allContactsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // Filter to only actual clients (role='client' or roles includes 'client')
+        const clients = allContacts.filter(c =>
+          (Array.isArray(c.roles) && c.roles.includes('client')) || c.role === 'client'
+        );
+
         const total = clients.length;
         const active = clients.filter(c => c.status === 'active').length;
         const newClients = clients.filter(c => {
@@ -933,10 +938,10 @@ const ClientOverviewWidget = () => {
         }).length;
         const churned = clients.filter(c => c.status === 'churned' || c.status === 'inactive').length;
         const growth = total > 0 ? ((newClients / total) * 100).toFixed(1) : 0;
-        
+
         const stats = { total, active, new: newClients, churned, growth };
         setData(stats);
-        
+
         // Chart data
         const atRisk = clients.filter(c => c.status === 'at-risk').length;
         const chart = [
@@ -4713,36 +4718,52 @@ const SmartDashboard = () => {
           console.error('Error fetching revenue:', err);
         }
         
-        // ===== QUERY 2: CLIENTS from contacts collection =====
-        let clientsData = { total: 0, active: 0, new: 0, change: '+0', trend: 'neutral' };
+        // ===== QUERY 2: CONTACTS with role breakdown (Clients, Leads, Contacts) =====
+        let clientsData = { total: 0, active: 0, new: 0, change: '+0', trend: 'neutral', leads: 0, contacts: 0 };
         try {
-          const contactsQuery = query(
-            collection(db, 'contacts'),
-            where('roles', 'array-contains', 'client')
-          );
-          const contactsSnapshot = await getDocs(contactsQuery);
-          
-          const allClients = contactsSnapshot.docs.map(doc => ({
+          // Query all contacts to get role breakdown
+          const allContactsSnapshot = await getDocs(collection(db, 'contacts'));
+
+          const allContacts = allContactsSnapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
           }));
-          
+
+          // Filter by roles array (preferred) or role string (fallback)
+          const clients = allContacts.filter(c =>
+            (Array.isArray(c.roles) && c.roles.includes('client')) || c.role === 'client'
+          );
+          const leads = allContacts.filter(c =>
+            (Array.isArray(c.roles) && (c.roles.includes('lead') || c.roles.includes('prospect'))) ||
+            c.role === 'lead' || c.role === 'prospect'
+          );
+          const contacts = allContacts.filter(c =>
+            (Array.isArray(c.roles) && c.roles.includes('contact')) || c.role === 'contact'
+          );
+
+          // Active clients (not churned/cancelled)
+          const activeClients = clients.filter(c =>
+            c.status !== 'churned' && c.status !== 'cancelled' && c.status !== 'inactive'
+          );
+
           // New clients this month
-          const newClientsThisMonth = allClients.filter(client => {
+          const newClientsThisMonth = clients.filter(client => {
             if (!client.createdAt) return false;
             const createdDate = client.createdAt.toDate ? client.createdAt.toDate() : new Date(client.createdAt);
             return createdDate >= currentMonthStart;
           });
-          
+
           clientsData = {
-            total: allClients.length,
-            active: allClients.length,
+            total: clients.length,
+            active: activeClients.length,
             new: newClientsThisMonth.length,
             change: `+${newClientsThisMonth.length}`,
-            trend: newClientsThisMonth.length > 0 ? 'up' : 'neutral'
+            trend: newClientsThisMonth.length > 0 ? 'up' : 'neutral',
+            leads: leads.length,
+            contacts: contacts.length
           };
-          
-          console.log('👥 Clients:', clientsData);
+
+          console.log('👥 Role Breakdown - Clients:', clients.length, 'Leads:', leads.length, 'Contacts:', contacts.length);
         } catch (err) {
           console.error('Error fetching clients:', err);
         }
@@ -4897,6 +4918,20 @@ const SmartDashboard = () => {
     icon: Users,
     color: COLORS.gradients.info,
   },
+  leads: {
+    value: dashboardData?.clients?.leads?.toString() || '0',
+    change: dashboardData?.clients?.leads > 0 ? `${dashboardData.clients.leads} total` : '0',
+    trend: dashboardData?.clients?.leads > 0 ? 'up' : 'neutral',
+    icon: Target,
+    color: COLORS.gradients.warning,
+  },
+  contacts: {
+    value: dashboardData?.clients?.contacts?.toString() || '0',
+    change: dashboardData?.clients?.contacts > 0 ? `${dashboardData.clients.contacts} total` : '0',
+    trend: 'neutral',
+    icon: Users,
+    color: COLORS.gradients.primary,
+  },
   disputes: {
     value: dashboardData?.disputes?.active?.toString() || '0',
     change: dashboardData?.disputes?.change || '+0%',
@@ -5011,6 +5046,26 @@ const SmartDashboard = () => {
             trend={kpis.clients.trend}
             icon={kpis.clients.icon}
             color={kpis.clients.color}
+          />
+        </Grid>
+        <Grid xs={12} sm={6} md={4} lg={2}>
+          <KPICard
+            title="Leads"
+            value={kpis.leads.value}
+            change={kpis.leads.change}
+            trend={kpis.leads.trend}
+            icon={kpis.leads.icon}
+            color={kpis.leads.color}
+          />
+        </Grid>
+        <Grid xs={12} sm={6} md={4} lg={2}>
+          <KPICard
+            title="Contacts"
+            value={kpis.contacts.value}
+            change={kpis.contacts.change}
+            trend={kpis.contacts.trend}
+            icon={kpis.contacts.icon}
+            color={kpis.contacts.color}
           />
         </Grid>
         <Grid xs={12} sm={6} md={4} lg={2}>
