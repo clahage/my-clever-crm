@@ -878,7 +878,7 @@ export default function Portal() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 space-y-4">
+        <form autoComplete="off" className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               API Key *
@@ -886,6 +886,8 @@ export default function Portal() {
             <input
               type="password"
               name="apiKey"
+              autoComplete="off"
+              data-form-type="other"
               value={settings.apiKey}
               onChange={handleInputChange}
               placeholder="Enter your IDIQ API key"
@@ -903,6 +905,8 @@ export default function Portal() {
               value={settings.apiSecret}
               onChange={handleInputChange}
               placeholder="Enter your IDIQ API secret"
+              autoComplete="off"
+              data-form-type="other"
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -917,6 +921,7 @@ export default function Portal() {
               value={settings.offerCode}
               onChange={handleInputChange}
               placeholder="e.g., OFFER123"
+              autoComplete="off"
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -931,6 +936,7 @@ export default function Portal() {
               value={settings.planCode}
               onChange={handleInputChange}
               placeholder="e.g., BASIC_PLAN"
+              autoComplete="off"
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -1024,7 +1030,7 @@ export default function Portal() {
               )}
             </button>
           </div>
-        </div>
+        </form>
 
         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6">
           <h3 className="font-bold text-blue-900 dark:text-blue-100 mb-3 flex items-center gap-2">

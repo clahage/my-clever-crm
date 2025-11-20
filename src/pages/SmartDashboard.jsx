@@ -4194,7 +4194,7 @@ const QuickAccessPanel = ({ onAddClient, onNewDispute, onSendEmail, onScheduleCa
           sx={{ mb: 1, justifyContent: 'flex-start' }}
           onClick={onAddClient}
         >
-          Add Client
+          Add Contact
         </Button>
         <Button
           fullWidth

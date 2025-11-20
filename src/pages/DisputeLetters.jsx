@@ -1930,7 +1930,7 @@ ${content}
                         )
                       }
                     >
-                      Select or Add Client
+                      Select or Add Contact
                     </StepLabel>
                     <StepContent>
                       <Grid container spacing={3}>
@@ -3230,7 +3230,7 @@ ${content}
                   </AccordionSummary>
                   <AccordionDetails>
                     <Typography component="div">
-                      <h4>Step 1: Select or Add Client</h4>
+                      <h4>Step 1: Select or Add Contact</h4>
                       <ul>
                         <li>Choose from existing clients in dropdown (pulls from your Contacts)</li>
                         <li>Select "Manual Entry" to add new client</li>

@@ -152,7 +152,7 @@ const Home = () => {
             <QuickActionButton
               to="/contacts"
               icon="👤"
-              label="Add Client"
+              label="Add Contact"
               gradient="from-green-500 to-emerald-600"
             />
             <QuickActionButton
@@ -279,7 +279,7 @@ const Home = () => {
                 <span className="text-2xl">1️⃣</span>
               </div>
               <h4 className="font-semibold text-gray-900 mb-1">Add Your First Client</h4>
-              <p className="text-sm text-gray-600">Go to Clients Hub and click "Add Client"</p>
+              <p className="text-sm text-gray-600">Go to Clients Hub and click "Add Contact"</p>
             </div>
             <div className="text-center">
               <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">

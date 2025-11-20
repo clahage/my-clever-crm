@@ -191,17 +191,6 @@ export default function Navigation() {
           })}
         </div>
 
-        {/* Quick Links Footer */}
-        <div className="mt-4 pt-4 border-t border-blue-700">
-          <Link
-            to="/home"
-            className="flex items-center px-3 py-2 text-xs text-blue-300 hover:text-white transition-colors"
-            onClick={() => setMobileOpen(false)}
-          >
-            <FaHome className="mr-2" />
-            Welcome Hub
-          </Link>
-        </div>
       </nav>
     </>
   );

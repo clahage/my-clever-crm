@@ -50,7 +50,7 @@ export default function ClientList() {
           className="bg-blue-600 text-white px-6 py-2 rounded shadow hover:bg-blue-700 font-semibold"
           onClick={() => navigate('/add-client')}
         >
-          Add Client
+          Add Contact
         </button>
       </div>
       <div className="bg-white rounded-lg shadow p-6">
