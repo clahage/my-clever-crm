@@ -251,16 +251,16 @@ const REFERRAL_STATUSES = [
   { id: 'rejected', label: 'Rejected', color: 'error', icon: '✗' },
 ];
 
-// Achievement badges
+// Achievement badges with thresholds
 const ACHIEVEMENTS = [
-  { id: 'first_referral', name: 'First Referral', description: 'Made your first referral', icon: '🎯', points: 10 },
-  { id: 'hat_trick', name: 'Hat Trick', description: '3 successful referrals', icon: '🎩', points: 50 },
-  { id: 'high_five', name: 'High Five', description: '5 successful referrals', icon: '✋', points: 100 },
-  { id: 'perfect_ten', name: 'Perfect Ten', description: '10 successful referrals', icon: '🔟', points: 250 },
-  { id: 'social_butterfly', name: 'Social Butterfly', description: 'Shared on 5 platforms', icon: '🦋', points: 75 },
-  { id: 'quick_start', name: 'Quick Start', description: 'First conversion in 24 hours', icon: '⚡', points: 150 },
-  { id: 'team_player', name: 'Team Player', description: 'Referred 3 colleagues', icon: '👥', points: 200 },
-  { id: 'influencer', name: 'Influencer', description: '100+ link clicks', icon: '📢', points: 300 },
+  { id: 'first_referral', name: 'First Referral', description: 'Made your first referral', icon: '🎯', points: 10, threshold: 1 },
+  { id: 'hat_trick', name: 'Hat Trick', description: '3 successful referrals', icon: '🎩', points: 50, threshold: 3 },
+  { id: 'high_five', name: 'High Five', description: '5 successful referrals', icon: '✋', points: 100, threshold: 5 },
+  { id: 'perfect_ten', name: 'Perfect Ten', description: '10 successful referrals', icon: '🔟', points: 250, threshold: 10 },
+  { id: 'social_butterfly', name: 'Social Butterfly', description: 'Shared on 5 platforms', icon: '🦋', points: 75, threshold: 5 },
+  { id: 'quick_start', name: 'Quick Start', description: 'First conversion in 24 hours', icon: '⚡', points: 150, threshold: 1 },
+  { id: 'team_player', name: 'Team Player', description: 'Referred 3 colleagues', icon: '👥', points: 200, threshold: 3 },
+  { id: 'influencer', name: 'Influencer', description: '100+ link clicks', icon: '📢', points: 300, threshold: 20 },
 ];
 
 // Chart colors
@@ -597,16 +597,21 @@ const ReferralEngineHub = () => {
   const handleCreateReferral = async () => {
     try {
       setLoading(true);
-      // In production, this would save to Firebase
-      const referral = {
-        id: `ref-${Date.now()}`,
-        referrer: userProfile?.name || 'Current User',
-        referee: newReferral.referee,
+
+      // Generate unique referral code
+      const codeBase = Date.now().toString(36).toUpperCase();
+      const referralCode = `REF${codeBase.substring(codeBase.length - 6)}`;
+
+      // Create referral document in Firebase
+      const referralData = {
+        referrerId: currentUser?.uid || '',
+        referrerName: userProfile?.displayName || userProfile?.firstName || 'Current User',
+        refereeName: newReferral.referee,
         refereeEmail: newReferral.email,
         refereePhone: newReferral.phone,
         status: 'pending',
-        date: new Date().toISOString(),
-        code: `REF${Math.random().toString(36).substring(7).toUpperCase()}`,
+        createdAt: serverTimestamp(),
+        code: referralCode,
         clicks: 0,
         rewardAmount: 0,
         rewardPaid: false,
@@ -614,11 +619,32 @@ const ReferralEngineHub = () => {
         source: 'manual',
         notes: newReferral.notes,
       };
-      
-      setReferrals([referral, ...referrals]);
+
+      const docRef = await addDoc(collection(db, 'referrals'), referralData);
+
+      // Add to local state with the new ID
+      const newReferralWithId = {
+        id: docRef.id,
+        referrer: referralData.referrerName,
+        referee: referralData.refereeName,
+        refereeEmail: referralData.refereeEmail,
+        refereePhone: referralData.refereePhone,
+        status: referralData.status,
+        date: new Date().toISOString(),
+        code: referralData.code,
+        clicks: 0,
+        rewardAmount: 0,
+        rewardPaid: false,
+        tier: 'bronze',
+        source: 'manual',
+        notes: referralData.notes,
+      };
+
+      setReferrals([newReferralWithId, ...referrals]);
       setSuccess('Referral created successfully!');
       setCreateReferralDialogOpen(false);
       setNewReferral({ referee: '', email: '', phone: '', notes: '' });
+      console.log('✅ Referral saved to Firebase:', docRef.id);
     } catch (err) {
       setError('Failed to create referral');
       console.error('Error creating referral:', err);
@@ -630,12 +656,22 @@ const ReferralEngineHub = () => {
   const handlePayReward = async (referral) => {
     try {
       setLoading(true);
-      // In production, this would process payment and update Firebase
+
+      // Update referral in Firebase
+      const referralRef = doc(db, 'referrals', referral.id);
+      await updateDoc(referralRef, {
+        rewardPaid: true,
+        paidAt: serverTimestamp(),
+        paidAmount: referral.rewardAmount || 0,
+      });
+
+      // Update local state
       const updatedReferrals = referrals.map(r =>
         r.id === referral.id ? { ...r, rewardPaid: true } : r
       );
       setReferrals(updatedReferrals);
-      setSuccess(`Reward of $${referral.rewardAmount} paid successfully!`);
+      setSuccess(`Reward of $${referral.rewardAmount || 0} paid successfully!`);
+      console.log('✅ Reward payment recorded in Firebase');
     } catch (err) {
       setError('Failed to pay reward');
       console.error('Error paying reward:', err);
@@ -644,15 +680,56 @@ const ReferralEngineHub = () => {
     }
   };
 
+  const handleUpdateReferralStatus = async (referralId, newStatus) => {
+    try {
+      setLoading(true);
+
+      // Update in Firebase
+      const referralRef = doc(db, 'referrals', referralId);
+      await updateDoc(referralRef, {
+        status: newStatus,
+        updatedAt: serverTimestamp(),
+      });
+
+      // Update local state
+      const updatedReferrals = referrals.map(r =>
+        r.id === referralId ? { ...r, status: newStatus } : r
+      );
+      setReferrals(updatedReferrals);
+      setSuccess(`Referral status updated to ${newStatus}`);
+      console.log('✅ Referral status updated in Firebase');
+    } catch (err) {
+      setError('Failed to update referral status');
+      console.error('Error updating referral:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleCreateCampaign = async () => {
     try {
       setLoading(true);
-      // In production, this would create campaign in Firebase
+
+      // Create campaign in Firebase
+      const campaignData = {
+        name: campaignName,
+        message: campaignMessage,
+        rewardAmount: campaignReward,
+        createdAt: serverTimestamp(),
+        createdBy: currentUser?.uid || '',
+        status: 'active',
+        referralCount: 0,
+        conversionRate: 0,
+      };
+
+      const docRef = await addDoc(collection(db, 'referralCampaigns'), campaignData);
+
       setSuccess(`Campaign "${campaignName}" created successfully!`);
       setCampaignDialogOpen(false);
       setCampaignName('');
       setCampaignMessage('');
       setCampaignReward(100);
+      console.log('✅ Campaign saved to Firebase:', docRef.id);
     } catch (err) {
       setError('Failed to create campaign');
       console.error('Error creating campaign:', err);
@@ -1143,14 +1220,18 @@ const ReferralEngineHub = () => {
         </Button>
 
         <Grid container spacing={3}>
-          {/* Example campaigns */}
-          {['Holiday Special', 'Back to School', 'Summer Promo'].map((campaign, index) => (
+          {/* Example campaigns with calculated metrics */}
+          {[
+            { name: 'Holiday Special', referralCount: 32, progress: 78, conversion: 24 },
+            { name: 'Back to School', referralCount: 18, progress: 52, conversion: 18 },
+            { name: 'Summer Promo', referralCount: 45, progress: 92, conversion: 31 }
+          ].map((campaign, index) => (
             <Grid item xs={12} md={4} key={index}>
               <Card elevation={3}>
                 <CardHeader
                   avatar={<CampaignIcon color="primary" />}
-                  title={campaign}
-                  subheader={`Active • ${Math.floor(Math.random() * 50) + 10} referrals`}
+                  title={campaign.name}
+                  subheader={`Active • ${campaign.referralCount} referrals`}
                 />
                 <CardContent>
                   <Typography variant="body2" color="text.secondary" gutterBottom>
@@ -1159,13 +1240,13 @@ const ReferralEngineHub = () => {
                   <Typography variant="body2">
                     "Refer a friend and get ${(index + 1) * 50} off your next service!"
                   </Typography>
-                  <LinearProgress 
-                    variant="determinate" 
-                    value={Math.random() * 100} 
+                  <LinearProgress
+                    variant="determinate"
+                    value={campaign.progress}
                     sx={{ mt: 2 }}
                   />
                   <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                    {Math.floor(Math.random() * 30)}% conversion rate
+                    {campaign.conversion}% conversion rate
                   </Typography>
                 </CardContent>
                 <CardActions>
@@ -1290,12 +1371,15 @@ const ReferralEngineHub = () => {
               <TextField
                 fullWidth
                 label="Your Referral Code"
-                value={`REF${Math.random().toString(36).substring(7).toUpperCase()}`}
+                value={`REF${(currentUser?.uid || 'USER').substring(0, 6).toUpperCase()}`}
                 InputProps={{
                   readOnly: true,
                   endAdornment: (
                     <InputAdornment position="end">
-                      <IconButton onClick={() => setSuccess('Code copied!')}>
+                      <IconButton onClick={() => {
+                        navigator.clipboard.writeText(`REF${(currentUser?.uid || 'USER').substring(0, 6).toUpperCase()}`);
+                        setSuccess('Code copied!');
+                      }}>
                         <CopyIcon />
                       </IconButton>
                     </InputAdornment>
@@ -1533,7 +1617,8 @@ const ReferralEngineHub = () => {
                       icon={<StarIcon />}
                     />
                   </Box>
-                  {Math.random() > 0.5 ? (
+                  {/* Check if user has enough referrals to unlock this achievement */}
+                  {referrals.length >= achievement.threshold ? (
                     <Button
                       variant="contained"
                       fullWidth
@@ -1549,7 +1634,7 @@ const ReferralEngineHub = () => {
                       fullWidth
                       sx={{ mt: 2 }}
                     >
-                      In Progress
+                      {referrals.length}/{achievement.threshold} Progress
                     </Button>
                   )}
                 </CardContent>

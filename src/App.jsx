@@ -238,7 +238,7 @@ const ComplianceHub = lazy(() => import('@/pages/hubs/ComplianceHub'));
 const ContentCreatorSEOHub = lazy(() => import('@/pages/hubs/ContentCreatorSEOHub'));
 const ContractManagementHub = lazy(() => import('@/pages/hubs/ContractManagementHub'));
 const CreditReportsHub = lazy(() => import('@/pages/hubs/CreditReportsHub'));
-const DashboardHub = lazy(() => import('@/pages/hubs/DashboardHub'));
+// DashboardHub removed - consolidated into SmartDashboard
 const DisputeAdminPanel = lazy(() => import('@/pages/hubs/DisputeAdminPanel'));
 const DisputeHub = lazy(() => import('@/pages/hubs/DisputeHub'));
 const DocumentsHub = lazy(() => import('@/pages/hubs/DocumentsHub'));
@@ -639,17 +639,8 @@ const AppContent = () => {
   }
 />
 
-{/* Dashboard Hub - Advanced dashboard features */}
-<Route
-  path="dashboard-hub"
-  element={
-    <ProtectedRoute requiredRole="prospect">
-      <Suspense fallback={<LoadingFallback />}>
-        <DashboardHub />
-      </Suspense>
-    </ProtectedRoute>
-  }
-/>
+{/* Dashboard Hub - Redirects to SmartDashboard (consolidated) */}
+<Route path="dashboard-hub" element={<Navigate to="/smart-dashboard" replace />} />
 
 {/* Dispute Hub - Dispute management panel */}
 <Route

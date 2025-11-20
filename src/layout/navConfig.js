@@ -245,15 +245,7 @@ export const navigationItems = [
     category: 'hubs',
     defaultExpanded: false,
     items: [
-      // CORE OPERATIONS (10 hubs)
-      {
-        id: 'dashboard-hub',
-        title: 'Dashboard Hub',
-        path: '/dashboard-hub',
-        icon: LayoutDashboard,
-        permission: 'user',
-        description: 'Advanced dashboard features'
-      },
+      // CORE OPERATIONS (9 hubs - Dashboard Hub consolidated into SmartDashboard)
       {
         id: 'clients-hub',
         title: 'Clients Hub',
