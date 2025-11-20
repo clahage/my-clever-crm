@@ -199,6 +199,7 @@ import {
   ComposedChart,
   Funnel,
   FunnelChart,
+  LabelList,
 } from 'recharts';
 import {
   collection,
