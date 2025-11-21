@@ -46,6 +46,66 @@ We just completed Phase 1: Archived 4 basic placeholder pages (Documents, Emails
 
 ## YOUR TASKS
 
+### TASK 0: Clean Up Documentation Files (ROOT LEVEL ONLY)
+
+**Problem:** Root directory has 50+ markdown/documentation files cluttering the project.
+
+**Action:**
+1. List all .md files in root directory (exclude README.md and package files)
+2. Create archive directory: `archive/old-documentation/2025-11-21/`
+3. Move outdated documentation files:
+
+**KEEP in root (essential):**
+- README.md (main project readme)
+- package.json, package-lock.json
+- Any CI/CD config files (.github, etc.)
+- CLAUDE_CODE_STANDALONE_CONSOLIDATION.md (this prompt)
+- The 3 deliverables you create (CONSOLIDATION_COMPLETE.md, etc.)
+
+**ARCHIVE (move to archive/old-documentation/2025-11-21/):**
+- ARCHITECTURAL_CHANGES.md
+- AUDIT_*.md
+- CLAUDE_CODE_*.md (except this prompt)
+- COMPLETION_REPORT.md
+- DASHBOARD_CLEANUP_*.md
+- DELETE_CANDIDATES.md
+- DUPLICATE_PAGES_REPORT.md
+- EXECUTE_NOW_*.md
+- FEATURE_INVENTORY.md
+- FIXES_COMPLETED.md
+- HUB_INVENTORY.md
+- IMPLEMENTATION_SUMMARY.md
+- INTEGRATION_SUMMARY_*.md
+- INSTRUCTIONS_FOR_USER.md
+- nav_audit.md
+- PRIORITY_FIXES.md (or any old priority/fix docs)
+- PRODUCTION_CLEANUP_*.md
+- PROJECT_HANDOFF*.md
+- QUICK_START_*.md
+- SAMPLE_DATA_*.md
+- SPEEDYCRM_MASTER_HANDOFF*.md
+- START_HERE_*.md
+- URGENT_FIXES_*.md
+- Any other markdown files that are clearly outdated documentation
+
+**Command:**
+```bash
+git mv [filename].md archive/old-documentation/2025-11-21/[filename].md
+```
+
+**Commit after this task:**
+```
+Archive old documentation files
+
+Moved 40+ outdated .md files to archive/old-documentation/2025-11-21/
+- Kept README.md and current deliverables
+- Cleaned root directory for better organization
+
+Impact: Cleaner root directory, easier to navigate project
+```
+
+---
+
 ### TASK 1: Review and Migrate Large Standalone Pages
 
 For each of these files, **compare features** before archiving:
@@ -179,7 +239,91 @@ These exist in BOTH `/pages/` and `/pages/hubs/` - compare and keep best:
 
 ---
 
-### TASK 4: Clean Up App.jsx Imports
+### TASK 4: Comprehensive /src/ Directory Audit
+
+**Problem:** After archiving standalone pages, there may be orphaned files, fake data, broken imports, or unused components remaining in /src/.
+
+**Action - For EVERY remaining file in /src/ and subfolders:**
+
+#### A. Check for Fake/Sample Data
+
+Search these patterns in ALL files:
+```bash
+grep -rn "John Doe\|Jane Smith\|john@example\|555-" src/
+grep -rn "mock\|demo\|sample\|fake\|placeholder" src/ --include="*.jsx" --include="*.js"
+```
+
+**If found:**
+- Review context - is it legitimate (like template preview) or real fake data?
+- If fake data in production component: Remove and add proper empty states
+- Document in FAKE_DATA_REMOVED.md
+
+#### B. Check for Unused/Orphaned Files
+
+For each file in /src/:
+1. Check if imported anywhere:
+```bash
+grep -rn "from.*[filename]" src/
+grep -rn "import.*[filename]" src/
+```
+
+2. If NOT imported and NOT routed in App.jsx:
+   - Check git history: `git log --follow -- [filepath]`
+   - If not touched in 6+ months AND unused → Archive to `archive/unused-components/2025-11-21/`
+   - If recently modified → Keep but document in CONSOLIDATION_COMPLETE.md
+
+#### C. Check for Broken/Old Imports
+
+Search for imports pointing to archived files:
+```bash
+grep -rn "from '@/pages/Documents'" src/
+grep -rn "from '@/pages/Emails'" src/
+grep -rn "from '@/pages/Reports'" src/
+grep -rn "from '@/pages/Settings'" src/
+# ... check all archived files
+```
+
+**If found:** Update to point to hub equivalents or remove if unused
+
+#### D. Review Empty/Stub Files
+
+Find suspiciously small files:
+```bash
+find src/ -name "*.jsx" -o -name "*.js" | xargs wc -l | awk '$1 < 50'
+```
+
+For each small file:
+- Is it a real stub/placeholder or a minimal utility?
+- If stub: Archive to `archive/stubs-and-placeholders/2025-11-21/`
+- If utility: Keep
+
+#### E. Check for Duplicate Components
+
+Look for similar names:
+- ContactForm.jsx vs UltimateContactForm.jsx vs ClientIntakeForm.jsx
+- Dashboard.jsx vs SmartDashboard.jsx vs ModernDashboard.jsx
+- Multiple versions of same component
+
+**Action:**
+1. Compare file sizes and features
+2. Check which is actually used in App.jsx routes
+3. Archive the unused/inferior version
+4. Document in DUPLICATE_COMPONENTS_RESOLVED.md
+
+#### F. Update Path References
+
+Check for old path references that need updating:
+```bash
+grep -rn "/contacts\|/emails\|/reports\|/settings" src/ --include="*.jsx"
+```
+
+**If found hardcoded paths:**
+- Update to new hub paths (/clients-hub, /comms-hub, etc.)
+- Or use constants/config for paths
+
+---
+
+### TASK 5: Clean Up App.jsx Imports
 
 After archiving each file, you MUST:
 
@@ -199,7 +343,7 @@ After archiving each file, you MUST:
 
 Create these files in the root directory:
 
-### 1. CONSOLIDATION_COMPLETE.md
+### 1. CONSOLIDATION_COMPLETE.md (REQUIRED)
 
 ```markdown
 # Standalone Page Consolidation Complete
@@ -209,8 +353,17 @@ Create these files in the root directory:
 - **Lines of Code Removed:** ~[X],000
 - **Unique Features Migrated:** [X]
 - **Hubs Enhanced:** [X]
+- **Documentation Files Archived:** [X]
+- **Unused Components Archived:** [X]
+- **Fake Data Removed:** [X] instances
+- **Broken Imports Fixed:** [X]
 
 ## Detailed Log
+
+### Phase 0: Documentation Cleanup
+- ✅ Archived [X] outdated .md files to archive/old-documentation/2025-11-21/
+- ✅ Kept README.md and essential docs
+- ✅ Root directory cleaned for better navigation
 
 ### Phase 2A: Large Page Consolidation
 - ✅ Contacts.jsx → ClientsHub.jsx
@@ -233,6 +386,22 @@ Create these files in the root directory:
 
 ### Phase 2C: Duplicate Pairs Resolved
 - [List each pair and which version kept]
+
+### Phase 2D: Deep /src/ Directory Audit
+**Fake Data Removed:** [X] instances in [X] files
+- [List files where fake data was removed]
+
+**Unused Components Archived:** [X] files
+- [List archived unused components]
+
+**Broken Imports Fixed:** [X] files
+- [List files with updated imports]
+
+**Duplicate Components Resolved:** [X] pairs
+- [List duplicate pairs and which kept]
+
+**Path References Updated:** [X] files
+- [List files with updated paths]
 
 ## App.jsx Changes
 - **Imports Removed:** [X]
@@ -257,7 +426,7 @@ All archived files in: `archive/superseded-standalone-pages/2025-11-21/`
 5. Deploy to production
 ```
 
-### 2. FEATURE_MIGRATION_LOG.md
+### 2. FEATURE_MIGRATION_LOG.md (if features migrated)
 
 For any features you copy from standalone → hub, document:
 
@@ -284,7 +453,52 @@ For any features you copy from standalone → hub, document:
 [Repeat for each migration]
 ```
 
-### 3. ARCHIVE_MANIFEST.md
+### 3. FAKE_DATA_REMOVED.md
+
+```markdown
+# Fake Data Removal Report
+
+## Files Modified
+
+### [FileName].jsx
+**Location:** src/path/to/file.jsx
+**Lines:** [X-Y]
+**What was removed:**
+- Fake names: John Doe, Jane Smith, etc.
+- Fake emails: john@example.com
+- Fake phone: 555-XXX-XXXX
+- Mock data arrays
+
+**What replaced it:**
+- Proper Firebase query
+- Empty state component
+- Loading state
+
+---
+
+[Repeat for each file]
+```
+
+### 4. DUPLICATE_COMPONENTS_RESOLVED.md
+
+```markdown
+# Duplicate Components Resolution
+
+## Resolved Duplicates
+
+### ContactForm vs UltimateContactForm vs ClientIntakeForm
+**Decision:** Kept UltimateContactForm
+**Reason:** Most comprehensive (2,500 lines, AI features, validation)
+**Archived:**
+- ContactForm.jsx → archive/unused-components/2025-11-21/
+- ClientIntakeForm.jsx → archive/unused-components/2025-11-21/
+
+---
+
+[Repeat for each duplicate set]
+```
+
+### 5. ARCHIVE_MANIFEST.md
 
 Complete list of all archived files:
 
@@ -296,6 +510,9 @@ Complete list of all archived files:
 2. Emails.jsx → CommunicationsHub
 3. Reports.jsx → ReportsHub
 4. Settings.jsx → SettingsHub
+
+## Phase 0: Documentation Cleanup
+[List all .md files archived]
 
 ## Phase 2 (Completed by Claude Code)
 
@@ -325,8 +542,21 @@ Complete list of all archived files:
 ### Duplicate Pairs
 [list...]
 
+### Unused Components (from Task 4)
+[list...]
+
+### Stub/Placeholder Files (from Task 4)
+[list...]
+
+## Archive Directories Created
+- archive/superseded-standalone-pages/2025-11-21/
+- archive/old-documentation/2025-11-21/
+- archive/unused-components/2025-11-21/
+- archive/stubs-and-placeholders/2025-11-21/
+
 ## Total Archived: [X] files
 ## Total LOC Removed: ~[X],000 lines
+## Documentation Files Archived: [X] files
 ```
 
 ---
@@ -408,27 +638,32 @@ See CONSOLIDATION_COMPLETE.md for full details
 
 ## WORKFLOW
 
-1. **Start with Task 1** - Large files need careful feature review
-2. **Then Task 2** - Batch archive small files for speed
-3. **Then Task 3** - Resolve duplicate pairs
-4. **Then Task 4** - Final App.jsx cleanup
-6. **Create all 3 deliverable files**
-7. **Test key paths** (at least 5 redirects)
-8. **Final commit and push**
+1. **Start with Task 0** - Clean up documentation files (quickest win)
+2. **Then Task 1** - Large files need careful feature review
+3. **Then Task 2** - Batch archive small files for speed
+4. **Then Task 3** - Resolve duplicate pairs
+5. **Then Task 4** - Deep /src/ audit (fake data, unused files, broken imports)
+6. **Then Task 5** - Final App.jsx cleanup
+7. **Create all deliverable files** (minimum 3, up to 5)
+8. **Test key paths** (at least 5 redirects)
+9. **Final commit and push**
 
 ---
 
 ## EXPECTED RESULTS
 
 **When Done:**
-- ✅ 40-60 files archived
+- ✅ 60-80 files archived (pages + docs + unused components)
 - ✅ 30,000+ lines of redundant code removed
+- ✅ All fake/sample data removed from production code
 - ✅ All unique features preserved in hubs
 - ✅ Zero breaking changes
-- ✅ Clean, organized codebase
-- ✅ Complete documentation
+- ✅ Clean root directory (documentation archived)
+- ✅ Clean /src/ directory (no orphaned files)
+- ✅ All imports updated and working
+- ✅ Complete documentation (3-5 deliverable files)
 
-**Time Estimate:** 4-6 hours across multiple sessions
+**Time Estimate:** 6-8 hours across multiple sessions (expanded scope)
 
 ---
 
