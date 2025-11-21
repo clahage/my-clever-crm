@@ -126,7 +126,7 @@ const Login = lazy(() => import('@/pages/Login'));
 const Register = lazy(() => import('@/pages/Register'));
 const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'));
 const SmartDashboard = lazy(() => import('@/pages/SmartDashboard'));
-// Note: Dashboard and Home now redirect to SmartDashboard (removed lazy imports)
+const Home = lazy(() => import('@/pages/Home'));
 const IDIQDashboard = lazy(() => import("@/components/IDIQDashboard"));
 const CreditReports = lazy(() => import("@/components/CreditReports"));
 const ClientPortal = lazy(() => import('@/pages/ClientPortal'));
@@ -373,9 +373,10 @@ const AppContent = () => {
         {/* SMART DASHBOARD - Intelligent Role-Based Landing Page */}
         <Route path="smart-dashboard" element={<Suspense fallback={<LoadingFallback />}><SmartDashboard /></Suspense>} />
 
-        {/* Dashboard Routes - Redirect to SmartDashboard (unified landing) */}
+        {/* Dashboard Routes */}
         <Route path="dashboard" element={<Navigate to="/smart-dashboard" replace />} />
-        <Route path="home" element={<Navigate to="/smart-dashboard" replace />} />
+        {/* Home - Welcome Hub (separate from analytics dashboard) */}
+        <Route path="home" element={<Suspense fallback={<LoadingFallback />}><Home /></Suspense>} />
         <Route path="client-portal" element={<Suspense fallback={<LoadingFallback />}><ClientPortal /></Suspense>} />
         <Route path="client" element={<Suspense fallback={<LoadingFallback />}><ClientDashboard /></Suspense>} />
         <Route path="portal" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><Portal /></Suspense></ProtectedRoute>} />
