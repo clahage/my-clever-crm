@@ -1,43 +1,42 @@
 // src/layout/navConfig.js
 // ============================================================================
-// OPTIMIZED NAVIGATION CONFIGURATION - VERSION 4.0
-// ============================================================================
-// MAJOR UPDATE: Navigation reorganization (53 hubs → 20 strategic hubs)
-// REDUCTION: 64% fewer navigation items for improved UX
-// CONSOLIDATION: Related features grouped into comprehensive hubs
+// CONSOLIDATED NAVIGATION CONFIGURATION - VERSION 4.0
+// PHASE 3: Hub-Based Navigation (67 items → 24 items)
 // LAST UPDATED: December 3, 2025 - Phase 1-3 Implementation
 // BACKUP: Previous version saved as navConfig.js.backup
 // ============================================================================
 
 import {
   // ===== CORE =====
-  Home, LayoutDashboard, Settings, Database,
+  Home, LayoutDashboard, Settings,
 
   // ===== PEOPLE & ORGANIZATION =====
-  Users, User, UserPlus, UserCheck, Building, Building2, Globe, Handshake, Crown,
+  Users, User, UserPlus, Handshake, Crown,
 
   // ===== DOCUMENTS & DATA =====
-  FileText, FileSpreadsheet, Archive, CheckSquare, Package, Download, Upload,
-  FolderOpen, File, FilePlus, Layers,
+  FileText, FolderOpen,
 
   // ===== COMMUNICATION =====
-  MessageSquare, Mail, Phone, Bell, Zap, Calendar, Send, Inbox,
+  MessageSquare, Calendar, Zap,
 
   // ===== CREDIT & FINANCE =====
-  CreditCard as LucideCreditCard, TrendingUp, Calculator, GitBranch, List, DollarSign, Wallet,
-  Receipt, PieChart, BarChart, Target, Shield,
+  CreditCard, TrendingUp, DollarSign, Receipt, Shield,
 
   // ===== AI & ANALYTICS =====
-  Brain, Sparkles, Activity, LineChart, BarChart3, PieChart as PieChartIcon,
+  Brain, BarChart,
 
   // ===== LEARNING & ACHIEVEMENT =====
-  GraduationCap, BookOpen, Award, Trophy, Star,
+  GraduationCap,
 
-  // ===== MOBILE & WHITE LABEL =====
-  Smartphone, Palette, Brush, Info,
+  // ===== MOBILE =====
+  Smartphone,
 
   // ===== MISC =====
+<<<<<<< HEAD
   MapPin, AlertCircle, Eye, Wrench, Lock, Key, HelpCircle, ExternalLink, RefreshCw
+=======
+  AlertCircle, HelpCircle, Globe, Star
+>>>>>>> 2229387 (Phase 3: Consolidate navigation from 113 items to 24 hub-based items)
 } from 'lucide-react';
 
 // ============================================================================
@@ -162,17 +161,29 @@ export function isVisible(item, userRole, isMobile = false) {
 }
 
 // ============================================================================
+<<<<<<< HEAD
 // NAVIGATION ITEMS - OPTIMIZED 20-HUB STRUCTURE
+=======
+// NAVIGATION ITEMS - CONSOLIDATED HUB-BASED STRUCTURE (Phase 3)
+// ============================================================================
+// REDUCED FROM 113 ITEMS → 24 ITEMS
+// All standalone pages redirect to their parent hubs via App.jsx
+>>>>>>> 2229387 (Phase 3: Consolidate navigation from 113 items to 24 hub-based items)
 // ============================================================================
 
 export const navigationItems = [
   // ==========================================================================
+<<<<<<< HEAD
   // 🎯 SMART DASHBOARD - PRIMARY LANDING
+=======
+  // 🏠 CORE NAVIGATION (4 items)
+>>>>>>> 2229387 (Phase 3: Consolidate navigation from 113 items to 24 hub-based items)
   // ==========================================================================
   {
     id: 'smart-dashboard',
     title: 'Smart Dashboard',
     path: '/smart-dashboard',
+<<<<<<< HEAD
     icon: Sparkles,
     permission: 'prospect',
     mobileHidden: false,
@@ -195,6 +206,49 @@ export const navigationItems = [
     defaultExpanded: true,
     items: [
       // HUB 1: CLIENTS & PIPELINE (Consolidated: 6 items → 1 hub)
+=======
+    icon: LayoutDashboard,
+    permission: 'prospect',
+    mobileHidden: false,
+    description: 'Analytics, metrics, and role-based widgets',
+    category: 'core'
+  },
+  {
+    id: 'client-portal',
+    title: 'Client Portal',
+    path: '/client-portal',
+    icon: User,
+    permission: 'client',
+    mobileHidden: false,
+    description: 'Client progress dashboard with scores, disputes, payments',
+    category: 'client'
+  },
+  {
+    id: 'admin-portal',
+    title: 'Admin Portal',
+    path: '/portal',
+    icon: Crown,
+    permission: 'admin',
+    mobileHidden: true,
+    badge: 'ADMIN',
+    description: 'Complete system control center',
+    category: 'admin'
+  },
+
+  // ==========================================================================
+  // 👥 OPERATIONS HUBS (6 items)
+  // ==========================================================================
+  {
+    id: 'operations-hubs',
+    title: 'Operations',
+    icon: Users,
+    isGroup: true,
+    permission: 'user',
+    mobileHidden: false,
+    category: 'operations',
+    defaultExpanded: true,
+    items: [
+>>>>>>> 2229387 (Phase 3: Consolidate navigation from 113 items to 24 hub-based items)
       {
         id: 'clients-pipeline-hub',
         title: 'Clients & Pipeline',
@@ -202,24 +256,46 @@ export const navigationItems = [
         icon: Users,
         permission: 'user',
         badge: 'AI',
+<<<<<<< HEAD
         description: 'Complete client lifecycle: contacts, pipeline, intake, segments',
         consolidated: ['ClientsHub', 'Contacts', 'Pipeline', 'ContactDetailPage', 'ClientIntake', 'Segments']
+=======
+        description: 'Complete client & contact management'
+>>>>>>> 2229387 (Phase 3: Consolidate navigation from 113 items to 24 hub-based items)
       },
 
       // HUB 2: CREDIT REPORTS & ANALYSIS (Consolidated: 5 items → 1 hub)
       {
+<<<<<<< HEAD
         id: 'credit-reports-hub',
         title: 'Credit Reports & Analysis',
+=======
+        id: 'credit-hub',
+        title: 'Credit Hub',
+>>>>>>> 2229387 (Phase 3: Consolidate navigation from 113 items to 24 hub-based items)
         path: '/credit-hub',
         icon: Shield,
-        permission: 'user',
+        permission: 'client',
         badge: 'AI',
+<<<<<<< HEAD
         description: 'IDIQ integration, credit analysis, simulator, bureau communication',
         consolidated: ['CreditReportsHub', 'CreditAnalysisEngine', 'CreditSimulator', 'BusinessCredit', 'BureauCommunicationHub']
+=======
+        description: 'IDIQ credit monitoring & analysis'
+      },
+      {
+        id: 'dispute-hub',
+        title: 'Dispute Hub',
+        path: '/dispute-hub',
+        icon: AlertCircle,
+        permission: 'user',
+        description: 'Dispute management & letters'
+>>>>>>> 2229387 (Phase 3: Consolidate navigation from 113 items to 24 hub-based items)
       },
 
       // HUB 3: DISPUTE MANAGEMENT (Consolidated: 4 items → 1 hub)
       {
+<<<<<<< HEAD
         id: 'dispute-management-hub',
         title: 'Dispute Management',
         path: '/dispute-hub',
@@ -233,17 +309,25 @@ export const navigationItems = [
       // HUB 4: COMMUNICATIONS (Consolidated: 7 items → 1 hub)
       {
         id: 'communications-hub',
+=======
+        id: 'comms-hub',
+>>>>>>> 2229387 (Phase 3: Consolidate navigation from 113 items to 24 hub-based items)
         title: 'Communications',
         path: '/comms-hub',
         icon: MessageSquare,
         permission: 'user',
         badge: 'AI',
+<<<<<<< HEAD
         description: 'Email, SMS, drip campaigns, call logs, templates',
         consolidated: ['CommunicationsHub', 'Emails', 'SMS', 'DripCampaigns', 'CallLogs', 'Templates', 'CampaignPlanner']
+=======
+        description: 'Email, SMS, calls, campaigns'
+>>>>>>> 2229387 (Phase 3: Consolidate navigation from 113 items to 24 hub-based items)
       },
 
       // HUB 5: DOCUMENTS & CONTRACTS (Consolidated: 12 items → 1 hub)
       {
+<<<<<<< HEAD
         id: 'documents-contracts-hub',
         title: 'Documents & Contracts',
         path: '/documents-hub',
@@ -251,10 +335,19 @@ export const navigationItems = [
         permission: 'user',
         description: 'Document management, forms, templates, e-contracts, agreements',
         consolidated: ['DocumentsHub', 'Forms', 'Templates', 'EContracts', 'FullAgreement', 'Addendums', 'InformationSheet', 'DocumentCenter', 'DocumentStorage', 'ContractManagementHub']
+=======
+        id: 'documents-hub',
+        title: 'Documents',
+        path: '/documents-hub',
+        icon: FolderOpen,
+        permission: 'user',
+        description: 'All documents & e-contracts'
+>>>>>>> 2229387 (Phase 3: Consolidate navigation from 113 items to 24 hub-based items)
       },
 
       // HUB 6: TASKS & PRODUCTIVITY (Consolidated: 6 items → 1 hub)
       {
+<<<<<<< HEAD
         id: 'tasks-productivity-hub',
         title: 'Tasks & Productivity',
         path: '/tasks-hub',
@@ -266,19 +359,172 @@ export const navigationItems = [
       },
 
       // HUB 7: AUTOMATION
-      {
-        id: 'automation-hub',
-        title: 'Automation Hub',
-        path: '/automation-hub',
-        icon: Zap,
+=======
+        id: 'tasks-hub',
+        title: 'Tasks & Calendar',
+        path: '/tasks-hub',
+        icon: Calendar,
         permission: 'user',
-        badge: 'PRO',
-        description: 'Workflow automation and AI-powered tools'
+        description: 'Tasks, calendar, scheduling'
       }
     ]
   },
 
   // ==========================================================================
+  // 📈 BUSINESS GROWTH (5 items)
+  // ==========================================================================
+  {
+    id: 'growth-hubs',
+    title: 'Business Growth',
+    icon: TrendingUp,
+    isGroup: true,
+    permission: 'user',
+    mobileHidden: false,
+    category: 'growth',
+    items: [
+      {
+        id: 'marketing-hub',
+        title: 'Marketing Hub',
+        path: '/marketing-hub',
+        icon: Zap,
+        permission: 'user',
+        badge: 'AI',
+        description: 'Campaigns, drip sequences, content'
+      },
+      {
+        id: 'affiliates-hub',
+        title: 'Affiliates',
+        path: '/affiliates-hub',
+        icon: Handshake,
+        permission: 'user',
+        description: 'Affiliate & referral management'
+      },
+      {
+        id: 'social-media-hub',
+        title: 'Social Media',
+        path: '/social-media-hub',
+        icon: Globe,
+        permission: 'user',
+        description: 'Social media management'
+      },
+      {
+        id: 'reviews-hub',
+        title: 'Reviews',
+        path: '/reviews-hub',
+        icon: Star,
+        permission: 'user',
+        description: 'Reputation management'
+      },
+      {
+        id: 'learning-hub',
+        title: 'Learning',
+        path: '/learning-hub',
+        icon: GraduationCap,
+        permission: 'prospect',
+        description: 'Training & education'
+      }
+    ]
+  },
+
+  // ==========================================================================
+  // 💰 FINANCIAL (3 items - Admin only)
+  // ==========================================================================
+  {
+    id: 'financial-hubs',
+    title: 'Financial',
+    icon: DollarSign,
+    isGroup: true,
+    permission: 'admin',
+    mobileHidden: true,
+    category: 'financial',
+    items: [
+      {
+        id: 'billing-hub',
+        title: 'Billing Hub',
+        path: '/billing-hub',
+        icon: Receipt,
+        permission: 'admin',
+        badge: 'ADMIN',
+        description: 'Invoices, payments, subscriptions'
+      },
+      {
+        id: 'revenue-hub',
+        title: 'Revenue',
+        path: '/revenue-hub',
+        icon: DollarSign,
+        permission: 'admin',
+        badge: 'ADMIN',
+        description: 'Revenue tracking & forecasting'
+      },
+      {
+        id: 'compliance-hub',
+        title: 'Compliance',
+        path: '/compliance-hub',
+        icon: Shield,
+        permission: 'admin',
+        badge: 'ADMIN',
+        description: 'Regulatory compliance'
+      }
+    ]
+  },
+
+  // ==========================================================================
+  // 🤖 INTELLIGENCE (4 items)
+  // ==========================================================================
+  {
+    id: 'intelligence-hubs',
+    title: 'Intelligence',
+    icon: Brain,
+    isGroup: true,
+    permission: 'user',
+    mobileHidden: true,
+    category: 'intelligence',
+    items: [
+      {
+        id: 'ai-hub',
+        title: 'AI Hub',
+        path: '/ai-hub',
+        icon: Brain,
+        permission: 'user',
+        badge: 'AI',
+        description: 'AI-powered tools & insights'
+      },
+      {
+        id: 'analytics-hub',
+        title: 'Analytics',
+        path: '/analytics-hub',
+        icon: BarChart,
+        permission: 'user',
+        badge: 'AI',
+        description: 'Business intelligence'
+      },
+      {
+        id: 'reports-hub',
+        title: 'Reports',
+        path: '/reports-hub',
+        icon: FileText,
+        permission: 'user',
+        description: 'Comprehensive reports'
+      },
+>>>>>>> 2229387 (Phase 3: Consolidate navigation from 113 items to 24 hub-based items)
+      {
+        id: 'automation-hub',
+        title: 'Automation',
+        path: '/automation-hub',
+        icon: Zap,
+        permission: 'user',
+        badge: 'PRO',
+<<<<<<< HEAD
+        description: 'Workflow automation and AI-powered tools'
+=======
+        description: 'Workflow automation'
+>>>>>>> 2229387 (Phase 3: Consolidate navigation from 113 items to 24 hub-based items)
+      }
+    ]
+  },
+
+  // ==========================================================================
+<<<<<<< HEAD
   // 💰 FINANCIAL OPERATIONS - 2 HUBS
   // ==========================================================================
   {
@@ -603,10 +849,51 @@ export const navigationItems = [
     badge: 'ADMIN',
     description: '6-tab command center for complete system control',
     category: 'admin'
+=======
+  // ⚙️ SYSTEM (3 items - Admin only)
+  // ==========================================================================
+  {
+    id: 'system-hubs',
+    title: 'System',
+    icon: Settings,
+    isGroup: true,
+    permission: 'admin',
+    mobileHidden: true,
+    category: 'system',
+    items: [
+      {
+        id: 'settings-hub',
+        title: 'Settings',
+        path: '/settings-hub',
+        icon: Settings,
+        permission: 'admin',
+        badge: 'ADMIN',
+        description: 'System configuration'
+      },
+      {
+        id: 'mobile-app-hub',
+        title: 'Mobile Apps',
+        path: '/mobile-app-hub',
+        icon: Smartphone,
+        permission: 'admin',
+        badge: 'ADMIN',
+        description: 'Mobile app management'
+      },
+      {
+        id: 'support-hub',
+        title: 'Support',
+        path: '/support-hub',
+        icon: HelpCircle,
+        permission: 'prospect',
+        description: 'Help & resources'
+      }
+    ]
+>>>>>>> 2229387 (Phase 3: Consolidate navigation from 113 items to 24 hub-based items)
   }
 ];
 
 // ============================================================================
+<<<<<<< HEAD
 // NAVIGATION FILTERING
 // ============================================================================
 
@@ -658,11 +945,15 @@ export function findNavigationItem(id, items = navigationItems) {
 
 // ============================================================================
 // EXPORT DEFAULT
+=======
+// MOBILE-SPECIFIC NAVIGATION (Consolidated - Phase 3)
+>>>>>>> 2229387 (Phase 3: Consolidate navigation from 113 items to 24 hub-based items)
 // ============================================================================
 
 /**
  * Get mobile-optimized navigation for specific role
- * Returns simplified menu with only essential items
+ * Returns simplified menu with only essential hub items
+ * All paths now route to consolidated hubs
  */
 export function getMobileNavigation(userRole) {
   const baseItems = [
@@ -671,56 +962,53 @@ export function getMobileNavigation(userRole) {
 
   const roleSpecificItems = {
     masterAdmin: [
-      { id: 'portal', title: 'Admin', path: '/portal', icon: LayoutDashboard },
-      { id: 'contacts', title: 'Contacts', path: '/contacts', icon: Users },
-      { id: 'credit-hub', title: 'Credit Hub', path: '/credit-hub', icon: Shield },
-      { id: 'analytics', title: 'Analytics', path: '/analytics', icon: BarChart },
-      { id: 'settings', title: 'Settings', path: '/settings', icon: Settings },
+      { id: 'portal', title: 'Admin', path: '/portal', icon: Crown },
+      { id: 'clients-hub', title: 'Clients', path: '/clients-hub', icon: Users },
+      { id: 'credit-hub', title: 'Credit', path: '/credit-hub', icon: Shield },
+      { id: 'analytics-hub', title: 'Analytics', path: '/analytics-hub', icon: BarChart },
+      { id: 'settings-hub', title: 'Settings', path: '/settings-hub', icon: Settings },
     ],
     admin: [
-      { id: 'portal', title: 'Admin', path: '/portal', icon: LayoutDashboard },
-      { id: 'contacts', title: 'Contacts', path: '/contacts', icon: Users },
-      { id: 'credit-hub', title: 'Credit Hub', path: '/credit-hub', icon: Shield },
-      { id: 'reports', title: 'Reports', path: '/reports', icon: FileText },
-      { id: 'settings', title: 'Settings', path: '/settings', icon: Settings },
+      { id: 'portal', title: 'Admin', path: '/portal', icon: Crown },
+      { id: 'clients-hub', title: 'Clients', path: '/clients-hub', icon: Users },
+      { id: 'credit-hub', title: 'Credit', path: '/credit-hub', icon: Shield },
+      { id: 'reports-hub', title: 'Reports', path: '/reports-hub', icon: FileText },
+      { id: 'settings-hub', title: 'Settings', path: '/settings-hub', icon: Settings },
     ],
     manager: [
-      { id: 'contacts', title: 'Contacts', path: '/contacts', icon: Users },
-      { id: 'credit-hub', title: 'Credit Hub', path: '/credit-hub', icon: Shield },
-      { id: 'pipeline', title: 'Pipeline', path: '/pipeline', icon: GitBranch },
-      { id: 'reports', title: 'Reports', path: '/reports', icon: FileText },
-      { id: 'settings', title: 'Settings', path: '/settings', icon: Settings },
+      { id: 'clients-hub', title: 'Clients', path: '/clients-hub', icon: Users },
+      { id: 'credit-hub', title: 'Credit', path: '/credit-hub', icon: Shield },
+      { id: 'comms-hub', title: 'Comms', path: '/comms-hub', icon: MessageSquare },
+      { id: 'reports-hub', title: 'Reports', path: '/reports-hub', icon: FileText },
+      { id: 'tasks-hub', title: 'Tasks', path: '/tasks-hub', icon: Calendar },
     ],
     user: [
-      { id: 'contacts', title: 'Contacts', path: '/contacts', icon: Users },
-      { id: 'credit-hub', title: 'Credit Hub', path: '/credit-hub', icon: Shield },
-      { id: 'tasks', title: 'Tasks', path: '/tasks', icon: CheckSquare },
-      { id: 'calendar', title: 'Calendar', path: '/calendar', icon: Calendar },
-      { id: 'settings', title: 'Settings', path: '/settings', icon: Settings },
+      { id: 'clients-hub', title: 'Clients', path: '/clients-hub', icon: Users },
+      { id: 'credit-hub', title: 'Credit', path: '/credit-hub', icon: Shield },
+      { id: 'tasks-hub', title: 'Tasks', path: '/tasks-hub', icon: Calendar },
+      { id: 'comms-hub', title: 'Comms', path: '/comms-hub', icon: MessageSquare },
+      { id: 'support-hub', title: 'Support', path: '/support-hub', icon: HelpCircle },
     ],
     client: [
-      { id: 'portal', title: 'My Portal', path: '/client-portal', icon: User },
+      { id: 'client-portal', title: 'My Portal', path: '/client-portal', icon: User },
       { id: 'credit-hub', title: 'My Credit', path: '/credit-hub', icon: Shield },
-      { id: 'scores', title: 'Scores', path: '/credit-scores', icon: TrendingUp },
-      { id: 'disputes', title: 'Disputes', path: '/dispute-letters', icon: FileText },
-      { id: 'documents', title: 'Documents', path: '/documents', icon: FileText },
-      { id: 'support', title: 'Support', path: '/support', icon: HelpCircle },
+      { id: 'dispute-hub', title: 'Disputes', path: '/dispute-hub', icon: AlertCircle },
+      { id: 'documents-hub', title: 'Documents', path: '/documents-hub', icon: FolderOpen },
+      { id: 'support-hub', title: 'Support', path: '/support-hub', icon: HelpCircle },
     ],
     prospect: [
-      { id: 'portal', title: 'Portal', path: '/client-portal', icon: User },
-      { id: 'learning', title: 'Learn', path: '/learning-center', icon: BookOpen },
-      { id: 'resources', title: 'Resources', path: '/resources/articles', icon: FileText },
-      { id: 'support', title: 'Support', path: '/support', icon: HelpCircle },
+      { id: 'client-portal', title: 'Portal', path: '/client-portal', icon: User },
+      { id: 'learning-hub', title: 'Learn', path: '/learning-hub', icon: GraduationCap },
+      { id: 'support-hub', title: 'Support', path: '/support-hub', icon: HelpCircle },
     ],
     affiliate: [
-      { id: 'dashboard', title: 'Dashboard', path: '/affiliates', icon: Handshake },
-      { id: 'referrals', title: 'Referrals', path: '/affiliates', icon: Users },
-      { id: 'commissions', title: 'Earnings', path: '/affiliates', icon: DollarSign },
-      { id: 'settings', title: 'Settings', path: '/settings', icon: Settings },
+      { id: 'affiliates-hub', title: 'Dashboard', path: '/affiliates-hub', icon: Handshake },
+      { id: 'marketing-hub', title: 'Marketing', path: '/marketing-hub', icon: Zap },
+      { id: 'support-hub', title: 'Support', path: '/support-hub', icon: HelpCircle },
     ],
     viewer: [
-      { id: 'reports', title: 'Reports', path: '/reports', icon: FileText },
-      { id: 'analytics', title: 'Analytics', path: '/analytics', icon: BarChart },
+      { id: 'reports-hub', title: 'Reports', path: '/reports-hub', icon: FileText },
+      { id: 'analytics-hub', title: 'Analytics', path: '/analytics-hub', icon: BarChart },
     ]
   };
 
