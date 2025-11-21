@@ -1,0 +1,156 @@
+File Path,Type,Category,Status,Has Sample Data,Has Firebase,Lines (Est),Quality Score,Action,Target Location,Notes
+src/pages/hubs/ClientsHub.jsx,Hub,Core,Active,No,Yes,4179,9,KEEP,-,MEGA hub - 12 tabs - production ready
+src/pages/hubs/AffiliatesHub.jsx,Hub,Business,Active,No,Yes,4202,9,KEEP,-,MEGA hub - 50+ AI features
+src/pages/hubs/MarketingHub.jsx,Hub,Business,Active,No,Yes,3401,9,KEEP,-,Complete marketing suite
+src/pages/hubs/CommunicationsHub.jsx,Hub,Core,Active,No,Yes,2308,9,KEEP,-,Enterprise comms - 30+ AI features
+src/pages/hubs/SettingsHub.jsx,Hub,Admin,Active,No,Yes,1511,9,KEEP,-,Enterprise control center
+src/pages/hubs/AIHub.jsx,Hub,Core,Active,No,Yes,1422,9,KEEP,-,Advanced AI platform
+src/pages/hubs/DocumentsHub.jsx,Hub,Core,Active,Yes,Yes,1232,8,ENHANCE,-,Has mock client names lines 588-593
+src/pages/hubs/AnalyticsHub.jsx,Hub,Core,Active,Yes,No,844,7,ENHANCE,-,Has mock data - needs Firebase
+src/pages/hubs/BillingHub.jsx,Hub,Admin,Active,No,Yes,747,8,KEEP,-,Payment management
+src/pages/hubs/DisputeHub.jsx,Hub,Core,Active,No,Yes,739,8,KEEP,-,Active dispute management
+src/pages/hubs/CreditReportsHub.jsx,Hub,Core,Active,No,No,179,6,ENHANCE,-,Wrapper only - minimal implementation
+src/pages/hubs/TasksSchedulingHub.jsx,Hub,Core,Active,No,Yes,2800,8,KEEP,-,10 tabs - team features
+src/pages/hubs/CalendarSchedulingHub.jsx,Hub,Core,Placeholder,No,No,80,3,ENHANCE,-,CRITICAL: Incomplete stub - needs Calendar.jsx code
+src/pages/hubs/ReportsHub.jsx,Hub,Core,Active,No,Yes,3500,8,KEEP,-,Has TODO comments
+src/pages/hubs/LearningHub.jsx,Hub,Learning,Active,Yes,Yes,628,7,ENHANCE,-,Has mock team members
+src/pages/hubs/ComplianceHub.jsx,Hub,Admin,Active,Yes,Yes,702,7,ENHANCE,-,Has demo audit trail
+src/pages/hubs/SupportHub.jsx,Hub,Support,Active,No,Yes,500,8,KEEP,-,Help desk system
+src/pages/hubs/TrainingHub.jsx,Hub,Learning,Active,No,Yes,500,8,KEEP,-,Training programs
+src/pages/hubs/ResourceLibraryHub.jsx,Hub,Resources,Active,No,Yes,500,8,KEEP,-,Knowledge base
+src/pages/hubs/ReferralEngineHub.jsx,Hub,Business,Active,No,Yes,500,7,ENHANCE,-,Has TODO comments
+src/pages/hubs/ReferralPartnerHub.jsx,Hub,Business,Active,No,Yes,500,8,KEEP,-,Partner management
+src/pages/hubs/RevenueHub.jsx,Hub,Admin,Active,No,Yes,500,8,KEEP,-,Revenue tracking
+src/pages/hubs/RevenuePartnershipsHub.jsx,Hub,Admin,Active,No,Yes,500,8,KEEP,-,Partnership revenue
+src/pages/hubs/ReviewsReputationHub.jsx,Hub,Business,Active,No,Yes,500,8,KEEP,-,Reputation management
+src/pages/hubs/SocialMediaHub.jsx,Hub,Marketing,Active,No,Yes,500,8,KEEP,-,Social management
+src/pages/hubs/WebsiteLandingPagesHub.jsx,Hub,Marketing,Active,No,Yes,500,8,KEEP,-,Website builder
+src/pages/hubs/CollectionsARHub.jsx,Hub,Admin,Active,No,Yes,500,8,KEEP,-,Collections management
+src/pages/hubs/ContractManagementHub.jsx,Hub,Documents,Active,No,Yes,500,7,ENHANCE,-,Has TODO comments
+src/pages/hubs/ContentCreatorSEOHub.jsx,Hub,Marketing,Active,No,Yes,500,8,KEEP,-,Content/SEO tools
+src/pages/hubs/DripCampaignsHub.jsx,Hub,Marketing,Active,No,Yes,500,8,KEEP,-,Drip campaign automation
+src/pages/hubs/BureauCommunicationHub.jsx,Hub,Credit,Active,No,Yes,934,7,ENHANCE,-,Has PLACEHOLDER comments
+src/pages/hubs/OnboardingWelcomeHub.jsx,Hub,Client,Active,No,Yes,500,8,KEEP,-,Client onboarding
+src/pages/hubs/ProgressPortalHub.jsx,Hub,Client,Active,No,Yes,500,8,KEEP,-,Client progress tracking
+src/pages/hubs/ClientSuccessRetentionHub.jsx,Hub,Client,Active,No,Yes,500,8,KEEP,-,Client retention
+src/pages/hubs/MobileAppHub.jsx,Hub,Admin,Active,No,Yes,500,8,KEEP,-,Mobile app management
+src/pages/hubs/AutomationHub.jsx,Hub,Core,Active,No,Yes,500,8,KEEP,-,Workflow automation
+src/pages/hubs/PaymentIntegrationHub.jsx,Hub,Admin,Active,No,Yes,500,8,KEEP,-,Stripe/PayPal integration
+src/pages/hubs/DisputeAdminPanel.jsx,Hub,Admin,Active,No,Yes,500,8,KEEP,-,Admin dispute panel
+src/pages/Contacts.jsx,Page,CRM,Redirect,No,Yes,3000,7,REVIEW,-,Redirects to /clients-hub - review for unique features
+src/pages/Calendar.jsx,Page,Schedule,Critical,No,Yes,6000,9,MIGRATE,CalendarSchedulingHub.jsx,URGENT: Has production AI code - hub is empty
+src/pages/Tasks.jsx,Page,Schedule,Redirect,No,Yes,3000,8,REVIEW,-,Redirects to /tasks-hub - has AI priority scoring
+src/pages/Emails.jsx,Page,Comms,Redundant,No,Yes,2000,6,ARCHIVE,-,Replaced by CommunicationsHub
+src/pages/Documents.jsx,Page,Documents,Redundant,Yes,No,210,4,ARCHIVE,-,Placeholder only - hub is complete
+src/pages/Settings.jsx,Page,Admin,Redundant,No,Yes,200,5,ARCHIVE,-,Replaced by SettingsHub
+src/pages/Reports.jsx,Page,Analytics,Redundant,Yes,No,1200,5,ARCHIVE,-,Has hardcoded metrics - hub is better
+src/pages/Affiliates.jsx,Page,Business,Redirect,No,Yes,2700,7,REVIEW,-,Review for unique features to merge
+src/pages/SmartDashboard.jsx,Page,Core,Active,No,Yes,2500,9,KEEP,-,Role-based landing page
+src/pages/Home.jsx,Page,Core,Active,No,Yes,800,8,KEEP,-,Welcome hub
+src/pages/Portal.jsx,Page,Admin,Active,No,Yes,1500,8,KEEP,-,Admin command center
+src/pages/ClientPortal.jsx,Page,Client,Active,Yes,Yes,1000,7,ENHANCE,-,Client dashboard - has mocks
+src/pages/ProgressPortal.jsx,Page,Client,Active,Yes,No,300,5,ENHANCE,-,Has hardcoded demo clients
+src/pages/Profile.jsx,Page,User,Active,Yes,Yes,300,6,ENHANCE,-,Has hardcoded phone
+src/pages/Login.jsx,Page,Auth,Active,No,Yes,400,8,KEEP,-,Authentication
+src/pages/Register.jsx,Page,Auth,Active,No,Yes,500,8,KEEP,-,Registration
+src/pages/ForgotPassword.jsx,Page,Auth,Active,No,Yes,300,8,KEEP,-,Password recovery
+src/pages/CreditReportWorkflow.jsx,Page,Credit,Active,No,Yes,1500,8,KEEP,-,Admin IDIQ workflow
+src/pages/CreditAnalysisEngine.jsx,Page,Credit,Active,No,Yes,1000,8,KEEP,-,AI credit analysis
+src/pages/AIReviewDashboard.jsx,Page,AI,Active,No,Yes,1000,8,KEEP,-,AI review management
+src/pages/PredictiveAnalytics.jsx,Page,AI,Active,No,Yes,800,8,KEEP,-,AI predictions
+src/pages/Addendums.jsx,Page,Documents,Placeholder,No,No,50,2,DEFER,-,Coming Soon page
+src/pages/Certificates.jsx,Page,Documents,Placeholder,No,No,50,2,DEFER,-,Coming Soon page
+src/pages/ContactExport.jsx,Page,CRM,Placeholder,No,No,50,2,DEFER,-,Coming Soon page
+src/pages/InformationSheet.jsx,Page,Documents,Active,No,Yes,3000,8,KEEP,-,AI-enhanced form - JUST DEPLOYED
+src/pages/FullAgreement.jsx,Page,Documents,Active,Yes,Yes,3224,8,KEEP,-,Has placeholder phone
+src/pages/ACHAuthorization.jsx,Page,Documents,Active,No,Yes,2500,8,KEEP,-,AI-enhanced form - JUST DEPLOYED
+src/pages/PowerOfAttorney.jsx,Page,Documents,Active,No,Yes,2000,8,KEEP,-,AI-enhanced form - JUST DEPLOYED
+src/pages/CreditSimulator.jsx,Page,Credit,Redirect,No,Yes,800,7,REVIEW,-,Redirects to /dispute-hub
+src/pages/CreditScores.jsx,Page,Credit,Redirect,No,Yes,600,7,REVIEW,-,Redirects to /dispute-hub
+src/pages/CreditMonitoring.jsx,Page,Credit,Redirect,No,Yes,500,7,REVIEW,-,Redirects to /credit-hub
+src/pages/DisputeLetters.jsx,Page,Dispute,Redirect,Yes,Yes,1500,7,REVIEW,-,Redirects to /dispute-hub
+src/pages/DisputeStatus.jsx,Page,Dispute,Redirect,No,Yes,800,7,REVIEW,-,Redirects to /dispute-hub
+src/pages/Pipeline.jsx,Page,CRM,Redirect,No,Yes,1500,7,REVIEW,-,Redirects to /clients-hub
+src/pages/Segments.jsx,Page,CRM,Redirect,No,Yes,600,7,REVIEW,-,Redirects to /clients-hub
+src/pages/Letters.jsx,Page,Comms,Redirect,Yes,Yes,500,6,REVIEW,-,Has mock comment - redirects
+src/pages/SMS.jsx,Page,Comms,Redirect,No,Yes,800,7,REVIEW,-,Redirects to /comms-hub
+src/pages/DripCampaigns.jsx,Page,Marketing,Redirect,No,Yes,1000,7,REVIEW,-,Redirects to /marketing-hub
+src/pages/Templates.jsx,Page,Documents,Redirect,No,Yes,800,7,REVIEW,-,Redirects to /documents-hub
+src/pages/CallLogs.jsx,Page,Comms,Redirect,No,Yes,600,7,REVIEW,-,Redirects to /comms-hub
+src/pages/Notifications.jsx,Page,Comms,Active,Yes,Yes,500,6,ENHANCE,-,Has mock data
+src/pages/LearningCenter.jsx,Page,Learning,Redirect,Yes,Yes,800,6,REVIEW,-,Redirects to /learning-hub
+src/pages/Achievements.jsx,Page,Learning,Redirect,No,Yes,400,7,REVIEW,-,Redirects to /learning-hub
+src/pages/EContracts.jsx,Page,Documents,Redirect,Yes,Yes,953,6,REVIEW,-,Has sample email
+src/pages/Forms.jsx,Page,Documents,Redirect,No,Yes,600,7,REVIEW,-,Redirects to /documents-hub
+src/pages/DocumentStorage.jsx,Page,Documents,Redirect,No,Yes,400,7,REVIEW,-,Redirects to /documents-hub
+src/pages/DocumentCenter.jsx,Page,Documents,Redirect,No,Yes,500,7,REVIEW,-,Redirects to /documents-hub
+src/pages/Companies.jsx,Page,Business,Redirect,No,Yes,600,7,REVIEW,-,Redirects to /settings-hub
+src/pages/Location.jsx,Page,Business,Redirect,No,Yes,400,7,REVIEW,-,Redirects to /settings-hub
+src/pages/Team.jsx,Page,Admin,Redirect,No,Yes,800,7,REVIEW,-,Redirects to /settings-hub
+src/pages/Roles.jsx,Page,Admin,Redirect,No,Yes,1180,7,REVIEW,-,Has placeholder in form
+src/pages/UserRoles.jsx,Page,Admin,Redirect,No,Yes,600,7,REVIEW,-,Redirects to /settings-hub
+src/pages/Integrations.jsx,Page,Admin,Redirect,No,Yes,800,7,REVIEW,-,Redirects to /settings-hub
+src/pages/Support.jsx,Page,Support,Redirect,No,Yes,500,7,REVIEW,-,Redirects to /support-hub
+src/pages/SystemMap.jsx,Page,Admin,Active,No,Yes,600,8,KEEP,-,System architecture view
+src/pages/Goals.jsx,Page,Analytics,Redirect,No,Yes,400,7,REVIEW,-,Redirects to /analytics-hub
+src/pages/Appointments.jsx,Page,Schedule,Redirect,No,Yes,500,7,REVIEW,-,Redirects to /calendar-hub
+src/pages/Reminders.jsx,Page,Schedule,Redirect,No,Yes,400,7,REVIEW,-,Redirects to /tasks-hub
+src/pages/Invoices.jsx,Page,Billing,Redirect,No,Yes,800,7,REVIEW,-,Redirects to /billing-hub
+src/pages/PaymentSuccess.jsx,Page,Billing,Active,No,Yes,200,8,KEEP,-,Payment confirmation
+src/pages/Leads.jsx,Page,CRM,Active,Yes,Yes,868,6,ENHANCE,-,Has sample decision makers
+src/pages/ContactDetailPage.jsx,Page,CRM,Active,No,Yes,1200,8,KEEP,-,Contact detail view
+src/pages/ClientIntake.jsx,Page,CRM,Redirect,No,Yes,800,7,REVIEW,-,Redirects to /clients-hub
+src/pages/ContactImport.jsx,Page,CRM,Redirect,No,Yes,600,7,REVIEW,-,Redirects to /clients-hub
+src/pages/ContactReports.jsx,Page,CRM,Redirect,No,Yes,500,7,REVIEW,-,Redirects to /analytics-hub
+src/pages/BusinessCredit.jsx,Page,Credit,Redirect,No,Yes,700,7,REVIEW,-,Redirects to /dispute-hub
+src/pages/CertificationSystem.jsx,Page,Learning,Active,No,Yes,800,8,KEEP,-,Certification management
+src/components/AICreditAnalyzer.jsx,Component,AI,Active,Yes,Yes,400,7,ENHANCE,-,Has mock report generator
+src/components/AdminNotificationCenter.jsx,Component,Admin,Active,Yes,No,200,5,ENHANCE,-,Has mockNotifications
+src/components/IDIQDashboard.jsx,Component,Credit,Active,No,Yes,800,8,KEEP,-,IDIQ management
+src/components/IDIQEnrollmentWizard.jsx,Component,Credit,Active,No,Yes,1000,8,KEEP,-,IDIQ enrollment
+src/components/UltimateContactForm.jsx,Component,CRM,Active,No,Yes,1500,9,KEEP,-,Advanced contact form
+src/components/CreditReports.jsx,Component,Credit,Active,No,Yes,600,8,KEEP,-,Credit report display
+src/components/AIReviewEditor.jsx,Component,AI,Active,No,Yes,800,8,KEEP,-,AI review editing
+src/components/EmailWorkflowDashboard.jsx,Component,Comms,Active,No,Yes,600,8,KEEP,-,Email automation
+src/components/dispute/DisputeTemplateManager.jsx,Component,Dispute,Active,No,Yes,555,8,KEEP,-,Template preview data OK
+src/components/dispute/AIDisputeCoach.jsx,Component,Dispute,Active,Yes,Yes,465,7,ENHANCE,-,Has mockTutorials
+src/components/credit/IDIQEnrollment.jsx,Component,Credit,Active,Yes,Yes,516,7,ENHANCE,-,Has mockIDIQApiCall
+src/components/credit/CreditReportWorkflow.jsx,Component,Credit,Active,Yes,Yes,798,7,ENHANCE,-,Has mockIDIQPull
+src/components/client-portal/ContractSigningPortal.jsx,Component,Documents,Active,Yes,Yes,2500,7,ENHANCE,-,Has console.logs
+src/components/ReviewsRatingsSystem.jsx,Component,Reviews,Active,No,Yes,978,7,ENHANCE,-,Has console.log
+src/modern/ModernDashboard.jsx,Component,UI,Active,Yes,No,300,5,ENHANCE,-,Has demo activity feed
+src/Preview.jsx,Component,UI,Active,Yes,No,300,5,ENHANCE,-,Has demo activity
+src/contexts/AuthContext.jsx,Context,Auth,Active,No,Yes,200,7,ENHANCE,-,Has console.logs
+src/contexts/ThemeContext.jsx,Context,Theme,Active,No,No,100,8,KEEP,-,Theme management
+src/contexts/NotificationContext.jsx,Context,Notifications,Active,No,Yes,150,8,KEEP,-,Notification state
+src/services/aiCreditReportParser.js,Service,AI,Active,No,Yes,650,7,ENHANCE,-,8 console.logs
+src/services/idiqService.js,Service,Credit,Active,No,Yes,360,7,ENHANCE,-,8 console.logs
+src/services/affiliateLinkService.js,Service,Affiliates,Active,No,Yes,640,7,ENHANCE,-,7 console.logs
+src/services/aiService.js,Service,AI,Active,No,Yes,500,8,KEEP,-,Core AI service
+src/services/openAIService.js,Service,AI,Active,No,Yes,400,8,KEEP,-,OpenAI integration
+src/services/contactService.js,Service,CRM,Active,No,Yes,500,8,KEEP,-,Contact management
+src/services/firestoreService.js,Service,Firebase,Active,No,Yes,300,8,KEEP,-,Firestore utilities
+src/services/disputeService.js,Service,Dispute,Active,No,Yes,400,8,KEEP,-,Dispute operations
+src/services/emailService.js,Service,Comms,Active,No,Yes,350,8,KEEP,-,Email sending
+src/services/faxService.js,Service,Comms,Active,No,Yes,300,8,KEEP,-,Fax integration
+src/services/telnyxFaxService.js,Service,Comms,Active,No,Yes,250,8,KEEP,-,Telnyx fax
+src/services/pdfService.js,Service,Documents,Active,No,Yes,300,8,KEEP,-,PDF generation
+src/services/aiCreditReviewService.js,Service,AI,Active,No,Yes,400,8,KEEP,-,Credit review AI
+src/services/CreditReportService.js,Service,Credit,Active,No,Yes,350,8,KEEP,-,Credit reports
+src/utils/initializeCollections.js,Utility,Database,Active,Yes,Yes,100,5,ENHANCE,-,Has sample seed data
+src/utils/formatters.js,Utility,Core,Active,No,No,200,8,KEEP,-,Data formatters
+src/utils/exportUtils.js,Utility,Data,Active,No,No,150,8,KEEP,-,Export helpers
+src/utils/disputeUtils.js,Utility,Dispute,Active,No,Yes,200,8,KEEP,-,Dispute helpers
+src/utils/leadScoring.js,Utility,CRM,Active,No,No,150,8,KEEP,-,Lead scoring
+src/utils/activityLogger.js,Utility,Logging,Active,No,Yes,100,8,KEEP,-,Activity tracking
+src/utils/log.js,Utility,Logging,Active,No,No,100,8,KEEP,-,Logging utility
+src/layout/navConfig.js,Config,Navigation,Active,No,No,1515,7,ENHANCE,-,Has 18+ duplicate URLs
+src/layout/ProtectedLayout.jsx,Layout,Core,Active,No,Yes,400,8,KEEP,-,Main layout wrapper
+src/lib/firebase.js,Config,Firebase,Active,No,Yes,100,8,KEEP,-,Firebase config
+src/lib/stripe.js,Config,Billing,Active,No,No,80,8,KEEP,-,Stripe config
+src/lib/ai.js,Config,AI,Active,No,No,60,8,KEEP,-,AI config
+src/hooks/useFirestore.js,Hook,Firebase,Active,No,Yes,100,8,KEEP,-,Firestore hook
+src/hooks/useContactAutofill.js,Hook,CRM,Active,No,Yes,80,8,KEEP,-,Autofill hook
+src/hooks/useRealtimeLeads.js,Hook,CRM,Active,No,Yes,100,8,KEEP,-,Realtime leads
+src/hooks/useUserManagement.js,Hook,Admin,Active,No,Yes,120,8,KEEP,-,User management hook
+src/App.jsx,Core,Routing,Active,No,Yes,1085,8,KEEP,-,Main router - DO NOT MODIFY
