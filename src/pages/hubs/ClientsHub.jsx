@@ -2556,11 +2556,11 @@ const ClientsHub = () => {
                         No contacts found
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        {searchQuery || statusFilter !== 'all' || stageFilter !== 'all' 
+                        {searchTerm || statusFilter !== 'all' || stageFilter !== 'all' 
                           ? 'Try adjusting your filters or search query'
                           : 'Get started by adding your first contact'}
                       </Typography>
-                      {!searchQuery && statusFilter === 'all' && stageFilter === 'all' && (
+                      {!searchTerm && statusFilter === 'all' && stageFilter === 'all' && (
                         <Button
                           variant="contained"
                           startIcon={<UserPlus />}
