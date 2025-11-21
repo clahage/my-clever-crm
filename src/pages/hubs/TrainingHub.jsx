@@ -60,14 +60,14 @@ import { db, auth } from '../../lib/firebase';
 // LAZY LOAD COMPONENTS FOR PERFORMANCE
 // ===================================================================
 
-const OnboardingWizard = lazy(() => import('./OnboardingWizard'));
-const TrainingLibrary = lazy(() => import('./TrainingLibrary'));
+const OnboardingWizard = lazy(() => import('@/pages/OnboardingWizard'));
+const TrainingLibrary = lazy(() => import('@/pages/TrainingLibrary'));
 const CertificationSystem = lazy(() => import('@/pages/CertificationSystem'));
-const RoleBasedTraining = lazy(() => import('./RoleBasedTraining'));
-const LiveTrainingSessions = lazy(() => import('./LiveTrainingSessions'));
-const KnowledgeBase = lazy(() => import('./KnowledgeBase'));
-const QuizSystem = lazy(() => import('./QuizSystem'));
-const ProgressTracker = lazy(() => import('./ProgressTracker'));
+const RoleBasedTraining = lazy(() => import('@/pages/RoleBasedTraining'));
+const LiveTrainingSessions = lazy(() => import('@/pages/LiveTrainingSessions'));
+const KnowledgeBase = lazy(() => import('@/pages/KnowledgeBase'));
+const QuizSystem = lazy(() => import('@/pages/hubs/QuizSystem'));
+const ProgressTracker = lazy(() => import('@/pages/ProgressTracker'));
 
 // ===================================================================
 // MAIN TRAINING HUB COMPONENT

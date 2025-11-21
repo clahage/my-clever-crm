@@ -101,7 +101,7 @@ import {
   getDocs
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, auth, storage } from '../../lib/firebase';
+import { db, auth, storage } from '@/lib/firebase';
 
 // ===================================================================
 // ONBOARDING FLOW DEFINITIONS

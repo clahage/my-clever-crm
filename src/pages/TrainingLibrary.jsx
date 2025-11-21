@@ -96,7 +96,7 @@ import {
   increment,
   getDocs
 } from 'firebase/firestore';
-import { db, auth } from '../../lib/firebase';
+import { db, auth } from '@/lib/firebase';
 
 // ===================================================================
 // COURSE CATEGORIES
