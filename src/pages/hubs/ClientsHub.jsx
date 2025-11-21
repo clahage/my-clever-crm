@@ -465,83 +465,7 @@ const ClientsHub = () => {
   const [customFieldsDialog, setCustomFieldsDialog] = useState(false);
   const [customFieldsConfig, setCustomFieldsConfig] = useState([]);
 
-  // ===== FIREBASE LISTENERS =====
-  
-  // Calculate analytics whenever clients data changes
-  useEffect(() => {
-    if (clients.length > 0) {
-      calculateAnalytics(clients);
-    }
-  }, [clients, calculateAnalytics]);
-  
-  useEffect(() => {
-    if (!currentUser) return;
-    
-    console.log('🔥 Setting up Firebase listeners for ClientsHub');
-    const unsubscribers = [];
-    
-    // Listen to clients
-    const clientsQuery = query(
-      collection(db, 'contacts'),
-      where('userId', '==', currentUser.uid),
-      orderBy('createdAt', 'desc')
-    );
-    
-    const unsubClients = onSnapshot(clientsQuery, (snapshot) => {
-      console.log(`📥 Received ${snapshot.size} clients from Firebase`);
-      const clientData = [];
-      snapshot.forEach((doc) => {
-        clientData.push({ id: doc.id, ...doc.data() });
-      });
-      setClients(clientData);
-      setFilteredClients(clientData);
-      calculateAnalytics(clientData);
-      runPredictiveAnalysis(clientData);
-    }, (error) => {
-      console.error('❌ Error listening to clients:', error);
-      setSnackbar({ open: true, message: 'Error loading clients', severity: 'error' });
-    });
-    unsubscribers.push(unsubClients);
-    
-    // Listen to segments
-    const segmentsQuery = query(
-      collection(db, 'segments'),
-      where('userId', '==', currentUser.uid)
-    );
-    
-    const unsubSegments = onSnapshot(segmentsQuery, (snapshot) => {
-      const segmentData = [];
-      snapshot.forEach((doc) => {
-        segmentData.push({ id: doc.id, ...doc.data() });
-      });
-      setSegments(segmentData);
-      console.log(`📊 Loaded ${segmentData.length} segments`);
-    });
-    unsubscribers.push(unsubSegments);
-    
-    // Listen to workflows
-    const workflowsQuery = query(
-      collection(db, 'workflows'),
-      where('userId', '==', currentUser.uid)
-    );
-    
-    const unsubWorkflows = onSnapshot(workflowsQuery, (snapshot) => {
-      const workflowData = [];
-      snapshot.forEach((doc) => {
-        workflowData.push({ id: doc.id, ...doc.data() });
-      });
-      setWorkflows(workflowData);
-      console.log(`⚡ Loaded ${workflowData.length} workflows`);
-    });
-    unsubscribers.push(unsubWorkflows);
-    
-    return () => {
-      console.log('🔌 Cleaning up Firebase listeners');
-      unsubscribers.forEach(unsub => unsub());
-    };
-  }, [currentUser]);
-  
-  // ===== CLIENT LIST FUNCTIONS =====
+  // ===== ANALYTICS CALCULATION =====
   
   const calculateAnalytics = useCallback((clientData) => {
     console.log('📊 Calculating analytics for', clientData.length, 'clients');
@@ -673,6 +597,84 @@ const ClientsHub = () => {
       console.error('❌ Error calculating analytics:', error);
     }
   }, []);
+
+  // ===== FIREBASE LISTENERS =====
+  
+  // Calculate analytics whenever clients data changes
+  useEffect(() => {
+    if (clients.length > 0) {
+      calculateAnalytics(clients);
+    }
+  }, [clients, calculateAnalytics]);
+  
+  useEffect(() => {
+    if (!currentUser) return;
+    
+    console.log('🔥 Setting up Firebase listeners for ClientsHub');
+    const unsubscribers = [];
+    
+    // Listen to clients
+    const clientsQuery = query(
+      collection(db, 'contacts'),
+      where('userId', '==', currentUser.uid),
+      orderBy('createdAt', 'desc')
+    );
+    
+    const unsubClients = onSnapshot(clientsQuery, (snapshot) => {
+      console.log(`📥 Received ${snapshot.size} clients from Firebase`);
+      const clientData = [];
+      snapshot.forEach((doc) => {
+        clientData.push({ id: doc.id, ...doc.data() });
+      });
+      setClients(clientData);
+      setFilteredClients(clientData);
+      calculateAnalytics(clientData);
+      runPredictiveAnalysis(clientData);
+    }, (error) => {
+      console.error('❌ Error listening to clients:', error);
+      setSnackbar({ open: true, message: 'Error loading clients', severity: 'error' });
+    });
+    unsubscribers.push(unsubClients);
+    
+    // Listen to segments
+    const segmentsQuery = query(
+      collection(db, 'segments'),
+      where('userId', '==', currentUser.uid)
+    );
+    
+    const unsubSegments = onSnapshot(segmentsQuery, (snapshot) => {
+      const segmentData = [];
+      snapshot.forEach((doc) => {
+        segmentData.push({ id: doc.id, ...doc.data() });
+      });
+      setSegments(segmentData);
+      console.log(`📊 Loaded ${segmentData.length} segments`);
+    });
+    unsubscribers.push(unsubSegments);
+    
+    // Listen to workflows
+    const workflowsQuery = query(
+      collection(db, 'workflows'),
+      where('userId', '==', currentUser.uid)
+    );
+    
+    const unsubWorkflows = onSnapshot(workflowsQuery, (snapshot) => {
+      const workflowData = [];
+      snapshot.forEach((doc) => {
+        workflowData.push({ id: doc.id, ...doc.data() });
+      });
+      setWorkflows(workflowData);
+      console.log(`⚡ Loaded ${workflowData.length} workflows`);
+    });
+    unsubscribers.push(unsubWorkflows);
+    
+    return () => {
+      console.log('🔌 Cleaning up Firebase listeners');
+      unsubscribers.forEach(unsub => unsub());
+    };
+  }, [currentUser]);
+  
+  // ===== CLIENT LIST FUNCTIONS =====
   
   // ===== PREDICTIVE ANALYSIS (NEW) =====
   
