@@ -625,10 +625,13 @@ const ClientsHub = () => {
       console.log(`📥 Received ${snapshot.size} clients from Firebase`);
       const clientData = [];
       snapshot.forEach((doc) => {
-        clientData.push({ id: doc.id, ...doc.data() });
+        const data = { id: doc.id, ...doc.data() };
+        clientData.push(data);
+        console.log('👤 Contact loaded:', data.firstName, data.lastName, 'Status:', data.status || 'no status');
       });
       setClients(clientData);
       setFilteredClients(clientData);
+      console.log('✅ Set clients state with', clientData.length, 'contacts');
       calculateAnalytics(clientData);
       runPredictiveAnalysis(clientData);
     }, (error) => {
@@ -2480,13 +2483,40 @@ const ClientsHub = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredClients
-                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((client) => {
-                  const statusObj = CLIENT_STATUSES.find(s => s.value === client.status);
-                  const stageObj = JOURNEY_STAGES.find(s => s.value === client.journeyStage);
-                  
-                  return (
+              {filteredClients.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={10} align="center" sx={{ py: 8 }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                      <Users size={48} color="#9e9e9e" />
+                      <Typography variant="h6" color="text.secondary">
+                        No contacts found
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {searchQuery || statusFilter !== 'all' || stageFilter !== 'all' 
+                          ? 'Try adjusting your filters or search query'
+                          : 'Get started by adding your first contact'}
+                      </Typography>
+                      {!searchQuery && statusFilter === 'all' && stageFilter === 'all' && (
+                        <Button
+                          variant="contained"
+                          startIcon={<UserPlus />}
+                          onClick={handleAddClient}
+                          sx={{ mt: 2 }}
+                        >
+                          Add Contact
+                        </Button>
+                      )}
+                    </Box>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredClients
+                  .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                  .map((client) => {
+                    const statusObj = CLIENT_STATUSES.find(s => s.value === client.status);
+                    const stageObj = JOURNEY_STAGES.find(s => s.value === client.journeyStage);
+                    
+                    return (
                     <TableRow key={client.id} hover>
                       <TableCell padding="checkbox">
                         <Checkbox
@@ -2580,7 +2610,8 @@ const ClientsHub = () => {
                       </TableCell>
                     </TableRow>
                   );
-                })}
+                })
+              )}
             </TableBody>
           </Table>
         </TableContainer>

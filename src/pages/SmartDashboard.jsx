@@ -5252,9 +5252,40 @@ const SmartDashboard = () => {
         </DialogTitle>
         <DialogContent dividers>
           <UltimateContactForm
-            onSave={async (newContact) => {
-              setShowContactForm(false);
-              console.log('✅ New contact created:', newContact);
+            onSave={async (contactData) => {
+              try {
+                // Add userId and timestamp
+                const dataToSave = {
+                  ...contactData,
+                  userId: currentUser.uid,
+                  createdAt: serverTimestamp(),
+                  updatedAt: serverTimestamp()
+                };
+                
+                // Save to Firebase
+                const docRef = await addDoc(collection(db, 'contacts'), dataToSave);
+                console.log('✅ Contact saved with ID:', docRef.id);
+                
+                // Show success message
+                setSnackbar({ 
+                  open: true, 
+                  message: '✅ Contact saved successfully!', 
+                  severity: 'success' 
+                });
+                
+                // Close form
+                setShowContactForm(false);
+                
+                // Optional: Refresh dashboard data
+                // The Firebase listener should automatically pick up the new contact
+              } catch (error) {
+                console.error('❌ Error saving contact:', error);
+                setSnackbar({ 
+                  open: true, 
+                  message: '❌ Error saving contact: ' + error.message, 
+                  severity: 'error' 
+                });
+              }
             }}
             onCancel={() => setShowContactForm(false)}
           />
