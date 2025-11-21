@@ -31,55 +31,35 @@ We just completed Phase 1: Archived 4 basic placeholder pages (Documents, Emails
 - archive/superseded-standalone-pages/2025-11-21/Settings.jsx
 
 ✅ **Already Fixed:**
-- Calendar routing now points to working Calendar.jsx (not broken CalendarSchedulingHub)
-- Navigation duplicate /credit-hub removed
-- UltimateContactForm has dedicated route at /add-contact
+- ✅ Calendar routing now points to working Calendar.jsx (not broken CalendarSchedulingHub) - **DONE**
+- ✅ Navigation duplicate /credit-hub removed - **DONE**
+- ✅ UltimateContactForm has dedicated route at /add-contact - **DONE**
+- ✅ Removed fake phone numbers from 3 files - **DONE**
+- ✅ Removed demo data from ProgressPortal.jsx - **DONE**
+- ✅ Added dev-only check to initializeCollections.js - **DONE**
+- ✅ Updated mobile nav paths to use hub paths directly - **DONE**
+- ✅ Removed console.log from AuthContext.jsx - **DONE**
+
+**Note:** Calendar.jsx is ALREADY working - the route `/calendar-hub` now correctly renders the full Calendar.jsx with 6,000 lines. No migration needed. However, you can optionally archive Calendar.jsx if the route is confirmed working and imports are updated.
 
 ---
 
 ## YOUR TASKS
 
-### TASK 1: CRITICAL - Migrate Calendar.jsx Features (HIGHEST PRIORITY)
-
-**Problem:** CalendarSchedulingHub.jsx is an 80-line stub while Calendar.jsx has 6,000+ lines of production code.
-
-**Action:**
-1. Read both files:
-   - `src/pages/Calendar.jsx` (6,000+ lines - production AI calendar)
-   - `src/pages/hubs/CalendarSchedulingHub.jsx` (80 lines - empty stub)
-
-2. Compare features - Calendar.jsx has:
-   - AI calendar engine with conflict detection
-   - Energy level calculation for meeting scheduling
-   - Time zone management
-   - Smart scheduling algorithm
-   - Multi-view calendar (day/week/month/agenda)
-   - Availability optimization
-   - Event intelligence and analytics
-   - Google Calendar integration
-
-3. **DECISION:** Since CalendarSchedulingHub is basically empty:
-   - Copy ALL code from Calendar.jsx into CalendarSchedulingHub.jsx
-   - Update component name from `Calendar` to `CalendarSchedulingHub`
-   - Verify imports work
-   - Test that route `/calendar-hub` renders properly
-
-4. Archive Calendar.jsx to `archive/superseded-standalone-pages/2025-11-21/Calendar.jsx`
-
-5. Remove Calendar import from App.jsx (add comment about using CalendarSchedulingHub)
-
-**Validation:**
-- `/calendar-hub` should show full 6,000-line calendar
-- All AI features should work
-- No console errors
-
----
-
-### TASK 2: Review and Migrate Large Standalone Pages
+### TASK 1: Review and Migrate Large Standalone Pages
 
 For each of these files, **compare features** before archiving:
 
-#### A. Contacts.jsx (3,000+ lines) vs ClientsHub.jsx (4,179 lines)
+#### A. Calendar.jsx (Optional - Already Working)
+
+**Status:** Route `/calendar-hub` already points to Calendar.jsx and works perfectly.
+
+**Optional Action:**
+1. Verify route is working in App.jsx
+2. If desired, rename Calendar.jsx to CalendarSchedulingHub.jsx for consistency
+3. Or simply leave as-is since it's working
+
+#### B. Contacts.jsx (3,000+ lines) vs ClientsHub.jsx (4,179 lines)
 
 **Check for unique features in Contacts.jsx:**
 - Bulk actions (merge, delete, export)
@@ -95,7 +75,7 @@ For each of these files, **compare features** before archiving:
 4. Archive Contacts.jsx
 5. Remove import from App.jsx
 
-#### B. Tasks.jsx (3,000+ lines) vs TasksSchedulingHub.jsx (2,800 lines)
+#### C. Tasks.jsx (3,000+ lines) vs TasksSchedulingHub.jsx (2,800 lines)
 
 **Check for unique features in Tasks.jsx:**
 - AI priority scoring algorithm
@@ -110,7 +90,7 @@ For each of these files, **compare features** before archiving:
 4. Archive Tasks.jsx
 5. Remove import from App.jsx
 
-#### C. Affiliates.jsx (2,700 lines) vs AffiliatesHub.jsx (4,202 lines)
+#### D. Affiliates.jsx (2,700 lines) vs AffiliatesHub.jsx (4,202 lines)
 
 **Check for unique features in Affiliates.jsx:**
 - Affiliate portal UX components
@@ -127,7 +107,7 @@ For each of these files, **compare features** before archiving:
 
 ---
 
-### TASK 3: Archive Small Standalone Pages (Quick Wins)
+### TASK 2: Archive Small Standalone Pages (Quick Wins)
 
 These pages have simple redirects and can be archived immediately:
 
@@ -176,7 +156,7 @@ Then update App.jsx:
 
 ---
 
-### TASK 4: Handle Duplicate File Pairs
+### TASK 3: Handle Duplicate File Pairs
 
 These exist in BOTH `/pages/` and `/pages/hubs/` - compare and keep best:
 
@@ -199,7 +179,7 @@ These exist in BOTH `/pages/` and `/pages/hubs/` - compare and keep best:
 
 ---
 
-### TASK 5: Clean Up App.jsx Imports
+### TASK 4: Clean Up App.jsx Imports
 
 After archiving each file, you MUST:
 
@@ -232,12 +212,7 @@ Create these files in the root directory:
 
 ## Detailed Log
 
-### Phase 2A: Critical Calendar Migration
-- ✅ Migrated Calendar.jsx (6,000 lines) → CalendarSchedulingHub.jsx
-- ✅ Preserved all AI features: [list features]
-- ✅ Archived Calendar.jsx
-
-### Phase 2B: Large Page Consolidation
+### Phase 2A: Large Page Consolidation
 - ✅ Contacts.jsx → ClientsHub.jsx
   - Unique features found: [list or "none"]
   - Features migrated: [list or "all features already in hub"]
@@ -248,7 +223,7 @@ Create these files in the root directory:
   - Unique features found: [list or "none"]
   - Features migrated: [list or "all features already in hub"]
 
-### Phase 2C: Batch Archives
+### Phase 2B: Batch Archives
 **Communication:** [X] files
 **Credit Management:** [X] files
 **Learning:** [X] files
@@ -256,7 +231,7 @@ Create these files in the root directory:
 **Scheduling:** [X] files
 **Misc:** [X] files
 
-### Phase 2D: Duplicate Pairs Resolved
+### Phase 2C: Duplicate Pairs Resolved
 - [List each pair and which version kept]
 
 ## App.jsx Changes
@@ -324,13 +299,11 @@ Complete list of all archived files:
 
 ## Phase 2 (Completed by Claude Code)
 
-### Critical
-5. Calendar.jsx → CalendarSchedulingHub
-
 ### Large Pages
-6. Contacts.jsx → ClientsHub
-7. Tasks.jsx → TasksSchedulingHub
-8. Affiliates.jsx → AffiliatesHub
+5. Contacts.jsx → ClientsHub
+6. Tasks.jsx → TasksSchedulingHub
+7. Affiliates.jsx → AffiliatesHub
+8. Calendar.jsx → Already working (optional to archive)
 
 ### Communication Batch
 9. Letters.jsx → CommunicationsHub
@@ -435,11 +408,10 @@ See CONSOLIDATION_COMPLETE.md for full details
 
 ## WORKFLOW
 
-1. **Start with Task 1 (Calendar)** - This is URGENT and highest impact
-2. **Then Task 2** - Large files need careful review
-3. **Then Task 3** - Batch archive small files for speed
-4. **Then Task 4** - Resolve duplicate pairs
-5. **Then Task 5** - Final App.jsx cleanup
+1. **Start with Task 1** - Large files need careful feature review
+2. **Then Task 2** - Batch archive small files for speed
+3. **Then Task 3** - Resolve duplicate pairs
+4. **Then Task 4** - Final App.jsx cleanup
 6. **Create all 3 deliverable files**
 7. **Test key paths** (at least 5 redirects)
 8. **Final commit and push**
@@ -451,8 +423,7 @@ See CONSOLIDATION_COMPLETE.md for full details
 **When Done:**
 - ✅ 40-60 files archived
 - ✅ 30,000+ lines of redundant code removed
-- ✅ Calendar hub fully functional
-- ✅ All unique features preserved
+- ✅ All unique features preserved in hubs
 - ✅ Zero breaking changes
 - ✅ Clean, organized codebase
 - ✅ Complete documentation
