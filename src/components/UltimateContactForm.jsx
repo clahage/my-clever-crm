@@ -267,6 +267,9 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
   const [dataQuality, setDataQuality] = useState({ score: 0, issues: [] });
   const [uploadingFile, setUploadingFile] = useState(false);
   const [realtimeData, setRealtimeData] = useState(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState(null);
+  const [showHelper, setShowHelper] = useState(true);
   
   const autoSaveTimerRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -276,6 +279,14 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
     if (!isRequired) return "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500";
     const isEmpty = !value || (Array.isArray(value) && value.length === 0) || (typeof value === 'string' && value.trim() === '');
     return `w-full px-3 py-2 border ${isEmpty ? 'border-red-300 bg-red-50' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500`;
+  };
+  
+  // Check if minimum required fields are met
+  const meetsMinimumRequirements = () => {
+    const hasName = formData.firstName || formData.lastName;
+    const hasContact = (formData.emails.length > 0 && formData.emails[0].address) || 
+                      (formData.phones.length > 0 && formData.phones[0].number);
+    return hasName && hasContact;
   };
 
   // Real-time listener for AI receptionist calls
@@ -814,6 +825,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
   };
 
   const handleSave = async () => {
+<<<<<<< HEAD
     // Check for duplicates before creating
     const checkDuplicate = async (email, phone) => {
       const contactsRef = collection(db, 'contacts');
@@ -878,6 +890,39 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
     
     addTimelineEvent('form_saved', 'Contact information saved manually');
     onSave(finalData);
+=======
+    // Validate minimum requirements
+    if (!meetsMinimumRequirements()) {
+      setSaveError('Please provide at least a name (first OR last) AND contact method (email OR phone)');
+      setTimeout(() => setSaveError(null), 5000);
+      return;
+    }
+    
+    try {
+      const engagementScore = calculateEngagementScore();
+      const finalData = {
+        ...formData,
+        aiTracking: {
+          ...formData.aiTracking,
+          engagementScore
+        },
+        dataQualityScore: dataQuality.score,
+        lastSavedAt: new Date().toISOString(),
+        lastSavedBy: 'manual'
+      };
+      
+      addTimelineEvent('form_saved', 'Contact information saved manually');
+      await onSave(finalData);
+      
+      // Show success confirmation
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (error) {
+      console.error('Save error:', error);
+      setSaveError('Failed to save contact. Please try again.');
+      setTimeout(() => setSaveError(null), 5000);
+    }
+>>>>>>> 1dc4825 (CRITICAL FIX: Save button now works with proper validation + confirmation)
   };
 
   const SectionHeader = ({ title, icon: Icon, section, badge, aiActive, completeness }) => (
@@ -3062,23 +3107,78 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
           </button>
           <button
             onClick={handleSave}
-            disabled={dataQuality.score < 30}
+            disabled={!meetsMinimumRequirements()}
             className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 font-medium flex items-center gap-2 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Brain className="w-5 h-5" />
-<<<<<<< HEAD
-            Save Contact Profile
-=======
             Save Contact
->>>>>>> 339c9d3 (Fix 8 UX issues in UltimateContactForm)
-            {dataQuality.score < 30 && (
+            {!meetsMinimumRequirements() && (
               <span className="text-xs bg-white/20 px-2 py-0.5 rounded">
-                Complete {Math.ceil((30 - dataQuality.score) / 5)} more fields
+                Need name + contact
               </span>
             )}
           </button>
         </div>
       </div>
+
+      {/* Save Success Toast */}
+      {saveSuccess && (
+        <div className="fixed top-4 right-4 z-50 animate-fade-in">
+          <div className="bg-green-500 text-white px-6 py-4 rounded-lg shadow-2xl flex items-center gap-3">
+            <CheckCircle className="w-6 h-6" />
+            <div>
+              <p className="font-bold">Contact Saved Successfully!</p>
+              <p className="text-sm text-green-100">All changes have been saved.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Save Error Toast */}
+      {saveError && (
+        <div className="fixed top-4 right-4 z-50 animate-fade-in">
+          <div className="bg-red-500 text-white px-6 py-4 rounded-lg shadow-2xl flex items-center gap-3">
+            <AlertCircle className="w-6 h-6" />
+            <div>
+              <p className="font-bold">Save Failed</p>
+              <p className="text-sm text-red-100">{saveError}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Helper Tooltip - Shows minimum requirements */}
+      {showHelper && !meetsMinimumRequirements() && (
+        <div className="fixed bottom-24 right-4 z-50 max-w-sm animate-fade-in">
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 rounded-lg shadow-2xl">
+            <div className="flex items-start justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Brain className="w-5 h-5" />
+                <p className="font-bold">Quick Start Helper</p>
+              </div>
+              <button 
+                onClick={() => setShowHelper(false)}
+                className="text-white/80 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-sm text-white/90 mb-3">To save this lead, you need:</p>
+            <div className="space-y-2 text-sm">
+              <div className={`flex items-center gap-2 ${(formData.firstName || formData.lastName) ? 'text-green-200' : 'text-white'}`}>
+                {(formData.firstName || formData.lastName) ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                <span>Name (first OR last)</span>
+              </div>
+              <div className={`flex items-center gap-2 ${((formData.emails[0]?.address || formData.phones[0]?.number)) ? 'text-green-200' : 'text-white'}`}>
+                {((formData.emails[0]?.address || formData.phones[0]?.number)) ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                <span>Contact method (email OR phone)</span>
+              </div>
+            </div>
+            <p className="text-xs text-white/70 mt-3 italic">
+              All other fields optional - add more info anytime!
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Data Quality Issues Modal Trigger */}
       {dataQuality.issues.length > 0 && (
