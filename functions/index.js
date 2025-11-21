@@ -65,7 +65,9 @@ exports.sendMorningSummary = sendMorningSummary;
 // ============================================
 // ZELLE PAYMENTS
 // ============================================
-// ✅ BEST PRACTICE: Destructure all related exports at once
+// ⚠️ COMMENTED OUT: zelleHandler module not yet implemented
+// TODO: Create functions/payments/zelleHandler.js to enable Zelle payment functions
+/*
 const {
   reportZellePayment,
   confirmZellePayment,
@@ -79,6 +81,7 @@ exports.confirmZellePayment = confirmZellePayment;
 exports.markZelleNotReceived = markZelleNotReceived;
 exports.getPendingZellePayments = getPendingZellePayments;
 exports.sendZelleConfirmationReminders = sendZelleConfirmationReminders;
+*/
 
 // ============================================
 // CONFIGURATION

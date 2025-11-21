@@ -42,11 +42,19 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
-// Initialize OpenAI with config from Firebase Functions config
-// NOT from environment variables to avoid client exposure
-const openai = new OpenAI({
-  apiKey: functions.config().openai?.api_key,
-});
+// Lazy-load OpenAI client to avoid initialization errors during deployment
+// when API key might not be set yet
+let openai = null;
+function getOpenAI() {
+  if (!openai) {
+    const apiKey = functions.config().openai?.api_key;
+    if (!apiKey || apiKey === 'YOUR_KEY') {
+      throw new Error('OpenAI API key not configured. Run: firebase functions:config:set openai.api_key="sk-..."');
+    }
+    openai = new OpenAI({ apiKey });
+  }
+  return openai;
+}
 
 // Initialize Anthropic configuration
 // API key stored securely in Firebase Functions config
@@ -175,7 +183,7 @@ exports.aiComplete = functions.https.onCall(async (data, context) => {
     const maxTokens = data.maxTokens || 1000;
 
     // Call OpenAI API
-    const completion = await openai.chat.completions.create({
+    const completion = await getOpenAI().chat.completions.create({
       model,
       messages: data.messages,
       temperature,
@@ -379,7 +387,7 @@ exports.generateInsights = functions.https.onCall(async (data, context) => {
       };
     } else {
       // Fallback to OpenAI
-      const completion = await openai.chat.completions.create({
+      const completion = await getOpenAI().chat.completions.create({
         model: 'gpt-4',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.7,
@@ -461,7 +469,7 @@ ${JSON.stringify(data.reportData, null, 2)}
 
 Client Info: ${JSON.stringify(data.clientInfo || {}, null, 2)}`;
 
-    const completion = await openai.chat.completions.create({
+    const completion = await getOpenAI().chat.completions.create({
       model: 'gpt-4',
       messages: [
         { role: 'system', content: systemPrompt },
@@ -568,7 +576,7 @@ ${JSON.stringify(data.clientInfo, null, 2)}
 
 Bureau: ${data.bureau || 'All Three Bureaus'}`;
 
-    const completion = await openai.chat.completions.create({
+    const completion = await getOpenAI().chat.completions.create({
       model: 'gpt-4',
       messages: [
         { role: 'system', content: systemPrompt },
@@ -788,7 +796,7 @@ Return JSON with this structure:
 
 ${data.reportText}`;
 
-    const completion = await openai.chat.completions.create({
+    const completion = await getOpenAI().chat.completions.create({
       model: 'gpt-4',
       messages: [
         { role: 'system', content: systemPrompt },
