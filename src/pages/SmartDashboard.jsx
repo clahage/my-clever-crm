@@ -5243,7 +5243,7 @@ const SmartDashboard = () => {
         </DialogTitle>
         <DialogContent dividers>
           <UltimateContactForm
-            onSuccess={(newContact) => {
+            onSave={async (newContact) => {
               setShowContactForm(false);
               console.log('✅ New contact created:', newContact);
             }}
