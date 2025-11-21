@@ -257,6 +257,13 @@ export default function UltimateClientForm({ initialData = {}, onSave, onCancel,
   
   const autoSaveTimerRef = useRef(null);
   const fileInputRef = useRef(null);
+  
+  // Helper function to get CSS class for required fields
+  const getRequiredFieldClass = (value, isRequired = true) => {
+    if (!isRequired) return "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500";
+    const isEmpty = !value || (Array.isArray(value) && value.length === 0) || (typeof value === 'string' && value.trim() === '');
+    return `w-full px-3 py-2 border ${isEmpty ? 'border-red-300 bg-red-50' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500`;
+  };
 
   // Real-time listener for AI receptionist calls
   useEffect(() => {
@@ -622,16 +629,45 @@ export default function UltimateClientForm({ initialData = {}, onSave, onCancel,
 
   const handleZipCodeChange = async (zip, addressIndex) => {
     if (zip.length === 5) {
-      // In production: call real ZIP API
+      // Expanded ZIP code dictionary - TODO: Replace with API integration for production
       const zipData = {
+        // California
+        '90001': { city: 'Los Angeles', state: 'CA' },
+        '90210': { city: 'Beverly Hills', state: 'CA' },
         '90620': { city: 'Buena Park', state: 'CA' },
         '92647': { city: 'Huntington Beach', state: 'CA' },
         '92648': { city: 'Huntington Beach', state: 'CA' },
         '92649': { city: 'Huntington Beach', state: 'CA' },
+        '92646': { city: 'Huntington Beach', state: 'CA' },
         '90630': { city: 'Cypress', state: 'CA' },
         '92683': { city: 'Westminster', state: 'CA' },
         '92655': { city: 'Midway City', state: 'CA' },
-        '92646': { city: 'Huntington Beach', state: 'CA' }
+        '92660': { city: 'Newport Beach', state: 'CA' },
+        '92677': { city: 'Laguna Niguel', state: 'CA' },
+        '92688': { city: 'Rancho Santa Margarita', state: 'CA' },
+        '92694': { city: 'Ladera Ranch', state: 'CA' },
+        '92882': { city: 'Corona', state: 'CA' },
+        '94102': { city: 'San Francisco', state: 'CA' },
+        '95014': { city: 'Cupertino', state: 'CA' },
+        // Texas
+        '75001': { city: 'Dallas', state: 'TX' },
+        '77001': { city: 'Houston', state: 'TX' },
+        '78701': { city: 'Austin', state: 'TX' },
+        // New York
+        '10001': { city: 'New York', state: 'NY' },
+        '10002': { city: 'New York', state: 'NY' },
+        '11201': { city: 'Brooklyn', state: 'NY' },
+        // Florida
+        '33101': { city: 'Miami', state: 'FL' },
+        '33109': { city: 'Miami Beach', state: 'FL' },
+        '32801': { city: 'Orlando', state: 'FL' },
+        // Illinois
+        '60601': { city: 'Chicago', state: 'IL' },
+        '60602': { city: 'Chicago', state: 'IL' },
+        // Washington
+        '98101': { city: 'Seattle', state: 'WA' },
+        '98102': { city: 'Seattle', state: 'WA' },
+        // Add more as needed
       };
       const data = zipData[zip] || { city: '', state: '' };
       updateArrayItem('addresses', addressIndex, { 
@@ -892,7 +928,7 @@ export default function UltimateClientForm({ initialData = {}, onSave, onCancel,
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
           >
             <Activity className="w-4 h-4" />
-            Save Client
+            Save Contact
           </button>
         </div>
       </div>
@@ -1101,13 +1137,13 @@ export default function UltimateClientForm({ initialData = {}, onSave, onCancel,
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  First Name <span className="text-red-500">*</span>
+                  First Name <span className="text-red-600 text-lg font-bold">*</span>
                 </label>
                 <input
                   type="text"
                   value={formData.firstName}
                   onChange={(e) => updateField('firstName', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className={`px-3 py-2 border ${!formData.firstName ? 'border-red-300 bg-red-50' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full`}
                   placeholder="First name"
                 />
               </div>
@@ -1123,13 +1159,13 @@ export default function UltimateClientForm({ initialData = {}, onSave, onCancel,
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Last Name <span className="text-red-500">*</span>
+                  Last Name <span className="text-red-600 text-lg font-bold">*</span>
                 </label>
                 <input
                   type="text"
                   value={formData.lastName}
                   onChange={(e) => updateField('lastName', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className={getRequiredFieldClass(formData.lastName)}
                   placeholder="Last name"
                 />
               </div>
@@ -1171,7 +1207,7 @@ export default function UltimateClientForm({ initialData = {}, onSave, onCancel,
                   type="text"
                   value={formData.namePronunciation}
                   onChange={(e) => updateField('namePronunciation', e.target.value)}
-                  placeholder="e.g., La-HAH-gee"
+                  placeholder="e.g., SMITH or JON-son"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
                 <p className="text-xs text-gray-500 mt-1">Helps team pronounce name correctly</p>
@@ -1181,13 +1217,13 @@ export default function UltimateClientForm({ initialData = {}, onSave, onCancel,
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Date of Birth <span className="text-red-500">*</span>
+                  Date of Birth <span className="text-red-600 text-lg font-bold">*</span>
                 </label>
                 <input
                   type="date"
                   value={formData.dateOfBirth}
                   onChange={(e) => updateField('dateOfBirth', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className={getRequiredFieldClass(formData.dateOfBirth)}
                 />
                 {formData.dateOfBirth && (
                   <p className="text-xs text-gray-500 mt-1">
@@ -1339,13 +1375,28 @@ export default function UltimateClientForm({ initialData = {}, onSave, onCancel,
                     <option value="work">Work</option>
                     <option value="other">Other</option>
                   </select>
-                  <input
-                    type="email"
-                    value={email.address}
-                    onChange={(e) => updateArrayItem('emails', index, { address: e.target.value })}
-                    placeholder="email@example.com"
-                    className="flex-1 min-w-[250px] px-3 py-2 border border-gray-300 rounded-lg"
-                  />
+                  <div className="flex-1 min-w-[250px] relative">
+                    <input
+                      type="email"
+                      value={email.address}
+                      onChange={(e) => updateArrayItem('emails', index, { address: e.target.value })}
+                      placeholder="email@example.com"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    />
+                    {email.address && !email.address.includes('@') && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 p-2 flex flex-wrap gap-1">
+                        {['@gmail.com', '@yahoo.com', '@outlook.com', '@hotmail.com', '@icloud.com', '@aol.com'].map(suffix => (
+                          <button
+                            key={suffix}
+                            onClick={() => updateArrayItem('emails', index, { address: email.address + suffix })}
+                            className="px-2 py-1 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 rounded border border-blue-200"
+                          >
+                            {email.address}{suffix}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <label className="flex items-center gap-1 px-2 py-1 bg-white rounded border border-gray-200 cursor-pointer hover:bg-gray-50">
                     <input
                       type="checkbox"
@@ -1932,6 +1983,7 @@ export default function UltimateClientForm({ initialData = {}, onSave, onCancel,
                 {[
                   'Buy a home', 
                   'Buy a car', 
+                  'Rent apartment/home',
                   'Get credit card', 
                   'Lower interest rates', 
                   'Refinance loan', 
@@ -1941,7 +1993,8 @@ export default function UltimateClientForm({ initialData = {}, onSave, onCancel,
                   'Business loan',
                   'Student loan',
                   'Personal loan',
-                  'Improve score'
+                  'Improve score',
+                  'Other'
                 ].map(goal => (
                   <label key={goal} className="flex items-center gap-2 p-2 border border-gray-200 rounded hover:bg-gray-50 cursor-pointer text-sm">
                     <input
@@ -2950,10 +3003,10 @@ export default function UltimateClientForm({ initialData = {}, onSave, onCancel,
             className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 font-medium flex items-center gap-2 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Brain className="w-5 h-5" />
-            Save Client Profile
+            Save Contact
             {dataQuality.score < 30 && (
               <span className="text-xs bg-white/20 px-2 py-0.5 rounded">
-                {30 - dataQuality.score}% needed
+                Complete {Math.ceil((30 - dataQuality.score) / 5)} more fields
               </span>
             )}
           </button>
