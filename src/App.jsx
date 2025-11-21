@@ -159,6 +159,7 @@ const DisputeLetters = lazy(() => import('@/pages/DisputeLetters'));
 const DisputeStatus = lazy(() => import('@/pages/DisputeStatus'));
 
 // ===== COMMUNICATION =====
+const UltimateContactForm = lazy(() => import('@/components/UltimateContactForm'));
 const Letters = lazy(() => import('@/pages/Letters'));
 const Emails = lazy(() => import('@/pages/Emails'));
 const SMS = lazy(() => import('@/pages/SMS'));
@@ -597,6 +598,18 @@ const AppContent = () => {
     </ProtectedRoute>
   }
 />
+{/* Add Contact Form - UltimateContactForm */}
+<Route
+  path="add-contact"
+  element={
+    <ProtectedRoute requiredRole="prospect">
+      <Suspense fallback={<LoadingFallback />}>
+        <UltimateContactForm />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
 {/* AI Hub - AI-powered features and analytics */}
 <Route
   path="ai-hub"

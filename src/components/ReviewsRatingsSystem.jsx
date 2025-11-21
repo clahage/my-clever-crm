@@ -100,7 +100,7 @@ import {
   AlertTriangle, AlertCircle as AlertCircleIcon,
   CheckCircle as CheckCircleIcon, XCircle as XCircleIcon,
   Circle, MinusCircle, PlusCircle, Slash, Divide,
-  Percent as PercentIcon
+  Equals, Percent as PercentIcon
 } from 'lucide-react';
 import { 
   collection, addDoc, updateDoc, deleteDoc, doc, query, 
