@@ -159,7 +159,7 @@ const CreditMonitoring = lazy(() => import('@/pages/CreditMonitoring'));
 
 // ===== COMMUNICATION =====
 const Letters = lazy(() => import('@/pages/Letters'));
-const Emails = lazy(() => import('@/pages/Emails'));
+// Emails.jsx archived - use CommunicationsHub at /comms-hub
 const SMS = lazy(() => import('@/pages/SMS'));
 const DripCampaigns = lazy(() => import('@/pages/DripCampaigns'));
 const Templates = lazy(() => import('@/pages/Templates'));
@@ -172,7 +172,7 @@ const Achievements = lazy(() => import('@/pages/Achievements'));
 const Certificates = lazy(() => import('@/pages/Certificates'));
 
 // ===== DOCUMENTS =====
-const Documents = lazy(() => import('@/pages/Documents'));
+// Documents.jsx archived - use DocumentsHub at /documents-hub
 const EContracts = lazy(() => import('@/pages/EContracts'));
 const Forms = lazy(() => import('@/pages/Forms'));
 const FullAgreement = lazy(() => import('@/pages/FullAgreement'));
@@ -197,7 +197,7 @@ const Tasks = lazy(() => import('@/pages/Tasks'));
 const Reminders = lazy(() => import('@/pages/Reminders'));
 
 // ===== ANALYTICS & REPORTING =====
-const Reports = lazy(() => import('@/pages/Reports'));
+// Reports.jsx archived - use ReportsHub at /reports-hub
 const Goals = lazy(() => import('@/pages/Goals'));
 const ResourcesArticles = lazy(() => import('@/pages/resources/Articles'));
 const ResourcesFAQ = lazy(() => import('@/pages/resources/FAQ'));
@@ -205,7 +205,7 @@ const AppsOverview = lazy(() => import('@/pages/apps/Overview'));
 const AppsEmployee = lazy(() => import('@/pages/apps/Employee'));
 const AppsClient = lazy(() => import('@/pages/apps/Client'));
 const AppsAffiliate = lazy(() => import('@/pages/apps/Affiliate'));
-const Settings = lazy(() => import('@/pages/Settings'));
+// Settings.jsx archived - use SettingsHub at /settings
 const Team = lazy(() => import('@/pages/Team'));
 const DocumentCenter = lazy(() => import('@/pages/DocumentCenter'));
 const Roles = lazy(() => import('@/pages/Roles'));
