@@ -141,6 +141,7 @@ const PredictiveAnalytics = lazy(() => import('@/pages/PredictiveAnalytics'));
 
 // ===== CONTACT & CRM PAGES =====
 const Contacts = lazy(() => import('@/pages/Contacts'));
+const UltimateContactForm = lazy(() => import('@/components/UltimateContactForm'));
 const ClientIntake = lazy(() => import('@/pages/ClientIntake'));
 const Pipeline = lazy(() => import('@/pages/Pipeline'));
 const ContactImport = lazy(() => import('@/pages/ContactImport'));
@@ -394,6 +395,16 @@ const AppContent = () => {
         {/* Clients Hub redirects */}
         <Route path="contacts" element={<Navigate to="/clients-hub" replace />} />
         <Route path="contacts/:id" element={<Suspense fallback={<LoadingFallback />}><ContactDetailPage /></Suspense>} />
+        <Route 
+          path="add-contact" 
+          element={
+            <ProtectedRoute requiredRole="user">
+              <Suspense fallback={<LoadingFallback />}>
+                <UltimateContactForm />
+              </Suspense>
+            </ProtectedRoute>
+          } 
+        />
         <Route path="intake" element={<Navigate to="/clients-hub" replace />} />
         <Route path="new-client" element={<Navigate to="/clients-hub" replace />} />
         <Route path="pipeline" element={<Navigate to="/clients-hub" replace />} />
