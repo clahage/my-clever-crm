@@ -275,6 +275,14 @@ export default function UltimateClientForm({ initialData = {}, onSave, onCancel,
                       (formData.phones.length > 0 && formData.phones[0].number);
     return hasName && hasContact;
   };
+  
+  // Auto-capitalize proper names (first letter of each word)
+  const capitalizeProperName = (str) => {
+    if (!str) return '';
+    return str.toLowerCase().split(' ').map(word => 
+      word.charAt(0).toUpperCase() + word.slice(1)
+    ).join(' ');
+  };
 
   // Real-time listener for AI receptionist calls
   useEffect(() => {
@@ -639,57 +647,32 @@ export default function UltimateClientForm({ initialData = {}, onSave, onCancel,
   };
 
   const handleZipCodeChange = async (zip, addressIndex) => {
+    // Update ZIP immediately
+    updateArrayItem('addresses', addressIndex, { zip });
+    
     if (zip.length === 5) {
-      // Expanded ZIP code dictionary - TODO: Replace with API integration for production
-      const zipData = {
-        // California
-        '90001': { city: 'Los Angeles', state: 'CA' },
-        '90210': { city: 'Beverly Hills', state: 'CA' },
-        '90620': { city: 'Buena Park', state: 'CA' },
-        '92647': { city: 'Huntington Beach', state: 'CA' },
-        '92648': { city: 'Huntington Beach', state: 'CA' },
-        '92649': { city: 'Huntington Beach', state: 'CA' },
-        '92646': { city: 'Huntington Beach', state: 'CA' },
-        '90630': { city: 'Cypress', state: 'CA' },
-        '92683': { city: 'Westminster', state: 'CA' },
-        '92655': { city: 'Midway City', state: 'CA' },
-        '92660': { city: 'Newport Beach', state: 'CA' },
-        '92677': { city: 'Laguna Niguel', state: 'CA' },
-        '92688': { city: 'Rancho Santa Margarita', state: 'CA' },
-        '92694': { city: 'Ladera Ranch', state: 'CA' },
-        '92882': { city: 'Corona', state: 'CA' },
-        '94102': { city: 'San Francisco', state: 'CA' },
-        '95014': { city: 'Cupertino', state: 'CA' },
-        // Texas
-        '75001': { city: 'Dallas', state: 'TX' },
-        '77001': { city: 'Houston', state: 'TX' },
-        '78701': { city: 'Austin', state: 'TX' },
-        // New York
-        '10001': { city: 'New York', state: 'NY' },
-        '10002': { city: 'New York', state: 'NY' },
-        '11201': { city: 'Brooklyn', state: 'NY' },
-        // Florida
-        '33101': { city: 'Miami', state: 'FL' },
-        '33109': { city: 'Miami Beach', state: 'FL' },
-        '32801': { city: 'Orlando', state: 'FL' },
-        // Illinois
-        '60601': { city: 'Chicago', state: 'IL' },
-        '60602': { city: 'Chicago', state: 'IL' },
-        // Washington
-        '98101': { city: 'Seattle', state: 'WA' },
-        '98102': { city: 'Seattle', state: 'WA' },
-        // Add more as needed
-      };
-      const data = zipData[zip] || { city: '', state: '' };
-      updateArrayItem('addresses', addressIndex, { 
-        zip, 
-        city: data.city, 
-        state: data.state 
-      });
-      
-      addTimelineEvent('address_lookup', `ZIP code ${zip} auto-populated: ${data.city}, ${data.state}`);
-    } else {
-      updateArrayItem('addresses', addressIndex, { zip });
+      try {
+        // Use free Zippopotam.us API for ALL US ZIP codes
+        const response = await fetch(`https://api.zippopotam.us/us/${zip}`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          const place = data.places[0];
+          
+          updateArrayItem('addresses', addressIndex, { 
+            zip, 
+            city: place['place name'], 
+            state: place['state abbreviation']
+          });
+          
+          addTimelineEvent('address_lookup', `ZIP code ${zip} auto-populated: ${place['place name']}, ${place['state abbreviation']}`);
+        } else {
+          console.log(`ZIP code ${zip} not found`);
+        }
+      } catch (error) {
+        console.error('ZIP lookup error:', error);
+        // Silently fail - user can enter manually
+      }
     }
   };
 
@@ -1170,7 +1153,8 @@ export default function UltimateClientForm({ initialData = {}, onSave, onCancel,
                 <input
                   type="text"
                   value={formData.firstName}
-                  onChange={(e) => updateField('firstName', e.target.value)}
+                  onChange={(e) => updateField('firstName', capitalizeProperName(e.target.value))}
+                  onBlur={(e) => updateField('firstName', capitalizeProperName(e.target.value))}
                   className={`px-3 py-2 border ${!formData.firstName ? 'border-red-300 bg-red-50' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full`}
                   placeholder="First name"
                 />
@@ -1192,7 +1176,8 @@ export default function UltimateClientForm({ initialData = {}, onSave, onCancel,
                 <input
                   type="text"
                   value={formData.lastName}
-                  onChange={(e) => updateField('lastName', e.target.value)}
+                  onChange={(e) => updateField('lastName', capitalizeProperName(e.target.value))}
+                  onBlur={(e) => updateField('lastName', capitalizeProperName(e.target.value))}
                   className={getRequiredFieldClass(formData.lastName)}
                   placeholder="Last name"
                 />
@@ -1513,14 +1498,15 @@ export default function UltimateClientForm({ initialData = {}, onSave, onCancel,
                   <input
                     type="text"
                     value={address.street}
-                    onChange={(e) => updateArrayItem('addresses', index, { street: e.target.value })}
+                    onChange={(e) => updateArrayItem('addresses', index, { street: capitalizeProperName(e.target.value) })}
+                    onBlur={(e) => updateArrayItem('addresses', index, { street: capitalizeProperName(e.target.value) })}
                     placeholder="Street Address"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
                   />
                   <input
                     type="text"
                     value={address.unit}
-                    onChange={(e) => updateArrayItem('addresses', index, { unit: e.target.value })}
+                    onChange={(e) => updateArrayItem('addresses', index, { unit: e.target.value.toUpperCase() })}
                     placeholder="Unit/Apt (optional)"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
                   />
@@ -3028,6 +3014,7 @@ export default function UltimateClientForm({ initialData = {}, onSave, onCancel,
           <button
             onClick={handleSave}
             disabled={!meetsMinimumRequirements()}
+            title={!meetsMinimumRequirements() ? 'Need: (First OR Last name) AND (Email OR Phone number)' : 'Click to save contact'}
             className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 font-medium flex items-center gap-2 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Brain className="w-5 h-5" />
@@ -3069,8 +3056,8 @@ export default function UltimateClientForm({ initialData = {}, onSave, onCancel,
 
       {/* Helper Tooltip - Shows minimum requirements */}
       {showHelper && !meetsMinimumRequirements() && (
-        <div className="fixed bottom-24 right-4 z-50 max-w-sm animate-fade-in">
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 rounded-lg shadow-2xl">
+        <div className="fixed bottom-24 right-4 max-w-sm animate-fade-in" style={{ zIndex: 9999 }}>
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 rounded-lg shadow-2xl border-2 border-white">
             <div className="flex items-start justify-between mb-2">
               <div className="flex items-center gap-2">
                 <Brain className="w-5 h-5" />
