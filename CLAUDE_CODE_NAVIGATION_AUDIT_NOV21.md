@@ -10,6 +10,7 @@
 - ✅ Enhanced 4 major e-contract workflow pages with AI features
 - ⚠️ Navigation routing issue identified: Both "Dashboard" and "Home" redirect to `/smart-dashboard`
 - 🎯 Need to audit all navigation, consolidate duplicate routes, and ensure production quality
+- 📊 **Project Scale:** 65+ hub pages, extensive feature set - focus on core functionality first
 
 ---
 
@@ -87,7 +88,9 @@
 
 #### C. Check All Hub Pages
 
-**Verify each of the 12 main hubs:**
+**Note:** This project has 65+ hub pages in `src/pages/hubs/` directory!
+
+**Priority hubs to verify (core functionality):**
 1. Clients Hub (`/clients-hub`)
 2. Communications Hub (`/communications-hub`)
 3. Marketing Hub (`/marketing-hub`)
@@ -101,7 +104,21 @@
 11. AI Hub (`/ai-hub`)
 12. Mobile App Hub (`/mobile-app-hub`)
 
-**For each hub, confirm:**
+**Additional hubs to spot-check:**
+- Billing & Payments Hubs
+- Revenue & Partnerships Hubs
+- Credit Reports Hub
+- Compliance Hub
+- Contract Management Hub
+- Bureau Communication Hub
+- Calendar Scheduling Hub
+- Training & Onboarding Hubs
+- Social Media & Content Hubs
+- Referral & Affiliates Hubs
+- Mobile App Sub-Hubs (Analytics, Screen Builder, User Manager, etc.)
+- And 40+ more...
+
+**For each hub checked, confirm:**
 - ✅ Component exists and renders
 - ✅ Navigation works from sidebar
 - ✅ Sub-navigation (if any) is functional
@@ -276,20 +293,96 @@ src/pages/ACHAuthorization.jsx           # +332 lines AI features
 src/pages/PowerOfAttorney.jsx            # +270 lines AI features
 ```
 
-### Hub Components to Audit
+### Hub Components to Audit (65+ Total)
 ```
-src/pages/hubs/ClientsHub.jsx
-src/pages/hubs/CommunicationsHub.jsx
-src/pages/hubs/MarketingHub.jsx
-src/pages/hubs/DisputeHub.jsx
-src/pages/hubs/DocumentsHub.jsx
-src/pages/hubs/ReportsHub.jsx
-src/pages/hubs/LearningHub.jsx
-src/pages/hubs/SupportHub.jsx
-src/pages/hubs/SettingsHub.jsx
-src/pages/hubs/AutomationHub.jsx
-src/pages/hubs/AIHub.jsx
-src/pages/hubs/MobileAppHub.jsx
+src/pages/hubs/                          # Directory with 65+ hub files
+
+Core Hubs (Priority):
+├── ClientsHub.jsx
+├── CommunicationsHub.jsx
+├── MarketingHub.jsx
+├── DisputeHub.jsx
+├── DocumentsHub.jsx
+├── ReportsHub.jsx
+├── LearningHub.jsx
+├── SupportHub.jsx
+├── SettingsHub.jsx
+├── AutomationHub.jsx
+├── AIHub.jsx
+└── MobileAppHub.jsx
+
+Financial & Billing:
+├── BillingHub.jsx
+├── BillingPaymentsHub.jsx
+├── PaymentIntegrationHub.jsx
+├── CollectionsARHub.jsx
+├── RevenueHub.jsx
+└── RevenuePartnershipsHub.jsx
+
+Credit & Compliance:
+├── CreditReportsHub.jsx
+├── DisputeAdminPanel.jsx
+├── BureauCommunicationHub.jsx
+├── ComplianceHub.jsx
+└── ContractManagementHub.jsx
+
+Marketing & Content:
+├── ContentCreatorSEOHub.jsx
+├── SocialMediaHub.jsx
+├── DripCampaignsHub.jsx
+├── CampaignPlanner.jsx
+├── ReviewsReputationHub.jsx
+└── WebsiteLandingPagesHub.jsx
+
+Learning & Training:
+├── TrainingHub.jsx
+├── TrainingLibrary.jsx
+├── LiveTrainingSessions.jsx
+├── RoleBasedTraining.jsx
+├── QuizSystem.jsx
+├── KnowledgeBase.jsx
+└── ResourceLibraryHub.jsx
+
+Mobile App Management:
+├── MobileAppHub.jsx
+├── MobileScreenBuilder.jsx
+├── MobileAnalyticsDashboard.jsx
+├── MobileUserManager.jsx
+├── MobileFeatureToggles.jsx
+├── MobileAPIConfiguration.jsx
+├── PushNotificationManager.jsx
+├── AppPublishingWorkflow.jsx
+├── AppThemingSystem.jsx
+├── DeepLinkingManager.jsx
+└── PlatformManager.jsx
+
+Client Success & Onboarding:
+├── ClientSuccessRetentionHub.jsx
+├── OnboardingWelcomeHub.jsx
+├── OnboardingWizard.jsx
+├── ProgressPortalHub.jsx
+└── ProgressTracker.jsx
+
+Referrals & Partnerships:
+├── ReferralEngineHub.jsx
+├── ReferralPartnerHub.jsx
+└── AffiliatesHub.jsx
+
+Scheduling & Engagement:
+├── CalendarSchedulingHub.jsx
+├── TasksSchedulingHub.jsx
+├── InAppMessagingSystem.jsx
+└── EngagementTracker.jsx
+
+Analytics & Content:
+├── AnalyticsHub.jsx
+├── SocialAnalytics.jsx
+├── SocialListening.jsx
+├── PostScheduler.jsx
+├── ContentLibrary.jsx
+└── ActionLibrary.jsx
+
+Note: Use file_search or list_dir to see all 65+ files if needed
 ```
 
 ### Configuration Files
@@ -356,8 +449,9 @@ If you fix the Dashboard/Home issue, document:
 1. Generate complete route map from `App.jsx`
 2. Cross-reference with `navConfig.js`
 3. Identify and fix broken links
-4. Test each hub page loads correctly
-5. Commit: "Audit and fix navigation routes"
+4. **Spot-check hub pages** (not all 65+ - focus on core 12-15 priority hubs)
+5. Document any hubs with missing routes or broken navigation
+6. Commit: "Audit and fix navigation routes"
 
 ### Phase 3: Code Quality Sweep (MEDIUM PRIORITY)
 1. Search for and document all TODOs
@@ -387,11 +481,12 @@ If you fix the Dashboard/Home issue, document:
 - [ ] Click "Dashboard" in sidebar → Goes to correct unique page
 - [ ] Click "Home" in sidebar (if exists) → Goes to different page OR removed
 - [ ] No menu items lead to the same destination
-- [ ] All 12 hub links work
+- [ ] Priority hub links work (test 12-15 core hubs)
+- [ ] Spot-check additional hubs (sample 5-10 from the 65+ available)
 - [ ] Footer quick links functional
 - [ ] Mobile navigation works
 - [ ] Role-based items show/hide correctly
-- [ ] No broken links (404 errors)
+- [ ] No broken links (404 errors) in main navigation
 
 ### Code Quality Testing
 - [ ] Run `npm run build` → No critical errors
