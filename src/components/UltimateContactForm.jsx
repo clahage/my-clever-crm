@@ -809,6 +809,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
 
   const handleSave = async () => {
 <<<<<<< HEAD
+<<<<<<< HEAD
     // Check for duplicates before creating
     const checkDuplicate = async (email, phone) => {
       const contactsRef = collection(db, 'contacts');
@@ -874,14 +875,33 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
     addTimelineEvent('form_saved', 'Contact information saved manually');
     onSave(finalData);
 =======
+=======
+    console.log('🔍 handleSave called');
+    console.log('📋 meetsMinimumRequirements:', meetsMinimumRequirements());
+    console.log('👤 Name:', formData.firstName, formData.lastName);
+    console.log('📧 Email:', formData.emails[0]?.address);
+    console.log('📱 Phone:', formData.phones[0]?.number);
+    
+>>>>>>> ddb2398 (Add comprehensive debugging and error handling to save function)
     // Validate minimum requirements
     if (!meetsMinimumRequirements()) {
-      setSaveError('Please provide at least a name (first OR last) AND contact method (email OR phone)');
+      const hasName = formData.firstName || formData.lastName;
+      const hasContact = (formData.emails.length > 0 && formData.emails[0].address) || 
+                        (formData.phones.length > 0 && formData.phones[0].number);
+      
+      const missing = [];
+      if (!hasName) missing.push('name (first OR last)');
+      if (!hasContact) missing.push('contact method (email OR phone)');
+      
+      const errorMsg = `Missing required: ${missing.join(' and ')}`;
+      console.error('❌ Validation failed:', errorMsg);
+      setSaveError(errorMsg);
       setTimeout(() => setSaveError(null), 5000);
       return;
     }
     
     try {
+      console.log('💾 Attempting to save...');
       const engagementScore = calculateEngagementScore();
       const finalData = {
         ...formData,
@@ -891,18 +911,27 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
         },
         dataQualityScore: dataQuality.score,
         lastSavedAt: new Date().toISOString(),
-        lastSavedBy: 'manual'
+        lastSavedBy: 'manual',
+        createdAt: new Date().toISOString()
       };
       
+      console.log('📦 Final data prepared:', finalData);
       addTimelineEvent('form_saved', 'Contact information saved manually');
+      
+      if (!onSave) {
+        throw new Error('No onSave handler provided to component');
+      }
+      
       await onSave(finalData);
+      console.log('✅ Save successful!');
       
       // Show success confirmation
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (error) {
-      console.error('Save error:', error);
-      setSaveError('Failed to save contact. Please try again.');
+      console.error('❌ Save error:', error);
+      console.error('Error details:', error.message, error.stack);
+      setSaveError(`Failed to save: ${error.message || 'Unknown error'}`);
       setTimeout(() => setSaveError(null), 5000);
     }
 >>>>>>> 1dc4825 (CRITICAL FIX: Save button now works with proper validation + confirmation)
