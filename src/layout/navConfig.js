@@ -161,30 +161,30 @@ export function isVisible(item, userRole, isMobile = false) {
 
 export const navigationItems = [
   // ==========================================================================
-  // 🏠 DASHBOARD - ALWAYS VISIBLE AT TOP
+  // 🏠 DASHBOARD - ANALYTICS & METRICS (SmartDashboard)
   // ==========================================================================
   {
     id: 'dashboard',
     title: 'Dashboard',
-    path: '/dashboard',
-    icon: Home,
+    path: '/smart-dashboard',
+    icon: LayoutDashboard,
     permission: 'prospect', // Everyone sees dashboard
     mobileHidden: false,
-    description: 'Main overview and analytics',
+    description: 'Analytics, metrics, and role-based widgets',
     category: 'core'
   },
 
   // ==========================================================================
-  // 🏡 HOME - WELCOME/LANDING PAGE
+  // 🏡 HOME - WELCOME HUB / LANDING PAGE
   // ==========================================================================
   {
     id: 'home',
-    title: 'Home',
+    title: 'Welcome Hub',
     path: '/home',
-    icon: LayoutDashboard,
+    icon: Home,
     permission: 'prospect',
     mobileHidden: false,
-    description: 'Welcome page with feature overview',
+    description: 'Welcome page, feature overview, and getting started guide',
     category: 'core'
   },
 
@@ -1419,7 +1419,7 @@ export const navigationItems = [
  */
 export function getMobileNavigation(userRole) {
   const baseItems = [
-    { id: 'dashboard', title: 'Home', path: '/dashboard', icon: Home },
+    { id: 'dashboard', title: 'Dashboard', path: '/smart-dashboard', icon: LayoutDashboard },
   ];
 
   const roleSpecificItems = {
