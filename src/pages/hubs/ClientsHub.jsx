@@ -11,6 +11,7 @@
 // ================================================================================
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Card,
@@ -291,6 +292,7 @@ const SEGMENTATION_CRITERIA = [
 
 const ClientsHub = () => {
   const { currentUser, userProfile } = useAuth();
+  const navigate = useNavigate();
   
   // ===== STATE MANAGEMENT =====
   const [activeTab, setActiveTab] = useState(0);
@@ -1109,8 +1111,13 @@ const ClientsHub = () => {
   
   const handleEditClient = (client) => {
     console.log('✏️ Editing contact:', client.id);
+<<<<<<< HEAD
     setEditingContact(client);
     setShowContactForm(true);
+=======
+    // Navigate to the full UltimateContactForm with the contact ID
+    navigate(`/edit-contact/${client.id}`);
+>>>>>>> fad06dd (Feature: Add edit contact route - clicking edit now opens full UltimateContactForm with existing data)
   };
   
   const handleSaveClient = async () => {
