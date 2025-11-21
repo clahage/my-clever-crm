@@ -1197,7 +1197,8 @@ export default function UltimateClientForm({
                 <input
                   type="text"
                   value={formData.middleName}
-                  onChange={(e) => updateField('middleName', e.target.value)}
+                  onChange={(e) => updateField('middleName', capitalizeProperName(e.target.value))}
+                  onBlur={(e) => updateField('middleName', capitalizeProperName(e.target.value))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   placeholder="Middle name"
                 />
@@ -1238,7 +1239,8 @@ export default function UltimateClientForm({
                 <input
                   type="text"
                   value={formData.preferredName}
-                  onChange={(e) => updateField('preferredName', e.target.value)}
+                  onChange={(e) => updateField('preferredName', capitalizeProperName(e.target.value))}
+                  onBlur={(e) => updateField('preferredName', capitalizeProperName(e.target.value))}
                   placeholder="What they like to be called"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
