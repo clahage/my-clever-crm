@@ -11,6 +11,7 @@
 // ================================================================================
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Card,
@@ -287,6 +288,7 @@ const SEGMENTATION_CRITERIA = [
 
 const ClientsHub = () => {
   const { currentUser, userProfile } = useAuth();
+  const navigate = useNavigate();
   
   // ===== STATE MANAGEMENT =====
   const [activeTab, setActiveTab] = useState(0);
@@ -1158,23 +1160,9 @@ const ClientsHub = () => {
   };
   
   const handleEditClient = (client) => {
-    console.log('✏️ Editing client:', client.id);
-    setClientForm({
-      firstName: client.firstName || '',
-      lastName: client.lastName || '',
-      email: client.email || '',
-      phone: client.phone || '',
-      status: client.status || 'lead',
-      source: client.source || '',
-      leadScore: client.leadScore || 5,
-      engagementScore: client.engagementScore || 50,
-      journeyStage: client.journeyStage || 'awareness',
-      tags: client.tags || [],
-      notes: client.notes || '',
-      customFields: client.customFields || {},
-    });
-    setSelectedClient(client);
-    setActiveTab(1);
+    console.log('✏️ Editing contact:', client.id);
+    // Navigate to the full UltimateContactForm with the contact ID
+    navigate(`/edit-contact/${client.id}`);
   };
   
   const handleSaveClient = async () => {

@@ -2,8 +2,8 @@
 // VERSION: 3.0 - HYBRID HUB ARCHITECTURE INTEGRATION
 // LAST UPDATED: 2025-11-06 - All 18 Hubs Integrated
 import EmailWorkflowDashboard from './components/EmailWorkflowDashboard';
-import React, { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React, { lazy, Suspense, useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
@@ -258,6 +258,64 @@ const SupportHub = lazy(() => import('@/pages/hubs/SupportHub'));
 const TasksSchedulingHub = lazy(() => import('@/pages/hubs/TasksSchedulingHub'));
 const TrainingHub = lazy(() => import('@/pages/hubs/TrainingHub'));
 const WebsiteLandingPagesHub = lazy(() => import('@/pages/hubs/WebsiteLandingPagesHub'));
+
+// ============================================================================
+// CONTACT EDITOR COMPONENT - Loads contact and passes to UltimateContactForm
+// ============================================================================
+const ContactEditor = () => {
+  const { contactId } = useParams();
+  const [contactData, setContactData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadContact = async () => {
+      try {
+        const { db } = await import('./lib/firebase');
+        const { doc, getDoc } = await import('firebase/firestore');
+        const docRef = doc(db, 'contacts', contactId);
+        const docSnap = await getDoc(docRef);
+        
+        if (docSnap.exists()) {
+          setContactData({ id: docSnap.id, ...docSnap.data() });
+        } else {
+          console.error('Contact not found');
+        }
+      } catch (error) {
+        console.error('Error loading contact:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (contactId) {
+      loadContact();
+    }
+  }, [contactId]);
+
+  if (loading) {
+    return <LoadingFallback />;
+  }
+
+  return (
+    <UltimateContactForm
+      initialData={contactData || {}}
+      contactId={contactId}
+      onSave={async (updatedData) => {
+        const { db } = await import('./lib/firebase');
+        const { doc, updateDoc } = await import('firebase/firestore');
+        await updateDoc(doc(db, 'contacts', contactId), {
+          ...updatedData,
+          updatedAt: new Date().toISOString()
+        });
+        console.log('✅ Contact updated:', contactId);
+        window.location.href = '/clients-hub';
+      }}
+      onCancel={() => {
+        window.location.href = '/clients-hub';
+      }}
+    />
+  );
+};
 
 // ============================================================================
 // PROTECTED ROUTE WRAPPER
@@ -568,6 +626,18 @@ const AppContent = () => {
             window.location.href = '/clients-hub';
           }}
         />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Edit Contact Form - UltimateContactForm with ID */}
+<Route
+  path="edit-contact/:contactId"
+  element={
+    <ProtectedRoute requiredRole="prospect">
+      <Suspense fallback={<LoadingFallback />}>
+        <ContactEditor />
       </Suspense>
     </ProtectedRoute>
   }
