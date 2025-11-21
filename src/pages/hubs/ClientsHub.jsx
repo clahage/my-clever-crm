@@ -398,6 +398,7 @@ const ClientsHub = () => {
   // Analytics State
   const [analytics, setAnalytics] = useState({
     totalClients: 0,
+    contacts: 0, // NEW: pure contacts (not leads/clients yet)
     activeClients: 0,
     leads: 0,
     conversionRate: 0,
@@ -472,12 +473,14 @@ const ClientsHub = () => {
     
     try {
       const total = clientData.length;
-      const active = clientData.filter(c => c.status === 'active').length;
-      const leads = clientData.filter(c => c.status === 'lead').length;
-      const prospects = clientData.filter(c => c.status === 'prospect').length;
-      const completed = clientData.filter(c => c.status === 'completed').length;
-      const cancelled = clientData.filter(c => c.status === 'cancelled').length;
-      const atRisk = clientData.filter(c => c.status === 'at_risk').length;
+      // Use roles array instead of status field
+      const active = clientData.filter(c => c.roles?.includes('client')).length;
+      const leads = clientData.filter(c => c.roles?.includes('lead')).length;
+      const prospects = clientData.filter(c => c.roles?.includes('prospect')).length;
+      const contacts = clientData.filter(c => c.roles?.includes('contact') && !c.roles?.includes('lead') && !c.roles?.includes('client')).length;
+      const completed = clientData.filter(c => c.roles?.includes('previous-client')).length;
+      const cancelled = clientData.filter(c => c.roles?.includes('inactive')).length;
+      const atRisk = clientData.filter(c => c.status === 'at_risk').length; // Keep status for atRisk if used
       
       const conversionRate = leads > 0 ? ((active / leads) * 100).toFixed(1) : 0;
       const avgScore = clientData.length > 0 
@@ -572,6 +575,7 @@ const ClientsHub = () => {
       
       setAnalytics({
         totalClients: total,
+        contacts, // NEW: pure contacts count
         activeClients: active,
         leads,
         prospects,
@@ -2443,27 +2447,27 @@ const ClientsHub = () => {
         {/* STATS CARDS */}
         <Grid container spacing={2} sx={{ mb: 3 }}>
           <Grid item xs={6} sm={3}>
-            <Card sx={{ p: 2, textAlign: 'center', bgcolor: '#E3F2FD' }}>
-              <Typography variant="h4" color="primary">{analytics.totalClients}</Typography>
-              <Typography variant="caption">Total Clients</Typography>
-            </Card>
-          </Grid>
-          <Grid item xs={6} sm={3}>
-            <Card sx={{ p: 2, textAlign: 'center', bgcolor: '#E8F5E9' }}>
-              <Typography variant="h4" color="success.main">{analytics.activeClients}</Typography>
-              <Typography variant="caption">Active</Typography>
+            <Card sx={{ p: 2, textAlign: 'center', bgcolor: '#F3E5F5' }}>
+              <Typography variant="h4" color="text.primary">{analytics.contacts || 0}</Typography>
+              <Typography variant="caption">Contacts</Typography>
             </Card>
           </Grid>
           <Grid item xs={6} sm={3}>
             <Card sx={{ p: 2, textAlign: 'center', bgcolor: '#FFF3E0' }}>
-              <Typography variant="h4" color="warning.main">{analytics.leads}</Typography>
+              <Typography variant="h4" color="warning.main">{analytics.leads || 0}</Typography>
               <Typography variant="caption">Leads</Typography>
             </Card>
           </Grid>
           <Grid item xs={6} sm={3}>
-            <Card sx={{ p: 2, textAlign: 'center', bgcolor: '#FCE4EC' }}>
-              <Typography variant="h4" color="secondary">{analytics.conversionRate}%</Typography>
-              <Typography variant="caption">Conversion</Typography>
+            <Card sx={{ p: 2, textAlign: 'center', bgcolor: '#E8F5E9' }}>
+              <Typography variant="h4" color="success.main">{analytics.activeClients || 0}</Typography>
+              <Typography variant="caption">Clients</Typography>
+            </Card>
+          </Grid>
+          <Grid item xs={6} sm={3}>
+            <Card sx={{ p: 2, textAlign: 'center', bgcolor: '#E3F2FD' }}>
+              <Typography variant="h4" color="primary">{analytics.totalClients || 0}</Typography>
+              <Typography variant="caption">Total</Typography>
             </Card>
           </Grid>
         </Grid>
