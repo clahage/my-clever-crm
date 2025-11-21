@@ -936,7 +936,9 @@ export default function UltimateClientForm({ initialData = {}, onSave, onCancel,
           </button>
           <button
             onClick={handleSave}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+            disabled={!meetsMinimumRequirements()}
+            title={!meetsMinimumRequirements() ? 'Need: (First OR Last name) AND (Email OR Phone number)' : 'Click to save contact'}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Activity className="w-4 h-4" />
             Save Contact
@@ -1529,7 +1531,8 @@ export default function UltimateClientForm({ initialData = {}, onSave, onCancel,
                     <input
                       type="text"
                       value={address.city}
-                      onChange={(e) => updateArrayItem('addresses', index, { city: e.target.value })}
+                      onChange={(e) => updateArrayItem('addresses', index, { city: capitalizeProperName(e.target.value) })}
+                      onBlur={(e) => updateArrayItem('addresses', index, { city: capitalizeProperName(e.target.value) })}
                       placeholder="City"
                       className="px-3 py-2 border border-gray-300 rounded-lg bg-white"
                     />
@@ -1806,7 +1809,8 @@ export default function UltimateClientForm({ initialData = {}, onSave, onCancel,
                     <input
                       type="text"
                       value={formData.employment.employer}
-                      onChange={(e) => updateNestedField('employment', 'employer', e.target.value)}
+                      onChange={(e) => updateNestedField('employment', 'employer', capitalizeProperName(e.target.value))}
+                      onBlur={(e) => updateNestedField('employment', 'employer', capitalizeProperName(e.target.value))}
                       placeholder="Company name"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     />
@@ -1816,7 +1820,8 @@ export default function UltimateClientForm({ initialData = {}, onSave, onCancel,
                     <input
                       type="text"
                       value={formData.employment.jobTitle}
-                      onChange={(e) => updateNestedField('employment', 'jobTitle', e.target.value)}
+                      onChange={(e) => updateNestedField('employment', 'jobTitle', capitalizeProperName(e.target.value))}
+                      onBlur={(e) => updateNestedField('employment', 'jobTitle', capitalizeProperName(e.target.value))}
                       placeholder="Position/title"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     />
@@ -1829,7 +1834,8 @@ export default function UltimateClientForm({ initialData = {}, onSave, onCancel,
                     <input
                       type="text"
                       value={formData.employment.industry}
-                      onChange={(e) => updateNestedField('employment', 'industry', e.target.value)}
+                      onChange={(e) => updateNestedField('employment', 'industry', capitalizeProperName(e.target.value))}
+                      onBlur={(e) => updateNestedField('employment', 'industry', capitalizeProperName(e.target.value))}
                       placeholder="e.g., Healthcare"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     />
@@ -1887,7 +1893,8 @@ export default function UltimateClientForm({ initialData = {}, onSave, onCancel,
                   <input
                     type="text"
                     value={formData.employment.employerAddress}
-                    onChange={(e) => updateNestedField('employment', 'employerAddress', e.target.value)}
+                    onChange={(e) => updateNestedField('employment', 'employerAddress', capitalizeProperName(e.target.value))}
+                    onBlur={(e) => updateNestedField('employment', 'employerAddress', capitalizeProperName(e.target.value))}
                     placeholder="Company address"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   />
