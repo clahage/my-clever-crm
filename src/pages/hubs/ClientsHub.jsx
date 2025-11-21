@@ -473,6 +473,13 @@ const ClientsHub = () => {
 
   // ===== FIREBASE LISTENERS =====
   
+  // Calculate analytics whenever clients data changes
+  useEffect(() => {
+    if (clients.length > 0) {
+      calculateAnalytics(clients);
+    }
+  }, [clients, calculateAnalytics]);
+  
   useEffect(() => {
     if (!currentUser) return;
     
