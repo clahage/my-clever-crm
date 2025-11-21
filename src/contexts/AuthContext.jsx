@@ -71,12 +71,9 @@ export const AuthProvider = ({ children }) => {
       
       if (docSnap.exists()) {
         const profileData = docSnap.data();
-        console.log('✅ User Profile Loaded:', profileData);
-        console.log('✅ Role:', profileData.role);
         setUserProfile(profileData);
         return profileData;
       } else {
-        console.log('⚠️ No profile found, creating new one');
         // Create profile if doesn't exist
         const newProfile = {
           uid: uid,
@@ -100,7 +97,6 @@ export const AuthProvider = ({ children }) => {
   // Auth state observer
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      console.log('Auth state changed:', user?.email || 'No user');
       setCurrentUser(user);
       
       if (user) {

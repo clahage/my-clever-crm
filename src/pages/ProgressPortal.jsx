@@ -2,16 +2,10 @@ import React, { useState, useEffect } from "react";
 import { db } from '../lib/firebase';
 import { collection, query, onSnapshot } from 'firebase/firestore';
 
-const demoProgress = [
-  { id: 1, client: "John Doe", status: "In Progress", percent: 65 },
-  { id: 2, client: "Jane Smith", status: "Completed", percent: 100 },
-  { id: 3, client: "Mike Johnson", status: "In Progress", percent: 45 },
-  { id: 4, client: "Sarah Williams", status: "In Progress", percent: 80 }
-];
-
 export default function ProgressPortal() {
-  const [progress, setProgress] = useState(demoProgress);
-  const [useDemo, setUseDemo] = useState(true);
+  const [progress, setProgress] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     let unsubscribe = null;
@@ -23,21 +17,21 @@ export default function ProgressPortal() {
             id: doc.id, 
             ...doc.data() 
           }));
-          if (firebaseData.length > 0) {
-            setProgress(firebaseData);
-            setUseDemo(false);
-          }
+          setProgress(firebaseData);
+          setLoading(false);
         },
         (error) => {
-          console.log("Using demo data:", error.message);
-          setProgress(demoProgress);
-          setUseDemo(true);
+          console.error("Error fetching progress:", error);
+          setError(error.message);
+          setProgress([]);
+          setLoading(false);
         }
       );
     } catch (error) {
-      console.log("Firebase connection error, using demo data");
-      setProgress(demoProgress);
-      setUseDemo(true);
+      console.error("Firebase connection error:", error);
+      setError(error.message);
+      setProgress([]);
+      setLoading(false);
     }
     return () => unsubscribe && unsubscribe();
   }, []);
@@ -48,18 +42,32 @@ export default function ProgressPortal() {
         Client Progress Portal
       </h2>
       
-      {useDemo && (
-        <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6">
-          <p className="font-bold">Demo Mode</p>
-          <p>Showing sample data. Connect to Firebase to see real progress.</p>
+      {loading && (
+        <div className="text-center py-8">
+          <p className="text-gray-600 dark:text-gray-400">Loading progress data...</p>
         </div>
       )}
 
-      <div className="space-y-4">
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-          <h3 className="text-xl font-bold mb-4">Active Progress Tracking</h3>
-          <div className="space-y-3">
-            {progress.map((item) => (
+      {error && (
+        <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6">
+          <p className="font-bold">Error</p>
+          <p>Unable to load progress data: {error}</p>
+        </div>
+      )}
+
+      {!loading && !error && progress.length === 0 && (
+        <div className="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-6">
+          <p className="font-bold">No Progress Data</p>
+          <p>No client progress records found. Add client progress in the system to see tracking here.</p>
+        </div>
+      )}
+
+      {!loading && progress.length > 0 && (
+        <div className="space-y-4">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+            <h3 className="text-xl font-bold mb-4">Active Progress Tracking</h3>
+            <div className="space-y-3">
+              {progress.map((item) => (
               <div key={item.id} className="border rounded p-4 dark:border-gray-700">
                 <div className="flex justify-between mb-2">
                   <span className="font-semibold">{item.client}</span>
@@ -85,30 +93,30 @@ export default function ProgressPortal() {
               </div>
             ))}
           </div>
-        </div>
 
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-          <h3 className="text-xl font-bold mb-4">Summary Statistics</h3>
-          <div className="grid grid-cols-3 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{progress.length}</div>
-              <div className="text-sm text-gray-600">Total Clients</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">
-                {progress.filter(p => p.percent === 100).length}
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow mt-4">
+            <h3 className="text-xl font-bold mb-4">Summary Statistics</h3>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">{progress.length}</div>
+                <div className="text-sm text-gray-600">Total Clients</div>
               </div>
-              <div className="text-sm text-gray-600">Completed</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-yellow-600">
-                {progress.filter(p => p.percent < 100).length}
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600">
+                  {progress.filter(p => p.percent === 100).length}
+                </div>
+                <div className="text-sm text-gray-600">Completed</div>
               </div>
-              <div className="text-sm text-gray-600">In Progress</div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-yellow-600">
+                  {progress.filter(p => p.percent < 100).length}
+                </div>
+                <div className="text-sm text-gray-600">In Progress</div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

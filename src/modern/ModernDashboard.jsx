@@ -36,12 +36,9 @@ const barChartData = {
   ],
 };
 
-const activityFeed = [
-  { time: "2m ago", text: "New lead added: John Doe" },
-  { time: "10m ago", text: "Dispute started for Jane Smith" },
-  { time: "1h ago", text: "Credit report pulled: Mike Lee" },
-  { time: "2h ago", text: "Lead converted: Sarah Kim" },
-];
+// TODO: Connect to Firebase activityLog collection
+// For now showing empty state - replace with real activity feed
+const activityFeed = [];
 
 const quickActions = [
   { label: "New Lead", color: "bg-blue-500" },
@@ -109,14 +106,21 @@ export default function ModernDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-6 mt-8 pb-8">
         <div className="brand-panel rounded-2xl p-6 shadow-lg backdrop-blur-md bg-white/60 border border-gray-200">
           <div className="font-semibold mb-2">Recent Activity</div>
-          <ul className="space-y-2">
-            {activityFeed.map((item, i) => (
-              <li key={i} className="flex justify-between text-sm text-gray-700">
-                <span>{item.text}</span>
-                <span className="text-gray-400">{item.time}</span>
-              </li>
-            ))}
-          </ul>
+          {activityFeed.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <p>No recent activity</p>
+              <p className="text-sm mt-1">Activity will appear here as you work</p>
+            </div>
+          ) : (
+            <ul className="space-y-2">
+              {activityFeed.map((item, i) => (
+                <li key={i} className="flex justify-between text-sm text-gray-700">
+                  <span>{item.text}</span>
+                  <span className="text-gray-400">{item.time}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
         <div className="brand-panel rounded-2xl p-6 shadow-lg backdrop-blur-md bg-white/60 border border-gray-200 flex flex-col gap-4">
           <div className="font-semibold mb-2">Quick Actions</div>

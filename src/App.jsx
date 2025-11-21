@@ -785,7 +785,7 @@ const AppContent = () => {
   element={
     <ProtectedRoute requiredRole="user">
       <Suspense fallback={<LoadingFallback />}>
-        <CalendarSchedulingHub />
+        <Calendar />
       </Suspense>
     </ProtectedRoute>
   }

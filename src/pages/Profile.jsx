@@ -11,7 +11,7 @@ const Profile = () => {
     firstName: 'Chris',
     lastName: 'Lahage',
     email: currentUser?.email || 'chris@speedycreditrepair.com',
-    phone: '+1 (555) 123-4567',
+    phone: '', // Empty by default - user should add their own phone
     address: 'Huntington Beach, CA',
     role: 'Administrator',
     joinDate: 'January 2024',

@@ -3221,7 +3221,7 @@ const FullAgreement = ({
                   Speedy Credit Repair LLC<br />
                   123 Main Street<br />
                   Los Angeles, CA 90001<br />
-                  Phone: (555) 123-4567<br />
+                  Phone: [Configure in Settings]<br />
                   Email: support@speedycreditrepair.com
                 </Typography>
               </Grid>

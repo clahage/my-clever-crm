@@ -4,10 +4,23 @@ import { db } from '../lib/firebase';
 /**
  * Initialize Firestore collections with sample data
  * Run this once to set up your collections
+ * WARNING: Only runs in development mode to prevent fake data in production
  */
 export const initializeFirestoreCollections = async () => {
+  // Safety check: Only allow in development environment
+  const isDevelopment = import.meta.env.MODE === 'development' || 
+                        import.meta.env.DEV === true ||
+                        window.location.hostname === 'localhost' ||
+                        window.location.hostname === '127.0.0.1';
+
+  if (!isDevelopment) {
+    console.warn('⚠️ Seed data initialization is disabled in production');
+    console.warn('This function only runs in development mode to prevent fake data in production database');
+    return;
+  }
+
   try {
-    console.log('🚀 Initializing Firestore collections...');
+    console.log('🚀 Initializing Firestore collections (DEVELOPMENT MODE)...');
 
     // Create idiqEnrollments collection with one sample document
     const idiqEnrollmentsRef = collection(db, 'idiqEnrollments');
