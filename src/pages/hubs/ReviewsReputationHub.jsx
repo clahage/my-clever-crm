@@ -327,7 +327,6 @@ import {
   Support as SupportIcon,
   SupportAgent as SupportAgentIcon,
   RecordVoiceOver as RecordVoiceOverIcon,
-  Interpreter as InterpreterIcon,
   Translate as TranslateIcon,
   GTranslate as GTranslateIcon,
   Language as LanguageIcon,

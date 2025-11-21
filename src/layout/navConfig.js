@@ -425,7 +425,7 @@ export const navigationItems = [
        id: 'payment-integration-hub',
        title: 'Payment Integrations',
        path: '/payment-integration-hub',
-       icon: 'CreditCard',
+       icon: CreditCard,
        requiredRole: 'admin',
        badge: 'PRO',
        description: 'Stripe & PayPal integration'

@@ -555,7 +555,19 @@ const AppContent = () => {
   element={
     <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
-        <UltimateContactForm />
+        <UltimateContactForm 
+          onSave={async (contactData) => {
+            const { db } = await import('./lib/firebase');
+            const { collection, addDoc } = await import('firebase/firestore');
+            const docRef = await addDoc(collection(db, 'contacts'), contactData);
+            console.log('✅ Contact saved with ID:', docRef.id);
+            // Redirect to clients hub after save
+            window.location.href = '/clients-hub';
+          }}
+          onCancel={() => {
+            window.location.href = '/clients-hub';
+          }}
+        />
       </Suspense>
     </ProtectedRoute>
   }
