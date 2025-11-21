@@ -3,7 +3,12 @@ import { Phone, Mail, MapPin, FileText, CreditCard, Users, Bell, Plus, X, Chevro
 import { db } from '../lib/firebase';
 import { collection, addDoc, updateDoc, doc, onSnapshot, query, where, orderBy, limit } from 'firebase/firestore';
 
-export default function UltimateClientForm({ initialData = {}, onSave, onCancel, contactId = null }) {
+export default function UltimateClientForm({ 
+  initialData = {}, 
+  onSave = async () => { console.warn('No onSave handler provided'); }, 
+  onCancel = () => { console.warn('No onCancel handler provided'); }, 
+  contactId = null 
+}) {
   const [formData, setFormData] = useState({
     // Basic Information
     firstName: '',
@@ -795,14 +800,31 @@ export default function UltimateClientForm({ initialData = {}, onSave, onCancel,
   };
 
   const handleSave = async () => {
+    console.log('🔍 handleSave called');
+    console.log('📋 meetsMinimumRequirements:', meetsMinimumRequirements());
+    console.log('👤 Name:', formData.firstName, formData.lastName);
+    console.log('📧 Email:', formData.emails[0]?.address);
+    console.log('📱 Phone:', formData.phones[0]?.number);
+    
     // Validate minimum requirements
     if (!meetsMinimumRequirements()) {
-      setSaveError('Please provide at least a name (first OR last) AND contact method (email OR phone)');
+      const hasName = formData.firstName || formData.lastName;
+      const hasContact = (formData.emails.length > 0 && formData.emails[0].address) || 
+                        (formData.phones.length > 0 && formData.phones[0].number);
+      
+      const missing = [];
+      if (!hasName) missing.push('name (first OR last)');
+      if (!hasContact) missing.push('contact method (email OR phone)');
+      
+      const errorMsg = `Missing required: ${missing.join(' and ')}`;
+      console.error('❌ Validation failed:', errorMsg);
+      setSaveError(errorMsg);
       setTimeout(() => setSaveError(null), 5000);
       return;
     }
     
     try {
+      console.log('💾 Attempting to save...');
       const engagementScore = calculateEngagementScore();
       const finalData = {
         ...formData,
@@ -812,18 +834,27 @@ export default function UltimateClientForm({ initialData = {}, onSave, onCancel,
         },
         dataQualityScore: dataQuality.score,
         lastSavedAt: new Date().toISOString(),
-        lastSavedBy: 'manual'
+        lastSavedBy: 'manual',
+        createdAt: new Date().toISOString()
       };
       
+      console.log('📦 Final data prepared:', finalData);
       addTimelineEvent('form_saved', 'Contact information saved manually');
+      
+      if (!onSave) {
+        throw new Error('No onSave handler provided to component');
+      }
+      
       await onSave(finalData);
+      console.log('✅ Save successful!');
       
       // Show success confirmation
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (error) {
-      console.error('Save error:', error);
-      setSaveError('Failed to save contact. Please try again.');
+      console.error('❌ Save error:', error);
+      console.error('Error details:', error.message, error.stack);
+      setSaveError(`Failed to save: ${error.message || 'Unknown error'}`);
       setTimeout(() => setSaveError(null), 5000);
     }
   };
