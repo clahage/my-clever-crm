@@ -14,10 +14,11 @@ import {
   FileText, Download, Send, CheckCircle, Shield, User, Mail, Phone,
   Calendar, Save, Eye, Trash2, Edit, AlertCircle, Info
 } from 'lucide-react';
-import { 
+import {
   collection, addDoc, updateDoc, doc, query, where, getDocs,
   serverTimestamp
 } from 'firebase/firestore';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { format } from 'date-fns';
@@ -160,6 +161,126 @@ const PowerOfAttorney = () => {
     message: '',
     severity: 'info'
   });
+
+  // ===== AI ENHANCEMENT STATES =====
+  // AI Compliance Verification
+  const [complianceAnalysis, setComplianceAnalysis] = useState(null);
+  const [complianceLoading, setComplianceLoading] = useState(false);
+
+  // AI Document Summarizer
+  const [aiSummary, setAiSummary] = useState(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+
+  // AI Scope Recommendation
+  const [aiScopeRecommendation, setAiScopeRecommendation] = useState(null);
+  const [scopeLoading, setScopeLoading] = useState(false);
+
+  // ===== AI ENHANCEMENT FUNCTIONS =====
+
+  // Function 1: Verify Compliance
+  const verifyCompliance = async () => {
+    if (!poaData.principal.address.state) {
+      showSnackbar('Please select a state first', 'warning');
+      return;
+    }
+
+    setComplianceLoading(true);
+    try {
+      console.log('Starting AI compliance verification...');
+      const functions = getFunctions();
+      const verifyPOA = httpsCallable(functions, 'verifyPOACompliance');
+
+      const result = await verifyPOA({
+        state: poaData.principal.address.state,
+        powers: poaData.powers,
+        limitations: poaData.limitations,
+        duration: {
+          effectiveDate: poaData.scope.startDate,
+          expirationDate: poaData.scope.endDate,
+          durationType: poaData.scope.durationType
+        },
+        poaType: 'limited_credit_repair',
+        specificPurpose: 'credit repair services'
+      });
+
+      console.log('Compliance verification result:', result.data);
+      setComplianceAnalysis(result.data);
+
+      if (result.data.isCompliant) {
+        showSnackbar('POA is compliant with state laws', 'success');
+      } else {
+        showSnackbar('Compliance issues detected', 'warning');
+      }
+    } catch (error) {
+      console.error('Compliance verification error:', error);
+      showSnackbar('Unable to verify compliance', 'error');
+    } finally {
+      setComplianceLoading(false);
+    }
+  };
+
+  // Function 2: Generate Summary
+  const generateSummary = async () => {
+    setSummaryLoading(true);
+    try {
+      console.log('Starting AI document summary...');
+      const functions = getFunctions();
+      const summarize = httpsCallable(functions, 'summarizePOA');
+
+      const result = await summarize({
+        principal: {
+          name: `${poaData.principal.firstName} ${poaData.principal.lastName}`,
+          state: poaData.principal.address.state
+        },
+        attorney: poaData.attorney.companyName,
+        powers: poaData.powers,
+        limitations: poaData.limitations,
+        scope: poaData.scope
+      });
+
+      console.log('Document summary result:', result.data);
+      setAiSummary(result.data);
+      showSnackbar('AI summary generated!', 'success');
+    } catch (error) {
+      console.error('Document summary error:', error);
+      showSnackbar('Unable to generate summary', 'error');
+    } finally {
+      setSummaryLoading(false);
+    }
+  };
+
+  // Function 3: Get Scope Recommendation
+  const getScopeRecommendation = async () => {
+    setScopeLoading(true);
+    try {
+      console.log('Starting AI scope recommendation...');
+      const functions = getFunctions();
+      const recommend = httpsCallable(functions, 'recommendPOAScope');
+
+      const result = await recommend({
+        clientState: poaData.principal.address.state,
+        currentPowers: poaData.powers,
+        serviceType: 'credit_repair',
+        clientNeeds: ['dispute items', 'contact bureaus', 'request reports']
+      });
+
+      console.log('Scope recommendation result:', result.data);
+      setAiScopeRecommendation(result.data);
+      showSnackbar('AI scope recommendation ready!', 'success');
+    } catch (error) {
+      console.error('Scope recommendation error:', error);
+      showSnackbar('Unable to get scope recommendation', 'error');
+    } finally {
+      setScopeLoading(false);
+    }
+  };
+
+  // Auto-verify compliance when state is selected
+  useEffect(() => {
+    if (poaData.principal.address.state) {
+      verifyCompliance();
+    }
+  }, [poaData.principal.address.state]);
 
   const states = [
     'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
@@ -704,6 +825,153 @@ const PowerOfAttorney = () => {
                   }
                 }))}
               />
+            </Grid>
+
+            {/* ===== AI ENHANCEMENT SECTION ===== */}
+
+            {/* AI Compliance Verification */}
+            {complianceAnalysis && (
+              <Grid item xs={12}>
+                <Alert
+                  severity={complianceAnalysis.isCompliant ? 'success' : 'warning'}
+                  icon={complianceAnalysis.isCompliant ? <CheckCircle /> : <AlertCircle />}
+                  action={
+                    <Button
+                      size="small"
+                      onClick={verifyCompliance}
+                      disabled={complianceLoading}
+                    >
+                      Re-verify
+                    </Button>
+                  }
+                >
+                  <Typography variant="subtitle2" gutterBottom>
+                    AI Compliance Check: {poaData.principal.address.state} State Laws
+                  </Typography>
+                  <Typography variant="body2" sx={{ mb: 1 }}>
+                    {complianceAnalysis.isCompliant ?
+                      'This Power of Attorney complies with state regulations' :
+                      'Compliance issues detected'}
+                  </Typography>
+
+                  {complianceAnalysis.requirements?.length > 0 && (
+                    <Box sx={{ mt: 1 }}>
+                      <Typography variant="caption" fontWeight="bold">State Requirements:</Typography>
+                      {complianceAnalysis.requirements.map((req, idx) => (
+                        <Box key={idx} display="flex" alignItems="center" gap={1}>
+                          {req.met ?
+                            <CheckCircle size={14} color="#4caf50" /> :
+                            <AlertCircle size={14} color="#f44336" />
+                          }
+                          <Typography variant="caption">{req.requirement}</Typography>
+                        </Box>
+                      ))}
+                    </Box>
+                  )}
+
+                  {complianceAnalysis.recommendations?.length > 0 && (
+                    <Box sx={{ mt: 1 }}>
+                      <Typography variant="caption" fontWeight="bold">Recommendations:</Typography>
+                      {complianceAnalysis.recommendations.map((rec, idx) => (
+                        <Typography key={idx} variant="caption" display="block">• {rec}</Typography>
+                      ))}
+                    </Box>
+                  )}
+                </Alert>
+              </Grid>
+            )}
+
+            {/* AI Document Summary */}
+            <Grid item xs={12}>
+              <Card variant="outlined">
+                <CardContent>
+                  <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <FileText size={24} />
+                      <Typography variant="h6">AI Document Summary</Typography>
+                    </Box>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={generateSummary}
+                      disabled={summaryLoading}
+                    >
+                      {summaryLoading ? 'Generating...' : 'Generate Summary'}
+                    </Button>
+                  </Box>
+
+                  {aiSummary ? (
+                    <Box sx={{ bgcolor: 'grey.50', p: 2, borderRadius: 1 }}>
+                      <Typography variant="body2" paragraph>
+                        {aiSummary.plainLanguageSummary}
+                      </Typography>
+                      {aiSummary.keyPoints?.length > 0 && (
+                        <>
+                          <Typography variant="subtitle2" gutterBottom>Key Points:</Typography>
+                          {aiSummary.keyPoints.map((point, idx) => (
+                            <Typography key={idx} variant="body2" color="text.secondary">
+                              • {point}
+                            </Typography>
+                          ))}
+                        </>
+                      )}
+                    </Box>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary" textAlign="center" py={2}>
+                      Click "Generate Summary" to get a plain-language summary of this POA
+                    </Typography>
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {/* AI Scope Recommendation */}
+            <Grid item xs={12}>
+              <Card variant="outlined" sx={{ borderColor: 'primary.main' }}>
+                <CardContent>
+                  <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <Shield size={24} color="#1976d2" />
+                      <Typography variant="h6">AI Scope Recommendation</Typography>
+                    </Box>
+                    <Button
+                      variant="contained"
+                      size="small"
+                      onClick={getScopeRecommendation}
+                      disabled={scopeLoading || !poaData.principal.address.state}
+                    >
+                      {scopeLoading ? 'Analyzing...' : 'Get Recommendation'}
+                    </Button>
+                  </Box>
+
+                  {aiScopeRecommendation ? (
+                    <Box>
+                      <Alert severity="info" sx={{ mb: 2 }}>
+                        <Typography variant="body2">
+                          <strong>Recommended Scope:</strong> {aiScopeRecommendation.recommendedScope}
+                        </Typography>
+                      </Alert>
+                      {aiScopeRecommendation.suggestedPowers?.length > 0 && (
+                        <>
+                          <Typography variant="subtitle2" gutterBottom>Suggested Powers:</Typography>
+                          {aiScopeRecommendation.suggestedPowers.map((power, idx) => (
+                            <Chip key={idx} label={power} size="small" sx={{ m: 0.5 }} />
+                          ))}
+                        </>
+                      )}
+                      {aiScopeRecommendation.reasoning && (
+                        <Typography variant="caption" color="text.secondary" display="block" mt={1}>
+                          {aiScopeRecommendation.reasoning}
+                        </Typography>
+                      )}
+                    </Box>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary" textAlign="center" py={2}>
+                      Get AI-powered recommendations for the optimal POA scope
+                    </Typography>
+                  )}
+                </CardContent>
+              </Card>
             </Grid>
 
             {/* Powers Granted */}

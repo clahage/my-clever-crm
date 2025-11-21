@@ -14,10 +14,11 @@ import {
   CreditCard, DollarSign, Send, CheckCircle, Shield, User, Mail, Phone,
   Save, Eye, Trash2, Lock, AlertCircle, Info, Calendar
 } from 'lucide-react';
-import { 
+import {
   collection, addDoc, updateDoc, doc, query, where, getDocs,
   serverTimestamp
 } from 'firebase/firestore';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { format } from 'date-fns';
@@ -130,6 +131,189 @@ const ACHAuthorization = () => {
     message: '',
     severity: 'info'
   });
+
+  // ===== AI ENHANCEMENT STATES =====
+  // AI Fraud Detection
+  const [fraudScore, setFraudScore] = useState(null);
+  const [fraudWarnings, setFraudWarnings] = useState([]);
+  const [fraudCheckComplete, setFraudCheckComplete] = useState(false);
+  const [fraudLoading, setFraudLoading] = useState(false);
+
+  // AI Payment Risk Assessment
+  const [paymentRiskAnalysis, setPaymentRiskAnalysis] = useState(null);
+  const [riskLoading, setRiskLoading] = useState(false);
+
+  // AI Bank Verification
+  const [bankVerification, setBankVerification] = useState(null);
+  const [bankVerifyLoading, setBankVerifyLoading] = useState(false);
+
+  // AI Payment Success Predictor
+  const [paymentPrediction, setPaymentPrediction] = useState(null);
+  const [predictionLoading, setPredictionLoading] = useState(false);
+
+  // ===== AI ENHANCEMENT FUNCTIONS =====
+
+  // Function 1: Detect Fraud
+  const detectFraud = async () => {
+    setFraudLoading(true);
+    try {
+      console.log('Starting AI fraud detection...');
+      const functions = getFunctions();
+      const checkFraud = httpsCallable(functions, 'detectPaymentFraud');
+
+      // Get IP address
+      let ipAddress = '';
+      try {
+        const ipResponse = await fetch('https://api.ipify.org?format=json');
+        const ipData = await ipResponse.json();
+        ipAddress = ipData.ip;
+      } catch (e) {
+        console.error('IP fetch error:', e);
+      }
+
+      const result = await checkFraud({
+        paymentMethod: authData.paymentMethod,
+        amount: authData.authorization.monthlyAmount,
+        accountHolder: authData.accountHolder,
+        bankInfo: {
+          routingNumber: authData.bankInfo.routingNumber,
+          bankName: authData.bankInfo.bankName,
+          accountType: authData.bankInfo.accountType
+        },
+        cardInfo: authData.paymentMethod.includes('card') ? {
+          cardType: authData.cardInfo.cardType,
+          billingZip: authData.cardInfo.billingZip
+        } : null,
+        ipAddress,
+        deviceFingerprint: navigator.userAgent,
+        timestamp: new Date().toISOString()
+      });
+
+      console.log('Fraud detection result:', result.data);
+      setFraudScore(result.data.riskScore);
+      setFraudWarnings(result.data.warnings || []);
+      setFraudCheckComplete(true);
+
+      showSnackbar(`Fraud Risk Score: ${result.data.riskScore}/100`,
+        result.data.riskScore > 70 ? 'error' : result.data.riskScore > 50 ? 'warning' : 'success'
+      );
+
+      return result.data.riskScore < 70;
+    } catch (error) {
+      console.error('Fraud detection error:', error);
+      showSnackbar('Fraud check unavailable - proceeding with caution', 'warning');
+      return true;
+    } finally {
+      setFraudLoading(false);
+    }
+  };
+
+  // Function 2: Assess Payment Risk
+  const assessPaymentRisk = async () => {
+    if (!authData.authorization.monthlyAmount || authData.authorization.monthlyAmount === 0) {
+      return;
+    }
+
+    setRiskLoading(true);
+    try {
+      console.log('Starting AI payment risk assessment...');
+      const functions = getFunctions();
+      const assessRisk = httpsCallable(functions, 'assessPaymentRisk');
+
+      const result = await assessRisk({
+        frequency: authData.paymentSchedule.frequency,
+        amount: authData.authorization.monthlyAmount,
+        billingDay: authData.paymentSchedule.billingDay,
+        accountType: authData.bankInfo.accountType,
+        paymentMethod: authData.paymentMethod,
+        setupFee: authData.authorization.setupFee,
+        income: authData.accountHolder.estimatedIncome || 5000
+      });
+
+      console.log('Payment risk assessment result:', result.data);
+      setPaymentRiskAnalysis(result.data);
+    } catch (error) {
+      console.error('Payment risk assessment error:', error);
+    } finally {
+      setRiskLoading(false);
+    }
+  };
+
+  // Function 3: Verify Bank
+  const verifyBank = async () => {
+    if (!authData.bankInfo.routingNumber || authData.bankInfo.routingNumber.length !== 9) {
+      return;
+    }
+
+    setBankVerifyLoading(true);
+    try {
+      console.log('Starting AI bank verification...');
+      const functions = getFunctions();
+      const verify = httpsCallable(functions, 'verifyBankInfo');
+
+      const result = await verify({
+        routingNumber: authData.bankInfo.routingNumber,
+        accountType: authData.bankInfo.accountType
+      });
+
+      console.log('Bank verification result:', result.data);
+      setBankVerification(result.data);
+
+      if (result.data.bankName && !authData.bankInfo.bankName) {
+        setAuthData(prev => ({
+          ...prev,
+          bankInfo: { ...prev.bankInfo, bankName: result.data.bankName }
+        }));
+        showSnackbar(`Bank verified: ${result.data.bankName}`, 'success');
+      }
+    } catch (error) {
+      console.error('Bank verification error:', error);
+    } finally {
+      setBankVerifyLoading(false);
+    }
+  };
+
+  // Function 4: Predict Payment Success
+  const predictPaymentSuccess = async () => {
+    setPredictionLoading(true);
+    try {
+      console.log('Starting AI payment prediction...');
+      const functions = getFunctions();
+      const predict = httpsCallable(functions, 'predictPaymentSuccess');
+
+      const result = await predict({
+        amount: authData.authorization.monthlyAmount,
+        frequency: authData.paymentSchedule.frequency,
+        paymentMethod: authData.paymentMethod,
+        accountType: authData.bankInfo.accountType,
+        billingDay: authData.paymentSchedule.billingDay
+      });
+
+      console.log('Payment prediction result:', result.data);
+      setPaymentPrediction(result.data);
+    } catch (error) {
+      console.error('Payment prediction error:', error);
+    } finally {
+      setPredictionLoading(false);
+    }
+  };
+
+  // Auto-verify bank when routing number is complete
+  useEffect(() => {
+    if (authData.bankInfo.routingNumber.length === 9 && authData.paymentMethod === 'ach') {
+      verifyBank();
+    }
+  }, [authData.bankInfo.routingNumber]);
+
+  // Auto-assess payment risk when payment details change
+  useEffect(() => {
+    if (authData.authorization.monthlyAmount > 0 && authData.paymentSchedule.frequency) {
+      const timer = setTimeout(() => {
+        assessPaymentRisk();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [authData.authorization.monthlyAmount, authData.paymentSchedule.frequency, authData.paymentSchedule.billingDay]);
 
   const states = [
     'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
@@ -378,6 +562,14 @@ const ACHAuthorization = () => {
   // Submit authorization
   const handleSubmit = async () => {
     if (!validateForm()) return;
+
+    // ===== RUN AI FRAUD DETECTION FIRST =====
+    const fraudCheckPassed = await detectFraud();
+
+    if (!fraudCheckPassed) {
+      showSnackbar('Transaction flagged as high risk. Please contact support.', 'error');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -1018,6 +1210,144 @@ const ACHAuthorization = () => {
               <Grid item xs={12}>
                 <Alert severity="info">
                   Setup fee of ${authData.authorization.setupFee} will be charged with your first payment
+                </Alert>
+              </Grid>
+            )}
+
+            {/* ===== AI ENHANCEMENT SECTION ===== */}
+
+            {/* AI Fraud Detection Alert */}
+            {fraudCheckComplete && (
+              <Grid item xs={12}>
+                <Alert
+                  severity={fraudScore > 70 ? 'error' : fraudScore > 50 ? 'warning' : 'success'}
+                  icon={fraudScore > 70 ? <AlertCircle /> : <Shield />}
+                  sx={{ mb: 2 }}
+                >
+                  <Typography variant="subtitle2" gutterBottom>
+                    AI Fraud Detection: Risk Score {fraudScore}/100
+                  </Typography>
+                  <Typography variant="body2" sx={{ mb: 1 }}>
+                    {fraudScore > 70 ? 'HIGH RISK - Additional verification required' :
+                     fraudScore > 50 ? 'MODERATE RISK - Please review payment details' :
+                     'LOW RISK - Payment information looks secure'}
+                  </Typography>
+
+                  {fraudWarnings.length > 0 && (
+                    <Box sx={{ mt: 1 }}>
+                      {fraudWarnings.map((warning, idx) => (
+                        <Typography key={idx} variant="caption" display="block" color="text.secondary">
+                          • {warning}
+                        </Typography>
+                      ))}
+                    </Box>
+                  )}
+                </Alert>
+              </Grid>
+            )}
+
+            {/* AI Payment Risk Analysis */}
+            {paymentRiskAnalysis && (
+              <Grid item xs={12}>
+                <Card
+                  variant="outlined"
+                  sx={{
+                    borderColor: paymentRiskAnalysis.riskLevel === 'low' ? 'success.main' :
+                                 paymentRiskAnalysis.riskLevel === 'medium' ? 'warning.main' : 'error.main',
+                    borderWidth: 2
+                  }}
+                >
+                  <CardContent>
+                    <Box display="flex" alignItems="center" gap={2} mb={2}>
+                      <Shield size={32} color={
+                        paymentRiskAnalysis.riskLevel === 'low' ? '#4caf50' :
+                        paymentRiskAnalysis.riskLevel === 'medium' ? '#ff9800' : '#f44336'
+                      } />
+                      <Box flex={1}>
+                        <Typography variant="h6">
+                          AI Payment Risk Analysis
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          AI-powered payment success prediction
+                        </Typography>
+                      </Box>
+                      <Chip
+                        label={`${paymentRiskAnalysis.riskLevel?.toUpperCase()} RISK`}
+                        color={
+                          paymentRiskAnalysis.riskLevel === 'low' ? 'success' :
+                          paymentRiskAnalysis.riskLevel === 'medium' ? 'warning' : 'error'
+                        }
+                      />
+                    </Box>
+
+                    <Grid container spacing={2}>
+                      <Grid item xs={6} sm={3}>
+                        <Paper elevation={0} sx={{ p: 1.5, bgcolor: 'grey.50', textAlign: 'center' }}>
+                          <Typography variant="h6" color="primary">
+                            {paymentRiskAnalysis.successProbability}%
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Success Rate
+                          </Typography>
+                        </Paper>
+                      </Grid>
+                      <Grid item xs={6} sm={3}>
+                        <Paper elevation={0} sx={{ p: 1.5, bgcolor: 'grey.50', textAlign: 'center' }}>
+                          <Typography variant="h6" color="primary">
+                            {paymentRiskAnalysis.affordabilityScore}/10
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Affordability
+                          </Typography>
+                        </Paper>
+                      </Grid>
+                      <Grid item xs={6} sm={3}>
+                        <Paper elevation={0} sx={{ p: 1.5, bgcolor: 'grey.50', textAlign: 'center' }}>
+                          <Typography variant="h6" color="primary">
+                            {paymentRiskAnalysis.optimalDay}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Optimal Day
+                          </Typography>
+                        </Paper>
+                      </Grid>
+                      <Grid item xs={6} sm={3}>
+                        <Paper elevation={0} sx={{ p: 1.5, bgcolor: 'grey.50', textAlign: 'center' }}>
+                          <Typography variant="h6" color="primary">
+                            {paymentRiskAnalysis.alternativeFrequency}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Best Frequency
+                          </Typography>
+                        </Paper>
+                      </Grid>
+                    </Grid>
+
+                    {paymentRiskAnalysis.recommendations?.length > 0 && (
+                      <Box sx={{ mt: 2 }}>
+                        <Typography variant="subtitle2" gutterBottom>
+                          AI Recommendations:
+                        </Typography>
+                        {paymentRiskAnalysis.recommendations.map((rec, idx) => (
+                          <Typography key={idx} variant="body2" color="text.secondary">
+                            • {rec}
+                          </Typography>
+                        ))}
+                      </Box>
+                    )}
+                  </CardContent>
+                </Card>
+              </Grid>
+            )}
+
+            {/* AI Bank Verification */}
+            {bankVerification && authData.paymentMethod === 'ach' && (
+              <Grid item xs={12}>
+                <Alert severity="success" icon={<CheckCircle />}>
+                  <Typography variant="subtitle2">Bank Verified</Typography>
+                  <Typography variant="body2">
+                    {bankVerification.bankName} - {bankVerification.routingValid ? 'Valid Routing Number' : 'Unverified'}
+                  </Typography>
                 </Alert>
               </Grid>
             )}

@@ -290,6 +290,7 @@ import SignatureCanvas from 'react-signature-canvas';
 import { useForm, Controller, useFieldArray, useWatch } from 'react-hook-form';
 import { doc, setDoc, getDoc, updateDoc, collection, serverTimestamp, query, where, getDocs, addDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db, storage } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotification } from '@/contexts/NotificationContext';
@@ -562,7 +563,163 @@ const FullAgreement = ({
   const [ipAddress, setIpAddress] = useState('');
   const [userAgent, setUserAgent] = useState('');
   const [geolocation, setGeolocation] = useState(null);
-  
+
+  // ===== AI ENHANCEMENT STATES =====
+  // AI Package Recommender
+  const [aiPackageRecommendation, setAiPackageRecommendation] = useState(null);
+  const [showAIRecommendation, setShowAIRecommendation] = useState(false);
+  const [recommendationLoading, setRecommendationLoading] = useState(false);
+
+  // AI Pricing Optimizer
+  const [aiPricingOptimization, setAiPricingOptimization] = useState(null);
+  const [pricingLoading, setPricingLoading] = useState(false);
+
+  // AI Contract Risk Analyzer
+  const [aiContractRisk, setAiContractRisk] = useState(null);
+  const [riskAnalysisLoading, setRiskAnalysisLoading] = useState(false);
+
+  // AI Timeline Predictor
+  const [aiTimelinePrediction, setAiTimelinePrediction] = useState(null);
+  const [timelineLoading, setTimelineLoading] = useState(false);
+
+  // ===== AI ENHANCEMENT FUNCTIONS =====
+
+  // Function 1: Get AI Package Recommendation
+  const getAIPackageRecommendation = async () => {
+    setRecommendationLoading(true);
+    try {
+      console.log('Starting AI package recommendation...');
+      const functions = getFunctions();
+      const recommendPackage = httpsCallable(functions, 'recommendServicePackage');
+
+      const clientProfile = {
+        creditScore: watch('clientCreditScore') || 580,
+        income: watch('clientIncome') || 5000,
+        totalDebt: watch('clientTotalDebt') || 15000,
+        creditGoals: watch('clientGoals') || 'improve score',
+        timeline: watch('desiredTimeline') || '6 months',
+        state: watch('clientState') || 'CA',
+        employmentStatus: watch('clientEmploymentStatus') || 'employed'
+      };
+
+      const result = await recommendPackage(clientProfile);
+
+      console.log('Package recommendation result:', result.data);
+      setAiPackageRecommendation(result.data);
+      setShowAIRecommendation(true);
+      showSuccess('AI package recommendation ready!');
+    } catch (error) {
+      console.error('Package recommendation error:', error);
+      showError('Unable to get package recommendation');
+    } finally {
+      setRecommendationLoading(false);
+    }
+  };
+
+  // Function 2: Optimize Pricing
+  const optimizePricing = async () => {
+    setPricingLoading(true);
+    try {
+      console.log('Starting AI pricing optimization...');
+      const functions = getFunctions();
+      const optimizePrice = httpsCallable(functions, 'optimizePricing');
+
+      const result = await optimizePrice({
+        basePrice: calculatePricing.monthlyTotal,
+        clientProfile: {
+          creditScore: watch('clientCreditScore') || 580,
+          income: watch('clientIncome') || 5000,
+          location: watch('clientState') || 'CA',
+          employmentStatus: watch('clientEmploymentStatus') || 'employed'
+        },
+        selectedPackage: watch('packageType'),
+        billingCycle: watch('billingCycle'),
+        marketConditions: 'current'
+      });
+
+      console.log('Pricing optimization result:', result.data);
+      setAiPricingOptimization(result.data);
+
+      // Auto-apply suggested discount if beneficial
+      if (result.data.suggestedDiscount > 0) {
+        setValue('discount', result.data.suggestedDiscount);
+        setValue('discountType', 'percentage');
+        showSuccess(`AI applied ${result.data.suggestedDiscount}% discount!`);
+      }
+    } catch (error) {
+      console.error('Pricing optimization error:', error);
+    } finally {
+      setPricingLoading(false);
+    }
+  };
+
+  // Function 3: Analyze Contract Risk
+  const analyzeContractRisk = async () => {
+    setRiskAnalysisLoading(true);
+    try {
+      console.log('Starting AI contract risk analysis...');
+      const functions = getFunctions();
+      const analyzeRisk = httpsCallable(functions, 'analyzeContractRisk');
+
+      const result = await analyzeRisk({
+        packageType: watch('packageType'),
+        billingCycle: watch('billingCycle'),
+        totalAmount: calculatePricing.firstPayment,
+        clientProfile: {
+          creditScore: watch('clientCreditScore') || 580,
+          income: watch('clientIncome') || 5000,
+          totalDebt: watch('clientTotalDebt') || 15000
+        },
+        autoRenew: watch('autoRenew'),
+        guarantees: watch('acceptedGuarantees')
+      });
+
+      console.log('Contract risk analysis result:', result.data);
+      setAiContractRisk(result.data);
+      showSuccess('Contract risk analysis complete!');
+    } catch (error) {
+      console.error('Contract risk analysis error:', error);
+      showError('Unable to analyze contract risk');
+    } finally {
+      setRiskAnalysisLoading(false);
+    }
+  };
+
+  // Function 4: Predict Timeline
+  const predictTimeline = async () => {
+    setTimelineLoading(true);
+    try {
+      console.log('Starting AI timeline prediction...');
+      const functions = getFunctions();
+      const predict = httpsCallable(functions, 'predictCreditTimeline');
+
+      const result = await predict({
+        currentScore: watch('clientCreditScore') || 580,
+        targetScore: watch('targetScore') || 700,
+        packageType: watch('packageType'),
+        totalDebt: watch('clientTotalDebt') || 15000,
+        negativeItems: watch('negativeItemCount') || 5,
+        income: watch('clientIncome') || 5000
+      });
+
+      console.log('Timeline prediction result:', result.data);
+      setAiTimelinePrediction(result.data);
+      showSuccess('Timeline prediction complete!');
+    } catch (error) {
+      console.error('Timeline prediction error:', error);
+      showError('Unable to predict timeline');
+    } finally {
+      setTimelineLoading(false);
+    }
+  };
+
+  // Trigger AI recommendations when entering service selection step
+  useEffect(() => {
+    if (activeStep === 1 && !aiPackageRecommendation) {
+      getAIPackageRecommendation();
+    }
+  }, [activeStep]);
+
   // Refs
   const signaturePadRef = useRef();
   const agreementRef = useRef();

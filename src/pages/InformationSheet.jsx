@@ -231,6 +231,7 @@ import {
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { doc, setDoc, getDoc, updateDoc, deleteDoc, collection, query, where, orderBy, limit, getDocs, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db, storage } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotification } from '@/contexts/NotificationContext';
@@ -439,7 +440,221 @@ const InformationSheet = ({
   const [creditScore, setCreditScore] = useState(null);
   const [debtToIncomeRatio, setDebtToIncomeRatio] = useState(null);
   const [monthlyDisposableIncome, setMonthlyDisposableIncome] = useState(null);
-  
+
+  // ===== AI ENHANCEMENT STATES =====
+  // AI Credit Score Prediction
+  const [predictedScore, setPredictedScore] = useState(null);
+  const [scoreLoading, setScoreLoading] = useState(false);
+
+  // AI Financial Health Analysis
+  const [aiFinancialAnalysis, setAiFinancialAnalysis] = useState(null);
+  const [aiAnalysisLoading, setAiAnalysisLoading] = useState(false);
+
+  // AI Dispute Item Identifier
+  const [aiDisputeRecommendations, setAiDisputeRecommendations] = useState([]);
+  const [disputeLoading, setDisputeLoading] = useState(false);
+
+  // AI Document Classifier
+  const [aiDocumentClassification, setAiDocumentClassification] = useState(null);
+  const [classificationLoading, setClassificationLoading] = useState(false);
+
+  // AI Form Auto-Complete Suggestions
+  const [aiSuggestions, setAiSuggestions] = useState(null);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+
+  // AI Budget Optimizer
+  const [aiBudgetRecommendations, setAiBudgetRecommendations] = useState(null);
+  const [budgetLoading, setBudgetLoading] = useState(false);
+
+  // ===== AI ENHANCEMENT FUNCTIONS =====
+
+  // Function 1: Predict Credit Score
+  const getPredictedScore = async () => {
+    setScoreLoading(true);
+    try {
+      console.log('Starting AI credit score prediction...');
+      const functions = getFunctions();
+      const predictScore = httpsCallable(functions, 'predictCreditScore');
+
+      const result = await predictScore({
+        totalDebt: calculatedData.totalDebt,
+        totalIncome: calculatedData.totalIncome,
+        debtToIncomeRatio: calculatedData.debtToIncomeRatio,
+        creditAccounts: creditAccounts?.length || 0,
+        monthlyDebtPayments: calculatedData.monthlyDebtPayments,
+        disposableIncome: calculatedData.monthlyDisposableIncome
+      });
+
+      console.log('Credit score prediction result:', result.data);
+      setPredictedScore(result.data);
+      showSuccess('AI credit score prediction complete!');
+    } catch (error) {
+      console.error('Credit score prediction error:', error);
+      showError('Unable to predict credit score');
+    } finally {
+      setScoreLoading(false);
+    }
+  };
+
+  // Function 2: Analyze Financial Health
+  const analyzeFinancialHealth = async () => {
+    if (!calculatedData.totalIncome) {
+      showWarning('Please complete income information first');
+      return;
+    }
+
+    setAiAnalysisLoading(true);
+    try {
+      console.log('Starting AI financial health analysis...');
+      const functions = getFunctions();
+      const analyzeHealth = httpsCallable(functions, 'analyzeFinancialHealth');
+
+      const result = await analyzeHealth({
+        totalIncome: calculatedData.totalIncome,
+        totalExpenses: calculatedData.totalExpenses,
+        totalDebt: calculatedData.totalDebt,
+        debtToIncomeRatio: calculatedData.debtToIncomeRatio,
+        creditAccounts: getValues('creditAccounts') || [],
+        monthlyExpenses: getValues('monthlyExpenses') || {},
+        disposableIncome: calculatedData.monthlyDisposableIncome,
+        employmentType: getValues('employmentType'),
+        employmentLength: getValues('employmentStartDate') ?
+          differenceInMonths(new Date(), new Date(getValues('employmentStartDate'))) : 0
+      });
+
+      console.log('Financial health analysis result:', result.data);
+      setAiFinancialAnalysis(result.data);
+      showSuccess('AI financial health analysis complete!');
+    } catch (error) {
+      console.error('Financial health analysis error:', error);
+      showError('Unable to analyze financial health');
+    } finally {
+      setAiAnalysisLoading(false);
+    }
+  };
+
+  // Function 3: Identify Dispute Items
+  const identifyDisputeItems = async () => {
+    const accounts = getValues('creditAccounts');
+    if (!accounts || accounts.length === 0) {
+      showWarning('Please add credit accounts first');
+      return;
+    }
+
+    setDisputeLoading(true);
+    try {
+      console.log('Starting AI dispute identification...');
+      const functions = getFunctions();
+      const identifyDisputes = httpsCallable(functions, 'identifyDisputeItems');
+
+      const result = await identifyDisputes({
+        accounts,
+        criteria: {
+          latePayments: true,
+          collections: true,
+          errors: true,
+          fraudulent: true,
+          duplicates: true,
+          outdated: true
+        }
+      });
+
+      console.log('Dispute identification result:', result.data);
+      setAiDisputeRecommendations(result.data.recommendations || []);
+      showSuccess(`Found ${result.data.recommendations?.length || 0} potential dispute items`);
+    } catch (error) {
+      console.error('Dispute identification error:', error);
+      showError('Unable to identify dispute items');
+    } finally {
+      setDisputeLoading(false);
+    }
+  };
+
+  // Function 4: Classify Documents
+  const classifyDocument = async (document) => {
+    setClassificationLoading(true);
+    try {
+      console.log('Starting AI document classification...');
+      const functions = getFunctions();
+      const classify = httpsCallable(functions, 'classifyDocument');
+
+      const result = await classify({
+        fileName: document.name,
+        fileType: document.type,
+        fileSize: document.size
+      });
+
+      console.log('Document classification result:', result.data);
+      setAiDocumentClassification(result.data);
+      showSuccess(`Document classified as: ${result.data.category}`);
+      return result.data;
+    } catch (error) {
+      console.error('Document classification error:', error);
+      showError('Unable to classify document');
+      return null;
+    } finally {
+      setClassificationLoading(false);
+    }
+  };
+
+  // Function 5: Get AI Form Suggestions
+  const getAiSuggestions = async (fieldName, partialValue) => {
+    if (!partialValue || partialValue.length < 2) return;
+
+    setSuggestionsLoading(true);
+    try {
+      const functions = getFunctions();
+      const suggest = httpsCallable(functions, 'getFormSuggestions');
+
+      const result = await suggest({
+        fieldName,
+        partialValue,
+        context: {
+          state: getValues('currentState'),
+          employmentType: getValues('employmentType')
+        }
+      });
+
+      setAiSuggestions(result.data.suggestions);
+    } catch (error) {
+      console.error('Form suggestions error:', error);
+    } finally {
+      setSuggestionsLoading(false);
+    }
+  };
+
+  // Function 6: Get Budget Optimization
+  const getBudgetOptimization = async () => {
+    if (!calculatedData.totalExpenses) {
+      showWarning('Please complete expense information first');
+      return;
+    }
+
+    setBudgetLoading(true);
+    try {
+      console.log('Starting AI budget optimization...');
+      const functions = getFunctions();
+      const optimize = httpsCallable(functions, 'optimizeBudget');
+
+      const result = await optimize({
+        monthlyIncome: calculatedData.totalIncome,
+        monthlyExpenses: getValues('monthlyExpenses'),
+        totalDebt: calculatedData.totalDebt,
+        creditGoals: getValues('creditGoals'),
+        targetScore: getValues('targetScore')
+      });
+
+      console.log('Budget optimization result:', result.data);
+      setAiBudgetRecommendations(result.data);
+      showSuccess('AI budget optimization complete!');
+    } catch (error) {
+      console.error('Budget optimization error:', error);
+      showError('Unable to optimize budget');
+    } finally {
+      setBudgetLoading(false);
+    }
+  };
+
   // Refs
   const autoSaveTimer = useRef(null);
   const fileInputRef = useRef(null);
@@ -969,7 +1184,221 @@ const InformationSheet = ({
           </Card>
         </Grid>
       </Grid>
-      
+
+      {/* ===== AI ENHANCEMENT SECTION ===== */}
+      <Box sx={{ mb: 3 }}>
+        {/* AI Credit Score Prediction */}
+        <Card sx={{ mb: 3, bgcolor: 'primary.light', backgroundImage: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+          <CardContent>
+            <Box display="flex" alignItems="center" gap={2} mb={2}>
+              <AutoAwesome sx={{ fontSize: 40, color: 'white' }} />
+              <Box flex={1}>
+                <Typography variant="h6" color="white">
+                  AI Credit Score Prediction
+                </Typography>
+                <Typography variant="caption" color="white" sx={{ opacity: 0.9 }}>
+                  Powered by OpenAI GPT-4
+                </Typography>
+              </Box>
+              <Button
+                variant="contained"
+                onClick={getPredictedScore}
+                disabled={scoreLoading || !calculatedData.totalIncome}
+                sx={{ bgcolor: 'white', color: 'primary.main', '&:hover': { bgcolor: 'grey.100' } }}
+              >
+                {scoreLoading ? <CircularProgress size={20} /> : 'Predict Score'}
+              </Button>
+            </Box>
+
+            {predictedScore && (
+              <Box sx={{ bgcolor: 'white', p: 2, borderRadius: 2 }}>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6}>
+                    <Box textAlign="center">
+                      <Typography variant="h3" color="primary.main" fontWeight="bold">
+                        {predictedScore.score}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Predicted Score
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Box textAlign="center">
+                      <Typography variant="h3" color="success.main" fontWeight="bold">
+                        {predictedScore.confidence}%
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Confidence Level
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Alert severity="info" sx={{ mt: 1 }}>
+                      <Typography variant="body2">
+                        {predictedScore.explanation}
+                      </Typography>
+                    </Alert>
+                  </Grid>
+                </Grid>
+              </Box>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* AI Financial Health Analysis */}
+        <Card sx={{ mb: 3 }}>
+          <CardHeader
+            avatar={<Psychology color="primary" />}
+            title="AI Financial Health Analysis"
+            subheader="Comprehensive analysis with personalized recommendations"
+            action={
+              <Button
+                variant="outlined"
+                onClick={analyzeFinancialHealth}
+                disabled={aiAnalysisLoading || !calculatedData.totalIncome}
+                startIcon={aiAnalysisLoading ? <CircularProgress size={20} /> : <TipsAndUpdates />}
+              >
+                {aiAnalysisLoading ? 'Analyzing...' : 'Analyze Now'}
+              </Button>
+            }
+          />
+          <CardContent>
+            {aiFinancialAnalysis ? (
+              <>
+                <Alert
+                  severity={aiFinancialAnalysis.healthScore > 70 ? 'success' : aiFinancialAnalysis.healthScore > 40 ? 'warning' : 'error'}
+                  sx={{ mb: 3 }}
+                  icon={<EmojiEvents />}
+                >
+                  <AlertTitle>Financial Health Score: {aiFinancialAnalysis.healthScore}/100</AlertTitle>
+                  <Typography variant="body2">
+                    {aiFinancialAnalysis.healthCategory} - {aiFinancialAnalysis.summary}
+                  </Typography>
+                </Alert>
+
+                <Grid container spacing={2} sx={{ mb: 3 }}>
+                  {aiFinancialAnalysis.metrics?.map((metric, idx) => (
+                    <Grid item xs={12} sm={6} md={3} key={idx}>
+                      <Paper elevation={0} sx={{ p: 2, bgcolor: 'grey.50', textAlign: 'center' }}>
+                        <Typography variant="h6" color="primary.main">
+                          {metric.value}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {metric.label}
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                  ))}
+                </Grid>
+
+                {aiFinancialAnalysis.recommendations?.length > 0 && (
+                  <>
+                    <Typography variant="subtitle2" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Lightbulb color="warning" />
+                      AI-Powered Recommendations:
+                    </Typography>
+                    <List>
+                      {aiFinancialAnalysis.recommendations.map((rec, idx) => (
+                        <ListItem key={idx}>
+                          <ListItemIcon>
+                            <CheckCircleOutline color="success" />
+                          </ListItemIcon>
+                          <ListItemText
+                            primary={rec.title}
+                            secondary={rec.description}
+                          />
+                          {rec.priority === 'high' && (
+                            <Chip label="High Priority" color="error" size="small" />
+                          )}
+                        </ListItem>
+                      ))}
+                    </List>
+                  </>
+                )}
+
+                {aiFinancialAnalysis.warnings?.length > 0 && (
+                  <Alert severity="warning" sx={{ mt: 2 }}>
+                    <AlertTitle>Warnings</AlertTitle>
+                    <List dense>
+                      {aiFinancialAnalysis.warnings.map((warning, idx) => (
+                        <ListItem key={idx}>
+                          <ListItemIcon><Warning color="warning" /></ListItemIcon>
+                          <ListItemText primary={warning} />
+                        </ListItem>
+                      ))}
+                    </List>
+                  </Alert>
+                )}
+              </>
+            ) : (
+              <Box textAlign="center" py={4}>
+                <Psychology sx={{ fontSize: 80, color: 'grey.300', mb: 2 }} />
+                <Typography variant="body2" color="text.secondary">
+                  Click "Analyze Now" to get AI-powered insights into your financial health
+                </Typography>
+              </Box>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* AI Budget Optimizer */}
+        <Card sx={{ mb: 3, border: '2px solid', borderColor: 'success.main' }}>
+          <CardHeader
+            avatar={<Calculate color="success" />}
+            title="AI Budget Optimizer"
+            subheader="Smart recommendations to maximize credit improvement"
+            action={
+              <Button
+                variant="contained"
+                color="success"
+                onClick={getBudgetOptimization}
+                disabled={budgetLoading || !calculatedData.totalExpenses}
+                startIcon={budgetLoading ? <CircularProgress size={20} color="inherit" /> : <AutoGraph />}
+              >
+                {budgetLoading ? 'Optimizing...' : 'Optimize Budget'}
+              </Button>
+            }
+          />
+          <CardContent>
+            {aiBudgetRecommendations ? (
+              <Grid container spacing={3}>
+                <Grid item xs={12} md={4}>
+                  <Paper sx={{ p: 2, bgcolor: 'success.light', textAlign: 'center' }}>
+                    <Typography variant="h4" color="success.dark" fontWeight="bold">
+                      ${aiBudgetRecommendations.potentialSavings || 0}
+                    </Typography>
+                    <Typography variant="body2" color="success.dark">
+                      Potential Monthly Savings
+                    </Typography>
+                  </Paper>
+                </Grid>
+                <Grid item xs={12} md={8}>
+                  <Typography variant="subtitle2" gutterBottom>Optimization Recommendations:</Typography>
+                  <List dense>
+                    {aiBudgetRecommendations.recommendations?.map((rec, idx) => (
+                      <ListItem key={idx}>
+                        <ListItemIcon>
+                          <AttachMoney color="success" />
+                        </ListItemIcon>
+                        <ListItemText primary={rec} />
+                      </ListItem>
+                    ))}
+                  </List>
+                </Grid>
+              </Grid>
+            ) : (
+              <Box textAlign="center" py={3}>
+                <Calculate sx={{ fontSize: 60, color: 'grey.300', mb: 1 }} />
+                <Typography variant="body2" color="text.secondary">
+                  Complete your expense information to get AI budget optimization
+                </Typography>
+              </Box>
+            )}
+          </CardContent>
+        </Card>
+      </Box>
+
       {/* Main Content */}
       <Grid container spacing={3}>
         {/* Section Navigation */}
@@ -1561,6 +1990,83 @@ const InformationSheet = ({
                     </Accordion>
                   ))}
                   
+                  {/* AI Dispute Item Identifier */}
+                  <Card sx={{ mb: 3, border: '2px dashed', borderColor: 'warning.main' }}>
+                    <CardContent>
+                      <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+                        <Box display="flex" alignItems="center" gap={2}>
+                          <FactCheck color="warning" sx={{ fontSize: 40 }} />
+                          <Box>
+                            <Typography variant="h6">
+                              AI Dispute Item Identifier
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Automatically identify items that can be disputed
+                            </Typography>
+                          </Box>
+                        </Box>
+                        <Button
+                          variant="contained"
+                          color="warning"
+                          onClick={identifyDisputeItems}
+                          disabled={disputeLoading || creditAccounts.length === 0}
+                          startIcon={disputeLoading ? <CircularProgress size={20} color="inherit" /> : <AutoGraph />}
+                        >
+                          {disputeLoading ? 'Analyzing...' : 'Scan for Disputes'}
+                        </Button>
+                      </Box>
+
+                      {aiDisputeRecommendations.length > 0 && (
+                        <>
+                          <Alert severity="info" sx={{ mb: 2 }}>
+                            Found {aiDisputeRecommendations.length} potential items to dispute
+                          </Alert>
+
+                          <List>
+                            {aiDisputeRecommendations.map((item, idx) => (
+                              <ListItem key={idx} sx={{ bgcolor: 'grey.50', mb: 1, borderRadius: 1 }}>
+                                <ListItemAvatar>
+                                  <Avatar sx={{ bgcolor: item.severity === 'high' ? 'error.main' : 'warning.main' }}>
+                                    <ReportProblem />
+                                  </Avatar>
+                                </ListItemAvatar>
+                                <ListItemText
+                                  primary={
+                                    <Box display="flex" alignItems="center" gap={1}>
+                                      <Typography variant="subtitle2">{item.accountName}</Typography>
+                                      <Chip
+                                        label={item.disputeType}
+                                        size="small"
+                                        color={item.severity === 'high' ? 'error' : 'warning'}
+                                      />
+                                    </Box>
+                                  }
+                                  secondary={
+                                    <>
+                                      <Typography variant="body2" color="text.secondary">
+                                        {item.reason}
+                                      </Typography>
+                                      <Typography variant="caption" color="primary.main">
+                                        Success Probability: {item.successProbability}%
+                                      </Typography>
+                                    </>
+                                  }
+                                />
+                                <ListItemSecondaryAction>
+                                  <Tooltip title="Add to dispute list">
+                                    <IconButton edge="end" color="primary">
+                                      <CheckCircle />
+                                    </IconButton>
+                                  </Tooltip>
+                                </ListItemSecondaryAction>
+                              </ListItem>
+                            ))}
+                          </List>
+                        </>
+                      )}
+                    </CardContent>
+                  </Card>
+
                   {/* Credit Summary */}
                   <Paper sx={{ p: 2, mt: 3, bgcolor: 'grey.50' }}>
                     <Typography variant="h6" gutterBottom>
