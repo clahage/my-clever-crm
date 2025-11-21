@@ -5257,25 +5257,15 @@ const SmartDashboard = () => {
                 const docRef = await addDoc(collection(db, 'contacts'), dataToSave);
                 console.log('✅ Contact saved with ID:', docRef.id);
                 
-                // Show success message
-                setSnackbar({ 
-                  open: true, 
-                  message: '✅ Contact saved successfully!', 
-                  severity: 'success' 
-                });
-                
-                // Close form
+                // Close form (success message shown by form component)
                 setShowContactForm(false);
                 
                 // Optional: Refresh dashboard data
                 // The Firebase listener should automatically pick up the new contact
               } catch (error) {
                 console.error('❌ Error saving contact:', error);
-                setSnackbar({ 
-                  open: true, 
-                  message: '❌ Error saving contact: ' + error.message, 
-                  severity: 'error' 
-                });
+                // Error is already shown by form component
+                throw error; // Re-throw so form can handle it
               }
             }}
             onCancel={() => setShowContactForm(false)}
