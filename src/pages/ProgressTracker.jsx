@@ -66,7 +66,7 @@ import {
   doc,
   getDoc
 } from 'firebase/firestore';
-import { db, auth } from '../../lib/firebase';
+import { db, auth } from '@/lib/firebase';
 
 // ===================================================================
 // MAIN PROGRESS TRACKER COMPONENT

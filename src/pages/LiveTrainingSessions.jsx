@@ -68,7 +68,7 @@ import {
   serverTimestamp,
   Timestamp
 } from 'firebase/firestore';
-import { db, auth } from '../../lib/firebase';
+import { db, auth } from '@/lib/firebase';
 
 // ===================================================================
 // SAMPLE SESSIONS DATA
