@@ -219,22 +219,10 @@ export const navigationItems = [
   },
 
   // ==========================================================================
-  // 📊 CREDIT REPORTS HUB (Consolidated IDIQ System)
-  // ==========================================================================
-  {
-    id: 'credit-hub',
-    title: '📊 Credit Reports Hub',
-    path: '/credit-hub',
-    icon: Shield,
-    permission: 'client',
-    mobileHidden: false,
-    badge: 'AI',
-    description: 'Complete IDIQ credit management system - 7 tools in one hub',
-    category: 'credit'
-  },
-  // ==========================================================================
   // 🎯 HYBRID HUBS - ALL 41 BUSINESS HUBS ORGANIZED
   // ==========================================================================
+  // NOTE: Credit Reports Hub removed from root level - now only in Business Hubs
+  // to eliminate duplicate /credit-hub URLs (was line 226)
   {
     id: 'hubs-group',
     title: '🎯 Business Hubs',
