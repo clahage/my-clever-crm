@@ -143,22 +143,20 @@ const CreditAnalysisEngine = lazy(() => import('@/pages/CreditAnalysisEngine'));
 const PredictiveAnalytics = lazy(() => import('@/pages/PredictiveAnalytics'));
 
 // ===== CONTACT & CRM PAGES =====
+// NOTE: Most standalone pages redirect to hubs. Unused imports removed during cleanup.
 const Contacts = lazy(() => import('@/pages/Contacts'));
 const DuplicateManager = lazy(() => import('@/components/DuplicateManager'));
 const ClientIntake = lazy(() => import('@/pages/ClientIntake'));
 const Pipeline = lazy(() => import('@/pages/Pipeline'));
-const ContactImport = lazy(() => import('@/pages/ContactImport'));
-const ContactExport = lazy(() => import('@/pages/ContactExport'));
-const ContactReports = lazy(() => import('@/pages/ContactReports'));
+// ContactImport, ContactExport, ContactReports - ARCHIVED: redirect to hubs
 const Segments = lazy(() => import('@/pages/Segments'));
 
 // ===== CREDIT MANAGEMENT =====
 const CreditSimulator = lazy(() => import('@/pages/CreditSimulator'));
 const BusinessCredit = lazy(() => import('@/pages/BusinessCredit'));
-const CreditScores = lazy(() => import('@/pages/CreditScores'));
+// CreditScores, CreditMonitoring - ARCHIVED: redirect to hubs
 const DisputeLetters = lazy(() => import('@/pages/DisputeLetters'));
 const DisputeStatus = lazy(() => import('@/pages/DisputeStatus'));
-const CreditMonitoring = lazy(() => import('@/pages/CreditMonitoring'));
 
 // ===== COMMUNICATION =====
 const Letters = lazy(() => import('@/pages/Letters'));
@@ -171,8 +169,7 @@ const Notifications = lazy(() => import('@/pages/Notifications'));
 
 // ===== LEARNING =====
 const LearningCenter = lazy(() => import('@/pages/LearningCenter'));
-const Achievements = lazy(() => import('@/pages/Achievements'));
-const Certificates = lazy(() => import('@/pages/Certificates'));
+// Achievements, Certificates - ARCHIVED: redirect to learning-hub
 
 // ===== PAYMENTS =====
 const PaymentsDashboard = lazy(() => import('@/pages/Payments/PaymentsDashboard'));
@@ -191,15 +188,14 @@ const FullAgreement = lazy(() => import('@/pages/FullAgreement'));
 const InformationSheet = lazy(() => import('@/pages/InformationSheet'));
 const PowerOfAttorney = lazy(() => import('@/pages/PowerOfAttorney'));
 const ACHAuthorization = lazy(() => import('@/pages/ACHAuthorization'));
-const Addendums = lazy(() => import('@/pages/Addendums'));
-const DocumentStorage = lazy(() => import('@/pages/DocumentStorage'));
+// Addendums, DocumentStorage - ARCHIVED: redirect to documents-hub
 
 // ===== BUSINESS TOOLS =====
-const Companies = lazy(() => import('@/pages/Companies'));
+// Companies - ARCHIVED: redirect to settings-hub
 const Location = lazy(() => import('@/pages/Location'));
 const Invoices = lazy(() => import('@/pages/Invoices'));
 const PaymentSuccess = lazy(() => import('@/pages/PaymentSuccess'));
-const Affiliates = lazy(() => import('@/pages/Affiliates'));
+// Affiliates - ARCHIVED (100% mock data): redirect to affiliates-hub
 const Billing = lazy(() => import('@/pages/BillingPage'));
 
 // ===== SCHEDULING =====
@@ -218,11 +214,11 @@ const AppsEmployee = lazy(() => import('@/pages/apps/Employee'));
 const AppsClient = lazy(() => import('@/pages/apps/Client'));
 const AppsAffiliate = lazy(() => import('@/pages/apps/Affiliate'));
 const Settings = lazy(() => import('@/pages/Settings'));
-const Team = lazy(() => import('@/pages/Team'));
+// Team - ARCHIVED: redirect to settings-hub
 const DocumentCenter = lazy(() => import('@/pages/DocumentCenter'));
 const Roles = lazy(() => import('@/pages/Roles'));
 const UserRoles = lazy(() => import('@/pages/UserRoles'));
-const Integrations = lazy(() => import('@/pages/Integrations'));
+// Integrations - ARCHIVED: redirect to settings-hub
 const Support = lazy(() => import('@/pages/Support'));
 const SystemMap = lazy(() => import('@/pages/SystemMap'));
 const WhiteLabelBranding = lazy(() => import('@/pages/whitelabel/Branding'));
