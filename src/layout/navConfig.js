@@ -31,7 +31,7 @@ import {
   Smartphone, Palette, Brush, Info,
 
   // ===== MISC =====
-  MapPin, AlertCircle, Eye, Wrench, Lock, Key, HelpCircle, ExternalLink
+  MapPin, AlertCircle, Eye, Wrench, Lock, Key, HelpCircle, ExternalLink, PiggyBank
 } from 'lucide-react';
 
 // ============================================================================
@@ -346,6 +346,24 @@ export const navigationItems = [
         permission: 'admin',
         badge: 'ADMIN',
         description: 'Invoices, payments, subscriptions'
+      },
+      {
+        id: 'financial-planning-hub',
+        title: 'Financial Planning',
+        path: '/financial-planning-hub',
+        icon: PiggyBank,
+        permission: 'user',
+        badge: 'AI',
+        description: 'Debt reduction & budget planning'
+      },
+      {
+        id: 'tradeline-hub',
+        title: 'Tradeline Services',
+        path: '/tradeline-hub',
+        icon: Award,
+        permission: 'manager',
+        badge: 'AI',
+        description: 'Tradeline rental management'
       },
       {
         id: 'collections-hub',

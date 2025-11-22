@@ -240,6 +240,7 @@ const DisputeAdminPanel = lazy(() => import('@/pages/hubs/DisputeAdminPanel'));
 const DisputeHub = lazy(() => import('@/pages/hubs/DisputeHub'));
 const DocumentsHub = lazy(() => import('@/pages/hubs/DocumentsHub'));
 const DripCampaignsHub = lazy(() => import('@/pages/hubs/DripCampaignsHub'));
+const FinancialPlanningHub = lazy(() => import('@/pages/hubs/FinancialPlanningHub'));
 const LearningHub = lazy(() => import('@/pages/hubs/LearningHub'));
 const MarketingHub = lazy(() => import('@/pages/hubs/MarketingHub'));
 const MobileAppHub = lazy(() => import('@/pages/hubs/MobileAppHub'));
@@ -256,6 +257,7 @@ const SettingsHub = lazy(() => import('@/pages/hubs/SettingsHub'));
 const SocialMediaHub = lazy(() => import('@/pages/hubs/SocialMediaHub'));
 const SupportHub = lazy(() => import('@/pages/hubs/SupportHub'));
 const TasksSchedulingHub = lazy(() => import('@/pages/hubs/TasksSchedulingHub'));
+const TradelineHub = lazy(() => import('@/pages/hubs/TradelineHub'));
 const TrainingHub = lazy(() => import('@/pages/hubs/TrainingHub'));
 const WebsiteLandingPagesHub = lazy(() => import('@/pages/hubs/WebsiteLandingPagesHub'));
 
@@ -690,6 +692,30 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="admin">
       <Suspense fallback={<LoadingFallback />}>
         <PaymentIntegrationHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Financial Planning Hub - Debt reduction & budget planning */}
+<Route
+  path="financial-planning-hub"
+  element={
+    <ProtectedRoute requiredRole="user">
+      <Suspense fallback={<LoadingFallback />}>
+        <FinancialPlanningHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Tradeline Hub - Tradeline rental services */}
+<Route
+  path="tradeline-hub"
+  element={
+    <ProtectedRoute requiredRole="manager">
+      <Suspense fallback={<LoadingFallback />}>
+        <TradelineHub />
       </Suspense>
     </ProtectedRoute>
   }
