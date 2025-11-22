@@ -233,7 +233,9 @@ export const navigationItems = [
     category: 'hubs',
     defaultExpanded: false,
     items: [
-      // CORE OPERATIONS (9 hubs - Dashboard Hub consolidated into SmartDashboard)
+      // ========================================
+      // 📋 DAILY OPERATIONS
+      // ========================================
       {
         id: 'clients-hub',
         title: 'Clients Hub',
@@ -242,15 +244,6 @@ export const navigationItems = [
         permission: 'user',
         badge: 'AI',
         description: 'Complete client management'
-      },
-      {
-        id: 'credit-hub',
-        title: 'Credit Intelligence Hub',
-        path: '/credit-hub',
-        icon: Shield,
-        permission: 'user',
-        badge: 'AI',
-        description: 'Complete IDIQ + AI credit analysis'
       },
       {
         id: 'comms-hub',
@@ -262,20 +255,20 @@ export const navigationItems = [
         description: 'Email, SMS, campaigns, automation'
       },
       {
-        id: 'dispute-hub',
-        title: 'Dispute Management',
-        path: '/dispute-hub',
-        icon: AlertCircle,
-        permission: 'user',
-        description: 'Dispute tracking and management'
-      },
-      {
         id: 'tasks-hub',
         title: 'Tasks & Scheduling',
         path: '/tasks-hub',
         icon: Calendar,
         permission: 'user',
         description: 'Task and calendar management'
+      },
+      {
+        id: 'dispute-hub',
+        title: 'Dispute Management',
+        path: '/dispute-hub',
+        icon: AlertCircle,
+        permission: 'user',
+        description: 'Dispute tracking and management'
       },
       {
         id: 'documents-hub',
@@ -293,25 +286,97 @@ export const navigationItems = [
         permission: 'user',
         description: 'Advanced calendar features'
       },
+
+      // ========================================
+      // 💳 CREDIT & COMPLIANCE
+      // ========================================
       {
-        id: 'support-hub',
-        title: 'Support Hub',
-        path: '/support-hub',
-        icon: HelpCircle,
+        id: 'credit-hub',
+        title: 'Credit Intelligence Hub',
+        path: '/credit-hub',
+        icon: Shield,
         permission: 'user',
-        description: 'Help desk and support'
+        badge: 'AI',
+        description: 'Complete IDIQ + AI credit analysis'
       },
       {
-        id: 'settings-hub',
-        title: 'Settings Hub',
-        path: '/settings-hub',
-        icon: Settings,
+        id: 'bureau-hub',
+        title: 'Bureau Communication',
+        path: '/bureau-hub',
+        icon: Send,
+        permission: 'user',
+        description: 'Credit bureau integration'
+      },
+      {
+        id: 'dispute-admin',
+        title: 'Dispute Admin Panel',
+        path: '/dispute-admin',
+        icon: Shield,
         permission: 'admin',
         badge: 'ADMIN',
-        description: 'System configuration'
+        description: 'Admin dispute management'
+      },
+      {
+        id: 'compliance-hub',
+        title: 'Compliance Hub',
+        path: '/compliance-hub',
+        icon: Shield,
+        permission: 'admin',
+        badge: 'ADMIN',
+        description: 'Regulatory compliance'
       },
 
-      // BUSINESS GROWTH (9 hubs)
+      // ========================================
+      // 💰 FINANCIAL MANAGEMENT
+      // ========================================
+      {
+        id: 'revenue-hub',
+        title: 'Revenue Hub',
+        path: '/revenue-hub',
+        icon: DollarSign,
+        permission: 'admin',
+        badge: 'ADMIN',
+        description: 'Revenue tracking and forecasting'
+      },
+      {
+        id: 'billing-hub',
+        title: 'Billing & Payments',
+        path: '/billing-hub',
+        icon: Receipt,
+        permission: 'admin',
+        badge: 'ADMIN',
+        description: 'Invoices, payments, subscriptions'
+      },
+      {
+        id: 'collections-hub',
+        title: 'Collections & AR',
+        path: '/collections-hub',
+        icon: DollarSign,
+        permission: 'admin',
+        badge: 'ADMIN',
+        description: 'Accounts receivable management'
+      },
+      {
+        id: 'payment-integration-hub',
+        title: 'Payment Integrations',
+        path: '/payment-integration-hub',
+        icon: CreditCard,
+        permission: 'admin',
+        badge: 'PRO',
+        description: 'Stripe & PayPal integration'
+      },
+      {
+        id: 'contracts-hub',
+        title: 'Contract Management',
+        path: '/contracts-hub',
+        icon: FileText,
+        permission: 'user',
+        description: 'Contract lifecycle management'
+      },
+
+      // ========================================
+      // 📈 SALES & MARKETING
+      // ========================================
       {
         id: 'marketing-hub',
         title: 'Marketing Hub',
@@ -320,14 +385,6 @@ export const navigationItems = [
         permission: 'user',
         badge: 'AI',
         description: 'Campaigns and marketing tools'
-      },
-      {
-        id: 'affiliates-hub',
-        title: 'Affiliates Hub',
-        path: '/affiliates-hub',
-        icon: Handshake,
-        permission: 'user',
-        description: 'Affiliate management'
       },
       {
         id: 'referral-engine-hub',
@@ -347,6 +404,14 @@ export const navigationItems = [
         description: 'Partner relationship management'
       },
       {
+        id: 'affiliates-hub',
+        title: 'Affiliates Hub',
+        path: '/affiliates-hub',
+        icon: Handshake,
+        permission: 'user',
+        description: 'Affiliate management'
+      },
+      {
         id: 'social-media-hub',
         title: 'Social Media Hub',
         path: '/social-media-hub',
@@ -355,13 +420,12 @@ export const navigationItems = [
         description: 'Social media management'
       },
       {
-        id: 'content-seo-hub',
-        title: 'Content & SEO',
-        path: '/content-seo-hub',
-        icon: FileText,
+        id: 'reviews-hub',
+        title: 'Reviews & Reputation',
+        path: '/reviews-hub',
+        icon: Star,
         permission: 'user',
-        badge: 'AI',
-        description: 'Content creation and SEO'
+        description: 'Reputation management'
       },
       {
         id: 'website-hub',
@@ -373,97 +437,18 @@ export const navigationItems = [
         description: 'Website and landing pages'
       },
       {
-        id: 'reviews-hub',
-        title: 'Reviews & Reputation',
-        path: '/reviews-hub',
-        icon: Star,
-        permission: 'user',
-        description: 'Reputation management'
-      },
-      {
-        id: 'revenue-partnerships-hub',
-        title: 'Revenue Partnerships',
-        path: '/revenue-partnerships-hub',
-        icon: DollarSign,
-        permission: 'admin',
-        badge: 'ADMIN',
-        description: 'Partnership revenue tracking'
-      },
-
-      // FINANCIAL (6 hubs)
-      {
-        id: 'revenue-hub',
-        title: 'Revenue Hub',
-        path: '/revenue-hub',
-        icon: DollarSign,
-        permission: 'admin',
-        badge: 'ADMIN',
-        description: 'Revenue tracking and forecasting'
-      },
-      {
-        id: 'billing-hub',
-        title: 'Billing Hub',
-        path: '/billing-hub',
-        icon: Receipt,
-        permission: 'admin',
-        badge: 'ADMIN',
-        description: 'Invoices, payments, subscriptions & revenue'
-      },
-     {
-       id: 'payment-integration-hub',
-       title: 'Payment Integrations',
-       path: '/payment-integration-hub',
-       icon: 'CreditCard',
-       requiredRole: 'admin',
-       badge: 'PRO',
-       description: 'Stripe & PayPal integration'
-  },
-      {
-        id: 'payment-hub',
-        title: 'Payment Integration',
-        path: '/payment-hub',
-        icon: CreditCard,
-        permission: 'admin',
-        badge: 'ADMIN',
-        description: 'Payment processing'
-      },
-      {
-        id: 'collections-hub',
-        title: 'Collections & AR',
-        path: '/collections-hub',
-        icon: DollarSign,
-        permission: 'admin',
-        badge: 'ADMIN',
-        description: 'Collections management'
-      },
-      {
-        id: 'contracts-hub',
-        title: 'Contract Management',
-        path: '/contracts-hub',
-        icon: FileText,
-        permission: 'user',
-        description: 'Contract lifecycle management'
-      },
-      {
-        id: 'compliance-hub',
-        title: 'Compliance Hub',
-        path: '/compliance-hub',
-        icon: Shield,
-        permission: 'admin',
-        badge: 'ADMIN',
-        description: 'Regulatory compliance'
-      },
-
-      // ADVANCED (10 hubs)
-      {
-        id: 'ai-hub',
-        title: 'AI Hub',
-        path: '/ai-hub',
-        icon: Brain,
+        id: 'drip-campaigns-hub',
+        title: 'Drip Campaigns',
+        path: '/drip-campaigns-hub',
+        icon: Send,
         permission: 'user',
         badge: 'AI',
-        description: 'AI-powered tools and insights'
+        description: 'Automated email sequences'
       },
+
+      // ========================================
+      // 📊 ANALYTICS & AUTOMATION
+      // ========================================
       {
         id: 'analytics-hub',
         title: 'Analytics Hub',
@@ -482,6 +467,15 @@ export const navigationItems = [
         description: 'Comprehensive reports'
       },
       {
+        id: 'ai-hub',
+        title: 'AI Hub',
+        path: '/ai-hub',
+        icon: Brain,
+        permission: 'user',
+        badge: 'AI',
+        description: 'AI-powered tools and insights'
+      },
+      {
         id: 'automation-hub',
         title: 'Automation Hub',
         path: '/automation-hub',
@@ -490,58 +484,10 @@ export const navigationItems = [
         badge: 'PRO',
         description: 'Workflow automation'
       },
-      {
-        id: 'bureau-hub',
-        title: 'Bureau Communication',
-        path: '/bureau-hub',
-        icon: Send,
-        permission: 'user',
-        description: 'Credit bureau integration'
-      },
-      {
-        id: 'mobile-app-hub',
-        title: 'Mobile App Hub',
-        path: '/mobile-app-hub',
-        icon: Smartphone,
-        permission: 'admin',
-        badge: 'ADMIN',
-        description: 'Mobile app management'
-      },
-      {
-        id: 'learning-hub',
-        title: 'Learning Hub',
-        path: '/learning-hub',
-        icon: GraduationCap,
-        permission: 'user',
-        description: 'Training and education'
-      },
-      {
-        id: 'training-hub',
-        title: 'Training Hub',
-        path: '/training-hub',
-        icon: BookOpen,
-        permission: 'user',
-        description: 'Team training programs'
-      },
-      {
-        id: 'resources-hub',
-        title: 'Resource Library',
-        path: '/resources-hub',
-        icon: Archive,
-        permission: 'user',
-        description: 'Knowledge base and resources'
-      },
-      {
-        id: 'drip-campaigns-hub',
-        title: 'Drip Campaigns',
-        path: '/drip-campaigns-hub',
-        icon: Send,
-        permission: 'user',
-        badge: 'AI',
-        description: 'Automated email sequences'
-      },
 
-      // CLIENT-FACING (3 hubs)
+      // ========================================
+      // 👥 CLIENT EXPERIENCE
+      // ========================================
       {
         id: 'onboarding-hub',
         title: 'Onboarding Hub',
@@ -567,15 +513,32 @@ export const navigationItems = [
         description: 'Client retention and success'
       },
 
-      // ADMIN ONLY (2 hubs)
+      // ========================================
+      // 🎓 TEAM & LEARNING
+      // ========================================
       {
-        id: 'dispute-admin',
-        title: 'Dispute Admin Panel',
-        path: '/dispute-admin',
-        icon: Shield,
-        permission: 'admin',
-        badge: 'ADMIN',
-        description: 'Admin dispute management'
+        id: 'learning-hub',
+        title: 'Learning Hub',
+        path: '/learning-hub',
+        icon: GraduationCap,
+        permission: 'user',
+        description: 'Training and education'
+      },
+      {
+        id: 'training-hub',
+        title: 'Training Hub',
+        path: '/training-hub',
+        icon: BookOpen,
+        permission: 'user',
+        description: 'Team training programs'
+      },
+      {
+        id: 'resources-hub',
+        title: 'Resource Library',
+        path: '/resources-hub',
+        icon: Archive,
+        permission: 'user',
+        description: 'Knowledge base and resources'
       },
       {
         id: 'certification-hub',
@@ -584,7 +547,57 @@ export const navigationItems = [
         icon: Award,
         permission: 'user',
         description: 'Certification and accreditation'
+      },
+
+      // ========================================
+      // ⚙️ ADVANCED TOOLS
+      // ========================================
+      {
+        id: 'settings-hub',
+        title: 'Settings Hub',
+        path: '/settings-hub',
+        icon: Settings,
+        permission: 'admin',
+        badge: 'ADMIN',
+        description: 'System configuration'
+      },
+      {
+        id: 'support-hub',
+        title: 'Support Hub',
+        path: '/support-hub',
+        icon: HelpCircle,
+        permission: 'user',
+        description: 'Help desk and support'
+      },
+      {
+        id: 'mobile-app-hub',
+        title: 'Mobile App Hub',
+        path: '/mobile-app-hub',
+        icon: Smartphone,
+        permission: 'admin',
+        badge: 'ADMIN',
+        description: 'Mobile app management'
+      },
+      {
+        id: 'content-seo-hub',
+        title: 'Content & SEO',
+        path: '/content-seo-hub',
+        icon: FileText,
+        permission: 'user',
+        badge: 'AI',
+        description: 'Content creation and SEO'
+      },
+      {
+        id: 'revenue-partnerships-hub',
+        title: 'Revenue Partnerships',
+        path: '/revenue-partnerships-hub',
+        icon: DollarSign,
+        permission: 'admin',
+        badge: 'ADMIN',
+        description: 'Partnership revenue tracking'
       }
+
+      // REMOVED DUPLICATE: payment-hub (/payment-hub) - duplicate of payment-integration-hub
     ]
   },
 
