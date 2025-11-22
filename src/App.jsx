@@ -220,6 +220,7 @@ const WhiteLabelTenants = lazy(() => import('@/pages/whitelabel/Tenants'));
 const AffiliatesHub = lazy(() => import('@/pages/hubs/AffiliatesHub'));
 const AIHub = lazy(() => import('@/pages/hubs/AIHub'));
 const AnalyticsHub = lazy(() => import('@/pages/hubs/AnalyticsHub'));
+const AnalyticsReportingHub = lazy(() => import('@/pages/hubs/AnalyticsReportingHub'));
 const AutomationHub = lazy(() => import('@/pages/hubs/AutomationHub'));
 const BillingHub = lazy(() => import('@/pages/hubs/BillingHub'));
 const BillingPaymentsHub = lazy(() => import('@/pages/hubs/BillingPaymentsHub'));
@@ -521,10 +522,12 @@ const AppContent = () => {
         <Route path="tasks" element={<Navigate to="/tasks-hub" replace />} />
         <Route path="reminders" element={<Navigate to="/tasks-hub" replace />} />
 
-        {/* Analytics Hub redirects */}
-        <Route path="analytics" element={<Navigate to="/analytics-hub" replace />} />
-        <Route path="reports" element={<Navigate to="/reports-hub" replace />} />
-        <Route path="goals" element={<Navigate to="/analytics-hub" replace />} />
+        {/* Analytics & Reporting Hub redirects - CONSOLIDATED */}
+        <Route path="analytics" element={<Navigate to="/analytics-reporting-hub" replace />} />
+        <Route path="reports" element={<Navigate to="/analytics-reporting-hub" replace />} />
+        <Route path="analytics-hub" element={<Navigate to="/analytics-reporting-hub" replace />} />
+        <Route path="reports-hub" element={<Navigate to="/analytics-reporting-hub" replace />} />
+        <Route path="goals" element={<Navigate to="/analytics-reporting-hub" replace />} />
 
         {/* Resources & Support redirects */}
         <Route path="resources/articles" element={<Navigate to="/resources-hub" replace />} />
@@ -658,13 +661,13 @@ const AppContent = () => {
   }
 />
 
-{/* Analytics Hub - Business intelligence and reporting */}
+{/* Analytics & Reporting Hub - CONSOLIDATED business intelligence platform */}
 <Route
-  path="analytics-hub"
+  path="analytics-reporting-hub"
   element={
     <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
-        <AnalyticsHub />
+        <AnalyticsReportingHub />
       </Suspense>
     </ProtectedRoute>
   }
@@ -820,17 +823,8 @@ const AppContent = () => {
   }
 />
 
-{/* Reports Hub - Comprehensive reporting */}
-<Route
-  path="reports-hub"
-  element={
-    <ProtectedRoute requiredRole="user">
-      <Suspense fallback={<LoadingFallback />}>
-        <ReportsHub />
-      </Suspense>
-    </ProtectedRoute>
-  }
-/>
+{/* Reports Hub - DEPRECATED - Redirects to Analytics & Reporting Hub */}
+<Route path="reports-hub" element={<Navigate to="/analytics-reporting-hub" replace />} />
 
 {/* Revenue Hub - Revenue tracking and analytics */}
 <Route

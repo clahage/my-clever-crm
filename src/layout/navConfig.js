@@ -920,21 +920,21 @@ export function getMobileNavigation(userRole) {
       { id: 'portal', title: 'Admin', path: '/portal', icon: LayoutDashboard },
       { id: 'contacts', title: 'Contacts', path: '/clients-hub', icon: Users },
       { id: 'credit-hub', title: 'Credit Hub', path: '/credit-hub', icon: Shield },
-      { id: 'analytics', title: 'Analytics', path: '/analytics-hub', icon: BarChart },
+      { id: 'analytics-reporting', title: 'Analytics & Reporting', path: '/analytics-reporting-hub', icon: BarChart },
       { id: 'settings', title: 'Settings', path: '/settings', icon: Settings },
     ],
     admin: [
       { id: 'portal', title: 'Admin', path: '/portal', icon: LayoutDashboard },
       { id: 'contacts', title: 'Contacts', path: '/clients-hub', icon: Users },
       { id: 'credit-hub', title: 'Credit Hub', path: '/credit-hub', icon: Shield },
-      { id: 'reports', title: 'Reports', path: '/reports-hub', icon: FileText },
+      { id: 'analytics-reporting', title: 'Analytics & Reporting', path: '/analytics-reporting-hub', icon: BarChart },
       { id: 'settings', title: 'Settings', path: '/settings', icon: Settings },
     ],
     manager: [
       { id: 'contacts', title: 'Contacts', path: '/clients-hub', icon: Users },
       { id: 'credit-hub', title: 'Credit Hub', path: '/credit-hub', icon: Shield },
       { id: 'pipeline', title: 'Pipeline', path: '/clients-hub', icon: GitBranch },
-      { id: 'reports', title: 'Reports', path: '/reports-hub', icon: FileText },
+      { id: 'analytics-reporting', title: 'Analytics & Reporting', path: '/analytics-reporting-hub', icon: BarChart },
       { id: 'settings', title: 'Settings', path: '/settings', icon: Settings },
     ],
     user: [
@@ -965,8 +965,7 @@ export function getMobileNavigation(userRole) {
       { id: 'settings', title: 'Settings', path: '/settings', icon: Settings },
     ],
     viewer: [
-      { id: 'reports', title: 'Reports', path: '/reports-hub', icon: FileText },
-      { id: 'analytics', title: 'Analytics', path: '/analytics-hub', icon: BarChart },
+      { id: 'analytics-reporting', title: 'Analytics & Reporting', path: '/analytics-reporting-hub', icon: BarChart },
     ]
   };
 
