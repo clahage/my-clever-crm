@@ -225,7 +225,7 @@ const BillingHub = lazy(() => import('@/pages/hubs/BillingHub'));
 const BillingPaymentsHub = lazy(() => import('@/pages/hubs/BillingPaymentsHub'));
 const PaymentIntegrationHub = lazy(() => import('@/pages/hubs/PaymentIntegrationHub'));
 const BureauCommunicationHub = lazy(() => import('@/pages/hubs/BureauCommunicationHub'));
-const CalendarSchedulingHub = lazy(() => import('@/pages/hubs/CalendarSchedulingHub'));
+const CalendarSchedulingHub = lazy(() => import('@/pages/Calendar')); // Using AI-powered 3,683-line enterprise calendar
 const CertificationSystem = lazy(() => import('@/pages/CertificationSystem')); // Restored - correct path
 const ClientSuccessRetentionHub = lazy(() => import('@/pages/hubs/ClientSuccessRetentionHub'));
 const ClientsHub = lazy(() => import('@/pages/hubs/ClientsHub'));
@@ -870,7 +870,7 @@ const AppContent = () => {
   }
 />
 
-{/* Calendar & Scheduling Hub */}
+{/* Calendar & Scheduling Hub - AI-Powered Enterprise Calendar (3,683 lines) */}
 <Route
   path="calendar-hub"
   element={
