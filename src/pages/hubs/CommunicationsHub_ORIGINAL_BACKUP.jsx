@@ -212,7 +212,7 @@ import {
   HelpCircle,
   ExternalLink,
   Maximize,
-  Minimize, UserPlus, Printer
+  Minimize, UserPlus
 } from 'lucide-react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
@@ -223,7 +223,6 @@ import { format, formatDistanceToNow, subDays, subMonths, startOfMonth, endOfMon
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import * as XLSX from 'xlsx';
-import EmailFaxManager from '@/components/communications/EmailFaxManager';
 
 // ============================================================================
 // 🎨 CONSTANTS & CONFIGURATION
@@ -614,7 +613,7 @@ const UltimateCommunicationsHub = () => {
   const [success, setSuccess] = useState(null);
   
   // Tab management
-  const [activeTab, setActiveTab] = useState('emailfax');
+  const [activeTab, setActiveTab] = useState('email');
   
   // Data states
   const [emails, setEmails] = useState([]);
@@ -1616,315 +1615,6 @@ const UltimateCommunicationsHub = () => {
     </div>
   );
 
-  // ===== DRIP CAMPAIGNS TAB =====
-  const renderDripCampaignsTab = () => (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <Typography variant="h5" className="font-bold">Drip Campaigns</Typography>
-          <Typography variant="body2" color="text.secondary">
-            Automated email sequences and nurture campaigns
-          </Typography>
-        </div>
-        
-        <Button
-          variant="contained"
-          startIcon={<Plus />}
-          sx={{
-            background: 'linear-gradient(to right, #8B5CF6, #EC4899)',
-            '&:hover': {
-              background: 'linear-gradient(to right, #7C3AED, #DB2777)',
-            },
-          }}
-        >
-          Create Drip Campaign
-        </Button>
-      </div>
-
-      {/* Key Metrics */}
-      <Grid container spacing={3}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card elevation={2}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography variant="caption" color="text.secondary">
-                    Active Campaigns
-                  </Typography>
-                  <Typography variant="h4" className="font-bold">
-                    12
-                  </Typography>
-                </Box>
-                <Activity style={{ width: 40, height: 40, color: '#8B5CF6' }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <Card elevation={2}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography variant="caption" color="text.secondary">
-                    Total Sent
-                  </Typography>
-                  <Typography variant="h4" className="font-bold text-blue-600">
-                    8,432
-                  </Typography>
-                </Box>
-                <Send style={{ width: 40, height: 40, color: '#3B82F6' }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <Card elevation={2}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography variant="caption" color="text.secondary">
-                    Avg Open Rate
-                  </Typography>
-                  <Typography variant="h4" className="font-bold text-green-600">
-                    28.4%
-                  </Typography>
-                </Box>
-                <Eye style={{ width: 40, height: 40, color: '#10B981' }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <Card elevation={2}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography variant="caption" color="text.secondary">
-                    Subscribers
-                  </Typography>
-                  <Typography variant="h4" className="font-bold text-orange-600">
-                    1,247
-                  </Typography>
-                </Box>
-                <Users style={{ width: 40, height: 40, color: '#F97316' }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      {/* Drip Campaigns List */}
-      <Card>
-        <CardContent>
-          <Typography variant="h6" className="font-semibold mb-4">
-            Your Drip Campaigns
-          </Typography>
-          
-          <Alert severity="info" icon={<Clock />}>
-            <Typography variant="body2">
-              <strong>Drip Campaigns</strong> allow you to send a series of automated emails over time. 
-              Perfect for onboarding, nurturing leads, and re-engagement sequences.
-            </Typography>
-          </Alert>
-
-          <Box sx={{ mt: 3 }}>
-            <Grid container spacing={2}>
-              {/* Welcome Series */}
-              <Grid item xs={12} md={6}>
-                <Paper sx={{ p: 3, border: '1px solid #e5e7eb' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'start', justifyContent: 'space-between', mb: 2 }}>
-                    <Box>
-                      <Typography variant="h6" className="font-semibold">
-                        Welcome Series
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        5 emails over 14 days
-                      </Typography>
-                    </Box>
-                    <Chip label="Active" size="small" sx={{ bgcolor: '#10B98120', color: '#10B981' }} />
-                  </Box>
-                  
-                  <Box sx={{ mt: 2, mb: 2 }}>
-                    <Typography variant="caption" color="text.secondary">Performance</Typography>
-                    <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
-                      <Chip size="small" label="432 sent" />
-                      <Chip size="small" label="31% open" />
-                      <Chip size="small" label="4.2% click" />
-                    </Box>
-                  </Box>
-                  
-                  <Box sx={{ display: 'flex', gap: 1, mt: 3 }}>
-                    <Button size="small" startIcon={<Eye />}>View</Button>
-                    <Button size="small" startIcon={<Edit />}>Edit</Button>
-                    <Button size="small" startIcon={<Pause />}>Pause</Button>
-                  </Box>
-                </Paper>
-              </Grid>
-
-              {/* Nurture Campaign */}
-              <Grid item xs={12} md={6}>
-                <Paper sx={{ p: 3, border: '1px solid #e5e7eb' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'start', justifyContent: 'space-between', mb: 2 }}>
-                    <Box>
-                      <Typography variant="h6" className="font-semibold">
-                        Lead Nurture
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        8 emails over 30 days
-                      </Typography>
-                    </Box>
-                    <Chip label="Active" size="small" sx={{ bgcolor: '#10B98120', color: '#10B981' }} />
-                  </Box>
-                  
-                  <Box sx={{ mt: 2, mb: 2 }}>
-                    <Typography variant="caption" color="text.secondary">Performance</Typography>
-                    <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
-                      <Chip size="small" label="287 sent" />
-                      <Chip size="small" label="26% open" />
-                      <Chip size="small" label="3.1% click" />
-                    </Box>
-                  </Box>
-                  
-                  <Box sx={{ display: 'flex', gap: 1, mt: 3 }}>
-                    <Button size="small" startIcon={<Eye />}>View</Button>
-                    <Button size="small" startIcon={<Edit />}>Edit</Button>
-                    <Button size="small" startIcon={<Pause />}>Pause</Button>
-                  </Box>
-                </Paper>
-              </Grid>
-
-              {/* Re-engagement */}
-              <Grid item xs={12} md={6}>
-                <Paper sx={{ p: 3, border: '1px solid #e5e7eb' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'start', justifyContent: 'space-between', mb: 2 }}>
-                    <Box>
-                      <Typography variant="h6" className="font-semibold">
-                        Re-engagement
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        3 emails over 7 days
-                      </Typography>
-                    </Box>
-                    <Chip label="Paused" size="small" sx={{ bgcolor: '#F59E0B20', color: '#F59E0B' }} />
-                  </Box>
-                  
-                  <Box sx={{ mt: 2, mb: 2 }}>
-                    <Typography variant="caption" color="text.secondary">Performance</Typography>
-                    <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
-                      <Chip size="small" label="156 sent" />
-                      <Chip size="small" label="18% open" />
-                      <Chip size="small" label="2.3% click" />
-                    </Box>
-                  </Box>
-                  
-                  <Box sx={{ display: 'flex', gap: 1, mt: 3 }}>
-                    <Button size="small" startIcon={<Eye />}>View</Button>
-                    <Button size="small" startIcon={<Edit />}>Edit</Button>
-                    <Button size="small" startIcon={<Play />}>Resume</Button>
-                  </Box>
-                </Paper>
-              </Grid>
-
-              {/* Product Education */}
-              <Grid item xs={12} md={6}>
-                <Paper sx={{ p: 3, border: '1px solid #e5e7eb' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'start', justifyContent: 'space-between', mb: 2 }}>
-                    <Box>
-                      <Typography variant="h6" className="font-semibold">
-                        Product Education
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        6 emails over 21 days
-                      </Typography>
-                    </Box>
-                    <Chip label="Draft" size="small" sx={{ bgcolor: '#6B728020', color: '#6B7280' }} />
-                  </Box>
-                  
-                  <Box sx={{ mt: 2, mb: 2 }}>
-                    <Typography variant="caption" color="text.secondary">Status</Typography>
-                    <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
-                      <Chip size="small" label="Not started" />
-                    </Box>
-                  </Box>
-                  
-                  <Box sx={{ display: 'flex', gap: 1, mt: 3 }}>
-                    <Button size="small" startIcon={<Eye />}>View</Button>
-                    <Button size="small" startIcon={<Edit />}>Edit</Button>
-                    <Button size="small" startIcon={<Play />} variant="contained">Launch</Button>
-                  </Box>
-                </Paper>
-              </Grid>
-            </Grid>
-          </Box>
-
-          {/* Campaign Builder Teaser */}
-          <Box sx={{ mt: 4, p: 3, bgcolor: '#F9FAFB', borderRadius: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-              <Zap style={{ width: 24, height: 24, color: '#8B5CF6' }} />
-              <Typography variant="h6" className="font-semibold">
-                Campaign Builder Features
-              </Typography>
-            </Box>
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6} md={3}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Check style={{ width: 20, height: 20, color: '#10B981' }} />
-                  <Typography variant="body2">Drag & drop builder</Typography>
-                </Box>
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Check style={{ width: 20, height: 20, color: '#10B981' }} />
-                  <Typography variant="body2">A/B testing</Typography>
-                </Box>
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Check style={{ width: 20, height: 20, color: '#10B981' }} />
-                  <Typography variant="body2">Smart timing</Typography>
-                </Box>
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Check style={{ width: 20, height: 20, color: '#10B981' }} />
-                  <Typography variant="body2">Personalization</Typography>
-                </Box>
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Check style={{ width: 20, height: 20, color: '#10B981' }} />
-                  <Typography variant="body2">Segmentation</Typography>
-                </Box>
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Check style={{ width: 20, height: 20, color: '#10B981' }} />
-                  <Typography variant="body2">Analytics</Typography>
-                </Box>
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Check style={{ width: 20, height: 20, color: '#10B981' }} />
-                  <Typography variant="body2">Goal tracking</Typography>
-                </Box>
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Check style={{ width: 20, height: 20, color: '#10B981' }} />
-                  <Typography variant="body2">AI optimization</Typography>
-                </Box>
-              </Grid>
-            </Grid>
-          </Box>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
   // ===== AUTOMATION TAB =====
   const renderAutomationTab = () => (
     <div className="space-y-6">
@@ -2542,12 +2232,10 @@ const UltimateCommunicationsHub = () => {
             borderColor: 'divider',
           }}
         >
-          <Tab value="emailfax" label="Email & Fax" icon={<Printer className="w-5 h-5" />} iconPosition="start" />
           <Tab value="email" label="Email Manager" icon={<Mail className="w-5 h-5" />} iconPosition="start" />
           <Tab value="sms" label="SMS Manager" icon={<MessageSquare className="w-5 h-5" />} iconPosition="start" />
           <Tab value="templates" label="Templates" icon={<FileText className="w-5 h-5" />} iconPosition="start" />
           <Tab value="campaigns" label="Campaigns" icon={<Target className="w-5 h-5" />} iconPosition="start" />
-          <Tab value="drip-campaigns" label="Drip Campaigns" icon={<Clock className="w-5 h-5" />} iconPosition="start" />
           <Tab value="automation" label="Automation" icon={<Zap className="w-5 h-5" />} iconPosition="start" />
           <Tab value="inbox" label="Inbox" icon={<Inbox className="w-5 h-5" />} iconPosition="start" />
           <Tab value="analytics" label="Analytics" icon={<BarChart3 className="w-5 h-5" />} iconPosition="start" />
@@ -2555,12 +2243,10 @@ const UltimateCommunicationsHub = () => {
         </Tabs>
 
         <Box sx={{ p: { xs: 2, md: 3 } }}>
-          {activeTab === 'emailfax' && <EmailFaxManager />}
           {activeTab === 'email' && renderEmailManagerTab()}
           {activeTab === 'sms' && renderSMSManagerTab()}
           {activeTab === 'templates' && renderTemplatesTab()}
           {activeTab === 'campaigns' && renderCampaignsTab()}
-          {activeTab === 'drip-campaigns' && renderDripCampaignsTab()}
           {activeTab === 'automation' && renderAutomationTab()}
           {activeTab === 'inbox' && renderInboxTab()}
           {activeTab === 'analytics' && renderAnalyticsTab()}

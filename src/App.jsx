@@ -255,8 +255,9 @@ const CreditReportsHub = lazy(() => import('@/pages/hubs/CreditReportsHub'));
 const DisputeAdminPanel = lazy(() => import('@/pages/hubs/DisputeAdminPanel'));
 const DisputeHub = lazy(() => import('@/pages/hubs/DisputeHub'));
 const DocumentsHub = lazy(() => import('@/pages/hubs/DocumentsHub'));
-const DripCampaignsHub = lazy(() => import('@/pages/hubs/DripCampaignsHub'));
-// (Already imported above)
+// DripCampaignsHub - CONSOLIDATED INTO CommunicationsHub (Drip Campaigns tab)
+const FinancialPlanningHub = lazy(() => import('@/pages/hubs/FinancialPlanningHub'));
+const TradelineHub = lazy(() => import('@/pages/hubs/TradelineHub'));
 const LearningHub = lazy(() => import('@/pages/hubs/LearningHub'));
 const MarketingHub = lazy(() => import('@/pages/hubs/MarketingHub'));
 const MobileAppHub = lazy(() => import('@/pages/hubs/MobileAppHub'));
@@ -273,11 +274,7 @@ const SettingsHub = lazy(() => import('@/pages/hubs/SettingsHub'));
 const SocialMediaHub = lazy(() => import('@/pages/hubs/SocialMediaHub'));
 const SupportHub = lazy(() => import('@/pages/hubs/SupportHub'));
 const TasksSchedulingHub = lazy(() => import('@/pages/hubs/TasksSchedulingHub'));
-<<<<<<< HEAD
 const TaxServicesHub = lazy(() => import('@/pages/hubs/TaxServicesHub'));
-=======
-// (Already imported above)
->>>>>>> f130397 (feat: Add FinancialPlanningHub and TradelineHub with complete integration)
 const TrainingHub = lazy(() => import('@/pages/hubs/TrainingHub'));
 const WebsiteLandingPagesHub = lazy(() => import('@/pages/hubs/WebsiteLandingPagesHub'));
 
@@ -562,28 +559,22 @@ const AppContent = () => {
         {/* Billing Hub redirects */}
         <Route path="invoices" element={<Navigate to="/billing-hub" replace />} />
         <Route path="payment-success" element={<Suspense fallback={<LoadingFallback />}><PaymentSuccess /></Suspense>} />
-<<<<<<< HEAD
-  <Route path="affiliates" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><Affiliates /></Suspense></ProtectedRoute>} />
-  <Route path="billing" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><Billing /></Suspense></ProtectedRoute>} />
-  <Route path="products" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><Products /></Suspense></ProtectedRoute>} />
-=======
-        <Route path="affiliates" element={<Navigate to="/affiliates-hub" replace />} />
-        <Route path="billing" element={<Navigate to="/billing-hub" replace />} />
-        <Route path="products" element={<Navigate to="/billing-hub" replace />} />
+  <Route path="affiliates" element={<Navigate to="/affiliates-hub" replace />} />
+  <Route path="billing" element={<Navigate to="/billing-hub" replace />} />
+  <Route path="products" element={<Navigate to="/billing-hub" replace />} />
 
-        {/* Tasks/Calendar Hub redirects */}
-        <Route path="calendar" element={<Navigate to="/calendar-hub" replace />} />
-        <Route path="appointments" element={<Navigate to="/calendar-hub" replace />} />
-        <Route path="tasks" element={<Navigate to="/tasks-hub" replace />} />
-        <Route path="reminders" element={<Navigate to="/tasks-hub" replace />} />
+  {/* Tasks/Calendar Hub redirects */}
+  <Route path="calendar" element={<Navigate to="/calendar-hub" replace />} />
+  <Route path="appointments" element={<Navigate to="/calendar-hub" replace />} />
+  <Route path="tasks" element={<Navigate to="/tasks-hub" replace />} />
+  <Route path="reminders" element={<Navigate to="/tasks-hub" replace />} />
 
-        {/* Analytics & Reporting Hub redirects - CONSOLIDATED */}
-        <Route path="analytics" element={<Navigate to="/analytics-reporting-hub" replace />} />
-        <Route path="reports" element={<Navigate to="/analytics-reporting-hub" replace />} />
-        <Route path="analytics-hub" element={<Navigate to="/analytics-reporting-hub" replace />} />
-        <Route path="reports-hub" element={<Navigate to="/analytics-reporting-hub" replace />} />
-        <Route path="goals" element={<Navigate to="/analytics-reporting-hub" replace />} />
->>>>>>> a7b32e0 (feat: Phase 1 - Consolidate Analytics + Reports into Analytics & Reporting Hub)
+  {/* Analytics & Reporting Hub redirects - CONSOLIDATED */}
+  <Route path="analytics" element={<Navigate to="/analytics-reporting-hub" replace />} />
+  <Route path="reports" element={<Navigate to="/analytics-reporting-hub" replace />} />
+  <Route path="analytics-hub" element={<Navigate to="/analytics-reporting-hub" replace />} />
+  <Route path="reports-hub" element={<Navigate to="/analytics-reporting-hub" replace />} />
+  <Route path="goals" element={<Navigate to="/analytics-reporting-hub" replace />} />
 
   {/* Payment Management System Routes */}
   <Route path="payments" element={<ProtectedRoute requiredRoles={["admin", "masterAdmin"]}><Suspense fallback={<LoadingFallback />}><PaymentsDashboard /></Suspense></ProtectedRoute>} />
@@ -894,22 +885,8 @@ const AppContent = () => {
   }
 />
 
-<<<<<<< HEAD
-{/* Reports Hub - Comprehensive reporting */}
-<Route
-  path="reports-hub"
-  element={
-    <ProtectedRoute requiredRoles={['user', 'manager', 'admin', 'masterAdmin']}>
-      <Suspense fallback={<LoadingFallback />}>
-        <ReportsHub />
-      </Suspense>
-    </ProtectedRoute>
-  }
-/>
-=======
 {/* Reports Hub - DEPRECATED - Redirects to Analytics & Reporting Hub */}
 <Route path="reports-hub" element={<Navigate to="/analytics-reporting-hub" replace />} />
->>>>>>> a7b32e0 (feat: Phase 1 - Consolidate Analytics + Reports into Analytics & Reporting Hub)
 
 {/* Revenue Hub - Revenue tracking and analytics */}
 <Route
@@ -1054,14 +1031,9 @@ const AppContent = () => {
 {/* Drip Campaigns Hub */}
 <Route
   path="drip-campaigns-hub"
-  element={
-    <ProtectedRoute requiredRole="user">
-      <Suspense fallback={<LoadingFallback />}>
-        <DripCampaignsHub />
-      </Suspense>
-    </ProtectedRoute>
-  }
+  element={<Navigate to="/comms-hub" replace />}
 />
+<Route path="drip-campaigns" element={<Navigate to="/comms-hub" replace />} />
 
 {/* Mobile App Hub */}
 <Route
