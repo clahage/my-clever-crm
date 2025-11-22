@@ -115,6 +115,8 @@ export const ROLES = {
       // Team Management (limited)
       'team.view',
       'team.tasks.assign',
+      'team.manage',
+      'team.roles',
       
       // Settings (limited)
       'settings.general',
@@ -122,11 +124,18 @@ export const ROLES = {
       'settings.notifications'
     ],
     defaultLandingPage: '/clients-hub',
-    canImpersonate: false,
-    canManageRoles: false,
+    canImpersonate: true, // Can send emails on behalf of owner
+    canManageRoles: true, // Can assign roles (with restrictions)
+    canDeleteUsers: false, // Cannot permanently delete users
     canAccessAllData: true, // Can see all clients/data
     billingAccess: 'view', // Can see invoices but not modify
-    revenueVisibility: 'summary' // Can see totals but not details
+    revenueVisibility: 'summary', // Can see totals but not details
+    roleManagementRestrictions: {
+      cannotModifyRoles: ['masterAdmin', 'officeManager'], // Cannot change these roles
+      cannotDeleteRoles: ['masterAdmin', 'officeManager', 'admin'], // Cannot delete these users
+      requiresApprovalFor: ['delete'], // User deletions require owner approval
+      notificationEmail: 'owner@speedycreditrepair.com' // Send notifications here
+    }
   },
 
   admin: {
@@ -541,6 +550,79 @@ export const getRolePermissions = (roleId) => {
 };
 
 /**
+ * Check if a role can manage another role (for role assignment/modification)
+ */
+export const canManageRole = (managerRole, targetRole) => {
+  const manager = ROLES[managerRole];
+  if (!manager) return false;
+  
+  // Must have role management permission
+  if (!manager.canManageRoles) return false;
+  
+  // Check restrictions
+  const restrictions = manager.roleManagementRestrictions;
+  if (restrictions) {
+    // Cannot modify protected roles
+    if (restrictions.cannotModifyRoles?.includes(targetRole)) {
+      return false;
+    }
+  }
+  
+  // Can only manage roles at lower or equal level
+  const managerLevel = ROLE_LEVELS[managerRole] || 0;
+  const targetLevel = ROLE_LEVELS[targetRole] || 0;
+  
+  return managerLevel >= targetLevel;
+};
+
+/**
+ * Check if a role can delete a user with specific role
+ */
+export const canDeleteUserWithRole = (managerRole, targetUserRole) => {
+  const manager = ROLES[managerRole];
+  if (!manager) return false;
+  
+  // Check if can delete users at all
+  if (manager.canDeleteUsers === false) return false;
+  
+  // Check restrictions
+  const restrictions = manager.roleManagementRestrictions;
+  if (restrictions) {
+    // Cannot delete protected roles
+    if (restrictions.cannotDeleteRoles?.includes(targetUserRole)) {
+      return false;
+    }
+  }
+  
+  return true;
+};
+
+/**
+ * Check if action requires approval
+ */
+export const requiresApproval = (managerRole, action) => {
+  const manager = ROLES[managerRole];
+  if (!manager) return false;
+  
+  const restrictions = manager.roleManagementRestrictions;
+  if (restrictions?.requiresApprovalFor) {
+    return restrictions.requiresApprovalFor.includes(action);
+  }
+  
+  return false;
+};
+
+/**
+ * Get notification email for sensitive actions
+ */
+export const getNotificationEmail = (managerRole) => {
+  const manager = ROLES[managerRole];
+  if (!manager) return null;
+  
+  return manager.roleManagementRestrictions?.notificationEmail || null;
+};
+
+/**
  * Check if a role can access another user's data
  */
 export const canAccessUserData = (userRole, targetUserId, currentUserId) => {
@@ -602,9 +684,8 @@ export const getRoleBadge = (roleId) => {
  * This allows you to assign specific roles to specific people
  */
 export const SPECIAL_ROLE_ASSIGNMENTS = {
-  // Laurie - Office Manager
-  // Replace with actual Laurie's user ID after account creation
-  'LAURIE_USER_ID': 'officeManager',
+  // Laurie - Office Manager (laurie@speedycreditrepair.com)
+  'zDwFaAbOl1aOcGCiDAX2WZdOiKv1': 'officeManager',
   
   // Owner - Master Admin
   // Replace with actual owner's user ID
