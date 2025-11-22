@@ -240,7 +240,7 @@ const CreditReportsHub = lazy(() => import('@/pages/hubs/CreditReportsHub'));
 const DisputeAdminPanel = lazy(() => import('@/pages/hubs/DisputeAdminPanel'));
 const DisputeHub = lazy(() => import('@/pages/hubs/DisputeHub'));
 const DocumentsHub = lazy(() => import('@/pages/hubs/DocumentsHub'));
-const DripCampaignsHub = lazy(() => import('@/pages/hubs/DripCampaignsHub'));
+// DripCampaignsHub - CONSOLIDATED INTO CommunicationsHub (Drip Campaigns tab)
 const FinancialPlanningHub = lazy(() => import('@/pages/hubs/FinancialPlanningHub'));
 const LearningHub = lazy(() => import('@/pages/hubs/LearningHub'));
 const MarketingHub = lazy(() => import('@/pages/hubs/MarketingHub'));
@@ -957,14 +957,9 @@ const AppContent = () => {
 {/* Drip Campaigns Hub */}
 <Route
   path="drip-campaigns-hub"
-  element={
-    <ProtectedRoute requiredRole="user">
-      <Suspense fallback={<LoadingFallback />}>
-        <DripCampaignsHub />
-      </Suspense>
-    </ProtectedRoute>
-  }
+  element={<Navigate to="/comms-hub" replace />}
 />
+<Route path="drip-campaigns" element={<Navigate to="/comms-hub" replace />} />
 
 {/* Mobile App Hub */}
 <Route
