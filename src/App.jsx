@@ -1,7 +1,8 @@
 // ...existing code...
 import React, { lazy, Suspense } from 'react';
-// Add import for FinancialPlanningHub
+// Add import for FinancialPlanningHub and TradelineHub
 const FinancialPlanningHub = lazy(() => import('@/pages/hubs/FinancialPlanningHub'));
+const TradelineHub = lazy(() => import('@/pages/hubs/TradelineHub'));
 // src/App.jsx - SpeedyCRM Complete Application Router
 // VERSION: 3.0 - HYBRID HUB ARCHITECTURE INTEGRATION
 // LAST UPDATED: 2025-11-06 - All 18 Hubs Integrated
@@ -254,6 +255,7 @@ const DisputeAdminPanel = lazy(() => import('@/pages/hubs/DisputeAdminPanel'));
 const DisputeHub = lazy(() => import('@/pages/hubs/DisputeHub'));
 const DocumentsHub = lazy(() => import('@/pages/hubs/DocumentsHub'));
 const DripCampaignsHub = lazy(() => import('@/pages/hubs/DripCampaignsHub'));
+// (Already imported above)
 const LearningHub = lazy(() => import('@/pages/hubs/LearningHub'));
 const MarketingHub = lazy(() => import('@/pages/hubs/MarketingHub'));
 const MobileAppHub = lazy(() => import('@/pages/hubs/MobileAppHub'));
@@ -270,7 +272,11 @@ const SettingsHub = lazy(() => import('@/pages/hubs/SettingsHub'));
 const SocialMediaHub = lazy(() => import('@/pages/hubs/SocialMediaHub'));
 const SupportHub = lazy(() => import('@/pages/hubs/SupportHub'));
 const TasksSchedulingHub = lazy(() => import('@/pages/hubs/TasksSchedulingHub'));
+<<<<<<< HEAD
 const TaxServicesHub = lazy(() => import('@/pages/hubs/TaxServicesHub'));
+=======
+// (Already imported above)
+>>>>>>> f130397 (feat: Add FinancialPlanningHub and TradelineHub with complete integration)
 const TrainingHub = lazy(() => import('@/pages/hubs/TrainingHub'));
 const WebsiteLandingPagesHub = lazy(() => import('@/pages/hubs/WebsiteLandingPagesHub'));
 
@@ -740,6 +746,30 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="admin">
       <Suspense fallback={<LoadingFallback />}>
         <PaymentIntegrationHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Financial Planning Hub - Debt reduction & budget planning */}
+<Route
+  path="financial-planning-hub"
+  element={
+    <ProtectedRoute requiredRoles={['client', 'admin', 'masterAdmin', 'user', 'manager']}>
+      <Suspense fallback={<LoadingFallback />}>
+        <FinancialPlanningHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Tradeline Hub - Tradeline rental services */}
+<Route
+  path="tradeline-hub"
+  element={
+    <ProtectedRoute requiredRoles={['manager', 'admin', 'masterAdmin']}>
+      <Suspense fallback={<LoadingFallback />}>
+        <TradelineHub />
       </Suspense>
     </ProtectedRoute>
   }
