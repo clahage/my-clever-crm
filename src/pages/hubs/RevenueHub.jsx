@@ -91,8 +91,17 @@ import {
 } from 'recharts';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
+import { 
+  RevenueAccessBanner, 
+  RevenueProtectedContent, 
+  ProtectedCurrency, 
+  useRevenueAccess 
+} from '@/components/RevenueAccessControl';
 
 const UltimateRevenueHub = () => {
+  // ===== REVENUE ACCESS CONTROL =====
+  const { revenueVisibility, hasFullAccess, hasSummaryAccess, canSeeMetric, filterData } = useRevenueAccess();
+
   // ===== STATE MANAGEMENT =====
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedPeriod, setSelectedPeriod] = useState('month');
@@ -330,6 +339,9 @@ const UltimateRevenueHub = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
+      {/* ===== REVENUE ACCESS CONTROL BANNER ===== */}
+      <RevenueAccessBanner />
+
       {/* ===== HEADER WITH GRADIENT ===== */}
       <div className="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 rounded-xl p-8 text-white mb-6 shadow-lg">
         <div className="flex items-start justify-between">
