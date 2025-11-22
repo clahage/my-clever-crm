@@ -3,8 +3,13 @@
 // ============================================================================
 // The Crown Jewel of SpeedyCRM
 // Production-ready, AI-powered, customizable dashboard
-// Version: 1.0.0
-// Lines: 3,500-4,000+
+// Version: 2.0.0 - CONSOLIDATED DASHBOARD
+// Lines: 5,000+
+// 
+// CONSOLIDATION: This dashboard now serves as the universal landing page
+// for all user roles, replacing separate Welcome Hub, Admin Portal, and
+// Client Portal pages. Role-based views ensure users see only what's
+// relevant to their permission level.
 // ============================================================================
 
 import React, { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
@@ -4644,12 +4649,34 @@ const SmartDashboard = () => {
   const handleCreateTask = () => navigate('/tasks?action=create');
   const handleNewInvoice = () => navigate('/invoices?action=create');
 
-  // Determine user role
+  // Determine user role and map to dashboard view
   const userRole = userProfile?.role || 'staff';
   const isMasterAdmin = userRole === 'masterAdmin' || userRole === 'master-admin';
-  const activeView = isMasterAdmin ? currentView : userRole;
+  
+  // Role-to-view mapping for consolidated dashboard
+  const getRoleView = (role) => {
+    const roleMap = {
+      'masterAdmin': 'masterAdmin',
+      'master-admin': 'masterAdmin',
+      'admin': 'admin',
+      'manager': 'manager',
+      'user': 'staff',
+      'client': 'client',
+      'prospect': 'client',
+      'affiliate': 'affiliate',
+      'viewer': 'client'
+    };
+    return roleMap[role] || 'staff';
+  };
+  
+  const activeView = isMasterAdmin ? currentView : getRoleView(userRole);
 
-  console.log('📊 SmartDashboard loaded, role:', userRole, 'view:', activeView);
+  console.log('📊 SmartDashboard (Consolidated)', { 
+    userRole, 
+    activeView, 
+    isMasterAdmin,
+    note: 'Replaces Welcome Hub, Admin Portal, Client Portal' 
+  });
 
   // Load layout from localStorage
   useEffect(() => {

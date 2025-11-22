@@ -2392,25 +2392,25 @@ const ClientsHub = () => {
           <Grid item xs={6} sm={3}>
             <Card sx={{ p: 2, textAlign: 'center', bgcolor: '#F3E5F5' }}>
               <Typography variant="h4" color="text.primary">{analytics.contacts || 0}</Typography>
-              <Typography variant="caption">Contacts</Typography>
+              <Typography variant="caption">Unassigned Contacts</Typography>
             </Card>
           </Grid>
           <Grid item xs={6} sm={3}>
             <Card sx={{ p: 2, textAlign: 'center', bgcolor: '#FFF3E0' }}>
               <Typography variant="h4" color="warning.main">{analytics.leads || 0}</Typography>
-              <Typography variant="caption">Leads</Typography>
+              <Typography variant="caption">Active Leads</Typography>
             </Card>
           </Grid>
           <Grid item xs={6} sm={3}>
             <Card sx={{ p: 2, textAlign: 'center', bgcolor: '#E8F5E9' }}>
               <Typography variant="h4" color="success.main">{analytics.activeClients || 0}</Typography>
-              <Typography variant="caption">Clients</Typography>
+              <Typography variant="caption">Active Clients</Typography>
             </Card>
           </Grid>
           <Grid item xs={6} sm={3}>
             <Card sx={{ p: 2, textAlign: 'center', bgcolor: '#E3F2FD' }}>
               <Typography variant="h4" color="primary">{analytics.totalClients || 0}</Typography>
-              <Typography variant="caption">Total</Typography>
+              <Typography variant="caption">Total Contacts</Typography>
             </Card>
           </Grid>
         </Grid>
