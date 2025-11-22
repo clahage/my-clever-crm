@@ -225,7 +225,7 @@ const AutomationHub = lazy(() => import('@/pages/hubs/AutomationHub'));
 const BillingHub = lazy(() => import('@/pages/hubs/BillingHub'));
 const BillingPaymentsHub = lazy(() => import('@/pages/hubs/BillingPaymentsHub'));
 const PaymentIntegrationHub = lazy(() => import('@/pages/hubs/PaymentIntegrationHub'));
-const BureauCommunicationHub = lazy(() => import('@/pages/hubs/BureauCommunicationHub'));
+// BureauCommunicationHub - CONSOLIDATED INTO DisputeHub (now includes Bureau Tracker tab)
 const CalendarSchedulingHub = lazy(() => import('@/pages/Calendar')); // Using AI-powered 3,683-line enterprise calendar
 const CertificationSystem = lazy(() => import('@/pages/CertificationSystem')); // Restored - correct path
 const ClientSuccessRetentionHub = lazy(() => import('@/pages/hubs/ClientSuccessRetentionHub'));
@@ -878,17 +878,9 @@ const AppContent = () => {
 {/* ===== 🆕 ADDITIONAL HUBS (23 NEW ROUTES) ===== */}
 {/* ============================================================================ */}
 
-{/* Bureau Communication Hub */}
-<Route
-  path="bureau-hub"
-  element={
-    <ProtectedRoute requiredRole="user">
-      <Suspense fallback={<LoadingFallback />}>
-        <BureauCommunicationHub />
-      </Suspense>
-    </ProtectedRoute>
-  }
-/>
+{/* Bureau Communication Hub - CONSOLIDATED INTO DISPUTE HUB */}
+<Route path="bureau-hub" element={<Navigate to="/dispute-hub" replace />} />
+<Route path="bureau-communication-hub" element={<Navigate to="/dispute-hub" replace />} />
 
 {/* Calendar & Scheduling Hub - AI-Powered Enterprise Calendar (3,683 lines) */}
 <Route
