@@ -219,7 +219,7 @@ const WhiteLabelTenants = lazy(() => import('@/pages/whitelabel/Tenants'));
 // ============================================================================
 const AffiliatesHub = lazy(() => import('@/pages/hubs/AffiliatesHub'));
 const AIHub = lazy(() => import('@/pages/hubs/AIHub'));
-const AnalyticsHub = lazy(() => import('@/pages/hubs/AnalyticsHub'));
+// AnalyticsHub - CONSOLIDATED INTO AnalyticsReportingHub (Dashboards & Analytics tabs)
 const AnalyticsReportingHub = lazy(() => import('@/pages/hubs/AnalyticsReportingHub'));
 const AutomationHub = lazy(() => import('@/pages/hubs/AutomationHub'));
 // BillingHub - CONSOLIDATED INTO BillingPaymentsHub (Advanced Billing tab)
@@ -249,7 +249,7 @@ const OnboardingWelcomeHub = lazy(() => import('@/pages/hubs/OnboardingWelcomeHu
 const ProgressPortalHub = lazy(() => import('@/pages/hubs/ProgressPortalHub'));
 // ReferralEngineHub - CONSOLIDATED INTO MarketingHub (Referral Engine tab)
 const ReferralPartnerHub = lazy(() => import('@/pages/hubs/ReferralPartnerHub'));
-const ReportsHub = lazy(() => import('@/pages/hubs/ReportsHub'));
+// ReportsHub - CONSOLIDATED INTO AnalyticsReportingHub (Reports & Custom Reports tabs)
 const ResourceLibraryHub = lazy(() => import('@/pages/hubs/ResourceLibraryHub'));
 const RevenueHub = lazy(() => import('@/pages/hubs/RevenueHub'));
 const RevenuePartnershipsHub = lazy(() => import('@/pages/hubs/RevenuePartnershipsHub'));
