@@ -262,6 +262,10 @@ const TasksSchedulingHub = lazy(() => import('@/pages/hubs/TasksSchedulingHub'))
 const TrainingHub = lazy(() => import('@/pages/hubs/TrainingHub'));
 const WebsiteLandingPagesHub = lazy(() => import('@/pages/hubs/WebsiteLandingPagesHub'));
 
+// ===== NEW ENTERPRISE AI HUBS (November 2025) =====
+const RentalApplicationBoostHub = lazy(() => import('@/pages/hubs/RentalApplicationBoostHub'));
+const MortgageReadinessHub = lazy(() => import('@/pages/hubs/MortgageReadinessHub'));
+
 // ============================================================================
 // PROTECTED ROUTE WRAPPER
 // ============================================================================
@@ -870,6 +874,34 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="admin">
       <Suspense fallback={<LoadingFallback />}>
         <MobileAppHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* ============================================================================ */}
+{/* ===== 🆕 NEW ENTERPRISE AI HUBS (November 2025) ===== */}
+{/* ============================================================================ */}
+
+{/* Rental Application Boost Hub - AI-powered rental preparation */}
+<Route
+  path="rental-boost-hub"
+  element={
+    <ProtectedRoute requiredRoles={[3,4,5,6,7,8]}>
+      <Suspense fallback={<LoadingFallback />}>
+        <RentalApplicationBoostHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Mortgage Readiness Accelerator Hub - 90-day mortgage prep */}
+<Route
+  path="mortgage-readiness-hub"
+  element={
+    <ProtectedRoute requiredRoles={[3,4,5,6,7,8]}>
+      <Suspense fallback={<LoadingFallback />}>
+        <MortgageReadinessHub />
       </Suspense>
     </ProtectedRoute>
   }

@@ -579,6 +579,26 @@ export const navigationItems = [
         description: 'Client retention and success'
       },
 
+      // NEW ENTERPRISE AI HUBS (November 2025) - Credit & Financial Services
+      {
+        id: 'rental-boost-hub',
+        title: 'Rental Boost',
+        path: '/rental-boost-hub',
+        icon: Home,
+        permission: 'client',
+        badge: 'AI',
+        description: 'AI-powered rental application preparation'
+      },
+      {
+        id: 'mortgage-readiness-hub',
+        title: 'Mortgage Ready',
+        path: '/mortgage-readiness-hub',
+        icon: Building2,
+        permission: 'client',
+        badge: 'AI',
+        description: '90-day mortgage preparation accelerator'
+      },
+
       // ADMIN ONLY (2 hubs)
       {
         id: 'dispute-admin',
