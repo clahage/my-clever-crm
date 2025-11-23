@@ -248,7 +248,7 @@ const ClientsHub = lazy(() => import('@/pages/hubs/ClientsHub'));
 const CollectionsARHub = lazy(() => import('@/pages/hubs/CollectionsARHub'));
 const CommunicationsHub = lazy(() => import('@/pages/hubs/CommunicationsHub'));
 const ComplianceHub = lazy(() => import('@/pages/hubs/ComplianceHub'));
-const ContentCreatorSEOHub = lazy(() => import('@/pages/hubs/ContentCreatorSEOHub'));
+// ContentCreatorSEOHub - CONSOLIDATED INTO MarketingHub (Content & SEO Pro tab)
 const ContractManagementHub = lazy(() => import('@/pages/hubs/ContractManagementHub'));
 const CreditReportsHub = lazy(() => import('@/pages/hubs/CreditReportsHub'));
 // DashboardHub removed - consolidated into SmartDashboard
@@ -263,20 +263,20 @@ const MarketingHub = lazy(() => import('@/pages/hubs/MarketingHub'));
 const MobileAppHub = lazy(() => import('@/pages/hubs/MobileAppHub'));
 const OnboardingWelcomeHub = lazy(() => import('@/pages/hubs/OnboardingWelcomeHub'));
 const ProgressPortalHub = lazy(() => import('@/pages/hubs/ProgressPortalHub'));
-const ReferralEngineHub = lazy(() => import('@/pages/hubs/ReferralEngineHub'));
+// ReferralEngineHub - CONSOLIDATED INTO MarketingHub (Referral Engine tab)
 const ReferralPartnerHub = lazy(() => import('@/pages/hubs/ReferralPartnerHub'));
 const ReportsHub = lazy(() => import('@/pages/hubs/ReportsHub'));
 const ResourceLibraryHub = lazy(() => import('@/pages/hubs/ResourceLibraryHub'));
 const RevenueHub = lazy(() => import('@/pages/hubs/RevenueHub'));
 const RevenuePartnershipsHub = lazy(() => import('@/pages/hubs/RevenuePartnershipsHub'));
-const ReviewsReputationHub = lazy(() => import('@/pages/hubs/ReviewsReputationHub'));
+// ReviewsReputationHub - CONSOLIDATED INTO MarketingHub (Reviews & Reputation tab)
 const SettingsHub = lazy(() => import('@/pages/hubs/SettingsHub'));
-const SocialMediaHub = lazy(() => import('@/pages/hubs/SocialMediaHub'));
+// SocialMediaHub - CONSOLIDATED INTO MarketingHub (Social Media Pro tab)
 const SupportHub = lazy(() => import('@/pages/hubs/SupportHub'));
 const TasksSchedulingHub = lazy(() => import('@/pages/hubs/TasksSchedulingHub'));
 const TaxServicesHub = lazy(() => import('@/pages/hubs/TaxServicesHub'));
 const TrainingHub = lazy(() => import('@/pages/hubs/TrainingHub'));
-const WebsiteLandingPagesHub = lazy(() => import('@/pages/hubs/WebsiteLandingPagesHub'));
+// WebsiteLandingPagesHub - CONSOLIDATED INTO MarketingHub (Website & Landing Pages tab)
 
 // ===== NEW ENTERPRISE AI HUBS (November 2025) =====
 const RentalApplicationBoostHub = lazy(() => import('@/pages/hubs/RentalApplicationBoostHub'));
@@ -1004,17 +1004,8 @@ const AppContent = () => {
   }
 />
 
-{/* Content Creator & SEO Hub */}
-<Route
-  path="content-seo-hub"
-  element={
-    <ProtectedRoute requiredRole="user">
-      <Suspense fallback={<LoadingFallback />}>
-        <ContentCreatorSEOHub />
-      </Suspense>
-    </ProtectedRoute>
-  }
-/>
+{/* CONSOLIDATED INTO MarketingHub - Content & SEO Pro tab */}
+<Route path="content-seo-hub" element={<Navigate to="/marketing-hub" replace />} />
 
 {/* Contract Management Hub */}
 <Route
@@ -1171,17 +1162,8 @@ const AppContent = () => {
   }
 />
 
-{/* Referral Engine Hub */}
-<Route
-  path="referral-engine-hub"
-  element={
-    <ProtectedRoute requiredRole="user">
-      <Suspense fallback={<LoadingFallback />}>
-        <ReferralEngineHub />
-      </Suspense>
-    </ProtectedRoute>
-  }
-/>
+{/* CONSOLIDATED INTO MarketingHub - Referral Engine tab */}
+<Route path="referral-engine-hub" element={<Navigate to="/marketing-hub" replace />} />
 
 {/* Referral Partner Hub */}
 <Route
@@ -1219,29 +1201,11 @@ const AppContent = () => {
   }
 />
 
-{/* Reviews & Reputation Hub */}
-<Route
-  path="reviews-hub"
-  element={
-    <ProtectedRoute requiredRole="user">
-      <Suspense fallback={<LoadingFallback />}>
-        <ReviewsReputationHub />
-      </Suspense>
-    </ProtectedRoute>
-  }
-/>
+{/* CONSOLIDATED INTO MarketingHub - Reviews & Reputation tab */}
+<Route path="reviews-hub" element={<Navigate to="/marketing-hub" replace />} />
 
-{/* Social Media Hub */}
-<Route
-  path="social-media-hub"
-  element={
-    <ProtectedRoute requiredRole="user">
-      <Suspense fallback={<LoadingFallback />}>
-        <SocialMediaHub />
-      </Suspense>
-    </ProtectedRoute>
-  }
-/>
+{/* CONSOLIDATED INTO MarketingHub - Social Media Pro tab */}
+<Route path="social-media-hub" element={<Navigate to="/marketing-hub" replace />} />
 
 {/* Training Hub */}
 <Route
@@ -1255,17 +1219,8 @@ const AppContent = () => {
   }
 />
 
-{/* Website & Landing Pages Hub */}
-<Route
-  path="website-hub"
-  element={
-    <ProtectedRoute requiredRole="admin">
-      <Suspense fallback={<LoadingFallback />}>
-        <WebsiteLandingPagesHub />
-      </Suspense>
-    </ProtectedRoute>
-  }
-/>
+{/* CONSOLIDATED INTO MarketingHub - Website & Landing Pages tab */}
+<Route path="website-hub" element={<Navigate to="/marketing-hub" replace />} />
 
 {/* Dispute Admin Panel (Separate from Dispute Hub) */}
 <Route
