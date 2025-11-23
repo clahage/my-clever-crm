@@ -870,7 +870,8 @@ const AppContent = () => {
   element={
     <ProtectedRoute requiredRole="admin">
       <Suspense fallback={<LoadingFallback />}>
-        <PaymentIntegrationHub />
+          {/* PaymentIntegrationHub - CONSOLIDATED INTO BillingPaymentsHub (Payment Integration tab) */}
+          <Navigate to="/billing-payments-hub" replace />
       </Suspense>
     </ProtectedRoute>
   }
