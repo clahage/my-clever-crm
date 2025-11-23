@@ -237,15 +237,15 @@ const AIHub = lazy(() => import('@/pages/hubs/AIHub'));
 const AnalyticsHub = lazy(() => import('@/pages/hubs/AnalyticsHub'));
 const AnalyticsReportingHub = lazy(() => import('@/pages/hubs/AnalyticsReportingHub'));
 const AutomationHub = lazy(() => import('@/pages/hubs/AutomationHub'));
-const BillingHub = lazy(() => import('@/pages/hubs/BillingHub'));
+// BillingHub - CONSOLIDATED INTO BillingPaymentsHub (Advanced Billing tab)
 const BillingPaymentsHub = lazy(() => import('@/pages/hubs/BillingPaymentsHub'));
-const PaymentIntegrationHub = lazy(() => import('@/pages/hubs/PaymentIntegrationHub'));
+// PaymentIntegrationHub - CONSOLIDATED INTO BillingPaymentsHub (Payment Integration tab)
 // BureauCommunicationHub - CONSOLIDATED INTO DisputeHub (now includes Bureau Tracker tab)
 const CalendarSchedulingHub = lazy(() => import('@/pages/Calendar')); // Using AI-powered 3,683-line enterprise calendar
 const CertificationSystem = lazy(() => import('@/pages/CertificationSystem')); // Restored - correct path
 const ClientSuccessRetentionHub = lazy(() => import('@/pages/hubs/ClientSuccessRetentionHub'));
 const ClientsHub = lazy(() => import('@/pages/hubs/ClientsHub'));
-const CollectionsARHub = lazy(() => import('@/pages/hubs/CollectionsARHub'));
+// CollectionsARHub - CONSOLIDATED INTO BillingPaymentsHub (Collections & AR tab)
 const CommunicationsHub = lazy(() => import('@/pages/hubs/CommunicationsHub'));
 const ComplianceHub = lazy(() => import('@/pages/hubs/ComplianceHub'));
 // ContentCreatorSEOHub - CONSOLIDATED INTO MarketingHub (Content & SEO Pro tab)
@@ -735,32 +735,23 @@ const AppContent = () => {
   }
 />
 
-{/* Billing Hub - Invoicing and payment management */}
+{/* CONSOLIDATED INTO BillingPaymentsHub - Advanced Billing tab */}
+<Route path="billing-hub" element={<Navigate to="/billing-payments-hub" replace />} />
+
+{/* Billing Payments Hub - Complete financial management system */}
 <Route
-  path="billing-hub"
+  path="billing-payments-hub"
   element={
     <ProtectedRoute requiredRole="admin">
       <Suspense fallback={<LoadingFallback />}>
-        <BillingHub />
+        <BillingPaymentsHub />
       </Suspense>
     </ProtectedRoute>
   }
 />
 
-{/* Billing Payments Hub - Redirect to main Billing Hub */}
-<Route path="billing-payments-hub" element={<Navigate to="/billing-hub" replace />} />
-
-{/* Payment Integration Hub - Stripe & PayPal integration */}
-<Route
-  path="payment-integration-hub"
-  element={
-    <ProtectedRoute requiredRole="admin">
-      <Suspense fallback={<LoadingFallback />}>
-        <PaymentIntegrationHub />
-      </Suspense>
-    </ProtectedRoute>
-  }
-/>
+{/* CONSOLIDATED INTO BillingPaymentsHub - Payment Integration tab */}
+<Route path="payment-integration-hub" element={<Navigate to="/billing-payments-hub" replace />} />
 
 {/* Financial Planning Hub - Debt reduction & budget planning */}
 <Route
@@ -992,17 +983,8 @@ const AppContent = () => {
   }
 />
 
-{/* Collections & AR Hub */}
-<Route
-  path="collections-hub"
-  element={
-    <ProtectedRoute requiredRole="admin">
-      <Suspense fallback={<LoadingFallback />}>
-        <CollectionsARHub />
-      </Suspense>
-    </ProtectedRoute>
-  }
-/>
+{/* CONSOLIDATED INTO BillingPaymentsHub - Collections & AR tab */}
+<Route path="collections-hub" element={<Navigate to="/billing-payments-hub" replace />} />
 
 {/* CONSOLIDATED INTO MarketingHub - Content & SEO Pro tab */}
 <Route path="content-seo-hub" element={<Navigate to="/marketing-hub" replace />} />
