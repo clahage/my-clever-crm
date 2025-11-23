@@ -598,6 +598,24 @@ export const navigationItems = [
         badge: 'AI',
         description: '90-day mortgage preparation accelerator'
       },
+      {
+        id: 'auto-loan-hub',
+        title: 'Auto Loans',
+        path: '/auto-loan-hub',
+        icon: Building2,
+        permission: 'client',
+        badge: 'AI',
+        description: 'AI-powered auto loan concierge service'
+      },
+      {
+        id: 'credit-emergency-hub',
+        title: 'Credit Emergency',
+        path: '/credit-emergency-hub',
+        icon: AlertCircle,
+        permission: 'client',
+        badge: 'URGENT',
+        description: '7-14 day rapid credit repair sprints'
+      },
 
       // ADMIN ONLY (2 hubs)
       {

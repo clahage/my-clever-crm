@@ -265,6 +265,8 @@ const WebsiteLandingPagesHub = lazy(() => import('@/pages/hubs/WebsiteLandingPag
 // ===== NEW ENTERPRISE AI HUBS (November 2025) =====
 const RentalApplicationBoostHub = lazy(() => import('@/pages/hubs/RentalApplicationBoostHub'));
 const MortgageReadinessHub = lazy(() => import('@/pages/hubs/MortgageReadinessHub'));
+const AutoLoanConciergeHub = lazy(() => import('@/pages/hubs/AutoLoanConciergeHub'));
+const CreditEmergencyResponseHub = lazy(() => import('@/pages/hubs/CreditEmergencyResponseHub'));
 
 // ============================================================================
 // PROTECTED ROUTE WRAPPER
@@ -902,6 +904,30 @@ const AppContent = () => {
     <ProtectedRoute requiredRoles={[3,4,5,6,7,8]}>
       <Suspense fallback={<LoadingFallback />}>
         <MortgageReadinessHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Auto Loan Concierge Hub - AI auto financing */}
+<Route
+  path="auto-loan-hub"
+  element={
+    <ProtectedRoute requiredRoles={[3,4,5,6,7,8]}>
+      <Suspense fallback={<LoadingFallback />}>
+        <AutoLoanConciergeHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Credit Emergency Response Hub - 7-14 day rapid repair */}
+<Route
+  path="credit-emergency-hub"
+  element={
+    <ProtectedRoute requiredRoles={[3,4,5,6,7,8]}>
+      <Suspense fallback={<LoadingFallback />}>
+        <CreditEmergencyResponseHub />
       </Suspense>
     </ProtectedRoute>
   }
