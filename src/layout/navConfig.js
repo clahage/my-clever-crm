@@ -531,9 +531,80 @@ export const navigationItems = [
         description: 'Client retention and success'
       },
 
+<<<<<<< HEAD
       // ========================================
       // 🎓 TEAM & LEARNING
       // ========================================
+=======
+      // NEW ENTERPRISE AI HUBS (November 2025) - Credit & Financial Services
+      {
+        id: 'rental-boost-hub',
+        title: 'Rental Boost',
+        path: '/rental-boost-hub',
+        icon: Home,
+        permission: 'client',
+        badge: 'AI',
+        description: 'AI-powered rental application preparation'
+      },
+      {
+        id: 'mortgage-readiness-hub',
+        title: 'Mortgage Ready',
+        path: '/mortgage-readiness-hub',
+        icon: Building2,
+        permission: 'client',
+        badge: 'AI',
+        description: '90-day mortgage preparation accelerator'
+      },
+      {
+        id: 'auto-loan-hub',
+        title: 'Auto Loans',
+        path: '/auto-loan-hub',
+        icon: Building2,
+        permission: 'client',
+        badge: 'AI',
+        description: 'AI-powered auto loan concierge service'
+      },
+      {
+        id: 'credit-emergency-hub',
+        title: 'Credit Emergency',
+        path: '/credit-emergency-hub',
+        icon: AlertCircle,
+        permission: 'client',
+        badge: 'URGENT',
+        description: '7-14 day rapid credit repair sprints'
+      },
+
+      // NEW ENTERPRISE AI HUBS (November 2025) - Business Expansion
+      {
+        id: 'attorney-network-hub',
+        title: 'Attorney Network',
+        path: '/attorney-network-hub',
+        icon: Shield,
+        permission: 'client',
+        badge: 'LEGAL',
+        description: 'FCRA/FDCPA violation cases and attorney matching'
+      },
+      {
+        id: 'certification-academy-hub',
+        title: 'Certification Academy',
+        path: '/certification-academy-hub',
+        icon: GraduationCap,
+        permission: 'client',
+        badge: 'AI',
+        description: 'Credit repair professional certification training'
+      },
+      {
+        id: 'white-label-crm-hub',
+        title: 'White Label CRM',
+        path: '/white-label-crm-hub',
+        icon: Building2,
+        permission: 'admin',
+        badge: 'PRO',
+        description: 'White label CRM licensing and partner management'
+      },
+
+      // ADMIN ONLY (2 hubs)
+>>>>>>> claude/plan-ai-hubs-navigation-016dXgTeK9KLafe7kyEbfZow
       {
         id: 'learning-hub',
         title: 'Learning Hub',
