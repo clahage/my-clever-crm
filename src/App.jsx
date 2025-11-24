@@ -267,6 +267,8 @@ const RentalApplicationBoostHub = lazy(() => import('@/pages/hubs/RentalApplicat
 const MortgageReadinessHub = lazy(() => import('@/pages/hubs/MortgageReadinessHub'));
 const AutoLoanConciergeHub = lazy(() => import('@/pages/hubs/AutoLoanConciergeHub'));
 const CreditEmergencyResponseHub = lazy(() => import('@/pages/hubs/CreditEmergencyResponseHub'));
+const AttorneyNetworkHub = lazy(() => import('@/pages/hubs/AttorneyNetworkHub'));
+const CertificationAcademyHub = lazy(() => import('@/pages/hubs/CertificationAcademyHub'));
 
 // ============================================================================
 // PROTECTED ROUTE WRAPPER
@@ -928,6 +930,30 @@ const AppContent = () => {
     <ProtectedRoute requiredRoles={[3,4,5,6,7,8]}>
       <Suspense fallback={<LoadingFallback />}>
         <CreditEmergencyResponseHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Attorney Network Hub - FCRA/FDCPA violation cases and attorney matching */}
+<Route
+  path="attorney-network-hub"
+  element={
+    <ProtectedRoute requiredRoles={[3,4,5,6,7,8]}>
+      <Suspense fallback={<LoadingFallback />}>
+        <AttorneyNetworkHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Certification Academy Hub - Credit repair professional training */}
+<Route
+  path="certification-academy-hub"
+  element={
+    <ProtectedRoute requiredRoles={[3,4,5,6,7,8]}>
+      <Suspense fallback={<LoadingFallback />}>
+        <CertificationAcademyHub />
       </Suspense>
     </ProtectedRoute>
   }

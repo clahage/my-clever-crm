@@ -617,6 +617,26 @@ export const navigationItems = [
         description: '7-14 day rapid credit repair sprints'
       },
 
+      // NEW ENTERPRISE AI HUBS (November 2025) - Business Expansion
+      {
+        id: 'attorney-network-hub',
+        title: 'Attorney Network',
+        path: '/attorney-network-hub',
+        icon: Shield,
+        permission: 'client',
+        badge: 'LEGAL',
+        description: 'FCRA/FDCPA violation cases and attorney matching'
+      },
+      {
+        id: 'certification-academy-hub',
+        title: 'Certification Academy',
+        path: '/certification-academy-hub',
+        icon: GraduationCap,
+        permission: 'client',
+        badge: 'AI',
+        description: 'Credit repair professional certification training'
+      },
+
       // ADMIN ONLY (2 hubs)
       {
         id: 'dispute-admin',
