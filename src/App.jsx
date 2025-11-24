@@ -1,3 +1,15 @@
+const DisputeSuperhub = lazy(() => import('@/pages/hubs/DisputeSuperhub'));
+{/* Dispute Superhub - Ultimate consolidated dispute & admin hub */}
+<Route
+  path="dispute-superhub"
+  element={
+    <ProtectedRoute requiredRole="admin">
+      <Suspense fallback={<LoadingFallback />}>
+        <DisputeSuperhub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
 // src/App.jsx - SpeedyCRM Complete Application Router
 // VERSION: 3.0 - HYBRID HUB ARCHITECTURE INTEGRATION
 // LAST UPDATED: 2025-11-06 - All 18 Hubs Integrated
