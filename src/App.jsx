@@ -269,6 +269,7 @@ const AutoLoanConciergeHub = lazy(() => import('@/pages/hubs/AutoLoanConciergeHu
 const CreditEmergencyResponseHub = lazy(() => import('@/pages/hubs/CreditEmergencyResponseHub'));
 const AttorneyNetworkHub = lazy(() => import('@/pages/hubs/AttorneyNetworkHub'));
 const CertificationAcademyHub = lazy(() => import('@/pages/hubs/CertificationAcademyHub'));
+const WhiteLabelCRMHub = lazy(() => import('@/pages/hubs/WhiteLabelCRMHub'));
 
 // ============================================================================
 // PROTECTED ROUTE WRAPPER
@@ -954,6 +955,18 @@ const AppContent = () => {
     <ProtectedRoute requiredRoles={[3,4,5,6,7,8]}>
       <Suspense fallback={<LoadingFallback />}>
         <CertificationAcademyHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* White Label CRM Licensing Hub - Partner management and licensing */}
+<Route
+  path="white-label-crm-hub"
+  element={
+    <ProtectedRoute requiredRoles={[7,8]}>
+      <Suspense fallback={<LoadingFallback />}>
+        <WhiteLabelCRMHub />
       </Suspense>
     </ProtectedRoute>
   }

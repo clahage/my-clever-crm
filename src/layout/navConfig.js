@@ -636,6 +636,15 @@ export const navigationItems = [
         badge: 'AI',
         description: 'Credit repair professional certification training'
       },
+      {
+        id: 'white-label-crm-hub',
+        title: 'White Label CRM',
+        path: '/white-label-crm-hub',
+        icon: Building2,
+        permission: 'admin',
+        badge: 'PRO',
+        description: 'White label CRM licensing and partner management'
+      },
 
       // ADMIN ONLY (2 hubs)
       {
