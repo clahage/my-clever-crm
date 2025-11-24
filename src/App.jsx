@@ -433,7 +433,7 @@ const AppContent = () => {
       <Route path="/forgot-password" element={<PublicRoute><Suspense fallback={<LoadingFallback />}><ForgotPassword /></Suspense></PublicRoute>} />
 
       {/* PROTECTED ROUTES */}
-      <Route path="/" element={<ProtectedRoute><ProtectedLayout /></ProtectedRoute>}>
+        <Route path="/" element={<ProtectedRoute><ProtectedLayout /></ProtectedRoute>}>
         <Route index element={<SmartRedirect />} />
 
         {/* SMART DASHBOARD - Intelligent Role-Based Landing Page */}
