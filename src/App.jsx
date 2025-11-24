@@ -1,10 +1,10 @@
-import React, { lazy, Suspense, useState, useEffect } from 'react';
-const FinancialPlanningHub = lazy(() => import('@/pages/hubs/FinancialPlanningHub'));
-const TradelineHub = lazy(() => import('@/pages/hubs/TradelineHub'));
-// ...existing code...
 // src/App.jsx - SpeedyCRM Complete Application Router
 // VERSION: 3.0 - HYBRID HUB ARCHITECTURE INTEGRATION
 // LAST UPDATED: 2025-11-06 - All 18 Hubs Integrated
+// src/App.jsx - SpeedyCRM Complete Application Router
+// VERSION: 3.0 - HYBRID HUB ARCHITECTURE INTEGRATION
+// LAST UPDATED: 2025-11-06 - All 18 Hubs Integrated
+
 import EmailWorkflowDashboard from './components/EmailWorkflowDashboard';
 import React, { lazy, Suspense, useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
@@ -18,9 +18,7 @@ import ProtectedLayout from '@/layout/ProtectedLayout';
 import Products from '@/pages/Products';
 import IDIQEnrollmentWizard from './components/IDIQEnrollmentWizard';
 
-// ============================================================================
-// LOADING COMPONENT
-// ============================================================================
+const DisputeSuperhub = lazy(() => import('@/pages/hubs/DisputeSuperhub'));
 const LoadingFallback = () => (
   <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:bg-gradient-to-br dark:from-gray-900 dark:to-gray-800">
     <div className="text-center">

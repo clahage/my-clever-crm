@@ -3,6 +3,7 @@
 // Features: AI Coach, Predictive Analytics, Smart Automation, Visual Insights
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+<<<<<<< HEAD
 
 // Utility functions for pipeline
 export const PipelineUtils = {
@@ -10,6 +11,299 @@ export const PipelineUtils = {
     const insights = [];
     const avgHealth = deals && deals.length > 0
       ? deals.reduce((sum, d) => sum + EnhancedPipelineAIService.ConversionIntelligence.calculateDealHealth(d), 0) / deals.length
+=======
+import { 
+  GitBranch, Plus, DollarSign, Users, Phone, Mail, Calendar, Clock,
+  ChevronRight, MoreVertical, Edit2, Trash2, Star, AlertCircle, TrendingUp,
+  Target, Award, X, Search, Filter, CheckCircle, XCircle, RefreshCw,
+  Bot, Sparkles, Zap, Brain, Activity, BarChart3, MessageSquare,
+  FileText, Eye, Send, Video, PhoneCall, Timer, Flag, Archive,
+  ChevronDown, ChevronUp, Copy, Settings, Database, Gauge, Bell,
+  Briefcase, CreditCard, Scale, Shield, AlertTriangle, PieChart,
+  TrendingDown, UserPlus, UserCheck, Layers, Grid, List, Columns,
+  Download, Upload, Share2, Bookmark, Hash, Globe, Linkedin,
+  Twitter, Facebook, Instagram, Youtube, Wifi, WifiOff, Cpu,
+  Flame, Snowflake, Wind, Lightbulb, Rocket, Award as Trophy,
+  ThumbsUp, ThumbsDown, Heart, Smile, Frown, Meh, AlertOctagon,
+  PlayCircle, PauseCircle, StopCircle, FastForward, Rewind,
+  Maximize2, Minimize2, Layout, Map, Compass, Navigation
+} from 'lucide-react';
+import { db } from '../lib/firebase';
+import { 
+  collection, query, where, orderBy, getDocs, doc, updateDoc, deleteDoc,
+  addDoc, serverTimestamp, onSnapshot, writeBatch, arrayUnion, getDoc
+} from 'firebase/firestore';
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+
+// ============================================================================
+// AI SERVICE - Simulated AI Intelligence Engine
+// src/pages/Pipeline.jsx.backup
+// ════════════════════════════════════════════════════════════════════════════════
+// MEGA ULTIMATE AI-POWERED SALES PIPELINE - TIER 3 ENTERPRISE EDITION (BACKUP)
+// Path: /src/pages/Pipeline.jsx.backup
+// Version: 3.0 MEGA ULTIMATE
+// AI Features: 50+
+//
+// This is a backup of the main Pipeline.jsx file, containing the same consolidated AIService and Pipeline component structure.
+// ════════════════════════════════════════════════════════════════════════════════
+
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { 
+  GitBranch, Plus, DollarSign, Users, Phone, Mail, Calendar, Clock,
+  ChevronRight, MoreVertical, Edit2, Trash2, Star, AlertCircle, TrendingUp,
+  Target, Award, X, Search, Filter, CheckCircle, XCircle, RefreshCw,
+  Bot, Sparkles, Zap, Brain, Activity, BarChart3, MessageSquare,
+  FileText, Eye, Send, Video, PhoneCall, Timer, Flag, Archive,
+  ChevronDown, ChevronUp, Copy, Settings, Database, Gauge, Bell,
+  Briefcase, CreditCard, Scale, Shield, AlertTriangle, PieChart,
+  TrendingDown, UserPlus, UserCheck, Layers, Grid, List, Columns,
+  Download, Upload, Share2, Bookmark, Hash, Globe, Linkedin,
+  Twitter, Facebook, Instagram, Youtube, Wifi, WifiOff, Cpu,
+  Flame, Snowflake, Wind, Lightbulb, Rocket, Award as Trophy,
+  ThumbsUp, ThumbsDown, Heart, Smile, Frown, Meh, AlertOctagon,
+  PlayCircle, PauseCircle, StopCircle, FastForward, Rewind,
+  Maximize2, Minimize2, Layout, Map, Compass, Navigation, Save,
+  Link, ExternalLink, Repeat, RotateCcw, RotateCw, Scissors,
+  Paperclip, Image, Music, Mic, Camera, Monitor, Smartphone,
+  Tablet, Watch, Printer, Headphones, Speaker, Battery, BatteryCharging,
+  WifiOff as Offline, Loader, Circle, Square, Triangle, Hexagon,
+  Package, ShoppingCart, ShoppingBag, Gift, Tag, Percent, TrendingUp as Growth
+} from 'lucide-react';
+import { db } from '../lib/firebase';
+import { 
+  collection, query, where, orderBy, getDocs, doc, updateDoc, deleteDoc,
+  addDoc, serverTimestamp, onSnapshot, writeBatch, arrayUnion, getDoc, increment
+} from 'firebase/firestore';
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+
+// ============================================================================
+// AI SERVICE - Enterprise Intelligence Engine (Consolidated)
+// ============================================================================
+
+const AIService = {
+  // Calculate comprehensive AI-powered win probability (0-100)
+  calculateWinProbability: (deal) => {
+    let score = 50; // Base 50%
+    // Lead score influence (+40%)
+    if (deal.leadScore >= 9) score += 30;
+    else if (deal.leadScore >= 8) score += 20;
+    else if (deal.leadScore >= 6) score += 10;
+    else if (deal.leadScore <= 3) score -= 20;
+    // Stage influence (+20%)
+    const stageBonus = {
+      new: -10,
+      contacted: 0,
+      qualified: 10,
+      proposal: 20,
+      negotiation: 15,
+      won: 100,
+      lost: 0
+    };
+    score += stageBonus[deal.stage] || 0;
+    // Urgency influence (+15%)
+    if (deal.urgencyLevel === 'critical') score += 15;
+    else if (deal.urgencyLevel === 'high') score += 10;
+    else if (deal.urgencyLevel === 'low') score -= 10;
+    // Value influence (+10%)
+    if (deal.value >= 5000) score += 10;
+    else if (deal.value >= 2000) score += 5;
+    else if (deal.value < 500) score -= 5;
+    // Response time (+10%)
+    if (deal.responseTime === 'fast') score += 10;
+    else if (deal.responseTime === 'slow') score -= 10;
+    // Engagement (+5%)
+    if (deal.engagementLevel === 'high') score += 5;
+    // Budget alignment (+5%)
+    if (deal.budgetConfirmed) score += 5;
+    // Decision maker access (+5%)
+    if (deal.hasDecisionMaker) score += 5;
+    // Competition factor (-10%)
+    if (deal.competitorMentioned) score -= 10;
+    return Math.max(0, Math.min(100, score));
+  },
+
+  // Calculate deal health (0-100) with advanced factors
+  calculateDealHealth: (deal) => {
+    let health = 70; // Base health
+    // Age factor (-30%)
+    const ageInDays = deal.createdAt?.seconds 
+      ? Math.floor((Date.now() - deal.createdAt.seconds * 1000) / (1000 * 60 * 60 * 24))
+      : 0;
+    if (ageInDays > 60) health -= 30;
+    else if (ageInDays > 30) health -= 15;
+    else if (ageInDays > 14) health -= 5;
+    // Activity factor (-20%)
+    const lastActivityDays = deal.lastActivity?.seconds
+      ? Math.floor((Date.now() - deal.lastActivity.seconds * 1000) / (1000 * 60 * 60 * 24))
+      : 999;
+    if (lastActivityDays > 14) health -= 20;
+    else if (lastActivityDays > 7) health -= 10;
+    else if (lastActivityDays <= 1) health += 10;
+    // Engagement (+20%)
+    if (deal.engagementLevel === 'high') health += 20;
+    else if (deal.engagementLevel === 'medium') health += 5;
+    else if (deal.engagementLevel === 'low') health -= 15;
+    // Competition (-10%)
+    if (deal.competitorMentioned) health -= 10;
+    // Budget alignment (+10%)
+    if (deal.budgetRange === 'aligned') health += 10;
+    else if (deal.budgetRange === 'below') health -= 15;
+    // Communication responsiveness (+10%)
+    if (deal.responseRate >= 80) health += 10;
+    else if (deal.responseRate < 30) health -= 10;
+    return Math.max(0, Math.min(100, health));
+  },
+
+  // Generate next best action with AI reasoning
+  getNextBestAction: (deal) => {
+    const stage = deal.stage;
+    const health = AIService.calculateDealHealth(deal);
+    const probability = AIService.calculateWinProbability(deal);
+    const ageInDays = deal.createdAt?.seconds 
+      ? Math.floor((Date.now() - deal.createdAt.seconds * 1000) / (1000 * 60 * 60 * 24))
+      : 0;
+    if (health < 40) {
+      return {
+        action: 'URGENT: Schedule call to revive deal',
+        priority: 'critical',
+        icon: '🚨',
+        reason: 'Deal health critical - immediate intervention required',
+        daysToAct: 1
+      };
+    }
+    if (probability > 80 && stage !== 'won') {
+      return {
+        action: 'Send contract - high win probability detected',
+        priority: 'high',
+        icon: '✅',
+        reason: 'Strong buying signals and positive momentum',
+        daysToAct: 2
+      };
+    }
+    if (ageInDays > 21 && stage !== 'won' && stage !== 'lost') {
+      return {
+        action: 'Re-engage with value proposition',
+        priority: 'high',
+        icon: '🔄',
+        reason: 'Deal has stalled - need fresh approach',
+        daysToAct: 3
+      };
+    }
+    const actions = {
+      new: {
+        action: 'Make initial contact call within 24 hours',
+        priority: 'high',
+        icon: '📞',
+        reason: 'Speed to lead is critical - first contact impact',
+        daysToAct: 1
+      },
+      contacted: {
+        action: 'Send qualification questionnaire',
+        priority: 'medium',
+        icon: '📋',
+        reason: 'Qualify opportunity and identify pain points',
+        daysToAct: 2
+      },
+      qualified: {
+        action: 'Schedule demo/presentation call',
+        priority: 'high',
+        icon: '🎬',
+        reason: 'Demonstrate value and build solution vision',
+        daysToAct: 3
+      },
+      proposal: {
+        action: 'Follow up on proposal with decision maker',
+        priority: 'high',
+        icon: '📄',
+        reason: 'Maintain momentum and address questions',
+        daysToAct: 2
+      },
+      negotiation: {
+        action: 'Address final objections and close',
+        priority: 'critical',
+        icon: '🤝',
+        reason: 'Deal is at critical closing stage',
+        daysToAct: 1
+      }
+    };
+    return actions[stage] || {
+      action: 'Review deal status and update pipeline',
+      priority: 'medium',
+      icon: '🔍',
+      reason: 'Keep deal data current for accurate forecasting',
+      daysToAct: 5
+    };
+  },
+
+  // AI Insights and recommendations
+  getAIInsights: (deals) => {
+    const insights = [];
+    // Hot leads insight
+    const hotLeads = deals.filter(d => d.leadScore >= 8 && !['won', 'lost'].includes(d.stage));
+    if (hotLeads.length > 0) {
+      insights.push({
+        type: 'opportunity',
+        icon: '🔥',
+        title: `${hotLeads.length} Hot Leads Need Attention`,
+        description: `Focus on these high-score leads for quick wins`,
+        action: 'View Hot Leads',
+        priority: 'high',
+        deals: hotLeads
+      });
+    }
+    // Stuck deals
+    const stuckDeals = deals.filter(d => {
+      const age = d.createdAt?.seconds 
+        ? Math.floor((Date.now() - d.createdAt.seconds * 1000) / (1000 * 60 * 60 * 24))
+        : 0;
+      return age > 30 && !['won', 'lost'].includes(d.stage);
+    });
+    if (stuckDeals.length > 0) {
+      insights.push({
+        type: 'warning',
+        icon: '⚠️',
+        title: `${stuckDeals.length} Deals Are Stalling`,
+        description: 'These deals haven\'t moved in 30+ days',
+        action: 'Review Stalled Deals',
+        priority: 'medium',
+        deals: stuckDeals
+      });
+    }
+    // Revenue at risk
+    const atRiskValue = deals
+      .filter(d => AIService.calculateDealHealth(d) < 40)
+      .reduce((sum, d) => sum + (d.value || 0), 0);
+    if (atRiskValue > 5000) {
+      insights.push({
+        type: 'danger',
+        icon: '🚨',
+        title: `$${(atRiskValue/1000).toFixed(1)}K Revenue At Risk`,
+        description: 'Multiple deals show declining health',
+        action: 'Rescue Deals',
+        priority: 'critical'
+      });
+    }
+    // Quick wins
+    const quickWins = deals.filter(d => 
+      AIService.calculateWinProbability(d) > 75 && 
+      ['qualified', 'proposal', 'negotiation'].includes(d.stage)
+    );
+    if (quickWins.length > 0) {
+      insights.push({
+        type: 'success',
+        icon: '🎯',
+        title: `${quickWins.length} Deals Ready to Close`,
+        description: 'High probability wins - push for closure',
+        action: 'Close Deals',
+        priority: 'high',
+        deals: quickWins
+      });
+    }
+    // Pipeline health
+    const avgHealth = deals.length > 0
+      ? deals.reduce((sum, d) => sum + AIService.calculateDealHealth(d), 0) / deals.length
       : 0;
     if (avgHealth < 60) {
       insights.push({
@@ -23,6 +317,8 @@ export const PipelineUtils = {
     }
     return insights;
   },
+
+  // Forecast revenue with AI
   forecastRevenue: (deals, days = 30) => {
     const qualified = deals.filter(d => 
       ['qualified', 'proposal', 'negotiation'].includes(d.stage)
@@ -31,7 +327,7 @@ export const PipelineUtils = {
     let bestCase = 0;
     let worstCase = 0;
     qualified.forEach(deal => {
-      const probability = EnhancedPipelineAIService.ConversionIntelligence.calculateWinProbability(deal) / 100;
+      const probability = AIService.calculateWinProbability(deal) / 100;
       const value = deal.value || 0;
       forecast += value * probability;
       bestCase += value * Math.min(1, probability * 1.3);
@@ -47,19 +343,17 @@ export const PipelineUtils = {
 };
 
 // ============================================================================
-// MAIN PIPELINE COMPONENT
+// MAIN PIPELINE COMPONENT (Consolidated)
 // ============================================================================
 
 const Pipeline = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-
   // Core state
   const [deals, setDeals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [draggedDeal, setDraggedDeal] = useState(null);
   const [dragOverStage, setDragOverStage] = useState(null);
-  
   // UI state
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddDeal, setShowAddDeal] = useState(false);
@@ -69,7 +363,6 @@ const Pipeline = () => {
   const [expandedDeals, setExpandedDeals] = useState(new Set());
   const [viewMode, setViewMode] = useState('kanban');
   const [showFilters, setShowFilters] = useState(false);
-  
   // Filter state
   const [filterPriority, setFilterPriority] = useState('all');
   const [filterSource, setFilterSource] = useState('all');
@@ -77,7 +370,6 @@ const Pipeline = () => {
   const [filterHealth, setFilterHealth] = useState('all');
   const [sortBy, setSortBy] = useState('value');
   const [showHotLeadsOnly, setShowHotLeadsOnly] = useState(false);
-  
   // AI features state
   const [showAICoach, setShowAICoach] = useState(false);
   const [showAIInsights, setShowAIInsights] = useState(false);
@@ -85,12 +377,10 @@ const Pipeline = () => {
   const [selectedDealForEmail, setSelectedDealForEmail] = useState(null);
   const [aiInsights, setAIInsights] = useState([]);
   const [forecastData, setForecastData] = useState(null);
-  
   // Settings
   const [realtimeUpdates, setRealtimeUpdates] = useState(true);
   const [automationEnabled, setAutomationEnabled] = useState(true);
   const [forecastRange, setForecastRange] = useState(30);
-  
   // Stats
   const [stats, setStats] = useState({
     totalValue: 0,
@@ -107,22 +397,8 @@ const Pipeline = () => {
     avgWinProb: 0,
     stageConversion: {}
   });
-
-  // Pipeline stages
-  const stages = [
-    { 
-      id: 'new', 
-      title: 'New Lead', 
-      color: 'bg-gradient-to-br from-gray-400 to-gray-500',
-      borderColor: 'border-gray-500',
-      textColor: 'text-gray-700',
-      description: 'Unqualified leads',
-      icon: UserPlus,
-      targetDays: 1
-    },
-    { 
-      id: 'contacted', 
-      title: 'Contacted', 
+  // ...rest of the component logic and rendering...
+};
       color: 'bg-gradient-to-br from-blue-400 to-blue-500',
       borderColor: 'border-blue-500',
       textColor: 'text-blue-700',
@@ -337,18 +613,30 @@ const Pipeline = () => {
 
     // AI-powered metrics
     const avgHealth = dealsList.length > 0
+<<<<<<< HEAD
       ? dealsList.reduce((sum, d) => sum + EnhancedPipelineAIService.ConversionIntelligence.calculateDealHealth(d), 0) / dealsList.length
+=======
+      ? dealsList.reduce((sum, d) => sum + AIService.calculateDealHealth(d), 0) / dealsList.length
+>>>>>>> 9bb51df (Complete hub architecture consolidation - Pipeline integrated into Clients Hub)
       : 0;
     
     const avgWinProb = dealsList.filter(d => !['won', 'lost'].includes(d.stage)).length > 0
       ? dealsList
           .filter(d => !['won', 'lost'].includes(d.stage))
+<<<<<<< HEAD
           .reduce((sum, d) => sum + EnhancedPipelineAIService.calculateWinProbability(d), 0) / 
+=======
+          .reduce((sum, d) => sum + AIService.calculateWinProbability(d), 0) / 
+>>>>>>> 9bb51df (Complete hub architecture consolidation - Pipeline integrated into Clients Hub)
           dealsList.filter(d => !['won', 'lost'].includes(d.stage)).length
       : 0;
 
     // At risk deals
+<<<<<<< HEAD
     const atRiskDeals = dealsList.filter(d => EnhancedPipelineAIService.ConversionIntelligence.calculateDealHealth(d) < 40 && !['won', 'lost'].includes(d.stage));
+=======
+    const atRiskDeals = dealsList.filter(d => AIService.calculateDealHealth(d) < 40 && !['won', 'lost'].includes(d.stage));
+>>>>>>> 9bb51df (Complete hub architecture consolidation - Pipeline integrated into Clients Hub)
     
     // Hot leads
     const hotLeads = dealsList.filter(d => d.leadScore >= 8 && !['won', 'lost'].includes(d.stage)).length;
@@ -576,9 +864,15 @@ const Pipeline = () => {
         case 'value':
           return (b.value || 0) - (a.value || 0);
         case 'health':
+<<<<<<< HEAD
           return EnhancedPipelineAIService.ConversionIntelligence.calculateDealHealth(b) - EnhancedPipelineAIService.ConversionIntelligence.calculateDealHealth(a);
         case 'probability':
           return EnhancedPipelineAIService.ConversionIntelligence.calculateWinProbability(b) - EnhancedPipelineAIService.ConversionIntelligence.calculateWinProbability(a);
+=======
+          return AIService.calculateDealHealth(b) - AIService.calculateDealHealth(a);
+        case 'probability':
+          return AIService.calculateWinProbability(b) - AIService.calculateWinProbability(a);
+>>>>>>> 9bb51df (Complete hub architecture consolidation - Pipeline integrated into Clients Hub)
         case 'score':
           return (b.leadScore || 0) - (a.leadScore || 0);
         default:
@@ -605,11 +899,92 @@ const Pipeline = () => {
     const stageDeals = getDealsForStage(stageId);
     const value = stageDeals.reduce((sum, d) => sum + (d.value || 0), 0);
     const avgHealth = stageDeals.length > 0
+<<<<<<< HEAD
       ? stageDeals.reduce((sum, d) => sum + EnhancedPipelineAIService.ConversionIntelligence.calculateDealHealth(d), 0) / stageDeals.length
       : 0;
     return { value, avgHealth };
   }, [getDealsForStage]);
 
+=======
+      ? stageDeals.reduce((sum, d) => sum + AIService.calculateDealHealth(d), 0) / stageDeals.length
+      : 0;
+    const avgWinProb = stageDeals.length > 0
+      ? stageDeals.reduce((sum, d) => sum + AIService.calculateWinProbability(d), 0) / stageDeals.length
+      : 0;
+    const hotCount = stageDeals.filter(d => d.leadScore >= 8).length;
+    const criticalCount = stageDeals.filter(d => d.urgencyLevel === 'critical').length;
+    
+    return {
+      count: stageDeals.length,
+      value,
+      avgHealth: avgHealth.toFixed(0),
+      avgWinProb: avgWinProb.toFixed(0),
+      hotCount,
+      criticalCount
+    };
+  }, [getDealsForStage]);
+
+  // ============================================================================
+  // DEAL CARD COMPONENT
+  // ============================================================================
+
+  const DealCard = ({ deal }) => {
+    const isExpanded = expandedDeals.has(deal.id);
+    const health = AIService.calculateDealHealth(deal);
+    const winProb = AIService.calculateWinProbability(deal);
+    const nextAction = AIService.getNextBestAction(deal);
+
+    return (
+      <div
+        draggable
+        onDragStart={(e) => handleDragStart(e, deal)}
+        onDragEnd={handleDragEnd}
+        className={`bg-white dark:bg-gray-700 rounded-lg p-3 shadow-sm hover:shadow-md transition-all cursor-move border-2 ${
+          deal.urgencyLevel === 'critical' 
+            ? 'border-red-400 bg-red-50 dark:bg-red-900/20' 
+            : deal.leadScore >= 8
+            ? 'border-orange-400 bg-orange-50 dark:bg-orange-900/20'
+            : health < 40
+            ? 'border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20'
+            : 'border-transparent'
+        }`}
+        onClick={() => {
+          if (isExpanded) {
+            const newExpanded = new Set(expandedDeals);
+            newExpanded.delete(deal.id);
+            setExpandedDeals(newExpanded);
+          } else {
+            setExpandedDeals(new Set([...expandedDeals, deal.id]));
+          }
+        }}
+      >
+        {/* Header Row */}
+        <div className="flex justify-between items-start mb-2">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            {deal.aiGenerated && (
+              <Bot className="w-4 h-4 text-purple-600 flex-shrink-0" title="AI Generated" />
+            )}
+            <h4 className="font-semibold text-gray-900 dark:text-white truncate text-sm">
+              {deal.name}
+            </h4>
+          </div>
+          <div className="flex items-center gap-1 ml-2">
+            <span className={`px-2 py-0.5 text-xs font-medium rounded ${getPriorityColor(deal.priority || 'medium')}`}>
+              {deal.priority || 'med'}
+            </span>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditingDeal(deal);
+              }}
+              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded"
+            >
+              <MoreVertical className="w-3 h-3 text-gray-500" />
+            </button>
+          </div>
+        </div>
+
+>>>>>>> 9bb51df (Complete hub architecture consolidation - Pipeline integrated into Clients Hub)
         {/* Company */}
         {deal.company && (
           <p className="text-xs text-gray-600 dark:text-gray-400 mb-2 truncate">
@@ -1255,14 +1630,22 @@ const Pipeline = () => {
                 </h3>
                 <div className="space-y-2">
                   {deals
+<<<<<<< HEAD
                     .filter(d => EnhancedPipelineAIService.calculateWinProbability(d) > 75 && !['won', 'lost'].includes(d.stage))
+=======
+                    .filter(d => AIService.calculateWinProbability(d) > 75 && !['won', 'lost'].includes(d.stage))
+>>>>>>> 9bb51df (Complete hub architecture consolidation - Pipeline integrated into Clients Hub)
                     .slice(0, 3)
                     .map(deal => (
                       <div key={deal.id} className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
                         <div className="flex items-center justify-between mb-1">
                           <span className="font-medium text-sm">{deal.name}</span>
                           <span className="text-xs font-bold text-green-700 bg-green-100 px-2 py-1 rounded">
+<<<<<<< HEAD
                             {EnhancedPipelineAIService.calculateWinProbability(deal)}% win
+=======
+                            {AIService.calculateWinProbability(deal)}% win
+>>>>>>> 9bb51df (Complete hub architecture consolidation - Pipeline integrated into Clients Hub)
                           </span>
                         </div>
                         <div className="text-xs text-gray-600 dark:text-gray-400">
@@ -1276,7 +1659,11 @@ const Pipeline = () => {
                         </button>
                       </div>
                     ))}
+<<<<<<< HEAD
                   {deals.filter(d => EnhancedPipelineAIService.calculateWinProbability(d) > 75 && !['won', 'lost'].includes(d.stage)).length === 0 && (
+=======
+                  {deals.filter(d => AIService.calculateWinProbability(d) > 75 && !['won', 'lost'].includes(d.stage)).length === 0 && (
+>>>>>>> 9bb51df (Complete hub architecture consolidation - Pipeline integrated into Clients Hub)
                     <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
                       No high-probability deals right now. Focus on moving deals forward!
                     </p>
