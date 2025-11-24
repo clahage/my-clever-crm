@@ -1,8 +1,7 @@
-// ...existing code...
-import React, { lazy, Suspense } from 'react';
-// Add import for FinancialPlanningHub and TradelineHub
+import React, { lazy, Suspense, useState, useEffect } from 'react';
 const FinancialPlanningHub = lazy(() => import('@/pages/hubs/FinancialPlanningHub'));
 const TradelineHub = lazy(() => import('@/pages/hubs/TradelineHub'));
+// ...existing code...
 // src/App.jsx - SpeedyCRM Complete Application Router
 // VERSION: 3.0 - HYBRID HUB ARCHITECTURE INTEGRATION
 // LAST UPDATED: 2025-11-06 - All 18 Hubs Integrated
