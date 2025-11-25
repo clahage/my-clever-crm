@@ -287,8 +287,8 @@ const DisputeTrackingSystem = () => {
         { label: 'Resolved', value: stats.resolved, color: 'success' },
         { label: 'Overdue', value: stats.overdue, color: 'error' },
         { label: 'Due Soon', value: stats.dueSoon, color: 'secondary' },
-      ].map((stat, idx) => (
-        <Grid item xs={6} sm={4} md={2} key={idx}>
+      ].map((stat) => (
+        <Grid item xs={6} sm={4} md={2} key={stat.label}>
           <Card>
             <CardContent sx={{ textAlign: 'center', py: 2 }}>
               <Typography variant="h4" color={`${stat.color}.main`} fontWeight="bold">
@@ -365,7 +365,7 @@ const DisputeTrackingSystem = () => {
                       const bureau = BUREAUS.find(br => br.id === b);
                       return (
                         <Chip
-                          key={b}
+                          key={`${dispute.id}-${b}`}
                           label={bureau?.abbr || b.substring(0, 2).toUpperCase()}
                           size="small"
                           sx={{ bgcolor: bureau?.color, color: 'white', fontSize: '0.7rem' }}
@@ -458,7 +458,7 @@ const DisputeTrackingSystem = () => {
                     }}
                   >
                     {statusDisputes.map((dispute, idx) => (
-                      <Draggable key={dispute.id} draggableId={dispute.id} index={idx}>
+                      <Draggable key={`${status.id}-${dispute.id}`} draggableId={dispute.id} index={idx}>
                         {(provided) => (
                           <Card
                             ref={provided.innerRef}

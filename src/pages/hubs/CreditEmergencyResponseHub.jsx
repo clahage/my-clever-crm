@@ -36,10 +36,18 @@ import {
   Accordion, AccordionSummary, AccordionDetails,
   Fade, Zoom, Collapse, Stack, ToggleButton, ToggleButtonGroup,
   SpeedDial, SpeedDialAction, SpeedDialIcon, Stepper, Step, StepLabel, StepContent,
-  Rating, Slider, Autocomplete, CardActions, CardHeader, Timeline,
-  TimelineItem, TimelineSeparator, TimelineConnector, TimelineContent,
-  TimelineDot, TimelineOppositeContent,
+  Rating, Slider, Autocomplete, CardActions, CardHeader,
 } from '@mui/material';
+
+import {
+  Timeline,
+  TimelineItem,
+  TimelineSeparator,
+  TimelineConnector,
+  TimelineContent,
+  TimelineDot,
+  TimelineOppositeContent,
+} from '@mui/lab';
 import {
   Warning as EmergencyIcon,
   Dashboard as DashboardIcon,

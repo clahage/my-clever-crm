@@ -99,7 +99,7 @@ import {
   AutoGraph as AutoGraphIcon,
   Summarize as SummarizeIcon,
   TextSnippet as TextSnippetIcon,
-  DriveFileRename as RenameIcon,
+  // DriveFileRename as RenameIcon, // Removed: not exported by @mui/icons-material
   FactCheck as FactCheckIcon,
   GppGood as GppGoodIcon,
   GppBad as GppBadIcon,

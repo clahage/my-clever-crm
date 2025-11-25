@@ -756,6 +756,15 @@ export const navigationItems = [
         permission: 'admin',
         badge: 'ADMIN',
         description: 'Dispute administration panel'
+      },
+      {
+        id: 'workflow-testing',
+        title: 'Workflow Testing',
+        path: '/workflow-testing',
+        icon: RefreshCw,
+        permission: 'admin',
+        badge: 'DEBUG',
+        description: 'Test contact-to-client workflow automation'
       }
     ]
   },
