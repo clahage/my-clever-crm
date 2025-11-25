@@ -167,9 +167,6 @@ import { Box, Container, Typography, Paper } from '@mui/material';
   EyeOff,
   Ear,
   Hand,
-  Footprints,
-  PersonStanding
-} from 'lucide-react';
 
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
   CalendarClock,
