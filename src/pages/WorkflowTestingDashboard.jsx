@@ -756,6 +756,7 @@ const triggerWelcomeEmail = async () => {
         fromName: 'Chris Lahage - Speedy Credit Repair',
         replyTo: 'contact@speedycreditrepair.com',
         subject: 'Welcome to Speedy Credit Repair!',
+        template: 'welcome',
         html: `
           <!DOCTYPE html>
           <html>
