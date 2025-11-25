@@ -218,9 +218,6 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
   Power,
   ToggleLeft,
   ToggleRight,
-  Sliders,
-  Gauge
-} from 'lucide-react';
 import {
   LineChart as RechartsLineChart,
   Line,
