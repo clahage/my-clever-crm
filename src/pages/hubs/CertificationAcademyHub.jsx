@@ -51,7 +51,7 @@ import { Box, Container, Typography, Paper } from '@mui/material';
   Filter,
   SortAsc,
   Grid3X3,
-  List as ListIcon,
+  List,
   ChevronRight,
   ChevronDown,
   ChevronUp,
