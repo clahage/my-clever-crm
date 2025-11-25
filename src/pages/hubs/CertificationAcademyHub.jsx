@@ -208,7 +208,6 @@ import { Box, Container, Typography, Paper } from '@mui/material';
   Power,
   ToggleLeft,
   ToggleRight,
-import {
   LineChart as RechartsLineChart,
   Line,
   BarChart,
