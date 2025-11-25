@@ -382,14 +382,14 @@ const generateAIInsights = (dashboardData) => {
     });
   }
   
-  // Task insights
-  if (dashboardData.tasks) {
-    const overdueTasks = dashboardData.tasks.filter(t => new Date(t.dueDate) < new Date() && t.status !== 'completed');
-    if (overdueTasks.length > 0) {
+  // Task insights - FIXED: tasks is an object, not an array
+  if (dashboardData.tasks && typeof dashboardData.tasks === 'object') {
+    const overdueCount = dashboardData.tasks.overdue || 0;
+    if (overdueCount > 0) {
       insights.push({
         type: 'error',
         icon: Clock,
-        title: `${overdueTasks.length} overdue tasks`,
+        title: `${overdueCount} overdue tasks`,
         description: 'Prioritize these to stay on track',
         action: 'View Tasks',
         priority: 'high'
