@@ -258,6 +258,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
   Columns,
   Rows,
   LayoutGrid,
+} from 'lucide-react';
 import {
   LineChart as RechartsLineChart,
   Line,
