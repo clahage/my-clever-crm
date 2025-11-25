@@ -60,6 +60,7 @@ import {
   Clock,
   CheckSquare,
   RefreshCw
+  , Calculator
 } from 'lucide-react';
 
 // ============================================================================
@@ -295,6 +296,15 @@ export const navigationItems = [
         permission: 'user',
         badge: 'IDIQ',
         description: 'IDIQ credit reports & analysis'
+      },
+      {
+        id: 'credit-score-optimizer',
+        title: 'Credit Score Optimizer',
+        path: '/credit-score-optimizer',
+        icon: Calculator,
+        permission: 'user',
+        description: 'Optimize debt paydown for maximum credit score improvement',
+        badge: 'NEW'
       },
       {
         id: 'dispute-hub',
@@ -756,6 +766,15 @@ export const navigationItems = [
         permission: 'admin',
         badge: 'ADMIN',
         description: 'Dispute administration panel'
+      },
+      {
+        id: 'workflow-testing',
+        title: 'Workflow Testing',
+        path: '/workflow-testing',
+        icon: RefreshCw,
+        permission: 'admin',
+        badge: 'DEBUG',
+        description: 'Test contact-to-client workflow automation'
       }
     ]
   },

@@ -87,6 +87,7 @@ import {
   Stack,
   Breadcrumbs,
   Link as MuiLink,
+  Collapse
 } from '@mui/material';
 import {
   TrendingUp,
@@ -188,6 +189,7 @@ import {
 import { format, addMonths, differenceInMonths, parseISO } from 'date-fns';
 import { DebtPayoffCalculator } from '@/lib/financialPlanningEngine';
 import DebtPayoffComponent from '@/components/DebtPayoffCalculator';
+import CreditScoreOptimizer from '@/components/CreditScoreOptimizer';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // CONSTANTS & CONFIGURATION
@@ -757,6 +759,11 @@ export default function FinancialPlanningHub() {
             iconPosition="start"
             label="Education & Resources"
           />
+          <Tab
+            icon={<Target size={20} />}
+            iconPosition="start"
+            label="Credit Score Optimizer"
+          />
         </Tabs>
       </Paper>
 
@@ -812,6 +819,14 @@ export default function FinancialPlanningHub() {
         {/* TAB 6: EDUCATION */}
         {currentTab === 5 && (
           <EducationTab />
+        )}
+        {/* TAB 7: CREDIT SCORE OPTIMIZER */}
+        {currentTab === 6 && (
+          <Box sx={{ mt: 3 }}>
+            <CreditScoreOptimizer 
+              clientId={financialProfile?.clientId || null}
+            />
+          </Box>
         )}
       </Box>
 

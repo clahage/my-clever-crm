@@ -1001,7 +1001,7 @@ const ClientOverviewWidget = () => {
       </Box>
 
       <Grid container columns={12} spacing={2} sx={{ mb: 2 }}>
-        <Grid columnSpan={6}>
+        <Grid xs={6}>
           <Box sx={{ textAlign: 'center', p: 2, backgroundColor: 'rgba(16, 185, 129, 0.1)', borderRadius: 1 }}>
             <Typography variant="h5" fontWeight="bold" sx={{ color: COLORS.success }}>
               {data.active}
@@ -1011,7 +1011,7 @@ const ClientOverviewWidget = () => {
             </Typography>
           </Box>
         </Grid>
-        <Grid columnSpan={6}>
+        <Grid xs={6}>
           <Box sx={{ textAlign: 'center', p: 2, backgroundColor: 'rgba(59, 130, 246, 0.1)', borderRadius: 1 }}>
             <Typography variant="h5" fontWeight="bold" sx={{ color: COLORS.info }}>
               {data.new}
@@ -1150,7 +1150,7 @@ const DisputeOverviewWidget = () => {
       </Box>
 
       <Grid container columns={12} spacing={2} sx={{ mb: 2 }}>
-        <Grid columnSpan={4}>
+        <Grid xs={4}>
           <Box sx={{ textAlign: 'center', p: 1.5, backgroundColor: 'rgba(59, 130, 246, 0.1)', borderRadius: 1 }}>
             <Typography variant="h6" fontWeight="bold" sx={{ color: COLORS.info }}>
               {data.active}
@@ -1160,7 +1160,7 @@ const DisputeOverviewWidget = () => {
             </Typography>
           </Box>
         </Grid>
-        <Grid columnSpan={4}>
+        <Grid xs={4}>
           <Box sx={{ textAlign: 'center', p: 1.5, backgroundColor: 'rgba(245, 158, 11, 0.1)', borderRadius: 1 }}>
             <Typography variant="h6" fontWeight="bold" sx={{ color: COLORS.warning }}>
               {data.pending}
@@ -1170,7 +1170,7 @@ const DisputeOverviewWidget = () => {
             </Typography>
           </Box>
         </Grid>
-        <Grid columnSpan={4}>
+        <Grid xs={4}>
           <Box sx={{ textAlign: 'center', p: 1.5, backgroundColor: 'rgba(16, 185, 129, 0.1)', borderRadius: 1 }}>
             <Typography variant="h6" fontWeight="bold" sx={{ color: COLORS.success }}>
               {data.resolved}

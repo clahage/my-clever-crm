@@ -128,6 +128,7 @@ const SmartDashboard = lazy(() => import('@/pages/SmartDashboard'));
 const Home = lazy(() => import('@/pages/Home'));
 const IDIQDashboard = lazy(() => import("@/components/IDIQDashboard"));
 const CreditReports = lazy(() => import("@/components/CreditReports"));
+const CreditScoreOptimizer = lazy(() => import('./components/CreditScoreOptimizer'));
 const ClientPortal = lazy(() => import('@/pages/ClientPortal'));
 const ClientDashboard = lazy(() => import('@/pages/ClientPortal/ClientDashboard'));
 const ContactDetailPage = lazy(() => import('./pages/ContactDetailPage'));
@@ -208,6 +209,7 @@ const UserRoles = lazy(() => import('@/pages/UserRoles'));
 // Integrations - ARCHIVED: redirect to settings-hub
 const Support = lazy(() => import('@/pages/Support'));
 const SystemMap = lazy(() => import('@/pages/SystemMap'));
+const WorkflowTestingDashboard = lazy(() => import('@/pages/WorkflowTestingDashboard'));
 const WhiteLabelBranding = lazy(() => import('@/pages/whitelabel/Branding'));
 const WhiteLabelDomains = lazy(() => import('@/pages/whitelabel/Domains'));
 const WhiteLabelPlans = lazy(() => import('@/pages/whitelabel/Plans'));
@@ -469,6 +471,17 @@ const AppContent = () => {
         <Route path="contact-reports" element={<Navigate to="/analytics-hub" replace />} />
 
         {/* Disputes Hub redirects */}
+        {/* Credit Score Optimizer Route */}
+        <Route 
+          path="/credit-score-optimizer" 
+          element={
+            <ProtectedRoute requiredRole="user">
+              <Suspense fallback={<LoadingFallback />}>
+                <CreditScoreOptimizer />
+              </Suspense>
+            </ProtectedRoute>
+          } 
+        />
         <Route path="credit-simulator" element={<Navigate to="/dispute-hub" replace />} />
         <Route path="business-credit" element={<Navigate to="/dispute-hub" replace />} />
         <Route path="credit-scores" element={<Navigate to="/dispute-hub" replace />} />
@@ -556,6 +569,18 @@ const AppContent = () => {
 
         {/* System Map - keep as utility */}
         <Route path="system-map" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><SystemMap /></Suspense></ProtectedRoute>} />
+
+        {/* Workflow Testing Dashboard - Debug contact-to-client automation */}
+        <Route 
+          path="workflow-testing" 
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <Suspense fallback={<LoadingFallback />}>
+                <WorkflowTestingDashboard />
+              </Suspense>
+            </ProtectedRoute>
+          } 
+        />  
         
   {/* IDIQ Enrollment / Reporting */}
   <Route
