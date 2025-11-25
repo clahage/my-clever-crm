@@ -168,7 +168,6 @@ import { Box, Container, Typography, Paper } from '@mui/material';
   Ear,
   Hand,
 
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
   CalendarClock,
   UserCheck,
   UserPlus,
