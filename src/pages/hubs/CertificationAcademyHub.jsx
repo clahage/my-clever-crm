@@ -298,7 +298,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
   ScanLine,
   Scan,
   QrCodeIcon
-from 'lucide-react';
+} from 'lucide-react';
 
 import {
   LineChart as RechartsLineChart,
