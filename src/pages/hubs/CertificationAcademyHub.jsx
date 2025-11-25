@@ -206,29 +206,6 @@ import { Box, Container, Typography, Paper } from '@mui/material';
   Wifi,
   WifiOff,
   Power,
-  ToggleLeft,
-  ToggleRight,
-  LineChart as RechartsLineChart,
-  Line,
-  BarChart,
-  Bar,
-  PieChart as RechartsPieChart,
-  Pie,
-  Cell,
-  AreaChart,
-  Area,
-  RadarChart,
-  Radar,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as RechartsTooltip,
-  Legend,
-  ResponsiveContainer
-} from 'recharts';
 
 // ============================================================================
 // CONSTANTS & CONFIGURATION
