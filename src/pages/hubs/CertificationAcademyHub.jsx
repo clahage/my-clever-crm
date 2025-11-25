@@ -162,7 +162,7 @@ import { Box, Container, Typography, Paper } from '@mui/material';
   Syringe,
   Bandage,
   HeartPulse,
-  Brain as BrainIcon,
+  Brain,
   Eye,
   EyeOff,
   Ear,
