@@ -205,11 +205,6 @@ import { Box, Container, Typography, Paper } from '@mui/material';
   Server,
   Wifi,
   WifiOff,
-  Power,
-
-// ============================================================================
-// CONSTANTS & CONFIGURATION
-// ============================================================================
 
 const STORAGE_KEY = 'certification_academy_hub_tab';
 
