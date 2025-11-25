@@ -23,7 +23,9 @@ import {
   Box,
   Container,
   Typography,
-  Paper,
+  Paper
+} from '@mui/material';
+import {
   GraduationCap,
   BookOpen,
   Award,
@@ -172,7 +174,7 @@ import {
   Ear,
   Hand,
   Footprints,
-  PersonStanding,
+  PersonStanding
 } from 'lucide-react';
 
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
