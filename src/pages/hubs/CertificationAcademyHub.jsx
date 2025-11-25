@@ -217,8 +217,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
   ToggleLeft,
   ToggleRight,
   Sliders,
-  Gauge,
-import { LayoutList, LayoutDashboard } from 'lucide-react';
+  Gauge
 } from 'lucide-react';
 import {
   LineChart as RechartsLineChart,
