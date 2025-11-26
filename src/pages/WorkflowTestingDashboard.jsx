@@ -1,231 +1,35 @@
-// ============================================================================
-// WorkflowTestingDashboard.jsx - TIER 3 MEGA ULTIMATE WORKFLOW TESTING DASHBOARD
-// ============================================================================
-// VERSION: 3.0.0 - ULTIMATE EDITION
-// AUTHOR: SpeedyCRM Advanced AI Development Team
-// LAST UPDATED: 2025-11-25
-//
-// DESCRIPTION:
-// The most advanced workflow testing dashboard ever created. Features 80+ AI-powered
-// capabilities, real-time monitoring, comprehensive analytics, predictive insights,
-// automated testing, performance optimization, and enterprise-grade workflow management.
-//
-// ============================================================================
-// 🚀 TIER 3 MEGA FEATURES - 80+ AI CAPABILITIES
-// ============================================================================
-//
-// 🤖 AI-POWERED FEATURES (80+ Total):
-// ────────────────────────────────────────────────────────────────────────
-// 1. Predictive Analytics & Forecasting
-//    - Workflow success prediction
-//    - Execution time forecasting
-//    - Resource usage prediction
-//    - Failure probability analysis
-//    - Trend prediction & analysis
-//
-// 2. Intelligent Optimization
-//    - Auto-optimization suggestions
-//    - Performance tuning recommendations
-//    - Resource allocation optimization
-//    - Bottleneck detection & resolution
-//    - Execution path optimization
-//
-// 3. Anomaly Detection & Monitoring
-//    - Real-time anomaly detection
-//    - Pattern deviation alerts
-//    - Unusual behavior detection
-//    - Performance degradation detection
-//    - Security anomaly detection
-//
-// 4. Smart Recommendations
-//    - Workflow improvement suggestions
-//    - Best practice recommendations
-//    - Similar workflow suggestions
-//    - Template recommendations
-//    - Integration suggestions
-//
-// 5. Natural Language Processing
-//    - Query workflows with natural language
-//    - Workflow description generation
-//    - Error message interpretation
-//    - Log analysis with NLP
-//    - Sentiment analysis on results
-//
-// 6. Machine Learning Analytics
-//    - Usage pattern learning
-//    - Adaptive threshold adjustment
-//    - Clustering similar workflows
-//    - Classification & categorization
-//    - Reinforcement learning optimization
-//
-// 7. Automated Testing & Validation
-//    - AI-generated test cases
-//    - Smart test data generation
-//    - Automated regression testing
-//    - Intelligent assertion generation
-//    - Coverage optimization
-//
-// 8. Intelligent Debugging
-//    - Auto-root cause analysis
-//    - Smart error suggestions
-//    - Debug path recommendations
-//    - Fix suggestions with AI
-//    - Historical error correlation
-//
-// 9. Performance Intelligence
-//    - Smart caching recommendations
-//    - Query optimization suggestions
-//    - Load balancing insights
-//    - Scalability predictions
-//    - Cost optimization analysis
-//
-// 10. Advanced Monitoring & Observability
-//     - Real-time metrics streaming
-//     - Distributed tracing with AI
-//     - Log aggregation & analysis
-//     - Custom metric suggestions
-//     - Alerting rule optimization
-//
-// 📊 COMPREHENSIVE MONITORING:
-// ────────────────────────────────────────────────────────────────────────
-// - Real-time WebSocket integration
-// - Live execution monitoring
-// - Performance metrics dashboard
-// - Resource utilization tracking
-// - Error rate monitoring
-// - Success rate analytics
-// - Response time tracking
-// - Throughput analysis
-// - Latency monitoring
-// - Queue depth tracking
-//
-// 🧪 TESTING CAPABILITIES:
-// ────────────────────────────────────────────────────────────────────────
-// - Unit testing for workflows
-// - Integration testing
-// - Load testing & stress testing
-// - Performance benchmarking
-// - Regression testing
-// - A/B testing workflows
-// - Canary deployments
-// - Blue-green testing
-// - Chaos engineering
-// - Synthetic monitoring
-//
-// 📈 ANALYTICS & REPORTING:
-// ────────────────────────────────────────────────────────────────────────
-// - Executive dashboards
-// - Custom report builder
-// - Scheduled reports
-// - Export to multiple formats
-// - Data visualization suite
-// - Trend analysis charts
-// - Heatmap visualizations
-// - Correlation matrices
-// - Funnel analysis
-// - Cohort analysis
-//
-// 🔥 FIREBASE INTEGRATION:
-// ────────────────────────────────────────────────────────────────────────
-// - Full CRUD operations
-// - Real-time data synchronization
-// - Offline support
-// - Transaction support
-// - Batch operations
-// - Query optimization
-// - Caching strategies
-// - Security rules integration
-//
-// 🎨 ADVANCED UI/UX:
-// ────────────────────────────────────────────────────────────────────────
-// - Material-UI components
-// - Responsive design
-// - Dark/light theme support
-// - Accessibility (WCAG 2.1)
-// - Keyboard shortcuts
-// - Drag & drop interface
-// - Split panels & layouts
-// - Customizable dashboards
-// - Multi-language support
-//
-// ============================================================================
-
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
-  Box,
-  Paper,
-  Typography,
-  Button,
-  Grid,
-  Card,
-  CardContent,
-  CardActions,
-  Chip,
-  IconButton,
-  Tooltip,
-  TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Switch,
-  FormControlLabel,
-  Tabs,
-  Tab,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  ListItemSecondaryAction,
-  Divider,
-  Alert,
-  AlertTitle,
-  Badge,
-  CircularProgress,
-  LinearProgress,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TablePagination,
-  Drawer,
-  AppBar,
-  Toolbar,
-  Menu,
-  Snackbar,
-  Breadcrumbs,
-  Link,
-  Avatar,
-  AvatarGroup,
-  ButtonGroup,
-  ToggleButton,
-  ToggleButtonGroup,
-  Slider,
-  Rating,
-  Stepper,
-  Step,
-  StepLabel,
-  Timeline,
-  TimelineItem,
-  TimelineSeparator,
-  TimelineConnector,
-  TimelineContent,
-  TimelineDot,
-  TimelineOppositeContent,
-} from '@mui/material';
-
-// ============================================================================
-// ICON IMPORTS - Comprehensive Icon Library
-// ============================================================================
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as ChartTooltip,
+  Legend,
+  ResponsiveContainer,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Radar,
+  ScatterChart,
+  Scatter,
+  ComposedChart,
+  Treemap,
+  Sankey,
+  RadialBarChart,
+  RadialBar,
+  FunnelChart,
+  Funnel,
+  LabelList,
+} from 'recharts';
 import {
   Dashboard as DashboardIcon,
   PlayArrow as PlayIcon,
@@ -408,43 +212,241 @@ import {
   Devices as DevicesIcon,
   DevicesOther as DevicesOtherIcon,
 } from '@mui/icons-material';
+// ============================================================================
+// WorkflowTestingDashboard.jsx - TIER 3 MEGA ULTIMATE WORKFLOW TESTING DASHBOARD
+// ============================================================================
+// VERSION: 3.0.0 - ULTIMATE EDITION
+// AUTHOR: SpeedyCRM Advanced AI Development Team
+// LAST UPDATED: 2025-11-25
+//
+// DESCRIPTION:
+// The most advanced workflow testing dashboard ever created. Features 80+ AI-powered
+// capabilities, real-time monitoring, comprehensive analytics, predictive insights,
+// automated testing, performance optimization, and enterprise-grade workflow management.
+//
+// ============================================================================
+// 🚀 TIER 3 MEGA FEATURES - 80+ AI CAPABILITIES
+// ============================================================================
+//
+// 🤖 AI-POWERED FEATURES (80+ Total):
+// ────────────────────────────────────────────────────────────────────────
+// 1. Predictive Analytics & Forecasting
+//    - Workflow success prediction
+//    - Execution time forecasting
+//    - Resource usage prediction
+//    - Failure probability analysis
+//    - Trend prediction & analysis
+//
+// 2. Intelligent Optimization
+//    - Auto-optimization suggestions
+//    - Performance tuning recommendations
+//    - Resource allocation optimization
+//    - Bottleneck detection & resolution
+//    - Execution path optimization
+//
+// 3. Anomaly Detection & Monitoring
+//    - Real-time anomaly detection
+//    - Pattern deviation alerts
+//    - Unusual behavior detection
+//    - Performance degradation detection
+//    - Security anomaly detection
+//
+// 4. Smart Recommendations
+//    - Workflow improvement suggestions
+//    - Best practice recommendations
+//    - Similar workflow suggestions
+//    - Template recommendations
+//    - Integration suggestions
+//
+// 5. Natural Language Processing
+//    - Query workflows with natural language
+//    - Workflow description generation
+//    - Error message interpretation
+//    - Log analysis with NLP
+//    - Sentiment analysis on results
+//
+// 6. Machine Learning Analytics
+//    - Usage pattern learning
+//    - Adaptive threshold adjustment
+//    - Clustering similar workflows
+//    - Classification & categorization
+//    - Reinforcement learning optimization
+//
+// 7. Automated Testing & Validation
+//    - AI-generated test cases
+//    - Smart test data generation
+//    - Automated regression testing
+//    - Intelligent assertion generation
+//    - Coverage optimization
+//
+// 8. Intelligent Debugging
+//    - Auto-root cause analysis
+//    - Smart error suggestions
+//    - Debug path recommendations
+//    - Fix suggestions with AI
+//    - Historical error correlation
+//
+// 9. Performance Intelligence
+//    - Smart caching recommendations
+//    - Query optimization suggestions
+//    - Load balancing insights
+//    - Scalability predictions
+//    - Cost optimization analysis
+//
+// 10. Advanced Monitoring & Observability
+//     - Real-time metrics streaming
+//     - Distributed tracing with AI
+//     - Log aggregation & analysis
+//     - Custom metric suggestions
+//     - Alerting rule optimization
+//
+// 📊 COMPREHENSIVE MONITORING:
+// ────────────────────────────────────────────────────────────────────────
+// - Real-time WebSocket integration
+// - Live execution monitoring
+// - Performance metrics dashboard
+// - Resource utilization tracking
+// - Error rate monitoring
+// - Success rate analytics
+// - Response time tracking
+// - Throughput analysis
+// - Latency monitoring
+// - Queue depth tracking
+//
+// 🧪 TESTING CAPABILITIES:
+// ────────────────────────────────────────────────────────────────────────
+// - Unit testing for workflows
+// - Integration testing
+// - Load testing & stress testing
+// - Performance benchmarking
+// - Regression testing
+// - A/B testing workflows
+// - Canary deployments
+// - Blue-green testing
+// - Chaos engineering
+// - Synthetic monitoring
+//
+// 📈 ANALYTICS & REPORTING:
+// ────────────────────────────────────────────────────────────────────────
+// - Executive dashboards
+// - Custom report builder
+// - Scheduled reports
+// - Export to multiple formats
+// - Data visualization suite
+// - Trend analysis charts
+// - Heatmap visualizations
+// - Correlation matrices
+// - Funnel analysis
+// - Cohort analysis
+//
+// 🔥 FIREBASE INTEGRATION:
+// ────────────────────────────────────────────────────────────────────────
+// - Full CRUD operations
+// - Real-time data synchronization
+// - Offline support
+// - Transaction support
+// - Batch operations
+// - Query optimization
+// - Caching strategies
+// - Security rules integration
+//
+// 🎨 ADVANCED UI/UX:
+// ────────────────────────────────────────────────────────────────────────
+// - Material-UI components
+// - Responsive design
+// - Dark/light theme support
+// - Accessibility (WCAG 2.1)
+// - Keyboard shortcuts
+// - Drag & drop interface
+// - Split panels & layouts
+// - Customizable dashboards
+// - Multi-language support
+//
+// ============================================================================
 
-// Chart and visualization imports
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
-  LineChart,
-  Line,
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as ChartTooltip,
-  Legend,
-  ResponsiveContainer,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Radar,
-  ScatterChart,
-  Scatter,
-  ComposedChart,
-  Treemap,
-  Sankey,
-  RadialBarChart,
-  RadialBar,
-  FunnelChart,
-  Funnel,
-  LabelList,
-} from 'recharts';
+  Timeline,
+  TimelineItem,
+  TimelineSeparator,
+  TimelineConnector,
+  TimelineContent,
+  TimelineDot,
+  TimelineOppositeContent,
+} from '@mui/lab';
+import {
+  Box,
+  Paper,
+  Typography,
+  Button,
+  Grid,
+  Card,
+  CardContent,
+  CardActions,
+  Chip,
+  IconButton,
+  Tooltip,
+  TextField,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Switch,
+  FormControlLabel,
+  Tabs,
+  Tab,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  ListItemSecondaryAction,
+  Divider,
+  Alert,
+  AlertTitle,
+  Badge,
+  CircularProgress,
+  LinearProgress,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TablePagination,
+  Drawer,
+  AppBar,
+  Toolbar,
+  Menu,
+  Snackbar,
+  Breadcrumbs,
+  Link,
+  Avatar,
+  AvatarGroup,
+  ButtonGroup,
+  ToggleButton,
+  ToggleButtonGroup,
+  Slider,
+  Rating,
+  Stepper,
+  Step,
+
+
+  StepLabel,
+} from '@mui/material';
+
+
+
+
 
 // Firebase imports
-import { db } from '../firebase/config';
+import { db } from '../lib/firebase';
 import {
   collection,
   doc,

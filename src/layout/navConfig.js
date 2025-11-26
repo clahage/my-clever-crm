@@ -249,14 +249,6 @@ export const navigationItems = [
         description: 'All contacts & client management'
       },
       {
-        id: 'pipeline',
-        title: 'Sales Pipeline',
-        path: '/clients-hub',
-        icon: Target,
-        permission: 'user',
-        description: 'Lead pipeline & conversion'
-      },
-      {
         id: 'onboarding-hub',
         title: 'Onboarding Hub',
         path: '/onboarding-hub',
