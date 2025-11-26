@@ -59,11 +59,97 @@ service cloud.firestore {
     // Disputes
     match /disputes/{disputeId} {
       allow read: if isAuthenticated() && (
-        isAdmin() || 
+        isAdmin() ||
         resource.data.clientId == request.auth.uid
       );
       allow create: if isAuthenticated();
       allow update, delete: if isAuthenticated() && isEmployee();
+    }
+
+    // ============================================================================
+    // TAX SERVICES SYSTEM
+    // ============================================================================
+
+    // Tax Returns
+    match /taxReturns/{returnId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() ||
+        resource.data.userId == request.auth.uid ||
+        resource.data.clientId == request.auth.uid
+      );
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (
+        isEmployee() ||
+        resource.data.userId == request.auth.uid
+      );
+      allow delete: if isAuthenticated() && isAdmin();
+    }
+
+    // Tax Documents
+    match /taxDocuments/{documentId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() ||
+        resource.data.userId == request.auth.uid
+      );
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (
+        isEmployee() ||
+        resource.data.userId == request.auth.uid
+      );
+      allow delete: if isAuthenticated() && (
+        isAdmin() ||
+        resource.data.userId == request.auth.uid
+      );
+    }
+
+    // Tax Profiles
+    match /taxProfiles/{profileId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() ||
+        resource.data.userId == request.auth.uid ||
+        resource.data.clientId == request.auth.uid
+      );
+      allow create, update: if isAuthenticated() && isEmployee();
+      allow delete: if isAuthenticated() && isAdmin();
+    }
+
+    // Tax Questionnaires
+    match /taxQuestionnaires/{questionnaireId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() ||
+        resource.data.userId == request.auth.uid
+      );
+      allow create, update: if isAuthenticated();
+      allow delete: if isAuthenticated() && isAdmin();
+    }
+
+    // Tax Analytics
+    match /taxAnalytics/{analyticsId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() && isAdmin();
+    }
+
+    // Tax Analytics Aggregate (public read for dashboards)
+    match /taxAnalyticsAggregate/{aggregateId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Only cloud functions can write
+    }
+
+    // Tax Audit Logs (read-only for admins)
+    match /taxAuditLogs/{logId} {
+      allow read: if isAuthenticated() && isAdmin();
+      allow create: if isAuthenticated(); // System can create
+      allow update, delete: if false; // Immutable audit logs
+    }
+
+    // Tax Filing Confirmations
+    match /taxFilingConfirmations/{confirmationId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() ||
+        resource.data.userId == request.auth.uid
+      );
+      allow write: if false; // Only cloud functions can write
     }
 
   }
