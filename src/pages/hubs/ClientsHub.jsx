@@ -1,3 +1,4 @@
+import { useAuth } from '@/contexts/AuthContext';
 import { Timeline, TimelineItem, TimelineSeparator, TimelineConnector, TimelineContent, TimelineDot, TimelineOppositeContent } from '@mui/lab';
 import {
   BarChart as RechartsBarChart,
@@ -169,7 +170,7 @@ import {
   Save,
   ChevronDown,
 } from 'lucide-react';
-import { db, storage } from '../../firebase';
+import { db, storage } from '@/lib/firebase';
 import {
   collection,
   doc,
