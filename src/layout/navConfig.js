@@ -596,6 +596,15 @@ export const navigationItems = [
         icon: Award,
         permission: 'user',
         description: 'Certification and accreditation'
+      },
+      {
+        id: 'tax-services-hub',
+        title: 'Tax Services',
+        path: '/tax-services-hub',
+        icon: Calculator,
+        permission: 'user',
+        badge: 'NEW',
+        description: 'Speedy Tax Services - Tax preparation and filing'
       }
     ]
   },

@@ -34,10 +34,14 @@ import {
   Autocomplete, Rating, Skeleton, SpeedDial, SpeedDialAction,
   SpeedDialIcon, Drawer, AppBar, Toolbar, Menu, Breadcrumbs, Link,
   ToggleButton, ToggleButtonGroup, Accordion, AccordionSummary,
-  AccordionDetails, Timeline, TimelineItem, TimelineSeparator,
-  TimelineConnector, TimelineContent, TimelineDot, TimelineOppositeContent,
+  AccordionDetails,
   Snackbar, Backdrop, Popover, Popper, ClickAwayListener
 } from '@mui/material';
+
+import {
+  Timeline, TimelineItem, TimelineSeparator,
+  TimelineConnector, TimelineContent, TimelineDot, TimelineOppositeContent
+} from '@mui/lab';
 
 import {
   AccountBalance as TaxIcon,
@@ -192,7 +196,7 @@ import {
   Celebration as CelebrationIcon,
   EmojiEvents as TrophyIcon,
   MilitaryTech as MilitaryIcon,
-  Workspace as WorkspaceIcon,
+  BusinessCenter as WorkspaceIcon,
   Hub as HubIcon,
   AccountTree as TreeIcon,
   Schema as SchemaIcon,

@@ -261,6 +261,7 @@ const SupportHub = lazy(() => import('@/pages/hubs/SupportHub'));
 const TasksSchedulingHub = lazy(() => import('@/pages/hubs/TasksSchedulingHub'));
 const TrainingHub = lazy(() => import('@/pages/hubs/TrainingHub'));
 const WebsiteLandingPagesHub = lazy(() => import('@/pages/hubs/WebsiteLandingPagesHub'));
+const TaxServicesHub = lazy(() => import('@/pages/hubs/TaxServicesHub'));
 
 // ============================================================================
 // PROTECTED ROUTE WRAPPER
@@ -1002,6 +1003,18 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="admin">
       <Suspense fallback={<LoadingFallback />}>
         <DisputeAdminPanel />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Tax Services Hub - Speedy Tax Services Module */}
+<Route
+  path="tax-services-hub"
+  element={
+    <ProtectedRoute requiredRole="user">
+      <Suspense fallback={<LoadingFallback />}>
+        <TaxServicesHub />
       </Suspense>
     </ProtectedRoute>
   }
