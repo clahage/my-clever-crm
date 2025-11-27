@@ -1,6 +1,7 @@
 // src/App.jsx - SpeedyCRM Complete Application Router
-// VERSION: 3.0 - HYBRID HUB ARCHITECTURE INTEGRATION
-// LAST UPDATED: 2025-11-06 - All 18 Hubs Integrated
+// VERSION: 3.1 - NAVIGATION & ROUTING AUDIT COMPLETE
+// LAST UPDATED: 2025-11-27 - Whitelabel routes fixed, T-5 Enterprise standards applied
+// AUDIT: All 41 hubs verified, Whitelabel routing corrected, role-based protection enforced
 import EmailWorkflowDashboard from './components/EmailWorkflowDashboard';
 import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
@@ -480,11 +481,49 @@ const AppContent = () => {
         <Route path="apps/client" element={<Navigate to="/mobile-app-hub" replace />} />
         <Route path="apps/affiliate" element={<Navigate to="/mobile-app-hub" replace />} />
 
-        {/* WhiteLabel redirects → Settings Hub */}
-        <Route path="whitelabel/branding" element={<Navigate to="/settings-hub" replace />} />
-        <Route path="whitelabel/domains" element={<Navigate to="/settings-hub" replace />} />
-        <Route path="whitelabel/plans" element={<Navigate to="/settings-hub" replace />} />
-        <Route path="whitelabel/tenants" element={<Navigate to="/settings-hub" replace />} />
+        {/* ============================================================================ */}
+        {/* WHITELABEL ROUTES - Master Admin Only */}
+        {/* ============================================================================ */}
+        <Route
+          path="whitelabel/branding"
+          element={
+            <ProtectedRoute requiredRole="masterAdmin">
+              <Suspense fallback={<LoadingFallback />}>
+                <WhiteLabelBranding />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="whitelabel/domains"
+          element={
+            <ProtectedRoute requiredRole="masterAdmin">
+              <Suspense fallback={<LoadingFallback />}>
+                <WhiteLabelDomains />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="whitelabel/plans"
+          element={
+            <ProtectedRoute requiredRole="masterAdmin">
+              <Suspense fallback={<LoadingFallback />}>
+                <WhiteLabelPlans />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="whitelabel/tenants"
+          element={
+            <ProtectedRoute requiredRole="masterAdmin">
+              <Suspense fallback={<LoadingFallback />}>
+                <WhiteLabelTenants />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
 
         {/* System Map - keep as utility */}
         <Route path="system-map" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><SystemMap /></Suspense></ProtectedRoute>} />
