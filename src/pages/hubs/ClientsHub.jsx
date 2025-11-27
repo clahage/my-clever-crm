@@ -667,7 +667,7 @@ const ClientsHub = () => {
     }
   }, []);
   
-  // ===== PREDICTIVE ANALYSIS (NEW) =====
+  // ===== PREDICTIVE ANALYSIS =====
   
   const runPredictiveAnalysis = useCallback(async (clientData) => {
     console.log('🧠 Running predictive analysis on', clientData.length, 'clients');
@@ -679,13 +679,13 @@ const ClientsHub = () => {
       
       // 1. CHURN PREDICTION
       const churnPredictions = clientData
-        .filter(c => c.status === 'active')
-        .map(client => {
+        .filter((c) => c.status === 'active')
+        .map((client) => {
           // Calculate churn probability based on multiple factors
           let churnScore = 0;
           
           // Engagement decay (last contact)
-          const daysSinceContact = client.lastContact 
+          const daysSinceContact = client.lastContact
             ? Math.floor((new Date() - client.lastContact.toDate()) / (1000 * 60 * 60 * 24))
             : 365;
           if (daysSinceContact > 90) churnScore += 40;
@@ -709,14 +709,17 @@ const ClientsHub = () => {
           if (client.usageTrend === 'declining') churnScore += 15;
           
           const churnProbability = Math.min(95, Math.max(5, churnScore));
-          const risk = churnProbability > 70 ? 'high' : churnProbability > 40 ? 'medium' : 'low';
+          const risk =
+            churnProbability > 70 ? 'high' :
+            churnProbability > 40 ? 'medium' :
+            'low';
           
           // Generate intervention suggestions
           const interventions = [];
-          if (daysSinceContact > 30) interventions.push('Schedule check-in call');
-          if (engagement < 50) interventions.push('Send re-engagement campaign');
-          if (client.missedPayments > 0) interventions.push('Offer payment plan');
-          if (client.openTickets > 2) interventions.push('Priority support escalation');
+          if (daysSinceContact > 60) interventions.push('Schedule check-in call');
+          if (engagement < 50) interventions.push('Send engagement survey');
+          if (client.missedPayments > 0) interventions.push('Review payment plan');
+          if (client.openTickets > 2) interventions.push('Escalate support issues');
           if (client.usageTrend === 'declining') interventions.push('Offer training session');
           
           return {
@@ -725,51 +728,98 @@ const ClientsHub = () => {
             churnProbability,
             risk,
             factors: [
-              { name: 'Days Since Contact', value: daysSinceContact, impact: daysSinceContact > 30 ? 'high' : 'low' },
-              { name: 'Engagement Score', value: engagement, impact: engagement < 50 ? 'high' : 'low' },
-              { name: 'Payment Issues', value: client.missedPayments || 0, impact: client.missedPayments > 0 ? 'medium' : 'low' },
+              {
+                name: 'Days Since Contact',
+                value: daysSinceContact,
+                impact: daysSinceContact > 30 ? 'high' : 'low',
+              },
+              {
+                name: 'Engagement Score',
+                value: engagement,
+                impact: engagement < 50 ? 'high' : 'low',
+              },
+              {
+                name: 'Payment Issues',
+                value: client.missedPayments || 0,
+                impact: client.missedPayments > 0 ? 'medium' : 'low',
+              },
             ],
             interventions,
-            predictedChurnDate: new Date(Date.now() + (90 - daysSinceContact) * 24 * 60 * 60 * 1000),
+            predictedChurnDate: new Date(
+              Date.now() + (90 - daysSinceContact) * 24 * 60 * 60 * 1000
+            ),
           };
         })
-        .filter(p => p.risk !== 'low')
+        .filter((p) => p.risk !== 'low')
         .sort((a, b) => b.churnProbability - a.churnProbability)
         .slice(0, 10);
       
       // 2. CLV (Customer Lifetime Value) FORECASTING
       const clvForecasts = clientData
-        .filter(c => c.status === 'active' || c.status === 'prospect')
-        .map(client => {
-          // Calculate CLV based on historical data and predictive factors
-          const avgMonthlyRevenue = (client.totalRevenue || 0) / Math.max(1, client.monthsAsClient || 12);
-          const retentionRate = 0.85; // Industry average, adjust based on churn prediction
-          const months = 24; // Forecast horizon
+        .filter((c) => c.status === 'active' || c.status === 'prospect')
+        .map((client) => {
+          const currentValue = client.totalRevenue || 0;
           
-          // Adjust for engagement and lead score
-          const engagementMultiplier = ((client.engagementScore || 50) / 50);
-          const scoreMultiplier = ((client.leadScore || 5) / 5);
+          // Estimate months as client from createdAt
+          const createdAt =
+            client.createdAt?.toDate?.() != null
+              ? client.createdAt.toDate()
+              : client.createdAt
+              ? new Date(client.createdAt)
+              : null;
           
-          const predictedCLV = avgMonthlyRevenue * months * retentionRate * engagementMultiplier * scoreMultiplier;
-          const confidence = Math.min(95, 50 + (client.monthsAsClient || 0) * 5);
+          const daysAsClient = createdAt
+            ? Math.max(
+                0,
+                (new Date().getTime() - createdAt.getTime()) /
+                  (1000 * 60 * 60 * 24),
+              )
+            : 0;
+          const monthsAsClient = Math.max(1, Math.floor(daysAsClient / 30));
+          
+          const avgMonthlyValue =
+            monthsAsClient > 0 ? currentValue / monthsAsClient : currentValue;
+          
+          const engagement = client.engagementScore || 50;
+          const retentionMultiplier =
+            engagement >= 80 ? 1.4 :
+            engagement >= 60 ? 1.2 :
+            engagement >= 40 ? 1.0 :
+            0.8;
+          
+          const horizonMonths = 12; // forecast horizon
+          const predictedCLV = Math.max(
+            0,
+            Math.round(avgMonthlyValue * horizonMonths * retentionMultiplier),
+          );
+          
+          const tier =
+            predictedCLV >= 20000 ? 'platinum' :
+            predictedCLV >= 10000 ? 'gold' :
+            predictedCLV >= 5000 ? 'silver' :
+            'bronze';
+          
+          const confidenceBase =
+            engagement >= 80 ? 90 :
+            engagement >= 60 ? 80 :
+            engagement >= 40 ? 70 :
+            60;
+          const confidence = Math.min(95, Math.max(50, confidenceBase));
           
           return {
             clientId: client.id,
             clientName: `${client.firstName} ${client.lastName}`,
-            currentValue: client.totalRevenue || 0,
-            predictedCLV: Math.round(predictedCLV),
-            monthlyValue: Math.round(avgMonthlyRevenue),
+            currentValue: Math.round(currentValue),
+            predictedCLV,
+            tier,
             confidence,
-            tier: predictedCLV > 10000 ? 'platinum' : predictedCLV > 5000 ? 'gold' : predictedCLV > 2000 ? 'silver' : 'bronze',
-            growthPotential: predictedCLV > (client.totalRevenue || 0) * 1.5 ? 'high' : 'moderate',
           };
         })
-        .sort((a, b) => b.predictedCLV - a.predictedCLV)
-        .slice(0, 20);
+        .sort((a, b) => b.predictedCLV - a.predictedCLV);
       
       // 3. NEXT BEST ACTIONS
       const nextBestActions = clientData
-        .map(client => {
+        .map((client) => {
           const actions = [];
           const daysSinceContact = client.lastContact 
             ? Math.floor((new Date() - client.lastContact.toDate()) / (1000 * 60 * 60 * 24))
@@ -832,13 +882,13 @@ const ClientsHub = () => {
             actions,
           };
         })
-        .filter(c => c.actions.length > 0)
+        .filter((c) => c.actions.length > 0)
         .slice(0, 15);
       
       // 4. UPSELL OPPORTUNITIES
       const upsellOpportunities = clientData
-        .filter(c => c.status === 'active')
-        .map(client => {
+        .filter((c) => c.status === 'active')
+        .map((client) => {
           const opportunities = [];
           
           // Identify upsell opportunities based on usage and satisfaction
@@ -867,7 +917,7 @@ const ClientsHub = () => {
               type: 'referral_program',
               description: 'Enroll in Referral Program',
               estimatedValue: 200,
-              probability: 0.70,
+              probability: 0.7,
               reasoning: 'Long-term satisfied client',
             });
           }
@@ -876,19 +926,25 @@ const ClientsHub = () => {
             clientId: client.id,
             clientName: `${client.firstName} ${client.lastName}`,
             opportunities,
-            totalPotentialValue: opportunities.reduce((sum, o) => sum + o.estimatedValue, 0),
+            totalPotentialValue: opportunities.reduce(
+              (sum, o) => sum + o.estimatedValue,
+              0
+            ),
           };
         })
-        .filter(c => c.opportunities.length > 0)
+        .filter((c) => c.opportunities.length > 0)
         .sort((a, b) => b.totalPotentialValue - a.totalPotentialValue)
         .slice(0, 10);
       
       // 5. WIN-BACK CANDIDATES
       const winBackCandidates = clientData
-        .filter(c => c.status === 'inactive' || c.status === 'cancelled')
-        .map(client => {
+        .filter((c) => c.status === 'inactive' || c.status === 'cancelled')
+        .map((client) => {
           const daysSinceCancellation = client.cancellationDate
-            ? Math.floor((new Date() - client.cancellationDate.toDate()) / (1000 * 60 * 60 * 24))
+            ? Math.floor(
+                (new Date() - client.cancellationDate.toDate()) /
+                  (1000 * 60 * 60 * 24)
+              )
             : 90;
           
           // Calculate win-back probability
@@ -920,12 +976,12 @@ const ClientsHub = () => {
             estimatedValue: (client.totalRevenue || 1000) * 0.8,
           };
         })
-        .filter(c => c.probability > 0.3)
+        .filter((c) => c.probability > 0.3)
         .sort((a, b) => b.probability - a.probability)
         .slice(0, 10);
       
       // 6. ENGAGEMENT SCORES (ML-based)
-      const engagementScores = clientData.map(client => {
+      const engagementScores = clientData.map((client) => {
         // Calculate comprehensive engagement score
         let score = 0;
         
@@ -946,7 +1002,7 @@ const ClientsHub = () => {
         score += taskCompletionRate * 0.15;
         
         // Recency (0-10 points)
-        const daysSinceContact = client.lastContact 
+        const daysSinceContact = client.lastContact
           ? Math.floor((new Date() - client.lastContact.toDate()) / (1000 * 60 * 60 * 24))
           : 365;
         if (daysSinceContact < 7) score += 10;
@@ -954,14 +1010,24 @@ const ClientsHub = () => {
         else if (daysSinceContact < 30) score += 4;
         
         const engagementScore = Math.min(100, Math.round(score));
-        const trend = calculateEngagementTrend(client);
+        
+        const previous = client.previousEngagementScore || 50;
+        const change = engagementScore - previous;
+        let trend = 'stable';
+        if (change > 10) trend = 'increasing';
+        else if (change < -10) trend = 'decreasing';
         
         return {
           clientId: client.id,
           clientName: `${client.firstName} ${client.lastName}`,
           score: engagementScore,
           trend,
-          category: engagementScore > 80 ? 'highly_engaged' : engagementScore > 50 ? 'moderately_engaged' : 'low_engagement',
+          category:
+            engagementScore > 80
+              ? 'highly_engaged'
+              : engagementScore > 50
+              ? 'moderately_engaged'
+              : 'low_engagement',
           factors: {
             communication: Math.min(100, commsLast30Days * 10),
             response: responseRate,
@@ -980,34 +1046,27 @@ const ClientsHub = () => {
         engagementScores,
       });
       
-      console.log('✅ Predictive analysis complete');
-      console.log('📊 Results:', {
+      console.log('✅ Predictive analysis complete', {
         churnRisk: churnPredictions.length,
-        clvForecasts: clvForecasts.length,
+        clvCount: clvForecasts.length,
         nextActions: nextBestActions.length,
         upsells: upsellOpportunities.length,
         winBacks: winBackCandidates.length,
       });
-      
     } catch (error) {
       console.error('❌ Error in predictive analysis:', error);
+      setSnackbar({
+        open: true,
+        message: 'Predictive analysis failed',
+        severity: 'error',
+      });
     } finally {
       setMlProcessing(false);
     }
   }, []);
   
-  const calculateEngagementTrend = (client) => {
-    // Compare current engagement to 30 days ago
-    const current = client.engagementScore || 50;
-    const previous = client.previousEngagementScore || 50;
-    const change = current - previous;
-    
-    if (change > 10) return 'increasing';
-    if (change < -10) return 'decreasing';
-    return 'stable';
-  };
-  
   // ===== FILTERING & SEARCH =====
+
   
   useEffect(() => {
     console.log('🔍 Applying filters to', clients.length, 'clients');

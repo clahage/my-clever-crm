@@ -465,6 +465,15 @@ export const navigationItems = [
         badge: 'ADMIN',
         description: 'Regulatory compliance'
       },
+      {
+        id: 'tax-services-hub',
+        title: 'Tax Services Hub',
+        path: '/tax-services-hub',
+        icon: Calculator,
+        permission: 'user',
+        badge: 'AI',
+        description: 'AI-powered tax preparation and management'
+      },
 
       // ADVANCED (10 hubs)
       {
