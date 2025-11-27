@@ -656,6 +656,33 @@ export const navigationItems = [
   },
 
   // ==========================================================================
+  // 🔄 WORKFLOW AUTOMATION (Admin Only)
+  // ==========================================================================
+  {
+    id: 'workflow-orchestrator',
+    title: 'Workflow Orchestrator',
+    path: '/workflow-orchestrator',
+    icon: Zap,
+    permission: 'admin',
+    mobileHidden: true,
+    badge: 'NEW',
+    description: 'End-to-end workflow automation engine',
+    category: 'automation'
+  },
+
+  {
+    id: 'workflow-testing',
+    title: 'Workflow Tester',
+    path: '/workflow-testing',
+    icon: CheckSquare,
+    permission: 'admin',
+    mobileHidden: true,
+    badge: 'TEST',
+    description: 'Test all workflow stages',
+    category: 'automation'
+  },
+
+  // ==========================================================================
   // 👥 CONTACT MANAGEMENT
   // ==========================================================================
   {

@@ -181,6 +181,10 @@ const ACHAuthorization = lazy(() => import('@/pages/ACHAuthorization'));
 const Addendums = lazy(() => import('@/pages/Addendums'));
 const DocumentStorage = lazy(() => import('@/pages/DocumentStorage'));
 
+// ===== WORKFLOW & TESTING COMPONENTS =====
+const WorkflowOrchestrator = lazy(() => import('./components/workflow/WorkflowOrchestrator'));
+const WorkflowEndToEndTester = lazy(() => import('./components/testing/WorkflowEndToEndTester'));
+
 // ===== BUSINESS TOOLS =====
 const Companies = lazy(() => import('@/pages/Companies'));
 const Location = lazy(() => import('@/pages/Location'));
@@ -511,6 +515,34 @@ const AppContent = () => {
       </ProtectedRoute>
     }
   />
+
+{/* ============================================================================ */}
+{/* ===== 🔄 WORKFLOW AUTOMATION ROUTES ===== */}
+{/* ============================================================================ */}
+
+{/* Workflow Orchestrator - End-to-end workflow automation */}
+<Route
+  path="workflow-orchestrator"
+  element={
+    <ProtectedRoute requiredRole="admin">
+      <Suspense fallback={<LoadingFallback />}>
+        <WorkflowOrchestrator />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Workflow End-to-End Tester - Testing dashboard */}
+<Route
+  path="workflow-testing"
+  element={
+    <ProtectedRoute requiredRole="admin">
+      <Suspense fallback={<LoadingFallback />}>
+        <WorkflowEndToEndTester />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
 
 {/* ============================================================================ */}
 {/* ===== 🎯 HYBRID HUB ROUTES (41 Hubs - ALL HUBS) ===== */}
