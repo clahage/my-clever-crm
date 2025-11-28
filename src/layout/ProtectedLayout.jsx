@@ -6,12 +6,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { 
-  Menu, 
-  X, 
-  LogOut, 
-  User, 
-  Sun, 
+import {
+  Menu,
+  X,
+  LogOut,
+  User,
+  Sun,
   Moon,
   ChevronDown,
   ChevronRight,
@@ -30,14 +30,16 @@ import {
   Eye,
   Handshake,
   UserPlus,
-  Users as UsersIcon
+  Users as UsersIcon,
+  Flask
 } from 'lucide-react';
-import { 
-  navigationItems, 
-  filterNavigationByRole, 
+import {
+  navigationItems,
+  filterNavigationByRole,
   getMobileNavigation,
-  ROLES 
+  ROLES
 } from './navConfig';
+import TestingAssistant from '../components/testing/TestingAssistant';
 
 // ============================================================================
 // PROTECTED LAYOUT COMPONENT
@@ -71,6 +73,7 @@ const ProtectedLayout = () => {
   const [notificationCount, setNotificationCount] = useState(3);
   const [showQuickActions, setShowQuickActions] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showTestingAssistant, setShowTestingAssistant] = useState(false);
 
   // Determine if mobile
   const isMobile = windowWidth < 768;
@@ -116,6 +119,20 @@ const ProtectedLayout = () => {
       localStorage.setItem('darkMode', 'false');
     }
   }, [isDarkMode]);
+
+  // ===== TESTING ASSISTANT KEYBOARD SHORTCUT =====
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Ctrl+Shift+T or Cmd+Shift+T
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'T') {
+        e.preventDefault();
+        setShowTestingAssistant(prev => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // ===== AUTO-EXPAND CURRENT ROUTE'S GROUP (Only on route change) =====
   useEffect(() => {
@@ -743,6 +760,25 @@ const ProtectedLayout = () => {
           <Outlet />
         </main>
       </div>
+
+      {/* TESTING ASSISTANT FLOATING BUTTON */}
+      <button
+        onClick={() => setShowTestingAssistant(true)}
+        className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-br from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center z-40 group"
+        title="Testing Assistant (Ctrl+Shift+T)"
+      >
+        <Flask className="w-6 h-6 group-hover:scale-110 transition-transform" />
+        <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-xs flex items-center justify-center font-bold animate-pulse">
+          T
+        </span>
+      </button>
+
+      {/* TESTING ASSISTANT PANEL */}
+      <TestingAssistant
+        open={showTestingAssistant}
+        onClose={() => setShowTestingAssistant(false)}
+        currentUser={user}
+      />
 
       {/* CUSTOM SCROLLBAR STYLES */}
       <style>{`
