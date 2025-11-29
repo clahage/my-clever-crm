@@ -159,7 +159,8 @@ const SCORING_MODELS = {
 };
 
 const CreditSimulator = () => {
-  const [activeTab, setActiveTab] = useState(0);
+// Deprecated: Simulator.jsx
+// This feature is now integrated into CreditHub.jsx (Score Simulation tab)
   const [selectedModel, setSelectedModel] = useState('FICO 8');
   const [compareMode, setCompareMode] = useState(false);
   const [scenarios, setScenarios] = useState([]);
@@ -320,7 +321,9 @@ const CreditSimulator = () => {
   };
 
   // Reset simulation
-  const resetSimulation = () => {
+export default function DeprecatedSimulator() {
+  return null;
+}
     setSimulatedProfile({ ...profile });
   };
 

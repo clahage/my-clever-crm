@@ -35,6 +35,132 @@ import {
 } from 'lucide-react';
 
 // ============================================================================
+/**
+ * Filters navigation items based on user role and permissions
+ * @param {Array} items - Navigation items to filter
+ * @param {String} userRole - User's role (masterAdmin, admin, user, client, etc.)
+ * @param {Boolean} isMobile - Whether user is on mobile device
+ * @returns {Array} Filtered navigation items
+ */
+export function filterNavigationByRole(items, userRole = 'user', isMobile = false) {
+  return items
+    .map((item) => {
+      // Check if user can see this item
+      if (!isVisible(item, userRole, isMobile)) return null;
+
+      // If it's a group, filter its children
+      if (item.isGroup && Array.isArray(item.items)) {
+        const filteredItems = item.items.filter((sub) => isVisible(sub, userRole, isMobile));
+        // If no children are visible, hide the group
+        if (filteredItems.length === 0) return null;
+        return { ...item, items: filteredItems };
+      }
+      return { ...item };
+    })
+    .filter(Boolean); // Remove null items
+}
+// ============================================================================
+// GET ROLE LEVEL (handles all formats)
+// ============================================================================
+export function getRoleLevel(role) {
+  if (typeof role === 'number') return role;
+  if (!role) return 1;
+  // Normalize: lowercase, remove separators, typo-tolerant
+  const normalized = String(role).toLowerCase().replace(/[^a-z]/g, '');
+  // Typo-tolerant matching for all roles
+  if (/^(masteradmin|masteradministrator|superadmin|superadministrator|owner|amsteradmin|mastadmin|mstradmin|mastadministrator)$/.test(normalized)) return 8;
+  if (/^(admin|administrator|admn|admmin)$/.test(normalized)) return 7;
+  if (/^(manager|manger|managr|maneger)$/.test(normalized)) return 6;
+  if (/^(user|employee|usr|emplyee|employe)$/.test(normalized)) return 5;
+  if (/^(affiliate|affliate|afiliate|affilliate|affiliat)$/.test(normalized)) return 4;
+  if (/^(client|clinet|cliant|clent)$/.test(normalized)) return 3;
+  if (/^(prospect|prospct|prospekt|prospt)$/.test(normalized)) return 2;
+  if (/^(viewer|vewer|viwer|viewr)$/.test(normalized)) return 1;
+  // Fallback to ROLE_HIERARCHY mapping
+  return ROLE_HIERARCHY[role] || 1;
+}
+
+// ============================================================================
+// COMPREHENSIVE MOBILE NAVIGATION FUNCTION
+// ============================================================================
+export function getMobileNavigation(userRole) {
+  const roleLevel = getRoleLevel(userRole);
+  // Filter navigation items for mobile
+  const filtered = filterNavigationByRole(navigationItems, userRole, true);
+
+  // Role-specific quick access shortcuts
+  const shortcuts = {
+    masterAdmin: [
+      { id: 'dashboard', title: 'Dashboard', path: '/smart-dashboard', icon: LayoutDashboard },
+      { id: 'contacts', title: 'Contacts', path: '/contacts', icon: Users },
+      { id: 'credit-hub', title: 'Credit Hub', path: '/credit-hub', icon: Shield },
+      { id: 'disputes', title: 'Disputes', path: '/dispute-letters', icon: AlertCircle },
+      { id: 'analytics', title: 'Analytics', path: '/analytics', icon: BarChart },
+      { id: 'settings', title: 'Settings', path: '/settings', icon: Settings },
+    ],
+    admin: [
+      { id: 'dashboard', title: 'Dashboard', path: '/smart-dashboard', icon: LayoutDashboard },
+      { id: 'contacts', title: 'Contacts', path: '/contacts', icon: Users },
+      { id: 'credit-hub', title: 'Credit Hub', path: '/credit-hub', icon: Shield },
+      { id: 'disputes', title: 'Disputes', path: '/dispute-letters', icon: AlertCircle },
+      { id: 'analytics', title: 'Analytics', path: '/analytics', icon: BarChart },
+      { id: 'settings', title: 'Settings', path: '/settings', icon: Settings },
+    ],
+    manager: [
+      { id: 'dashboard', title: 'Dashboard', path: '/smart-dashboard', icon: LayoutDashboard },
+      { id: 'contacts', title: 'Contacts', path: '/contacts', icon: Users },
+      { id: 'credit-hub', title: 'Credit Hub', path: '/credit-hub', icon: Shield },
+      { id: 'analytics', title: 'Analytics', path: '/analytics', icon: BarChart },
+      { id: 'tasks', title: 'Tasks', path: '/tasks', icon: CheckSquare },
+    ],
+    user: [
+      { id: 'dashboard', title: 'Dashboard', path: '/smart-dashboard', icon: LayoutDashboard },
+      { id: 'contacts', title: 'Contacts', path: '/contacts', icon: Users },
+      { id: 'credit-hub', title: 'Credit Hub', path: '/credit-hub', icon: Shield },
+      { id: 'tasks', title: 'Tasks', path: '/tasks', icon: CheckSquare },
+      { id: 'calendar', title: 'Calendar', path: '/calendar', icon: Calendar },
+    ],
+    affiliate: [
+      { id: 'dashboard', title: 'Affiliates Hub', path: '/affiliates', icon: Handshake },
+      { id: 'referrals', title: 'Referrals', path: '/affiliates', icon: Users },
+      { id: 'commissions', title: 'Earnings', path: '/affiliates', icon: DollarSign },
+      { id: 'resources', title: 'Resources', path: '/resources/articles', icon: FileText },
+    ],
+    client: [
+      { id: 'portal', title: 'My Portal', path: '/client-portal', icon: User },
+      { id: 'credit-hub', title: 'My Credit', path: '/credit-hub', icon: Shield },
+      { id: 'progress', title: 'Progress', path: '/progress-portal-hub', icon: TrendingUp },
+      { id: 'disputes', title: 'Disputes', path: '/dispute-letters', icon: FileText },
+      { id: 'documents', title: 'Documents', path: '/documents', icon: FileText },
+      { id: 'support', title: 'Support', path: '/support', icon: HelpCircle },
+    ],
+    prospect: [
+      { id: 'portal', title: 'Portal', path: '/client-portal', icon: User },
+      { id: 'learning', title: 'Learn', path: '/learning-center', icon: BookOpen },
+      { id: 'resources', title: 'Resources', path: '/resources/articles', icon: FileText },
+      { id: 'support', title: 'Support', path: '/support', icon: HelpCircle },
+    ],
+    viewer: [
+      { id: 'analytics', title: 'Analytics', path: '/analytics', icon: BarChart },
+      { id: 'support', title: 'Support', path: '/support', icon: HelpCircle },
+    ]
+  };
+
+  // Determine normalized role string
+  let normalizedRole = 'viewer';
+  for (const key of Object.keys(ROLE_HIERARCHY)) {
+    if (getRoleLevel(key) === roleLevel) {
+      normalizedRole = key;
+      break;
+    }
+  }
+
+  // Compose mobile navigation: quick access shortcuts + filtered nav
+  return {
+    shortcuts: shortcuts[normalizedRole] || [],
+    nav: filtered
+  };
+}
 // ROLE HIERARCHY & PERMISSIONS
 // ============================================================================
 
@@ -218,20 +344,7 @@ export const navigationItems = [
     category: 'client'
   },
 
-  // ==========================================================================
-  // 📊 CREDIT REPORTS HUB (Consolidated IDIQ System)
-  // ==========================================================================
-  {
-    id: 'credit-hub',
-    title: '📊 Credit Reports Hub',
-    path: '/credit-hub',
-    icon: Shield,
-    permission: 'client',
-    mobileHidden: false,
-    badge: 'AI',
-    description: 'Complete IDIQ credit management system - 7 tools in one hub',
-    category: 'credit'
-  },
+  // ...existing code...
   // ==========================================================================
   // 🎯 HYBRID HUBS - ALL 41 BUSINESS HUBS ORGANIZED
   // ==========================================================================
@@ -255,74 +368,6 @@ export const navigationItems = [
         badge: 'AI',
         description: 'Complete client management'
       },
-      {
-        id: 'credit-hub',
-        title: 'Credit Intelligence Hub',
-        path: '/credit-hub',
-        icon: Shield,
-        permission: 'user',
-        badge: 'AI',
-        description: 'Complete IDIQ + AI credit analysis'
-      },
-      {
-        id: 'comms-hub',
-        title: 'Communications Hub',
-        path: '/comms-hub',
-        icon: MessageSquare,
-        permission: 'user',
-        badge: 'AI',
-        description: 'Email, SMS, campaigns, automation'
-      },
-      {
-        id: 'dispute-hub',
-        title: 'Dispute Management',
-        path: '/dispute-hub',
-        icon: AlertCircle,
-        permission: 'user',
-        description: 'Dispute tracking and management'
-      },
-      {
-        id: 'tasks-hub',
-        title: 'Tasks & Scheduling',
-        path: '/tasks-hub',
-        icon: Calendar,
-        permission: 'user',
-        description: 'Task and calendar management'
-      },
-      {
-        id: 'documents-hub',
-        title: 'Documents Hub',
-        path: '/documents-hub',
-        icon: FolderOpen,
-        permission: 'user',
-        description: 'Document management system'
-      },
-      {
-        id: 'calendar-hub',
-        title: 'Calendar Hub',
-        path: '/calendar-hub',
-        icon: Calendar,
-        permission: 'user',
-        description: 'Advanced calendar features'
-      },
-      {
-        id: 'support-hub',
-        title: 'Support Hub',
-        path: '/support-hub',
-        icon: HelpCircle,
-        permission: 'user',
-        description: 'Help desk and support'
-      },
-      {
-        id: 'settings-hub',
-        title: 'Settings Hub',
-        path: '/settings-hub',
-        icon: Settings,
-        permission: 'admin',
-        badge: 'ADMIN',
-        description: 'System configuration'
-      },
-
       // BUSINESS GROWTH (9 hubs)
       {
         id: 'marketing-hub',
@@ -803,81 +848,15 @@ export const navigationItems = [
     mobileHidden: false,
     category: 'credit',
     items: [
-      { 
-        id: 'credit-simulator', 
-        title: 'Credit Simulator', 
-        path: '/credit-simulator', 
-        icon: Calculator, 
+      {
+        id: 'credit-hub',
+        title: 'Credit Hub',
+        path: '/credit-hub',
+        icon: Shield,
         permission: 'client',
         mobileHidden: false,
         badge: 'AI',
-        description: 'What-if score predictions'
-      },
-      { 
-        id: 'business-credit', 
-        title: 'Business Credit', 
-        path: '/business-credit', 
-        icon: Building, 
-        permission: 'user',
-        mobileHidden: true,
-        badge: 'PRO',
-        description: 'Business credit building'
-      },
-      { 
-        id: 'credit-scores', 
-        title: 'My Credit Scores', 
-        path: '/credit-scores', 
-        icon: TrendingUp, 
-        permission: 'client',
-        mobileHidden: false,
-        description: 'View credit scores'
-      },
-      { 
-        id: 'dispute-center', 
-        title: 'Dispute Center', 
-        path: '/dispute-letters', 
-        icon: FileText, 
-        permission: 'client',
-        mobileHidden: false,
-        badge: 'FAX',
-        description: 'Manage disputes'
-      },
-      { 
-        id: 'dispute-status', 
-        title: 'Dispute Status', 
-        path: '/dispute-status', 
-        icon: Activity, 
-        permission: 'client',
-        mobileHidden: false,
-        description: 'Track dispute progress'
-      },
-      { 
-        id: 'admin-disputes', 
-        title: 'Admin Dispute Panel', 
-        path: '/admin/disputes', 
-        icon: Shield, 
-        permission: 'admin',
-        mobileHidden: true,
-        description: 'Manage all disputes'
-      },
-      { 
-        id: 'credit-monitoring', 
-        title: 'Credit Monitoring', 
-        path: '/credit-monitoring', 
-        icon: Eye, 
-        permission: 'client',
-        mobileHidden: false,
-        badge: 'SOON',
-        description: 'Monitor credit changes'
-      },
-      { 
-        id: 'my-reports', 
-        title: 'My Reports', 
-        path: '/credit-reports', 
-        icon: FileText, 
-        permission: 'client',
-        mobileHidden: false,
-        description: 'View credit reports'
+        description: 'Unified credit management: intake, simulation, history, reports, business credit, monitoring',
       }
     ]
   },
@@ -894,78 +873,15 @@ export const navigationItems = [
     mobileHidden: true,
     category: 'comms',
     items: [
-      { 
-        id: 'comms-center', 
-        title: 'Communications Center', 
-        path: '/communications', 
-        icon: Inbox, 
-        permission: 'user',
-        mobileHidden: true,
-        badge: 'NEW',
-        description: 'Unified inbox'
-      },
-      { 
-        id: 'letters', 
-        title: 'Letters', 
-        path: '/letters', 
-        icon: FileText, 
-        permission: 'user',
-        mobileHidden: true,
-        description: 'Document generation'
-      },
-      { 
-        id: 'emails', 
-        title: 'Emails', 
-        path: '/emails', 
-        icon: Mail, 
-        permission: 'user',
-        mobileHidden: true,
-        description: 'Email campaigns'
-      },
-      { 
-        id: 'sms', 
-        title: 'SMS', 
-        path: '/sms', 
-        icon: MessageSquare, 
-        permission: 'user',
-        mobileHidden: true,
-        description: 'Text messaging'
-      },
-      { 
-        id: 'drip-campaigns', 
-        title: 'Drip Campaigns', 
-        path: '/drip-campaigns', 
-        icon: Zap, 
-        permission: 'user',
-        mobileHidden: true,
-        description: 'Automated sequences'
-      },
-      { 
-        id: 'templates', 
-        title: 'Templates', 
-        path: '/templates', 
-        icon: FileText, 
-        permission: 'user',
-        mobileHidden: true,
-        description: 'Communication templates'
-      },
-      { 
-        id: 'call-logs', 
-        title: 'Call Logs', 
-        path: '/call-logs', 
-        icon: Phone, 
-        permission: 'user',
-        mobileHidden: true,
-        description: 'Phone call tracking'
-      },
-      { 
-        id: 'notifications', 
-        title: 'Notifications', 
-        path: '/notifications', 
-        icon: Bell, 
+      {
+        id: 'communication-hub',
+        title: 'Communication Hub',
+        path: '/communication-hub',
+        icon: MessageSquare,
         permission: 'user',
         mobileHidden: false,
-        description: 'Alerts and reminders'
+        badge: 'AI',
+        description: 'Unified communications: center, messages, email, SMS, drip, templates, call logs, notifications',
       }
     ]
   },
@@ -1466,108 +1382,6 @@ export const navigationItems = [
     ]
   }
 ];
-
 // ============================================================================
-// MOBILE-SPECIFIC NAVIGATION
-// ============================================================================
-
-/**
- * Get mobile-optimized navigation for specific role
- * Returns simplified menu with only essential items
- */
-export function getMobileNavigation(userRole) {
-  const baseItems = [
-    { id: 'dashboard', title: 'Dashboard', path: '/smart-dashboard', icon: LayoutDashboard },
-  ];
-
-  const roleSpecificItems = {
-    masterAdmin: [
-      { id: 'portal', title: 'Admin', path: '/portal', icon: LayoutDashboard },
-      { id: 'contacts', title: 'Contacts', path: '/contacts', icon: Users },
-      { id: 'credit-hub', title: 'Credit Hub', path: '/credit-hub', icon: Shield },
-      { id: 'analytics', title: 'Analytics', path: '/analytics', icon: BarChart },
-      { id: 'settings', title: 'Settings', path: '/settings', icon: Settings },
-    ],
-    admin: [
-      { id: 'portal', title: 'Admin', path: '/portal', icon: LayoutDashboard },
-      { id: 'contacts', title: 'Contacts', path: '/contacts', icon: Users },
-      { id: 'credit-hub', title: 'Credit Hub', path: '/credit-hub', icon: Shield },
-      { id: 'reports', title: 'Reports', path: '/reports', icon: FileText },
-      { id: 'settings', title: 'Settings', path: '/settings', icon: Settings },
-    ],
-    manager: [
-      { id: 'contacts', title: 'Contacts', path: '/contacts', icon: Users },
-      { id: 'credit-hub', title: 'Credit Hub', path: '/credit-hub', icon: Shield },
-      { id: 'pipeline', title: 'Pipeline', path: '/pipeline', icon: GitBranch },
-      { id: 'reports', title: 'Reports', path: '/reports', icon: FileText },
-      { id: 'settings', title: 'Settings', path: '/settings', icon: Settings },
-    ],
-    user: [
-      { id: 'contacts', title: 'Contacts', path: '/contacts', icon: Users },
-      { id: 'credit-hub', title: 'Credit Hub', path: '/credit-hub', icon: Shield },
-      { id: 'tasks', title: 'Tasks', path: '/tasks', icon: CheckSquare },
-      { id: 'calendar', title: 'Calendar', path: '/calendar', icon: Calendar },
-      { id: 'settings', title: 'Settings', path: '/settings', icon: Settings },
-    ],
-    client: [
-      { id: 'portal', title: 'My Portal', path: '/client-portal', icon: User },
-      { id: 'credit-hub', title: 'My Credit', path: '/credit-hub', icon: Shield },
-      { id: 'scores', title: 'Scores', path: '/credit-scores', icon: TrendingUp },
-      { id: 'disputes', title: 'Disputes', path: '/dispute-letters', icon: FileText },
-      { id: 'documents', title: 'Documents', path: '/documents', icon: FileText },
-      { id: 'support', title: 'Support', path: '/support', icon: HelpCircle },
-    ],
-    prospect: [
-      { id: 'portal', title: 'Portal', path: '/client-portal', icon: User },
-      { id: 'learning', title: 'Learn', path: '/learning-center', icon: BookOpen },
-      { id: 'resources', title: 'Resources', path: '/resources/articles', icon: FileText },
-      { id: 'support', title: 'Support', path: '/support', icon: HelpCircle },
-    ],
-    affiliate: [
-      { id: 'dashboard', title: 'Dashboard', path: '/affiliates', icon: Handshake },
-      { id: 'referrals', title: 'Referrals', path: '/affiliates', icon: Users },
-      { id: 'commissions', title: 'Earnings', path: '/affiliates', icon: DollarSign },
-      { id: 'settings', title: 'Settings', path: '/settings', icon: Settings },
-    ],
-    viewer: [
-      { id: 'reports', title: 'Reports', path: '/reports', icon: FileText },
-      { id: 'analytics', title: 'Analytics', path: '/analytics', icon: BarChart },
-    ]
-  };
-
-  return [...baseItems, ...(roleSpecificItems[userRole] || roleSpecificItems.client)];
-}
-
-// ============================================================================
-// ROLE-BASED NAVIGATION FILTER
-// ============================================================================
-
-/**
- * Filters navigation items based on user role and permissions
- * @param {Array} items - Navigation items to filter
- * @param {String} userRole - User's role (masterAdmin, admin, user, client, etc.)
- * @param {Boolean} isMobile - Whether user is on mobile device
- * @returns {Array} Filtered navigation items
- */
-export function filterNavigationByRole(items, userRole = 'user', isMobile = false) {
-  return items
-    .map((item) => {
-      // Check if user can see this item
-      if (!isVisible(item, userRole, isMobile)) return null;
-
-      // If it's a group, filter its children
-      if (item.isGroup && Array.isArray(item.items)) {
-        const filteredItems = item.items.filter((sub) => isVisible(sub, userRole, isMobile));
-        
-        // If no children are visible, hide the group
-        if (filteredItems.length === 0) return null;
-        
-        return { ...item, items: filteredItems };
-      }
-
-      return { ...item };
-    })
-    .filter(Boolean); // Remove null items
-}
 
 export default navigationItems;
