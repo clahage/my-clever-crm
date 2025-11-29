@@ -30,8 +30,7 @@ import {
   Eye,
   Handshake,
   UserPlus,
-  Users as UsersIcon,
-  Flask
+  Users as UsersIcon
 } from 'lucide-react';
 import {
   navigationItems,
@@ -767,7 +766,8 @@ const ProtectedLayout = () => {
         className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-br from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center z-40 group"
         title="Testing Assistant (Ctrl+Shift+T)"
       >
-        <Flask className="w-6 h-6 group-hover:scale-110 transition-transform" />
+        {/* Replace Flask icon with a valid Lucide icon, e.g., Beaker */}
+        <svg className="w-6 h-6 group-hover:scale-110 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 19a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2c0-2.5 2-4.5 2-4.5V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v9.5s2 2 2 4.5z"/><line x1="12" y1="7" x2="12" y2="14"/></svg>
         <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-xs flex items-center justify-center font-bold animate-pulse">
           T
         </span>
