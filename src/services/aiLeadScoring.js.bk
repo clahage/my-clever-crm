@@ -1,14 +1,10 @@
 // AI Lead Scoring Service for MyAIFrontDesk webhook
 // Uses OpenAI API and stores usage in Firebase
 
-// FIX: Use relative import for firebase
-import { db } from '../lib/firebase.js';
+import { db } from "@/lib/firebase";
 import { collection, addDoc } from 'firebase/firestore';
 
-// FIX: Use the Universal Helper instead of process.env.REACT_APP_...
-import { getEnv } from '../lib/envHelper.js';
-
-const OPENAI_API_KEY = getEnv('VITE_OPENAI_API_KEY');
+const OPENAI_API_KEY = process.env.REACT_APP_OPENAI_API_KEY;
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 
 export async function aiLeadScoring(callData) {
@@ -36,15 +32,15 @@ export async function aiLeadScoring(callData) {
   } catch (err) {
     // Fallback to basic scoring
     fallback = true;
-    const transcript = (callData.transcript || '').toLowerCase();
+    const transcript = callData.transcript || '';
     const keywords = ['credit', 'repair', 'score', 'report', 'late payment', 'collections', 'bankruptcy', 'dispute', 'enroll', 'signup', 'help'];
     let painPoints = [];
     for (const kw of keywords) {
-      if (transcript.includes(kw)) painPoints.push(kw);
+      if (transcript.toLowerCase().includes(kw)) painPoints.push(kw);
     }
     const sentimentScore = (callData.sentiment?.positive || 0) - (callData.sentiment?.negative || 0);
     let urgencyLevel = 'medium';
-    if (transcript.includes('urgent') || callData.duration > 180) urgencyLevel = 'high';
+    if (transcript.toLowerCase().includes('urgent') || callData.duration > 180) urgencyLevel = 'high';
     if (callData.duration < 60) urgencyLevel = 'low';
     const leadScore = Math.max(1, Math.min(10, Math.round(
       (callData.duration / 60) + (sentimentScore / 20) + painPoints.length
@@ -77,7 +73,6 @@ export async function aiLeadScoring(callData) {
     });
   } catch (err) {
     // Log error but do not block response
-    console.error("Tracking Error:", err);
   }
 
   return aiResult;

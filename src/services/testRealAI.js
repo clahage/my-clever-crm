@@ -5,7 +5,7 @@
 // Usage: node testRealAI.js or run in browser console
 // ================================================================================
 
-import realPipelineAI from './RealPipelineAIService.js';
+const realPipelineAI = require('./RealPipelineAIService.js');
 
 async function quickTest() {
   console.log('🧪 Testing Real Pipeline AI Service\n');
@@ -113,7 +113,7 @@ async function quickTest() {
 }
 
 // Run the test
-quickTest().catch(error => {
-  console.error('\n💥 Test failed with error:', error);
-  console.error('\nStack trace:', error.stack);
-});
+  quickTest().catch(error => {
+    console.error('\n💥 Test failed with error:', error);
+    console.error('\nStack trace:', error.stack);
+  });

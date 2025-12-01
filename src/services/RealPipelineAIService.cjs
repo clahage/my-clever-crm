@@ -7,31 +7,25 @@
 // Author: Claude Code - REAL Implementation
 // ================================================================================
 
-// --- UNIVERSAL ENVIRONMENT LOADER ---
-import { getEnv } from '../lib/envHelper.js';
-
-// --- FIREBASE IMPORTS ---
-import { db } from '../lib/firebase.js';
-
-import { 
-  collection, 
-  doc, 
-  updateDoc, 
-  addDoc, 
-  getDocs, 
-  query, 
-  where, 
-  orderBy, 
-  serverTimestamp, 
-  limit 
-} from 'firebase/firestore';
+const { db } = require('../lib/firebase.node.cjs');
+const {
+  collection,
+  doc,
+  updateDoc,
+  addDoc,
+  getDocs,
+  query,
+  where,
+  orderBy,
+  serverTimestamp,
+  limit
+} = require('firebase/firestore');
 
 // ================================================================================
 // CONFIGURATION
 // ================================================================================
 
-// Use the helper to safely get the API key in both Node and Vite
-const OPENAI_API_KEY = getEnv('VITE_OPENAI_API_KEY');
+const OPENAI_API_KEY = process.env.VITE_OPENAI_API_KEY;
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 
 // Model configuration
@@ -743,17 +737,4 @@ Provide objection handling response in JSON:
 // ================================================================================
 
 const realPipelineAI = new RealPipelineAIService();
-
-export default realPipelineAI;
-
-// Named exports for specific features
-export const {
-  scoreLeadIntelligently,
-  analyzeSentiment,
-  suggestNextAction,
-  analyzeConversation,
-  predictOutcomes,
-  generateEmail,
-  handleObjection,
-  batchScoreLeads,
-} = realPipelineAI;
+module.exports = realPipelineAI;
