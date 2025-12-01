@@ -11,7 +11,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import {
-  CreditCard, DollarSign, Send, CheckCircle, Shield, User, Mail, Phone,
+  CreditCard as LucideCreditCard, DollarSign, Send, CheckCircle, Shield, User, Mail, Phone,
   Save, Eye, Trash2, Lock, AlertCircle, Info, Calendar
 } from 'lucide-react';
 import {
@@ -719,7 +719,7 @@ const ACHAuthorization = () => {
                         </TableCell>
                         <TableCell>
                           <Chip 
-                            icon={auth.paymentMethod === 'ach' ? <DollarSign size={14} /> : <CreditCard size={14} />}
+                            icon={auth.paymentMethod === 'ach' ? <DollarSign size={14} /> : <LucideCreditCard size={14} />}
                             label={auth.paymentMethod === 'ach' ? 'Bank Account' : 'Card'}
                             size="small"
                           />
@@ -885,7 +885,7 @@ const ACHAuthorization = () => {
                 </ToggleButton>
                 <ToggleButton value="credit_card">
                   <Stack direction="row" spacing={1} alignItems="center">
-                    <CreditCard size={20} />
+                    <LucideCreditCard size={20} />
                     <Box>
                       <Typography variant="body2">Credit Card</Typography>
                       <Typography variant="caption">Instant processing</Typography>
@@ -894,7 +894,7 @@ const ACHAuthorization = () => {
                 </ToggleButton>
                 <ToggleButton value="debit_card">
                   <Stack direction="row" spacing={1} alignItems="center">
-                    <CreditCard size={20} />
+                    <LucideCreditCard size={20} />
                     <Box>
                       <Typography variant="body2">Debit Card</Typography>
                       <Typography variant="caption">Direct from checking</Typography>
@@ -1055,7 +1055,7 @@ const ACHAuthorization = () => {
                     }}
                     placeholder="1234 5678 9012 3456"
                     InputProps={{
-                      startAdornment: <CreditCard size={18} style={{ marginRight: 8 }} />,
+                      startAdornment: <LucideCreditCard size={18} style={{ marginRight: 8 }} />,
                       endAdornment: authData.cardInfo.cardType && (
                         <Chip label={authData.cardInfo.cardType.toUpperCase()} size="small" />
                       )

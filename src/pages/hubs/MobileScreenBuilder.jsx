@@ -130,31 +130,31 @@ const COMPONENT_LIBRARY = [
   {
     category: 'Layout',
     components: [
-      { id: 'container', name: 'Container', icon: Square, defaultProps: { padding: 16, backgroundColor: '#ffffff' } },
-      { id: 'row', name: 'Row', icon: GridIcon, defaultProps: { gap: 8, justifyContent: 'flex-start' } },
-      { id: 'column', name: 'Column', icon: ListIcon, defaultProps: { gap: 8, alignItems: 'stretch' } },
-      { id: 'card', name: 'Card', icon: Square, defaultProps: { elevation: 2, borderRadius: 8 } },
-      { id: 'spacer', name: 'Spacer', icon: Move, defaultProps: { height: 16 } },
+      { id: 'container', name: 'Container', icon: Square, props: { padding: 16, backgroundColor: '#ffffff' } },
+      { id: 'row', name: 'Row', icon: GridIcon, props: { gap: 8, justifyContent: 'flex-start' } },
+      { id: 'column', name: 'Column', icon: ListIcon, props: { gap: 8, alignItems: 'stretch' } },
+      { id: 'card', name: 'Card', icon: Square, props: { elevation: 2, borderRadius: 8 } },
+      { id: 'spacer', name: 'Spacer', icon: Move, props: { height: 16 } },
     ]
   },
   {
     category: 'Typography',
     components: [
-      { id: 'heading1', name: 'Heading 1', icon: Type, defaultProps: { fontSize: 32, fontWeight: 'bold', text: 'Heading 1' } },
-      { id: 'heading2', name: 'Heading 2', icon: Type, defaultProps: { fontSize: 24, fontWeight: 'bold', text: 'Heading 2' } },
-      { id: 'heading3', name: 'Heading 3', icon: Type, defaultProps: { fontSize: 20, fontWeight: 'bold', text: 'Heading 3' } },
-      { id: 'paragraph', name: 'Paragraph', icon: Type, defaultProps: { fontSize: 16, text: 'Lorem ipsum dolor sit amet' } },
-      { id: 'caption', name: 'Caption', icon: Type, defaultProps: { fontSize: 12, color: '#666666', text: 'Caption text' } },
+      { id: 'heading1', name: 'Heading 1', icon: Type, props: { fontSize: 32, fontWeight: 'bold', text: 'Heading 1' } },
+      { id: 'heading2', name: 'Heading 2', icon: Type, props: { fontSize: 24, fontWeight: 'bold', text: 'Heading 2' } },
+      { id: 'heading3', name: 'Heading 3', icon: Type, props: { fontSize: 20, fontWeight: 'bold', text: 'Heading 3' } },
+      { id: 'paragraph', name: 'Paragraph', icon: Type, props: { fontSize: 16, text: 'Lorem ipsum dolor sit amet' } },
+      { id: 'caption', name: 'Caption', icon: Type, props: { fontSize: 12, color: '#666666', text: 'Caption text' } },
     ]
   },
   {
     category: 'Inputs',
     components: [
-      { id: 'textfield', name: 'Text Field', icon: Type, defaultProps: { placeholder: 'Enter text...', label: 'Input Label' } },
-      { id: 'textarea', name: 'Text Area', icon: Type, defaultProps: { placeholder: 'Enter text...', rows: 4 } },
-      { id: 'button', name: 'Button', icon: Square, defaultProps: { text: 'Button', variant: 'contained' } },
-      { id: 'switch', name: 'Switch', icon: Circle, defaultProps: { label: 'Toggle', checked: false } },
-      { id: 'checkbox', name: 'Checkbox', icon: Square, defaultProps: { label: 'Checkbox', checked: false } },
+      { id: 'textfield', name: 'Text Field', icon: Type, props: { placeholder: 'Enter text...', label: 'Input Label' } },
+      { id: 'textarea', name: 'Text Area', icon: Type, props: { placeholder: 'Enter text...', rows: 4 } },
+      { id: 'button', name: 'Button', icon: Square, props: { text: 'Button', variant: 'contained' } },
+      { id: 'switch', name: 'Switch', icon: Circle, props: { label: 'Toggle', checked: false } },
+      { id: 'checkbox', name: 'Checkbox', icon: Square, props: { label: 'Checkbox', checked: false } },
     ]
   },
   {

@@ -359,7 +359,10 @@ const generateAIInsights = (dashboardData) => {
   
   // Dispute insights
   if (dashboardData.disputes) {
-    const successRate = (dashboardData.disputes.filter(d => d.status === 'resolved').length / dashboardData.disputes.length * 100).toFixed(0);
+    const disputesArr = Array.isArray(dashboardData.disputes)
+      ? dashboardData.disputes
+      : Object.values(dashboardData.disputes || {});
+    const successRate = (disputesArr.filter(d => d.status === 'resolved').length / (disputesArr.length || 1) * 100).toFixed(0);
     insights.push({
       type: successRate > 70 ? 'success' : 'info',
       icon: Award,

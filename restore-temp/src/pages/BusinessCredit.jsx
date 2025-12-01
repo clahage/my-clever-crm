@@ -800,7 +800,7 @@ const BusinessCredit = () => {
             <div className="text-xs opacity-75">Intelliscore</div>
           </div>
           <div className="bg-white/10 backdrop-blur rounded-lg p-3">
-            <CreditCard className="w-6 h-6 mb-2" />
+            <LucideCreditCard className="w-6 h-6 mb-2" />
             <div className="text-2xl font-bold">{currentBusiness.score?.fico || 0}</div>
             <div className="text-xs opacity-75">FICO SBSS</div>
           </div>

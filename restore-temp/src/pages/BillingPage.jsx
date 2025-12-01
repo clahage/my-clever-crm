@@ -1,5 +1,5 @@
 import React from 'react';
-import { CreditCard, DollarSign, TrendingUp, Users } from 'lucide-react';
+import { CreditCard as LucideCreditCard, DollarSign, TrendingUp, Users } from 'lucide-react';
 
 export default function BillingPage() {
   return (
@@ -26,7 +26,7 @@ export default function BillingPage() {
           <p className="text-2xl font-bold">156</p>
         </div>
         <div className="bg-white rounded-lg shadow p-6">
-          <CreditCard className="h-8 w-8 text-orange-600 mb-2" />
+          <LucideCreditCard className="h-8 w-8 text-orange-600 mb-2" />
           <h3 className="text-sm font-medium text-gray-600">Pending</h3>
           <p className="text-2xl font-bold">8</p>
         </div>

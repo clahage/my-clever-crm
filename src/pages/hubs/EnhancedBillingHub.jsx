@@ -56,7 +56,7 @@ import {
 } from '@mui/material';
 import {
   DollarSign,
-  CreditCard,
+  CreditCard as LucideCreditCard,
   FileText,
   TrendingUp,
   TrendingDown,
@@ -135,7 +135,7 @@ const INVOICE_STATUSES = {
 };
 
 const PAYMENT_METHODS = {
-  card: { label: 'Credit/Debit Card', icon: CreditCard },
+  card: { label: 'Credit/Debit Card', icon: LucideCreditCard },
   bank: { label: 'Bank Transfer', icon: Wallet },
   ach: { label: 'ACH', icon: Wallet },
   check: { label: 'Check', icon: Receipt },
@@ -1155,7 +1155,7 @@ const EnhancedBillingHub = () => {
           >
             <Tab icon={<BarChart3 className="w-5 h-5" />} label="Dashboard" />
             <Tab icon={<FileText className="w-5 h-5" />} label="Invoices" />
-            <Tab icon={<CreditCard className="w-5 h-5" />} label="Payments" />
+            <Tab icon={<LucideCreditCard className="w-5 h-5" />} label="Payments" />
             <Tab icon={<RefreshCw className="w-5 h-5" />} label="Subscriptions" />
             <Tab icon={<Calendar className="w-5 h-5" />} label="Payment Plans" />
             <Tab icon={<AlertCircle className="w-5 h-5" />} label="Collections" />

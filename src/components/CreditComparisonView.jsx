@@ -11,7 +11,7 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  CreditCard,
+  CreditCard as LucideCreditCard,
   DollarSign,
   Calendar,
   Percent,
@@ -106,7 +106,7 @@ export default function CreditComparisonView({ currentReport, previousReport, co
               : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
           }`}
         >
-          <CreditCard className="w-4 h-4 inline mr-2" />
+          <LucideCreditCard className="w-4 h-4 inline mr-2" />
           Accounts
         </button>
         <button
@@ -422,7 +422,7 @@ export default function CreditComparisonView({ currentReport, previousReport, co
          (!changes.closedAccounts || changes.closedAccounts.length === 0) &&
          (!changes.balanceChanges || changes.balanceChanges.length === 0) && (
           <div className="text-center py-12">
-            <CreditCard className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <LucideCreditCard className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
               No Account Changes
             </h3>

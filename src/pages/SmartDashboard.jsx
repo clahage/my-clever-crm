@@ -336,22 +336,30 @@ const generateAIInsights = (dashboardData) => {
   
   // Revenue insights
   if (dashboardData.revenue) {
-    const recentRevenue = dashboardData.revenue.slice(-7);
-    const avgRevenue = recentRevenue.reduce((sum, r) => sum + r.amount, 0) / recentRevenue.length;
-    const trend = recentRevenue[recentRevenue.length - 1].amount > avgRevenue ? 'up' : 'down';
+    const revenueArr = Array.isArray(dashboardData.revenue)
+      ? dashboardData.revenue
+      : [dashboardData.revenue];
+    const recentRevenue = revenueArr.slice(-7);
+    const avgRevenue = recentRevenue.reduce((sum, r) => sum + (r.amount || 0), 0) / (recentRevenue.length || 1);
+    const trend = recentRevenue.length > 0 && recentRevenue[recentRevenue.length - 1].amount > avgRevenue ? 'up' : 'down';
     
     insights.push({
       type: trend === 'up' ? 'success' : 'warning',
       icon: trend === 'up' ? TrendingUp : TrendingDown,
       title: `Revenue trending ${trend}`,
-      description: `${trend === 'up' ? '+' : ''}${((recentRevenue[recentRevenue.length - 1].amount - avgRevenue) / avgRevenue * 100).toFixed(1)}% vs 7-day average`,
+      description: recentRevenue.length > 0
+        ? `${trend === 'up' ? '+' : ''}${((recentRevenue[recentRevenue.length - 1].amount - avgRevenue) / (avgRevenue || 1) * 100).toFixed(1)}% vs 7-day average`
+        : 'No revenue data',
       priority: 'high'
     });
   }
   
   // Client insights
   if (dashboardData.clients) {
-    const atRiskClients = dashboardData.clients.filter(c => calculateClientHealthScore(c) < 50);
+    const clientsArr = Array.isArray(dashboardData.clients)
+      ? dashboardData.clients
+      : [];
+    const atRiskClients = clientsArr.filter(c => calculateClientHealthScore(c) < 50);
     if (atRiskClients.length > 0) {
       insights.push({
         type: 'warning',
@@ -4866,7 +4874,7 @@ const SmartDashboard = () => {
       } catch (error) {
         console.error('❌ Error loading dashboard:', error);
         setDashboardData({
-          revenue: { total: 0, change: '+0%', trend: 'neutral' },
+          revenue: [{ amount: 0 }],
           clients: { total: 0, active: 0, new: 0, change: '+0', trend: 'neutral' },
           disputes: { total: 0, active: 0, resolved: 0, successRate: 0, change: '+0%', trend: 'neutral' },
           tasks: { total: 0, completed: 0, pending: 0, overdue: 0 },

@@ -18,7 +18,7 @@ import {
   MessageSquare, Mail, Phone, Bell, Zap, Calendar, Send, Inbox,
 
   // ===== CREDIT & FINANCE =====
-  CreditCard, TrendingUp, Calculator, GitBranch, List, DollarSign, Wallet,
+  CreditCard as LucideCreditCard, TrendingUp, Calculator, GitBranch, List, DollarSign, Wallet,
   Receipt, PieChart, BarChart, Target, Shield,
 
   // ===== AI & ANALYTICS =====
@@ -425,7 +425,7 @@ export const navigationItems = [
        id: 'payment-integration-hub',
        title: 'Payment Integrations',
        path: '/payment-integration-hub',
-       icon: 'CreditCard',
+      icon: 'LucideCreditCard',
        requiredRole: 'admin',
        badge: 'PRO',
        description: 'Stripe & PayPal integration'
@@ -434,7 +434,7 @@ export const navigationItems = [
         id: 'payment-hub',
         title: 'Payment Integration',
         path: '/payment-hub',
-        icon: CreditCard,
+        icon: LucideCreditCard,
         permission: 'admin',
         badge: 'ADMIN',
         description: 'Payment processing'
@@ -739,7 +739,7 @@ export const navigationItems = [
   {
     id: 'credit-group',
     title: 'Credit Management',
-    icon: CreditCard,
+    icon: LucideCreditCard,
     isGroup: true,
     permission: 'client',
     mobileHidden: false,
@@ -1034,7 +1034,7 @@ export const navigationItems = [
         id: 'ach-auth', 
         title: 'ACH Authorization', 
         path: '/ach-authorization', 
-        icon: CreditCard, 
+        icon: LucideCreditCard, 
         permission: 'user',
         mobileHidden: true,
         description: 'Payment authorization'
@@ -1391,7 +1391,7 @@ export const navigationItems = [
         id: 'wl-plans', 
         title: 'Plans & Billing', 
         path: '/whitelabel/plans', 
-        icon: CreditCard, 
+        icon: LucideCreditCard, 
         permission: 'masterAdmin',
         mobileHidden: true,
         description: 'Subscription plans'

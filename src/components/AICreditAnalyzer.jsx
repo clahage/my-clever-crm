@@ -45,7 +45,7 @@ import {
   FileText, Send, Download, Upload, RefreshCw, Eye, Edit,
   Trash2, Copy, Share2, Filter, Search, ChevronRight, ChevronDown,
   Shield, Activity, Target, Zap, Award, Star, Flag, Clock,
-  DollarSign, CreditCard, Home, Car, Briefcase, Heart, Users,
+  DollarSign, CreditCard as LucideCreditCard, Home, Car, Briefcase, Heart, Users,
   BarChart3, LineChart, PieChart, Brain, Sparkles, Bot,
   AlertTriangle, Info, HelpCircle, Settings, Save, Check,
   X, Plus, Minus, ArrowUp, ArrowDown, ArrowRight, Mail,
@@ -394,14 +394,14 @@ const AICreditAnalyzer = ({ contactId, contact, onAnalysisComplete }) => {
 
   const getAccountIcon = (type) => {
     const icons = {
-      'Credit Card': <CreditCard size={20} />,
+      'Credit Card': <LucideCreditCard size={20} />,
       'Auto Loan': <Car size={20} />,
       'Mortgage': <Home size={20} />,
       'Student Loan': <BookOpen size={20} />,
       'Personal Loan': <DollarSign size={20} />,
       'Collection': <AlertTriangle size={20} />
     };
-    return icons[type] || <CreditCard size={20} />;
+    return icons[type] || <LucideCreditCard size={20} />;
   };
 
   const getStatusColor = (status) => {
@@ -685,7 +685,7 @@ const AICreditAnalyzer = ({ contactId, contact, onAnalysisComplete }) => {
       <Paper sx={{ mb: 3 }}>
         <Tabs value={selectedTab} onChange={(e, v) => setSelectedTab(v)}>
           <Tab label="Overview" icon={<BarChart3 />} iconPosition="start" />
-          <Tab label="Accounts" icon={<CreditCard />} iconPosition="start" />
+          <Tab label="Accounts" icon={<LucideCreditCard />} iconPosition="start" />
           <Tab label="Disputes" icon={<FileText />} iconPosition="start" />
           <Tab label="Simulation" icon={<LineChart />} iconPosition="start" />
         </Tabs>

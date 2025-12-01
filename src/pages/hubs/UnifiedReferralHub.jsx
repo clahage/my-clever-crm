@@ -71,7 +71,7 @@ import {
   Car,
   Home,
   Building2,
-  CreditCard,
+  CreditCard as LucideCreditCard,
   CheckCircle,
   AlertCircle,
   TrendingDown,
@@ -166,7 +166,7 @@ const PARTNER_TYPES = {
   },
   financeManager: {
     label: 'Finance Manager',
-    icon: CreditCard,
+    icon: LucideCreditCard,
     color: COLORS.purple,
     description: 'Dealership finance & insurance managers',
     commissionDefault: 400,

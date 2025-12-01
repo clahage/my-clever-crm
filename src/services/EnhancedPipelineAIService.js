@@ -77,7 +77,7 @@ export const ConversionIntelligence = {
 
     return abandonmentRisk;
   },
-
+  
   // 4. Dynamic Pricing Suggestions
   suggestOptimalPrice: async (prospect) => {
     const factors = {
@@ -387,7 +387,7 @@ export const RevenueAcceleration = {
       forecasts: forecast,
       confidence: calculateForecastConfidence(data),
       factors: identifyForecastFactors(data),
-      risks: identifyRevenue Risks(data),
+      risks: identifyRevenueRisks(data),
       opportunities: identifyRevenueOpportunities(data),
     };
   },
@@ -636,7 +636,7 @@ export const RealTimeMonitoring = {
       metrics[member.id] = {
         activeDeals: 0,
         dealsToday: 0,
-        revenue Today: 0,
+        revenueToday: 0,
         callsToday: 0,
         emailsToday: 0,
       };
@@ -674,8 +674,8 @@ export const RealTimeMonitoring = {
   customizeNotifications: (preferences) => {
     return {
       channels: preferences.channels || ['desktop', 'email', 'sms'],
-      quiet Hours: preferences.quietHours || { start: '22:00', end: '07:00' },
-      priority Levels: preferences.priorities || {
+      quietHours: preferences.quietHours || { start: '22:00', end: '07:00' },
+      priorityLevels: preferences.priorities || {
         critical: ['desktop', 'sms', 'email'],
         high: ['desktop', 'email'],
         medium: ['desktop'],

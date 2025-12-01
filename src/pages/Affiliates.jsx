@@ -36,7 +36,7 @@ import {
   Video,
   Image,
   Megaphone,
-  CreditCard,
+  CreditCard as LucideCreditCard,
   Wallet,
   ArrowUpRight,
   ArrowDownRight,
@@ -497,7 +497,7 @@ const Affiliates = () => {
             <div className="text-xs opacity-75">Conversion Rate</div>
           </div>
           <div className="bg-white/10 backdrop-blur rounded-lg p-3">
-            <CreditCard className="w-6 h-6 mb-2" />
+            <LucideCreditCard className="w-6 h-6 mb-2" />
             <div className="text-2xl font-bold">${affiliateData.averageOrderValue}</div>
             <div className="text-xs opacity-75">Avg Order Value</div>
           </div>
@@ -522,7 +522,7 @@ const Affiliates = () => {
               { id: 'commissions', label: 'Commissions', icon: <DollarSign className="w-4 h-4" /> },
               { id: 'training', label: 'Training', icon: <Award className="w-4 h-4" /> },
               { id: 'leaderboard', label: 'Leaderboard', icon: <Trophy className="w-4 h-4" /> },
-              { id: 'payments', label: 'Payments', icon: <CreditCard className="w-4 h-4" /> }
+              { id: 'payments', label: 'Payments', icon: <LucideCreditCard className="w-4 h-4" /> }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -2588,7 +2588,7 @@ const Affiliates = () => {
                       type: 'PayPal', 
                       email: 'john.smith@email.com', 
                       primary: true,
-                      icon: <CreditCard className="w-6 h-6" />,
+                      icon: <LucideCreditCard className="w-6 h-6" />,
                       color: 'blue'
                     },
                     { 

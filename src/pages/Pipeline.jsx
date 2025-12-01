@@ -3,307 +3,14 @@
 // Features: AI Coach, Predictive Analytics, Smart Automation, Visual Insights
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import EnhancedPipelineAIService from '../services/EnhancedPipelineAIService';
 import { 
   GitBranch, Plus, DollarSign, Users, Phone, Mail, Calendar, Clock,
   ChevronRight, MoreVertical, Edit2, Trash2, Star, AlertCircle, TrendingUp,
   Target, Award, X, Search, Filter, CheckCircle, XCircle, RefreshCw,
   Bot, Sparkles, Zap, Brain, Activity, BarChart3, MessageSquare,
-  FileText, Eye, Send, Video, PhoneCall, Timer, Flag, Archive,
-  ChevronDown, ChevronUp, Copy, Settings, Database, Gauge, Bell,
-  Briefcase, CreditCard, Scale, Shield, AlertTriangle, PieChart,
-  TrendingDown, UserPlus, UserCheck, Layers, Grid, List, Columns,
-  Download, Upload, Share2, Bookmark, Hash, Globe, Linkedin,
-  Twitter, Facebook, Instagram, Youtube, Wifi, WifiOff, Cpu,
-  Flame, Snowflake, Wind, Lightbulb, Rocket, Award as Trophy,
-  ThumbsUp, ThumbsDown, Heart, Smile, Frown, Meh, AlertOctagon,
-  PlayCircle, PauseCircle, StopCircle, FastForward, Rewind,
-  Maximize2, Minimize2, Layout, Map, Compass, Navigation
-} from 'lucide-react';
-import { db } from '../lib/firebase';
-import { 
-  collection, query, where, orderBy, getDocs, doc, updateDoc, deleteDoc,
-  addDoc, serverTimestamp, onSnapshot, writeBatch, arrayUnion, getDoc
-} from 'firebase/firestore';
-import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
 
-// ============================================================================
-// AI SERVICE - Simulated AI Intelligence Engine
-// ============================================================================
-
-const AIService = {
-  // Calculate AI-powered win probability
-  calculateWinProbability: (deal) => {
-    let score = 50; // Base 50%
-    
-    // Lead score influence (+40%)
-    if (deal.leadScore >= 9) score += 30;
-    else if (deal.leadScore >= 8) score += 20;
-    else if (deal.leadScore >= 6) score += 10;
-    else if (deal.leadScore <= 3) score -= 20;
-    
-    // Stage influence (+20%)
-    const stageBonus = {
-      new: -10,
-      contacted: 0,
-      qualified: 10,
-      proposal: 20,
-      negotiation: 15,
-      won: 100,
-      lost: 0
-    };
-    score += stageBonus[deal.stage] || 0;
-    
-    // Urgency influence (+15%)
-    if (deal.urgencyLevel === 'critical') score += 15;
-    else if (deal.urgencyLevel === 'high') score += 10;
-    else if (deal.urgencyLevel === 'low') score -= 10;
-    
-    // Value influence (+10%)
-    if (deal.value >= 5000) score += 10;
-    else if (deal.value >= 2000) score += 5;
-    else if (deal.value < 500) score -= 5;
-    
-    // Response time (+10%)
-    if (deal.responseTime === 'fast') score += 10;
-    else if (deal.responseTime === 'slow') score -= 10;
-    
-    // Engagement (+5%)
-    if (deal.engagementLevel === 'high') score += 5;
-    
-    return Math.max(0, Math.min(100, score));
-  },
-
-  // Calculate deal health (0-100)
-  calculateDealHealth: (deal) => {
-    let health = 70; // Base health
-    
-    // Age factor
-    const ageInDays = deal.createdAt?.seconds 
-      ? Math.floor((Date.now() - deal.createdAt.seconds * 1000) / (1000 * 60 * 60 * 24))
-      : 0;
-    
-    if (ageInDays > 60) health -= 30;
-    else if (ageInDays > 30) health -= 15;
-    else if (ageInDays > 14) health -= 5;
-    
-    // Activity factor
-    if (!deal.lastActivity || ageInDays > 7) health -= 20;
-    
-    // Engagement
-    if (deal.engagementLevel === 'high') health += 20;
-    else if (deal.engagementLevel === 'low') health -= 15;
-    
-    // Competition
-    if (deal.competitorMentioned) health -= 10;
-    
-    // Budget alignment
-    if (deal.budgetRange === 'aligned') health += 10;
-    else if (deal.budgetRange === 'below') health -= 15;
-    
-    return Math.max(0, Math.min(100, health));
-  },
-
-  // Generate next best action
-  getNextBestAction: (deal) => {
-    const stage = deal.stage;
-    const health = AIService.calculateDealHealth(deal);
-    const probability = AIService.calculateWinProbability(deal);
-    
-    if (health < 40) {
-      return {
-        action: 'URGENT: Schedule call to revive deal',
-        priority: 'critical',
-        icon: '🚨',
-        reason: 'Deal health is declining rapidly'
-      };
-    }
-    
-    if (probability > 80 && stage !== 'won') {
-      return {
-        action: 'Send contract - high win probability',
-        priority: 'high',
-        icon: '✅',
-        reason: 'Strong buying signals detected'
-      };
-    }
-    
-    const actions = {
-      new: {
-        action: 'Make initial contact call',
-        priority: 'high',
-        icon: '📞',
-        reason: 'First contact is crucial'
-      },
-      contacted: {
-        action: 'Send qualification questions',
-        priority: 'medium',
-        icon: '📋',
-        reason: 'Qualify the opportunity'
-      },
-      qualified: {
-        action: 'Schedule demo/presentation',
-        priority: 'high',
-        icon: '🎬',
-        reason: 'Show value proposition'
-      },
-      proposal: {
-        action: 'Follow up on proposal',
-        priority: 'high',
-        icon: '📄',
-        reason: 'Keep momentum going'
-      },
-      negotiation: {
-        action: 'Address objections & close',
-        priority: 'critical',
-        icon: '🤝',
-        reason: 'Final push needed'
-      }
-    };
-    
-    return actions[stage] || {
-      action: 'Review and update deal',
-      priority: 'medium',
-      icon: '🔍',
-      reason: 'Keep deal current'
-    };
-  },
-
-  // Generate AI email template
-  generateEmail: (deal, emailType) => {
-    const templates = {
-      initial: `Subject: Quick Question About Credit Repair
-
-Hi ${deal.name?.split(' ')[0] || 'there'},
-
-I noticed you're interested in improving your credit score. I'd love to learn more about your situation and see if we can help.
-
-Would you have 15 minutes this week for a quick call?
-
-Best regards,
-[Your Name]`,
-      
-      followup: `Subject: Following Up - Credit Repair Solutions
-
-Hi ${deal.name?.split(' ')[0] || 'there'},
-
-I wanted to follow up on our conversation about ${deal.painPoints?.[0] || 'your credit goals'}.
-
-Based on what you shared, I think our ${deal.product ? deal.product.replace(/-/g, ' ') : 'credit repair'} program could be a great fit.
-
-Can we schedule 20 minutes to discuss next steps?
-
-Best,
-[Your Name]`,
-      
-      proposal: `Subject: Your Custom Credit Repair Proposal
-
-Hi ${deal.name?.split(' ')[0] || 'there'},
-
-Thank you for taking the time to discuss your credit goals with me!
-
-I've prepared a custom proposal that addresses:
-${deal.painPoints?.map(p => `• ${p}`).join('\n') || '• Your specific credit challenges'}
-
-The investment is ${deal.value ? `$${deal.value}` : '[amount]'} and we can typically see results within 3-6 months.
-
-Let's schedule a quick call to review the details!
-
-Best regards,
-[Your Name]`,
-      
-      closing: `Subject: Ready to Get Started?
-
-Hi ${deal.name?.split(' ')[0] || 'there'},
-
-I'm excited to help you achieve your credit goals!
-
-To get started:
-1. Review and sign the attached agreement
-2. Schedule your onboarding call
-3. We'll begin working on your credit immediately
-
-Questions? Just reply to this email or call me directly.
-
-Looking forward to your success!
-[Your Name]`
-    };
-    
-    return templates[emailType] || templates.followup;
-  },
-
-  // AI Insights and recommendations
-  getAIInsights: (deals) => {
-    const insights = [];
-    
-    // Hot leads insight
-    const hotLeads = deals.filter(d => d.leadScore >= 8 && !['won', 'lost'].includes(d.stage));
-    if (hotLeads.length > 0) {
-      insights.push({
-        type: 'opportunity',
-        icon: '🔥',
-        title: `${hotLeads.length} Hot Leads Need Attention`,
-        description: `Focus on these high-score leads for quick wins`,
-        action: 'View Hot Leads',
-        priority: 'high',
-        deals: hotLeads
-      });
-    }
-    
-    // Stuck deals
-    const stuckDeals = deals.filter(d => {
-      const age = d.createdAt?.seconds 
-        ? Math.floor((Date.now() - d.createdAt.seconds * 1000) / (1000 * 60 * 60 * 24))
-        : 0;
-      return age > 30 && !['won', 'lost'].includes(d.stage);
-    });
-    if (stuckDeals.length > 0) {
-      insights.push({
-        type: 'warning',
-        icon: '⚠️',
-        title: `${stuckDeals.length} Deals Are Stalling`,
-        description: 'These deals haven\'t moved in 30+ days',
-        action: 'Review Stalled Deals',
-        priority: 'medium',
-        deals: stuckDeals
-      });
-    }
-    
-    // Revenue at risk
-    const atRiskValue = deals
-      .filter(d => AIService.calculateDealHealth(d) < 40)
-      .reduce((sum, d) => sum + (d.value || 0), 0);
-    if (atRiskValue > 5000) {
-      insights.push({
-        type: 'danger',
-        icon: '🚨',
-        title: `$${(atRiskValue/1000).toFixed(1)}K Revenue At Risk`,
-        description: 'Multiple deals show declining health',
-        action: 'Rescue Deals',
-        priority: 'critical'
-      });
-    }
-    
-    // Quick wins
-    const quickWins = deals.filter(d => 
-      AIService.calculateWinProbability(d) > 75 && 
-      ['qualified', 'proposal', 'negotiation'].includes(d.stage)
-    );
-    if (quickWins.length > 0) {
-      insights.push({
-        type: 'success',
-        icon: '🎯',
-        title: `${quickWins.length} Deals Ready to Close`,
-        description: 'High probability wins - push for closure',
-        action: 'Close Deals',
-        priority: 'high',
-        deals: quickWins
-      });
-    }
-    
-    // Pipeline health
-    const avgHealth = deals.length > 0
-      ? deals.reduce((sum, d) => sum + AIService.calculateDealHealth(d), 0) / deals.length
+      ? deals.reduce((sum, d) => sum + EnhancedPipelineAIService.ConversionIntelligence.calculateDealHealth(d), 0) / deals.length
       : 0;
     if (avgHealth < 60) {
       insights.push({
@@ -330,7 +37,7 @@ Looking forward to your success!
     let worstCase = 0;
     
     qualified.forEach(deal => {
-      const probability = AIService.calculateWinProbability(deal) / 100;
+      const probability = EnhancedPipelineAIService.ConversionIntelligence.calculateWinProbability(deal) / 100;
       const value = deal.value || 0;
       
       forecast += value * probability;
@@ -638,18 +345,18 @@ const Pipeline = () => {
 
     // AI-powered metrics
     const avgHealth = dealsList.length > 0
-      ? dealsList.reduce((sum, d) => sum + AIService.calculateDealHealth(d), 0) / dealsList.length
+      ? dealsList.reduce((sum, d) => sum + EnhancedPipelineAIService.ConversionIntelligence.calculateDealHealth(d), 0) / dealsList.length
       : 0;
     
     const avgWinProb = dealsList.filter(d => !['won', 'lost'].includes(d.stage)).length > 0
       ? dealsList
           .filter(d => !['won', 'lost'].includes(d.stage))
-          .reduce((sum, d) => sum + AIService.calculateWinProbability(d), 0) / 
+          .reduce((sum, d) => sum + EnhancedPipelineAIService.calculateWinProbability(d), 0) / 
           dealsList.filter(d => !['won', 'lost'].includes(d.stage)).length
       : 0;
 
     // At risk deals
-    const atRiskDeals = dealsList.filter(d => AIService.calculateDealHealth(d) < 40 && !['won', 'lost'].includes(d.stage));
+    const atRiskDeals = dealsList.filter(d => EnhancedPipelineAIService.ConversionIntelligence.calculateDealHealth(d) < 40 && !['won', 'lost'].includes(d.stage));
     
     // Hot leads
     const hotLeads = dealsList.filter(d => d.leadScore >= 8 && !['won', 'lost'].includes(d.stage)).length;
@@ -877,9 +584,9 @@ const Pipeline = () => {
         case 'value':
           return (b.value || 0) - (a.value || 0);
         case 'health':
-          return AIService.calculateDealHealth(b) - AIService.calculateDealHealth(a);
+          return EnhancedPipelineAIService.ConversionIntelligence.calculateDealHealth(b) - EnhancedPipelineAIService.ConversionIntelligence.calculateDealHealth(a);
         case 'probability':
-          return AIService.calculateWinProbability(b) - AIService.calculateWinProbability(a);
+          return EnhancedPipelineAIService.ConversionIntelligence.calculateWinProbability(b) - EnhancedPipelineAIService.ConversionIntelligence.calculateWinProbability(a);
         case 'score':
           return (b.leadScore || 0) - (a.leadScore || 0);
         default:
@@ -906,44 +613,7 @@ const Pipeline = () => {
     const stageDeals = getDealsForStage(stageId);
     const value = stageDeals.reduce((sum, d) => sum + (d.value || 0), 0);
     const avgHealth = stageDeals.length > 0
-      ? stageDeals.reduce((sum, d) => sum + AIService.calculateDealHealth(d), 0) / stageDeals.length
-      : 0;
-    const avgWinProb = stageDeals.length > 0
-      ? stageDeals.reduce((sum, d) => sum + AIService.calculateWinProbability(d), 0) / stageDeals.length
-      : 0;
-    const hotCount = stageDeals.filter(d => d.leadScore >= 8).length;
-    const criticalCount = stageDeals.filter(d => d.urgencyLevel === 'critical').length;
-    
-    return {
-      count: stageDeals.length,
-      value,
-      avgHealth: avgHealth.toFixed(0),
-      avgWinProb: avgWinProb.toFixed(0),
-      hotCount,
-      criticalCount
-    };
-  }, [getDealsForStage]);
 
-  // ============================================================================
-  // DEAL CARD COMPONENT
-  // ============================================================================
-
-  const DealCard = ({ deal }) => {
-    const isExpanded = expandedDeals.has(deal.id);
-    const health = AIService.calculateDealHealth(deal);
-    const winProb = AIService.calculateWinProbability(deal);
-    const nextAction = AIService.getNextBestAction(deal);
-
-    return (
-      <div
-        draggable
-        onDragStart={(e) => handleDragStart(e, deal)}
-        onDragEnd={handleDragEnd}
-        className={`bg-white dark:bg-gray-700 rounded-lg p-3 shadow-sm hover:shadow-md transition-all cursor-move border-2 ${
-          deal.urgencyLevel === 'critical' 
-            ? 'border-red-400 bg-red-50 dark:bg-red-900/20' 
-            : deal.leadScore >= 8
-            ? 'border-orange-400 bg-orange-50 dark:bg-orange-900/20'
             : health < 40
             ? 'border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20'
             : 'border-transparent'
@@ -1629,14 +1299,14 @@ const Pipeline = () => {
                 </h3>
                 <div className="space-y-2">
                   {deals
-                    .filter(d => AIService.calculateWinProbability(d) > 75 && !['won', 'lost'].includes(d.stage))
+                    .filter(d => EnhancedPipelineAIService.calculateWinProbability(d) > 75 && !['won', 'lost'].includes(d.stage))
                     .slice(0, 3)
                     .map(deal => (
                       <div key={deal.id} className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
                         <div className="flex items-center justify-between mb-1">
                           <span className="font-medium text-sm">{deal.name}</span>
                           <span className="text-xs font-bold text-green-700 bg-green-100 px-2 py-1 rounded">
-                            {AIService.calculateWinProbability(deal)}% win
+                            {EnhancedPipelineAIService.calculateWinProbability(deal)}% win
                           </span>
                         </div>
                         <div className="text-xs text-gray-600 dark:text-gray-400">
@@ -1650,7 +1320,7 @@ const Pipeline = () => {
                         </button>
                       </div>
                     ))}
-                  {deals.filter(d => AIService.calculateWinProbability(d) > 75 && !['won', 'lost'].includes(d.stage)).length === 0 && (
+                  {deals.filter(d => EnhancedPipelineAIService.calculateWinProbability(d) > 75 && !['won', 'lost'].includes(d.stage)).length === 0 && (
                     <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
                       No high-probability deals right now. Focus on moving deals forward!
                     </p>
