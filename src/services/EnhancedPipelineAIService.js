@@ -10,13 +10,15 @@
 import { db } from '../lib/firebase';
 import { collection, doc, updateDoc, addDoc, getDocs, query, where, orderBy, serverTimestamp, limit } from 'firebase/firestore';
 
-const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
+// --- UNIVERSAL ENVIRONMENT LOADER ---
+import { getEnv } from '../lib/envHelper'; 
+
+const OPENAI_API_KEY = getEnv('VITE_OPENAI_API_KEY');
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 
 // ================================================================================
 // CATEGORY 1: CONVERSION INTELLIGENCE (50+ Features)
 // ================================================================================
-
 export const ConversionIntelligence = {
   // 1. Visitor Behavior Prediction
   predictVisitorIntent: async (visitorData) => {
