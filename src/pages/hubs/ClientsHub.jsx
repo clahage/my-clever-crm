@@ -159,7 +159,8 @@ import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, where, o
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase';
 // ADD THIS IMPORT
-import EnhancedPipelineAIService from '@/services/EnhancedPipelineAIService';
+import RealPipelineAIService from '@/services/RealPipelineAIService';
+import Pipeline from '@/pages/Pipeline';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   BarChart as RechartsBarChart,
@@ -640,32 +641,27 @@ const ClientsHub = () => {
           meetings: Math.floor(Math.random() * 10),
         });
       }
-      
+
       setAnalytics({
         totalClients: total,
         activeClients: active,
         leads,
-        prospects,
-        completed,
-        cancelled,
-        atRisk,
         conversionRate,
         avgLeadScore: avgScore,
         avgEngagement,
         totalRevenue,
         avgRevenuePerClient,
         churnRate,
+        recentActivity: [], // You can fill this with actual recent activity
         statusDistribution: statusDist,
         sourceDistribution: sourceDist,
         stageDistribution: stageDist,
         monthlyTrends,
-        revenueByMonth: monthlyTrends,
+        revenueByMonth: monthlyTrends.map(m => ({ month: m.month, revenue: m.revenue })),
         engagementTrends: engagementData,
       });
-      
-      console.log('✅ Analytics calculated successfully');
     } catch (error) {
-      console.error('❌ Error calculating analytics:', error);
+      console.error('Error calculating analytics:', error);
     }
   }, []);
   
@@ -675,10 +671,10 @@ const ClientsHub = () => {
     setMlProcessing(true);
     try {
       // Use the comprehensive AI service with 300+ features
-      const churnPredictions = EnhancedPipelineAIService.analyzeChurnRisk(clientData);
-      const clvForecasts = EnhancedPipelineAIService.calculateCustomerLifetimeValue(clientData);
-      const upsellOpportunities = EnhancedPipelineAIService.identifyUpsellOpportunities(clientData);
-      const nextBestActions = EnhancedPipelineAIService.generateNextBestActions(clientData);
+      const churnPredictions = RealPipelineAIService.analyzeChurnRisk(clientData);
+      const clvForecasts = RealPipelineAIService.calculateCustomerLifetimeValue(clientData);
+      const upsellOpportunities = RealPipelineAIService.identifyUpsellOpportunities(clientData);
+      const nextBestActions = RealPipelineAIService.generateNextBestActions(clientData);
 
       setPredictions({
         churnPredictions,
@@ -691,27 +687,7 @@ const ClientsHub = () => {
     } finally {
       setMlProcessing(false);
     }
-          const strategies = [];
-          if (client.cancellationReason === 'price') strategies.push('Offer discount (20% off)');
-          if (client.previousSatisfaction > 7) strategies.push('Highlight improvements since cancellation');
-          if (daysSinceCancellation < 90) strategies.push('Special re-activation offer');
-          if (client.totalRevenue > 2000) strategies.push('VIP treatment, priority support');
-          
-          return {
-            clientId: client.id,
-            clientName: `${client.firstName} ${client.lastName}`,
-            probability,
-            daysSinceCancellation,
-            previousValue: client.totalRevenue || 0,
-            cancellationReason: client.cancellationReason || 'Unknown',
-            strategies,
-            estimatedValue: (client.totalRevenue || 1000) * 0.8,
-          };
-        })
-        .filter(c => c.probability > 0.3)
-        .sort((a, b) => b.probability - a.probability)
-        .slice(0, 10);
-      
+                
       // 6. ENGAGEMENT SCORES (ML-based)
       const engagementScores = clientData.map(client => {
         // Calculate comprehensive engagement score
@@ -768,19 +744,20 @@ const ClientsHub = () => {
         engagementScores,
       });
 
-      console.log('✅ Predictive analysis complete');
-      console.log('📊 Results:', {
-        churnRisk: churnPredictions.length,
-        clvForecasts: clvForecasts.length,
-        nextActions: nextBestActions.length,
-        upsells: upsellOpportunities.length,
-        winBacks: winBackCandidates.length,
-      });
-    } catch (error) {
-      console.error('❌ Error in predictive analysis:', error);
-    } finally {
-      setMlProcessing(false);
-    }
+      try {
+        console.log('✅ Predictive analysis complete');
+        console.log('📊 Results:', {
+          churnRisk: churnPredictions.length,
+          clvForecasts: clvForecasts.length,
+          nextActions: nextBestActions.length,
+          upsells: upsellOpportunities.length,
+          winBacks: winBackCandidates.length,
+        });
+      } catch (error) {
+        console.error('❌ Error in predictive analysis:', error);
+      } finally {
+        setMlProcessing(false);
+      }
   }, []);
   
   const calculateEngagementTrend = (client) => {
@@ -3883,6 +3860,7 @@ const ClientsHub = () => {
           <Tab label="Automation" icon={<Zap size={18} />} iconPosition="start" />
           <Tab label="Revenue" icon={<DollarSign size={18} />} iconPosition="start" />
           <Tab label="AI Intelligence" icon={<Brain size={18} />} iconPosition="start" />
+          <Tab label="Sales Pipeline" icon={<GitBranch size={18} />} iconPosition="start" />
         </Tabs>
       </Card>
       
@@ -3904,6 +3882,7 @@ const ClientsHub = () => {
           {activeTab === 9 && renderAutomation()}
           {activeTab === 10 && renderRevenueLifecycle()}
           {activeTab === 11 && renderPredictiveIntelligence()}
+          {activeTab === 12 && <Pipeline />}
         </>
       )}
       

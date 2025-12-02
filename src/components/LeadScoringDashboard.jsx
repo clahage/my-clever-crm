@@ -1,4 +1,4 @@
-// Path: /src/components/LeadScoringDashboard.jsx
+// ...existing code...
 // ═══════════════════════════════════════════════════════════════════════════
 // LEAD SCORING DASHBOARD - MEGA ENTERPRISE UI
 // ═══════════════════════════════════════════════════════════════════════════

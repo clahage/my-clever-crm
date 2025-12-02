@@ -1,9 +1,22 @@
+// Path: /src/components/UltimateContactForm.jsx
+// ============================================================================
+// ULTIMATE CONTACT FORM - AI-POWERED COMPREHENSIVE CLIENT INTAKE
+// ============================================================================
+// Version: 3.0 - Complete client intelligence capture system
+// Features: 2980+ lines, 50+ AI capabilities, duplicate detection
+// Last Updated: 2025-12-01
+// ============================================================================
+
 import { useState, useEffect, useRef } from 'react';
 import { Phone, Mail, MapPin, FileText, CreditCard, Users, Bell, Plus, X, ChevronDown, ChevronUp, Mic, Eye, EyeOff, Brain, Clock, Globe, MessageSquare, Activity, Upload, Download, Search, AlertCircle, CheckCircle, TrendingUp, Zap, Shield, Star, Target, Calendar, DollarSign, Briefcase, Home } from 'lucide-react';
 import { db } from '../lib/firebase';
-import { collection, addDoc, updateDoc, doc, onSnapshot, query, where, orderBy, limit } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, doc, onSnapshot, query, where, orderBy, limit, getDocs, serverTimestamp } from 'firebase/firestore';
 
-export default function UltimateClientForm({ initialData = {}, onSave, onCancel, contactId = null }) {
+// ============================================================================
+// MAIN COMPONENT DECLARATION
+// ============================================================================
+const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData = {} }) => {
+
   const [formData, setFormData] = useState({
     // Basic Information
     firstName: '',
@@ -765,6 +778,46 @@ export default function UltimateClientForm({ initialData = {}, onSave, onCancel,
   };
 
   const handleSave = async () => {
+    // Check for duplicates before creating
+    const checkDuplicate = async (email, phone) => {
+      const contactsRef = collection(db, 'contacts');
+      
+      // Check email
+      if (email) {
+        const emailQuery = query(contactsRef, where('email', '==', email.toLowerCase()));
+        const emailSnap = await getDocs(emailQuery);
+        if (!emailSnap.empty) {
+          const existing = emailSnap.docs[0];
+          // Update contact frequency instead of creating new
+          await updateDoc(existing.ref, {
+            contactFrequency: (existing.data().contactFrequency || 1) + 1,
+            lastContact: serverTimestamp(),
+            tags: [...new Set([...(existing.data().tags || []), 'repeat-contact'])],
+          });
+          console.log('✅ Duplicate detected! Updated contact frequency.');
+          return existing.id; // Return existing ID
+        }
+      }
+      
+      // Check phone
+      if (phone) {
+        const cleanPhone = phone.replace(/\D/g, '');
+        const phoneQuery = query(contactsRef, where('phone', '==', cleanPhone));
+        const phoneSnap = await getDocs(phoneQuery);
+        if (!phoneSnap.empty) {
+          const existing = phoneSnap.docs[0];
+          await updateDoc(existing.ref, {
+            contactFrequency: (existing.data().contactFrequency || 1) + 1,
+            lastContact: serverTimestamp(),
+          });
+          console.log('✅ Duplicate detected! Updated contact frequency.');
+          return existing.id;
+        }
+      }
+      
+      return null; // No duplicate found
+    };
+
     const engagementScore = calculateEngagementScore();
     const finalData = {
       ...formData,
@@ -776,6 +829,16 @@ export default function UltimateClientForm({ initialData = {}, onSave, onCancel,
       lastSavedAt: new Date().toISOString(),
       lastSavedBy: 'manual'
     };
+    
+    // If creating a new contact, check for duplicates first
+    if (!contactId) {
+      const duplicateId = await checkDuplicate(formData.emails[0]?.address, formData.phones[0]?.number);
+      if (duplicateId) {
+        // Handle duplicate case (e.g., show message, redirect, etc.)
+        console.log('Duplicate contact found:', duplicateId);
+        return;
+      }
+    }
     
     addTimelineEvent('form_saved', 'Client information saved manually');
     onSave(finalData);
@@ -821,7 +884,7 @@ export default function UltimateClientForm({ initialData = {}, onSave, onCancel,
         <ChevronDown className="w-5 h-5 text-gray-400" />
       )}
     </div>
-  );
+);
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-4">
@@ -2897,21 +2960,21 @@ export default function UltimateClientForm({ initialData = {}, onSave, onCancel,
         <h3 className="text-sm font-semibold text-gray-900 mb-3">Client Profile Summary</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div>
-            <p className="text-xs text-gray-600">Completeness</p>
+            <p className="text-xs text-gray-600 mb-1">Completeness</p>
             <p className="text-lg font-bold text-gray-900">{dataQuality.score}%</p>
           </div>
           <div>
-            <p className="text-xs text-gray-600">Engagement Score</p>
+            <p className="text-xs text-gray-600 mb-1">Engagement Score</p>
             <p className="text-lg font-bold text-gray-900">{calculateEngagementScore()}/100</p>
           </div>
           <div>
-            <p className="text-xs text-gray-600">Days Active</p>
+            <p className="text-xs text-gray-600 mb-1">Days Active</p>
             <p className="text-lg font-bold text-gray-900">
               {Math.floor((new Date() - new Date(formData.aiTracking.firstContact)) / (1000 * 60 * 60 * 24))}
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-600">Lifetime Value</p>
+            <p className="text-xs text-gray-600 mb-1">Lifetime Value</p>
             <p className="text-lg font-bold text-gray-900">${formData.aiTracking.lifetimeValue}</p>
           </div>
         </div>
@@ -2977,4 +3040,9 @@ export default function UltimateClientForm({ initialData = {}, onSave, onCancel,
       )}
     </div>
   );
-}
+};
+
+// ============================================================================
+// EXPORT
+// ============================================================================
+export default UltimateContactForm;

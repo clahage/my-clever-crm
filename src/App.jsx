@@ -141,6 +141,7 @@ const PredictiveAnalytics = lazy(() => import('@/pages/PredictiveAnalytics'));
 
 // ===== CONTACT & CRM PAGES =====
 const Contacts = lazy(() => import('@/pages/Contacts'));
+const DuplicateManager = lazy(() => import('@/components/DuplicateManager'));
 const ClientIntake = lazy(() => import('@/pages/ClientIntake'));
 const Pipeline = lazy(() => import('@/pages/Pipeline'));
 const ContactImport = lazy(() => import('@/pages/ContactImport'));
@@ -373,7 +374,7 @@ const AppContent = () => {
         {/* SMART DASHBOARD - Intelligent Role-Based Landing Page */}
         <Route path="smart-dashboard" element={<Suspense fallback={<LoadingFallback />}><SmartDashboard /></Suspense>} />
 
-        {/* Dashboard Routes */}
+{/* Dashboard Routes */}
         <Route path="dashboard" element={<Navigate to="/smart-dashboard" replace />} />
         {/* Home - Welcome Hub (separate from analytics dashboard) */}
         <Route path="home" element={<Suspense fallback={<LoadingFallback />}><Home /></Suspense>} />
@@ -386,21 +387,43 @@ const AppContent = () => {
         <Route path="credit-analysis" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><CreditAnalysisEngine /></Suspense></ProtectedRoute>} />
         <Route path="predictive-analytics" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><PredictiveAnalytics /></Suspense></ProtectedRoute>} />
 
-        {/* CONTACTS ROUTE - This should work */}
         {/* ============================================================================ */}
         {/* REDIRECTS: Standalone pages → Parent Hubs */}
         {/* ============================================================================ */}
 
-        {/* Clients Hub redirects */}
+        {/* ============================================================================ */}
+        {/* CLIENTS & CONTACTS SECTION */}
+        {/* ============================================================================ */}
+
+        {/* Contacts - Redirect to clients-hub */}
         <Route path="contacts" element={<Navigate to="/clients-hub" replace />} />
         <Route path="contacts/:id" element={<Suspense fallback={<LoadingFallback />}><ContactDetailPage /></Suspense>} />
         <Route path="intake" element={<Navigate to="/clients-hub" replace />} />
         <Route path="new-client" element={<Navigate to="/clients-hub" replace />} />
-        <Route path="pipeline" element={<Navigate to="/clients-hub" replace />} />
-        <Route path="segments" element={<Navigate to="/clients-hub" replace />} />
-        <Route path="import" element={<Navigate to="/clients-hub" replace />} />
-        <Route path="export" element={<Navigate to="/clients-hub" replace />} />
-        <Route path="contact-reports" element={<Navigate to="/analytics-hub" replace />} />
+
+        {/* Pipeline - Standalone AND ClientsHub Tab 12 */}
+        <Route 
+          path="pipeline" 
+          element={
+            <ProtectedRoute requiredRole="user">
+              <Suspense fallback={<LoadingFallback />}>
+                <Pipeline />
+              </Suspense>
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* ===== DUPLICATE MANAGER - AI-POWERED CONTACT DEDUPLICATION ===== */}
+        <Route 
+          path="duplicate-manager" 
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <Suspense fallback={<LoadingFallback />}>
+                <DuplicateManager />
+              </Suspense>
+            </ProtectedRoute>
+          } 
+        />
 
         {/* Disputes Hub redirects */}
         <Route path="credit-simulator" element={<Navigate to="/dispute-hub" replace />} />

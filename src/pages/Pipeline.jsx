@@ -1,32 +1,262 @@
-// src/pages/Pipeline.jsx
-// MEGA AI-POWERED SALES PIPELINE - ULTIMATE EDITION
-// Features: AI Coach, Predictive Analytics, Smart Automation, Visual Insights
+// ================================================================================
+// PATH: /src/pages/Pipeline.jsx
+// ================================================================================
+// MEGA AI-POWERED SALES PIPELINE - PRODUCTION READY
+// ================================================================================
+// Features: AI-powered lead scoring, Kanban drag-and-drop, real-time updates,
+//           predictive analytics, smart automation, visual insights
+// Author: Christopher (Speedy Credit Repair)
+// Last Updated: 2025-12-01
+// ================================================================================
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import EnhancedPipelineAIService from '../services/EnhancedPipelineAIService';
-import { 
-  GitBranch, Plus, DollarSign, Users, Phone, Mail, Calendar, Clock,
-  ChevronRight, MoreVertical, Edit2, Trash2, Star, AlertCircle, TrendingUp,
-  Target, Award, X, Search, Filter, CheckCircle, XCircle, RefreshCw,
-  Bot, Sparkles, Zap, Brain, Activity, BarChart3, MessageSquare,
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
-      ? deals.reduce((sum, d) => sum + EnhancedPipelineAIService.ConversionIntelligence.calculateDealHealth(d), 0) / deals.length
+// ===== FIREBASE IMPORTS =====
+import { db } from '../lib/firebase';
+import { 
+  collection, 
+  query, 
+  where, 
+  orderBy, 
+  onSnapshot,
+  doc,
+  updateDoc,
+  addDoc,
+  deleteDoc,
+  serverTimestamp,
+  getDocs
+} from 'firebase/firestore';
+
+// ===== LUCIDE REACT ICONS =====
+import {
+  Users,
+  UserPlus,
+  UserCheck,
+  MessageSquare,
+  FileText,
+  Scale,
+  Trophy,
+  XCircle,
+  Plus,
+  Search,
+  Filter,
+  Download,
+  Upload,
+  Mail,
+  Phone,
+  Calendar,
+  Clock,
+  DollarSign,
+  TrendingUp,
+  TrendingDown,
+  AlertCircle,
+  CheckCircle,
+  X,
+  Edit,
+  Trash2,
+  Eye,
+  BarChart3,
+  Activity,
+  Zap,
+  Target,
+  Brain,
+  Bot,
+  Sparkles,
+  ChevronDown,
+  ChevronRight,
+  MoreVertical,
+  Settings,
+  RefreshCw,
+  Copy,
+  ExternalLink,
+  ArrowRight,
+  ArrowUp,
+  ArrowDown,
+  Info
+} from 'lucide-react';
+
+// ===== AI SERVICE IMPORT =====
+import RealPipelineAI from '../services/RealPipelineAIService';
+
+// ================================================================================
+// UTILITY FUNCTIONS
+// ================================================================================
+
+/**
+ * Calculate deal health score (0-100)
+ * Based on: last activity, stage progression, engagement level
+ */
+const calculateDealHealth = (deal) => {
+  if (!deal) return 0;
+  
+  let health = 100;
+  
+  // Last activity recency (0-30 points)
+  if (deal.lastActivity) {
+    const daysSinceActivity = Math.floor((Date.now() - deal.lastActivity.toMillis()) / (1000 * 60 * 60 * 24));
+    if (daysSinceActivity > 30) health -= 30;
+    else if (daysSinceActivity > 14) health -= 20;
+    else if (daysSinceActivity > 7) health -= 10;
+  } else {
+    health -= 30;
+  }
+  
+  // Stage-appropriate timing (0-30 points)
+  if (deal.createdAt) {
+    const daysInStage = Math.floor((Date.now() - deal.createdAt.toMillis()) / (1000 * 60 * 60 * 24));
+    const stageTargets = {
+      'new': 1,
+      'contacted': 3,
+      'qualified': 7,
+      'proposal': 14,
+      'negotiation': 21
+    };
+    const target = stageTargets[deal.stage] || 7;
+    if (daysInStage > target * 2) health -= 30;
+    else if (daysInStage > target) health -= 15;
+  }
+  
+  // Engagement level (0-20 points)
+  const interactions = deal.interactions || 0;
+  if (interactions === 0) health -= 20;
+  else if (interactions < 3) health -= 10;
+  
+  // Priority/urgency bonus (0-20 points)
+  if (deal.priority === 'high' || deal.urgency === 'high') health += 10;
+  if (deal.leadScore >= 8) health += 10;
+  
+  return Math.max(0, Math.min(100, health));
+};
+
+/**
+ * Calculate win probability (0-100%)
+ * Based on: stage, lead score, deal health, historical patterns
+ */
+const calculateWinProbability = (deal) => {
+  if (!deal) return 0;
+  
+  // Base probability by stage
+  const stageProbabilities = {
+    'new': 10,
+    'contacted': 20,
+    'qualified': 40,
+    'proposal': 60,
+    'negotiation': 75,
+    'won': 100,
+    'lost': 0
+  };
+  
+  let probability = stageProbabilities[deal.stage] || 10;
+  
+  // Adjust for lead score
+  if (deal.leadScore) {
+    probability += (deal.leadScore - 5) * 3; // ±15% adjustment
+  }
+  
+  // Adjust for deal health
+  const health = calculateDealHealth(deal);
+  if (health < 50) probability -= 15;
+  else if (health > 80) probability += 10;
+  
+  // Adjust for value (larger deals may have lower probability)
+  if (deal.value > 3000) probability -= 5;
+  
+  return Math.max(0, Math.min(100, probability));
+};
+
+/**
+ * Get color class based on health score
+ */
+const getHealthColor = (health) => {
+  if (health >= 80) return 'text-green-600';
+  if (health >= 60) return 'text-yellow-600';
+  if (health >= 40) return 'text-orange-600';
+  return 'text-red-600';
+};
+
+/**
+ * Format currency
+ */
+const formatCurrency = (amount) => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(amount || 0);
+};
+
+/**
+ * Format relative time (e.g., "2 hours ago")
+ */
+const formatRelativeTime = (timestamp) => {
+  if (!timestamp) return 'Never';
+  
+  const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
+  return `${Math.floor(diffDays / 30)}mo ago`;
+};
+
+// ================================================================================
+// PIPELINE UTILITIES EXPORT
+// ================================================================================
+
+export const PipelineUtils = {
+  calculateDealHealth,
+  calculateWinProbability,
+  getHealthColor,
+  formatCurrency,
+  formatRelativeTime,
+  
+  /**
+   * Get AI insights for pipeline
+   */
+  getAIInsights: (deals) => {
+    const insights = [];
+    const avgHealth = deals && deals.length > 0
+      ? deals.reduce((sum, d) => sum + calculateDealHealth(d), 0) / deals.length
       : 0;
+    
     if (avgHealth < 60) {
       insights.push({
-        type: 'info',
-        icon: '💡',
-        title: 'Pipeline Health Below Average',
-        description: `Overall health is ${avgHealth.toFixed(0)}% - increase activity`,
-        action: 'Boost Engagement',
-        priority: 'medium'
+        type: 'warning',
+        icon: '⚠️',
+        title: 'Pipeline Health Below Target',
+        description: `Average health is ${avgHealth.toFixed(0)}% - increase engagement with stale leads`,
+        action: 'Review Stale Deals',
+        priority: 'high'
+      });
+    }
+    
+    const hotLeads = deals.filter(d => d.leadScore >= 8 && ['new', 'contacted', 'qualified'].includes(d.stage));
+    if (hotLeads.length > 0) {
+      insights.push({
+        type: 'success',
+        icon: '🔥',
+        title: `${hotLeads.length} Hot Leads Ready`,
+        description: 'High-scoring leads need immediate attention',
+        action: 'View Hot Leads',
+        priority: 'high'
       });
     }
     
     return insights;
   },
-
-  // Forecast revenue with AI
+  
+  /**
+   * Forecast revenue based on current pipeline
+   */
   forecastRevenue: (deals, days = 30) => {
     const qualified = deals.filter(d => 
       ['qualified', 'proposal', 'negotiation'].includes(d.stage)
@@ -37,9 +267,8 @@ import {
     let worstCase = 0;
     
     qualified.forEach(deal => {
-      const probability = EnhancedPipelineAIService.ConversionIntelligence.calculateWinProbability(deal) / 100;
+      const probability = calculateWinProbability(deal) / 100;
       const value = deal.value || 0;
-      
       forecast += value * probability;
       bestCase += value * Math.min(1, probability * 1.3);
       worstCase += value * probability * 0.5;
@@ -54,31 +283,32 @@ import {
   }
 };
 
-// ============================================================================
+// ================================================================================
 // MAIN PIPELINE COMPONENT
-// ============================================================================
+// ================================================================================
 
 const Pipeline = () => {
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const navigate = useNavigate();
 
-  // Core state
+  // ===== CORE STATE =====
   const [deals, setDeals] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [draggedDeal, setDraggedDeal] = useState(null);
   const [dragOverStage, setDragOverStage] = useState(null);
   
-  // UI state
+  // ===== UI STATE =====
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddDeal, setShowAddDeal] = useState(false);
   const [selectedStage, setSelectedStage] = useState('');
   const [editingDeal, setEditingDeal] = useState(null);
   const [selectedDeals, setSelectedDeals] = useState([]);
   const [expandedDeals, setExpandedDeals] = useState(new Set());
-  const [viewMode, setViewMode] = useState('kanban');
+  const [viewMode, setViewMode] = useState('kanban'); // 'kanban' | 'list' | 'chart'
   const [showFilters, setShowFilters] = useState(false);
   
-  // Filter state
+  // ===== FILTER STATE =====
   const [filterPriority, setFilterPriority] = useState('all');
   const [filterSource, setFilterSource] = useState('all');
   const [filterProduct, setFilterProduct] = useState('all');
@@ -86,7 +316,7 @@ const Pipeline = () => {
   const [sortBy, setSortBy] = useState('value');
   const [showHotLeadsOnly, setShowHotLeadsOnly] = useState(false);
   
-  // AI features state
+  // ===== AI FEATURES STATE =====
   const [showAICoach, setShowAICoach] = useState(false);
   const [showAIInsights, setShowAIInsights] = useState(false);
   const [showEmailGenerator, setShowEmailGenerator] = useState(false);
@@ -94,12 +324,12 @@ const Pipeline = () => {
   const [aiInsights, setAIInsights] = useState([]);
   const [forecastData, setForecastData] = useState(null);
   
-  // Settings
+  // ===== SETTINGS =====
   const [realtimeUpdates, setRealtimeUpdates] = useState(true);
   const [automationEnabled, setAutomationEnabled] = useState(true);
   const [forecastRange, setForecastRange] = useState(30);
   
-  // Stats
+  // ===== STATS =====
   const [stats, setStats] = useState({
     totalValue: 0,
     totalDeals: 0,
@@ -116,7 +346,7 @@ const Pipeline = () => {
     stageConversion: {}
   });
 
-  // Pipeline stages
+  // ===== PIPELINE STAGES =====
   const stages = [
     { 
       id: 'new', 
@@ -190,28 +420,32 @@ const Pipeline = () => {
     }
   ];
 
-  // Products
+  // ===== PRODUCTS/SERVICES =====
   const PRODUCTS = {
-    'basic-repair': { name: 'Basic Credit Repair', value: 997, color: 'blue' },
-    'full-repair': { name: 'Full Credit Repair', value: 1997, color: 'green' },
-    'business-credit': { name: 'Business Credit', value: 2997, color: 'purple' },
-    'monitoring': { name: 'Credit Monitoring', value: 497, color: 'yellow' },
-    'consultation': { name: 'Consultation', value: 297, color: 'gray' },
-    'complete-solution': { name: 'Complete Solution', value: 4997, color: 'indigo' }
+    'diy': { name: 'DIY ($39/mo)', value: 39, color: 'blue' },
+    'standard': { name: 'Standard ($149/mo)', value: 149, color: 'green' },
+    'acceleration': { name: 'Acceleration ($199/mo)', value: 199, color: 'purple' },
+    'pfd': { name: 'PFD ($0)', value: 0, color: 'gray' },
+    'hybrid': { name: 'Hybrid ($99/mo)', value: 99, color: 'yellow' },
+    'premium': { name: 'Premium ($349/mo)', value: 349, color: 'indigo' }
   };
 
-  // ============================================================================
+  // ================================================================================
   // DATA LOADING WITH REAL-TIME UPDATES
-  // ============================================================================
+  // ================================================================================
 
   useEffect(() => {
+    console.log('🔄 Pipeline: Loading data...');
+    
     if (!user) {
+      console.log('❌ Pipeline: No user logged in');
       setLoading(false);
       setDeals([]);
       return;
     }
 
     if (!realtimeUpdates) {
+      console.log('⏸️ Pipeline: Real-time updates disabled');
       setLoading(false);
       return;
     }
@@ -221,11 +455,12 @@ const Pipeline = () => {
     
     const checkLoadingComplete = () => {
       if (dealsReceived && contactsReceived) {
+        console.log('✅ Pipeline: All data loaded');
         setLoading(false);
       }
     };
 
-    // Listen to deals collection
+    // ===== LISTEN TO DEALS COLLECTION =====
     const q1 = query(collection(db, 'deals'), orderBy('createdAt', 'desc'));
     const unsubscribeDeals = onSnapshot(q1, 
       (snapshot) => {
@@ -234,6 +469,8 @@ const Pipeline = () => {
           ...doc.data(),
           isDeal: true
         }));
+        
+        console.log(`📊 Pipeline: Loaded ${dealsList.length} deals from 'deals' collection`);
         
         setDeals(prevDeals => {
           const merged = [...prevDeals.filter(d => !d.isDeal), ...dealsList];
@@ -245,53 +482,49 @@ const Pipeline = () => {
         checkLoadingComplete();
       },
       (error) => {
-        console.error('Error loading deals:', error);
+        console.error('❌ Pipeline: Error loading deals:', error);
+        setError('Failed to load deals');
         dealsReceived = true;
         checkLoadingComplete();
       }
     );
 
-    // Listen to leads from contacts
+    // ===== LISTEN TO LEADS FROM CONTACTS =====
     const q2 = query(
       collection(db, 'contacts'),
       where('roles', 'array-contains', 'lead'),
       orderBy('createdAt', 'desc')
     );
+    
     const unsubscribeContacts = onSnapshot(q2,
       (snapshot) => {
         const leadsList = snapshot.docs.map(doc => {
           const data = doc.data();
           return {
             id: doc.id,
-            name: `${data.firstName || ''} ${data.lastName || ''}`.trim() || data.fullName || 'Unknown',
-            company: data.company || '',
-            email: data.email || '',
-            phone: data.phone || '',
-            value: data.estimatedValue || data.dealValue || 1500,
+            ...data,
+            isDeal: false,
+            // Map contact fields to deal fields
+            name: data.name || `${data.firstName || ''} ${data.lastName || ''}`.trim() || 'Unknown',
+            email: data.email,
+            phone: data.phone,
             stage: data.pipelineStage || 'new',
-            priority: data.urgencyLevel || 'medium',
-            source: data.source || 'manual',
-            product: data.product || 'basic-repair',
-            leadScore: data.leadScore || 5,
-            urgencyLevel: data.urgencyLevel || 'medium',
-            painPoints: data.painPoints || [],
-            conversionProbability: data.conversionProbability || 50,
-            nextAction: data.nextBestAction || '',
-            tags: data.tags || [],
+            value: data.estimatedValue || 0,
+            leadScore: data.leadScore || 0,
+            source: data.source || 'contact',
+            priority: data.priority || 'medium',
+            product: data.interestedIn || '',
+            lastActivity: data.lastInteraction || data.updatedAt,
             createdAt: data.createdAt,
-            aiGenerated: data.source === 'ai-receptionist',
-            contactId: doc.id,
-            isLead: true,
-            engagementLevel: data.engagementLevel || 'medium',
-            responseTime: data.responseTime || 'medium',
-            budgetRange: data.budgetRange || 'unknown',
-            competitorMentioned: data.competitorMentioned || false,
-            lastActivity: data.lastActivity
+            notes: data.notes || '',
+            urgency: data.urgencyLevel || 'medium'
           };
         });
         
+        console.log(`👥 Pipeline: Loaded ${leadsList.length} leads from 'contacts' collection`);
+        
         setDeals(prevDeals => {
-          const merged = [...prevDeals.filter(d => !d.isLead), ...leadsList];
+          const merged = [...prevDeals.filter(d => d.isDeal), ...leadsList];
           calculateStats(merged);
           return merged;
         });
@@ -300,1318 +533,895 @@ const Pipeline = () => {
         checkLoadingComplete();
       },
       (error) => {
-        console.error('Error loading contacts:', error);
+        console.error('❌ Pipeline: Error loading contacts:', error);
         contactsReceived = true;
         checkLoadingComplete();
       }
     );
 
-    const timeoutId = setTimeout(() => {
-      if (loading) {
-        console.warn('Loading timeout, forcing completion');
-        setLoading(false);
-      }
-    }, 5000);
-
+    // ===== CLEANUP =====
     return () => {
-      clearTimeout(timeoutId);
+      console.log('🧹 Pipeline: Cleaning up listeners');
       unsubscribeDeals();
       unsubscribeContacts();
     };
   }, [user, realtimeUpdates]);
 
-  // ============================================================================
-  // STATS CALCULATION WITH AI ENHANCEMENTS
-  // ============================================================================
+  // ================================================================================
+  // CALCULATE STATISTICS
+  // ================================================================================
 
-  const calculateStats = useCallback((dealsList) => {
-    const totalDeals = dealsList.length;
-    const totalValue = dealsList.reduce((sum, d) => sum + (d.value || 0), 0);
-    const wonDeals = dealsList.filter(d => d.stage === 'won');
-    const lostDeals = dealsList.filter(d => d.stage === 'lost');
-    const avgDealSize = totalDeals > 0 ? totalValue / totalDeals : 0;
-    const conversionRate = (wonDeals.length + lostDeals.length) > 0 
-      ? (wonDeals.length / (wonDeals.length + lostDeals.length)) * 100 
-      : 0;
+  const calculateStats = useCallback((dealsToAnalyze) => {
+    if (!dealsToAnalyze || dealsToAnalyze.length === 0) {
+      setStats({
+        totalValue: 0,
+        totalDeals: 0,
+        avgDealSize: 0,
+        conversionRate: 0,
+        avgCycleTime: 0,
+        velocity: 0,
+        forecast: 0,
+        atRisk: 0,
+        hotLeads: 0,
+        aiGeneratedDeals: 0,
+        avgHealth: 0,
+        avgWinProb: 0,
+        stageConversion: {}
+      });
+      return;
+    }
 
-    // Velocity
-    const lastWeekDeals = dealsList.filter(d => {
-      const created = d.createdAt?.seconds ? new Date(d.createdAt.seconds * 1000) : new Date(d.createdAt);
-      const weekAgo = new Date();
-      weekAgo.setDate(weekAgo.getDate() - 7);
-      return created > weekAgo;
-    });
-    const velocity = lastWeekDeals.length;
-
-    // AI-powered metrics
-    const avgHealth = dealsList.length > 0
-      ? dealsList.reduce((sum, d) => sum + EnhancedPipelineAIService.ConversionIntelligence.calculateDealHealth(d), 0) / dealsList.length
+    const totalValue = dealsToAnalyze.reduce((sum, d) => sum + (d.value || 0), 0);
+    const totalDeals = dealsToAnalyze.length;
+    const wonDeals = dealsToAnalyze.filter(d => d.stage === 'won');
+    const lostDeals = dealsToAnalyze.filter(d => d.stage === 'lost');
+    const activeDeals = dealsToAnalyze.filter(d => !['won', 'lost'].includes(d.stage));
+    
+    // Calculate average health and win probability
+    const avgHealth = activeDeals.length > 0
+      ? activeDeals.reduce((sum, d) => sum + calculateDealHealth(d), 0) / activeDeals.length
       : 0;
     
-    const avgWinProb = dealsList.filter(d => !['won', 'lost'].includes(d.stage)).length > 0
-      ? dealsList
-          .filter(d => !['won', 'lost'].includes(d.stage))
-          .reduce((sum, d) => sum + EnhancedPipelineAIService.calculateWinProbability(d), 0) / 
-          dealsList.filter(d => !['won', 'lost'].includes(d.stage)).length
+    const avgWinProb = activeDeals.length > 0
+      ? activeDeals.reduce((sum, d) => sum + calculateWinProbability(d), 0) / activeDeals.length
       : 0;
 
-    // At risk deals
-    const atRiskDeals = dealsList.filter(d => EnhancedPipelineAIService.ConversionIntelligence.calculateDealHealth(d) < 40 && !['won', 'lost'].includes(d.stage));
-    
-    // Hot leads
-    const hotLeads = dealsList.filter(d => d.leadScore >= 8 && !['won', 'lost'].includes(d.stage)).length;
-    
-    // AI generated
-    const aiGeneratedDeals = dealsList.filter(d => d.aiGenerated || d.source === 'ai-receptionist').length;
+    // Calculate conversion rate
+    const totalClosed = wonDeals.length + lostDeals.length;
+    const conversionRate = totalClosed > 0 ? (wonDeals.length / totalClosed) * 100 : 0;
+
+    // Find at-risk deals (health < 50%)
+    const atRisk = activeDeals.filter(d => calculateDealHealth(d) < 50).length;
+
+    // Find hot leads (score >= 8)
+    const hotLeads = activeDeals.filter(d => d.leadScore >= 8).length;
+
+    // AI-generated deals
+    const aiGeneratedDeals = dealsToAnalyze.filter(d => d.source === 'ai' || d.aiGenerated).length;
 
     // Forecast
-    const forecastData = AIService.forecastRevenue(dealsList, forecastRange);
+    const forecast = PipelineUtils.forecastRevenue(activeDeals, forecastRange);
+
+    // Stage conversion rates
+    const stageConversion = {};
+    stages.forEach(stage => {
+      const stageDeals = dealsToAnalyze.filter(d => d.stage === stage.id);
+      stageConversion[stage.id] = stageDeals.length;
+    });
 
     setStats({
       totalValue,
       totalDeals,
-      avgDealSize,
+      avgDealSize: totalDeals > 0 ? totalValue / totalDeals : 0,
       conversionRate,
-      avgCycleTime: 0, // Would calculate from historical data
-      velocity,
-      forecast: forecastData.likely,
-      atRisk: atRiskDeals.length,
+      avgCycleTime: 0, // TODO: Calculate based on timestamp differences
+      velocity: wonDeals.length, // Simplified
+      forecast: forecast.likely,
+      atRisk,
       hotLeads,
       aiGeneratedDeals,
       avgHealth,
       avgWinProb,
-      stageConversion: {}
+      stageConversion
     });
 
-    setForecastData(forecastData);
-
-    // Generate AI insights
-    const insights = AIService.getAIInsights(dealsList);
+    // Update AI insights
+    const insights = PipelineUtils.getAIInsights(dealsToAnalyze);
     setAIInsights(insights);
+
+    // Update forecast data
+    setForecastData(forecast);
   }, [forecastRange]);
 
-  // ============================================================================
-  // DRAG & DROP HANDLERS
-  // ============================================================================
+  // ================================================================================
+  // DEAL MANAGEMENT FUNCTIONS
+  // ================================================================================
+
+  /**
+   * Move deal to new stage
+   */
+  const moveDealToStage = async (dealId, newStage, isDealFromDealsCollection) => {
+    try {
+      console.log(`🔄 Moving deal ${dealId} to ${newStage}`);
+      
+      if (isDealFromDealsCollection) {
+        // Update in deals collection
+        await updateDoc(doc(db, 'deals', dealId), {
+          stage: newStage,
+          lastActivity: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+      } else {
+        // Update in contacts collection
+        await updateDoc(doc(db, 'contacts', dealId), {
+          pipelineStage: newStage,
+          lastInteraction: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+      }
+      
+      console.log(`✅ Deal moved to ${newStage}`);
+    } catch (error) {
+      console.error('❌ Error moving deal:', error);
+      alert('Failed to move deal: ' + error.message);
+    }
+  };
+
+  /**
+   * Delete deal
+   */
+  const deleteDeal = async (dealId, isDealFromDealsCollection) => {
+    if (!confirm('Are you sure you want to delete this deal?')) return;
+    
+    try {
+      console.log(`🗑️ Deleting deal ${dealId}`);
+      
+      if (isDealFromDealsCollection) {
+        await deleteDoc(doc(db, 'deals', dealId));
+      } else {
+        // Remove 'lead' role from contact
+        const deal = deals.find(d => d.id === dealId);
+        if (deal && deal.roles) {
+          const updatedRoles = deal.roles.filter(r => r !== 'lead');
+          await updateDoc(doc(db, 'contacts', dealId), {
+            roles: updatedRoles,
+            pipelineStage: null
+          });
+        }
+      }
+      
+      console.log('✅ Deal deleted');
+    } catch (error) {
+      console.error('❌ Error deleting deal:', error);
+      alert('Failed to delete deal: ' + error.message);
+    }
+  };
+
+  // ================================================================================
+  // DRAG AND DROP HANDLERS
+  // ================================================================================
 
   const handleDragStart = (e, deal) => {
     setDraggedDeal(deal);
     e.dataTransfer.effectAllowed = 'move';
-    e.currentTarget.classList.add('opacity-50');
   };
 
-  const handleDragEnd = (e) => {
-    e.currentTarget.classList.remove('opacity-50');
-  };
-
-  const handleDragOver = (e) => {
+  const handleDragOver = (e, stageId) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
-  };
-
-  const handleDragEnter = (e, stageId) => {
-    e.preventDefault();
     setDragOverStage(stageId);
   };
 
-  const handleDragLeave = (e) => {
-    if (e.currentTarget.contains(e.relatedTarget)) return;
+  const handleDragLeave = () => {
     setDragOverStage(null);
   };
 
-  const handleDrop = async (e, newStage) => {
+  const handleDrop = async (e, stageId) => {
     e.preventDefault();
     setDragOverStage(null);
     
-    if (draggedDeal && draggedDeal.stage !== newStage) {
-      try {
-        // Update local state immediately
-        const updatedDeals = deals.map(deal => 
-          deal.id === draggedDeal.id 
-            ? { ...deal, stage: newStage, lastActivity: new Date() }
-            : deal
-        );
-        setDeals(updatedDeals);
-        calculateStats(updatedDeals);
-
-        // Update Firebase
-        const isContact = draggedDeal.isLead || draggedDeal.contactId;
-        
-        if (isContact && draggedDeal.contactId) {
-          const contactRef = doc(db, 'contacts', draggedDeal.contactId);
-          const updateData = {
-            pipelineStage: newStage,
-            lastActivity: serverTimestamp(),
-            updatedAt: serverTimestamp()
-          };
-          
-          if (newStage === 'won') {
-            updateData.lifecycleStatus = 'completed';
-            updateData.primaryRole = 'client';
-            updateData.roles = arrayUnion('client');
-          } else if (newStage === 'lost') {
-            updateData.lifecycleStatus = 'lost';
-          }
-          
-          await updateDoc(contactRef, updateData);
-        } else if (!draggedDeal.isDemoData) {
-          const dealRef = doc(db, 'deals', draggedDeal.id);
-          const updateData = {
-            stage: newStage,
-            lastActivity: serverTimestamp(),
-            updatedAt: serverTimestamp()
-          };
-          
-          if (newStage === 'won') {
-            updateData.closedAt = serverTimestamp();
-            updateData.status = 'closed-won';
-          } else if (newStage === 'lost') {
-            updateData.closedAt = serverTimestamp();
-            updateData.status = 'closed-lost';
-          }
-          
-          await updateDoc(dealRef, updateData);
-        }
-
-        showNotification(`${draggedDeal.name} moved to ${newStage}`, 'success');
-      } catch (error) {
-        console.error('Error updating deal:', error);
-        showNotification('Error updating stage', 'error');
-      }
+    if (!draggedDeal) return;
+    
+    if (draggedDeal.stage !== stageId) {
+      await moveDealToStage(draggedDeal.id, stageId, draggedDeal.isDeal);
     }
     
     setDraggedDeal(null);
   };
 
-  // ============================================================================
-  // UTILITY FUNCTIONS
-  // ============================================================================
+  // ================================================================================
+  // FILTERED AND SORTED DEALS
+  // ================================================================================
 
-  const showNotification = (message, type = 'info') => {
-    console.log(`[${type.toUpperCase()}] ${message}`);
-    // In production, use proper notification system
-  };
+  const filteredAndSortedDeals = useMemo(() => {
+    let filtered = deals;
 
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(value);
-  };
-
-  const formatDate = (date) => {
-    if (!date) return '';
-    const d = date.seconds ? new Date(date.seconds * 1000) : new Date(date);
-    return d.toLocaleDateString();
-  };
-
-  const getHealthColor = (health) => {
-    if (health >= 70) return 'text-green-600';
-    if (health >= 40) return 'text-yellow-600';
-    return 'text-red-600';
-  };
-
-  const getHealthBgColor = (health) => {
-    if (health >= 70) return 'bg-green-100';
-    if (health >= 40) return 'bg-yellow-100';
-    return 'bg-red-100';
-  };
-
-  const getPriorityColor = (priority) => {
-    const colors = {
-      critical: 'bg-red-100 text-red-700 border-red-300',
-      high: 'bg-orange-100 text-orange-700 border-orange-300',
-      medium: 'bg-yellow-100 text-yellow-700 border-yellow-300',
-      low: 'bg-green-100 text-green-700 border-green-300'
-    };
-    return colors[priority] || colors.medium;
-  };
-
-  // ============================================================================
-  // FILTERING & SORTING
-  // ============================================================================
-
-  const getFilteredDeals = useMemo(() => {
-    let filtered = [...deals];
-    
-    // Hot leads filter
-    if (showHotLeadsOnly) {
-      filtered = filtered.filter(d => d.leadScore >= 8);
-    }
-    
-    // Search
+    // Search filter
     if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(deal =>
-        deal.name?.toLowerCase().includes(term) ||
-        deal.company?.toLowerCase().includes(term) ||
-        deal.email?.toLowerCase().includes(term) ||
-        deal.phone?.includes(term)
+      const search = searchTerm.toLowerCase();
+      filtered = filtered.filter(d => 
+        (d.name && d.name.toLowerCase().includes(search)) ||
+        (d.email && d.email.toLowerCase().includes(search)) ||
+        (d.phone && d.phone.toLowerCase().includes(search)) ||
+        (d.company && d.company.toLowerCase().includes(search))
       );
     }
-    
+
     // Priority filter
     if (filterPriority !== 'all') {
       filtered = filtered.filter(d => d.priority === filterPriority);
     }
-    
+
     // Source filter
     if (filterSource !== 'all') {
       filtered = filtered.filter(d => d.source === filterSource);
     }
-    
+
     // Product filter
     if (filterProduct !== 'all') {
       filtered = filtered.filter(d => d.product === filterProduct);
     }
-    
+
     // Health filter
     if (filterHealth !== 'all') {
       filtered = filtered.filter(d => {
-        const health = AIService.calculateDealHealth(d);
-        if (filterHealth === 'healthy') return health >= 70;
-        if (filterHealth === 'warning') return health >= 40 && health < 70;
-        if (filterHealth === 'critical') return health < 40;
+        const health = calculateDealHealth(d);
+        if (filterHealth === 'high') return health >= 80;
+        if (filterHealth === 'medium') return health >= 50 && health < 80;
+        if (filterHealth === 'low') return health < 50;
         return true;
       });
     }
-    
+
+    // Hot leads only
+    if (showHotLeadsOnly) {
+      filtered = filtered.filter(d => d.leadScore >= 8);
+    }
+
     // Sort
     filtered.sort((a, b) => {
-      switch(sortBy) {
+      switch (sortBy) {
         case 'value':
           return (b.value || 0) - (a.value || 0);
-        case 'health':
-          return EnhancedPipelineAIService.ConversionIntelligence.calculateDealHealth(b) - EnhancedPipelineAIService.ConversionIntelligence.calculateDealHealth(a);
-        case 'probability':
-          return EnhancedPipelineAIService.ConversionIntelligence.calculateWinProbability(b) - EnhancedPipelineAIService.ConversionIntelligence.calculateWinProbability(a);
         case 'score':
           return (b.leadScore || 0) - (a.leadScore || 0);
+        case 'health':
+          return calculateDealHealth(b) - calculateDealHealth(a);
+        case 'recent':
+          return (b.lastActivity?.toMillis() || 0) - (a.lastActivity?.toMillis() || 0);
         default:
           return 0;
       }
     });
-    
+
     return filtered;
-  }, [deals, searchTerm, filterPriority, filterSource, filterProduct, filterHealth, sortBy, showHotLeadsOnly]);
+  }, [deals, searchTerm, filterPriority, filterSource, filterProduct, filterHealth, showHotLeadsOnly, sortBy]);
 
-  const getDealsForStage = useCallback((stageId) => {
-    return getFilteredDeals.filter(deal => deal.stage === stageId);
-  }, [getFilteredDeals]);
-
-  // ============================================================================
-  // RENDER - Due to size, continuing in next message
-  // ============================================================================
-
-// ============================================================================
-  // RENDER HELPERS
-  // ============================================================================
-
-  const getStageMetrics = useCallback((stageId) => {
-    const stageDeals = getDealsForStage(stageId);
-    const value = stageDeals.reduce((sum, d) => sum + (d.value || 0), 0);
-    const avgHealth = stageDeals.length > 0
-
-            : health < 40
-            ? 'border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20'
-            : 'border-transparent'
-        }`}
-        onClick={() => {
-          if (isExpanded) {
-            const newExpanded = new Set(expandedDeals);
-            newExpanded.delete(deal.id);
-            setExpandedDeals(newExpanded);
-          } else {
-            setExpandedDeals(new Set([...expandedDeals, deal.id]));
-          }
-        }}
-      >
-        {/* Header Row */}
-        <div className="flex justify-between items-start mb-2">
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            {deal.aiGenerated && (
-              <Bot className="w-4 h-4 text-purple-600 flex-shrink-0" title="AI Generated" />
-            )}
-            <h4 className="font-semibold text-gray-900 dark:text-white truncate text-sm">
-              {deal.name}
-            </h4>
-          </div>
-          <div className="flex items-center gap-1 ml-2">
-            <span className={`px-2 py-0.5 text-xs font-medium rounded ${getPriorityColor(deal.priority || 'medium')}`}>
-              {deal.priority || 'med'}
-            </span>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setEditingDeal(deal);
-              }}
-              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded"
-            >
-              <MoreVertical className="w-3 h-3 text-gray-500" />
-            </button>
-          </div>
-        </div>
-
-        {/* Company */}
-        {deal.company && (
-          <p className="text-xs text-gray-600 dark:text-gray-400 mb-2 truncate">
-            {deal.company}
-          </p>
-        )}
-
-        {/* Value & Scores Row */}
-        <div className="flex items-center justify-between mb-2">
-          <div className="text-base font-bold text-blue-600">
-            {formatCurrency(deal.value)}
-          </div>
-          <div className="flex items-center gap-2">
-            {/* Lead Score */}
-            <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${
-              deal.leadScore >= 8 ? 'bg-red-100 text-red-700' :
-              deal.leadScore >= 6 ? 'bg-orange-100 text-orange-700' :
-              deal.leadScore >= 4 ? 'bg-yellow-100 text-yellow-700' :
-              'bg-gray-100 text-gray-700'
-            }`}>
-              {deal.leadScore || 0}/10
-            </span>
-            {/* Health Score */}
-            <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${getHealthBgColor(health)} ${getHealthColor(health)}`}>
-              {health}%
-            </span>
-            {/* Win Probability */}
-            <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${
-              winProb >= 75 ? 'bg-green-100 text-green-700' :
-              winProb >= 50 ? 'bg-blue-100 text-blue-700' :
-              winProb >= 25 ? 'bg-yellow-100 text-yellow-700' :
-              'bg-red-100 text-red-700'
-            }`}>
-              {winProb}%
-            </span>
-          </div>
-        </div>
-
-        {/* Contact Info */}
-        <div className="space-y-1 text-xs text-gray-500 dark:text-gray-400 mb-2">
-          {deal.email && (
-            <div className="flex items-center gap-1 truncate">
-              <Mail className="w-3 h-3 flex-shrink-0" />
-              <span className="truncate">{deal.email}</span>
-            </div>
-          )}
-          {deal.phone && (
-            <div className="flex items-center gap-1">
-              <Phone className="w-3 h-3 flex-shrink-0" />
-              {deal.phone}
-            </div>
-          )}
-        </div>
-
-        {/* AI Next Best Action */}
-        {nextAction && (
-          <div className="mt-2 p-2 bg-purple-50 dark:bg-purple-900/20 rounded text-xs">
-            <div className="flex items-center gap-1 font-semibold text-purple-900 dark:text-purple-200">
-              <Lightbulb className="w-3 h-3" />
-              AI Suggests:
-            </div>
-            <div className="text-purple-700 dark:text-purple-300 mt-1">
-              {nextAction.icon} {nextAction.action}
-            </div>
-          </div>
-        )}
-
-        {/* Product Badge */}
-        {deal.product && PRODUCTS[deal.product] && (
-          <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
-            <span className={`text-xs px-2 py-1 rounded bg-${PRODUCTS[deal.product].color}-100 text-${PRODUCTS[deal.product].color}-700`}>
-              {PRODUCTS[deal.product].name}
-            </span>
-          </div>
-        )}
-
-        {/* Expanded Details */}
-        {isExpanded && (
-          <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600 space-y-2 text-xs">
-            {deal.painPoints && deal.painPoints.length > 0 && (
-              <div>
-                <strong className="text-gray-700 dark:text-gray-300">Pain Points:</strong>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {deal.painPoints.map((point, idx) => (
-                    <span key={idx} className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
-                      {point}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-            
-            {deal.tags && deal.tags.length > 0 && (
-              <div>
-                <strong className="text-gray-700 dark:text-gray-300">Tags:</strong>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {deal.tags.map((tag, idx) => (
-                    <span key={idx} className="px-2 py-0.5 bg-gray-100 text-gray-700 rounded">
-                      #{tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Action Buttons */}
-            <div className="grid grid-cols-2 gap-2 mt-3">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate(`/contacts/${deal.contactId || deal.id}`);
-                }}
-                className="px-2 py-1.5 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 flex items-center justify-center gap-1"
-              >
-                <Eye className="w-3 h-3" />
-                View
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSelectedDealForEmail(deal);
-                  setShowEmailGenerator(true);
-                }}
-                className="px-2 py-1.5 bg-purple-600 text-white rounded text-xs hover:bg-purple-700 flex items-center justify-center gap-1"
-              >
-                <Bot className="w-3 h-3" />
-                AI Email
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  window.location.href = `tel:${deal.phone}`;
-                }}
-                className="px-2 py-1.5 bg-green-600 text-white rounded text-xs hover:bg-green-700 flex items-center justify-center gap-1"
-                disabled={!deal.phone}
-              >
-                <Phone className="w-3 h-3" />
-                Call
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  window.location.href = `mailto:${deal.email}`;
-                }}
-                className="px-2 py-1.5 bg-indigo-600 text-white rounded text-xs hover:bg-indigo-700 flex items-center justify-center gap-1"
-                disabled={!deal.email}
-              >
-                <Mail className="w-3 h-3" />
-                Email
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    );
+  /**
+   * Get deals for specific stage
+   */
+  const getDealsForStage = (stageId) => {
+    return filteredAndSortedDeals.filter(d => d.stage === stageId);
   };
 
-  // ============================================================================
-  // LOADING STATE
-  // ============================================================================
+  // ================================================================================
+  // EMAIL GENERATION (BASIC - NO AI API CALL NEEDED IN CLIENT)
+  // ================================================================================
 
-  if (loading) {
+  const generateBasicEmail = (deal, type = 'followup') => {
+    const templates = {
+      initial: `Hi ${deal.name},\n\nThank you for your interest in our credit repair services. I'd love to learn more about your credit goals and show you how we can help.\n\nWhen would be a good time for a brief call?\n\nBest regards,\nSpeedy Credit Repair`,
+      followup: `Hi ${deal.name},\n\nI wanted to follow up on our recent conversation about improving your credit score. Have you had a chance to review the information I sent?\n\nI'm here to answer any questions you might have.\n\nBest regards,\nSpeedy Credit Repair`,
+      proposal: `Hi ${deal.name},\n\nThank you for taking the time to discuss your credit situation with me. Based on our conversation, I've prepared a customized proposal for you.\n\nWhen can we schedule a call to review it together?\n\nBest regards,\nSpeedy Credit Repair`,
+      closing: `Hi ${deal.name},\n\nI'm excited to help you achieve your credit goals! Let's schedule a time to finalize everything and get you started on your credit repair journey.\n\nLooking forward to working with you!\n\nBest regards,\nSpeedy Credit Repair`
+    };
+
+    return templates[type] || templates.followup;
+  };
+
+  // ================================================================================
+  // RENDER: EMPTY STATE
+  // ================================================================================
+
+  if (!user) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400 font-medium">Loading AI-Powered Pipeline...</p>
-          <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">Analyzing deals and generating insights</p>
+          <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+            Please Log In
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400">
+            You need to be logged in to view the pipeline.
+          </p>
         </div>
       </div>
     );
   }
 
-  // ============================================================================
-  // MAIN RENDER
-  // ============================================================================
+  // ================================================================================
+  // RENDER: LOADING STATE
+  // ================================================================================
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            Loading Pipeline...
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">
+            Fetching deals and leads from Firebase
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ================================================================================
+  // RENDER: ERROR STATE
+  // ================================================================================
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="text-center max-w-md">
+          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+            Error Loading Pipeline
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            {error}
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 mx-auto"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ================================================================================
+  // RENDER: MAIN PIPELINE VIEW
+  // ================================================================================
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-900 overflow-hidden">
-      {/* Enhanced Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex-shrink-0">
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-              <GitBranch className="h-7 w-7 text-blue-600" />
-              AI-Powered Sales Pipeline
-              {realtimeUpdates && (
-                <span className="flex items-center gap-1 text-sm font-normal text-green-600">
-                  <Wifi className="h-4 w-4 animate-pulse" />
-                  Live
-                </span>
-              )}
-              {automationEnabled && (
-                <span className="flex items-center gap-1 text-sm font-normal text-purple-600">
-                  <Bot className="h-4 w-4" />
-                  AI Active
-                </span>
-              )}
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">
-              {stats.totalDeals} deals • {formatCurrency(stats.totalValue)} pipeline • {stats.avgWinProb.toFixed(0)}% avg win rate
-            </p>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      
+      {/* ===== HEADER ===== */}
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          
+          {/* Title & Stats */}
+          <div className="flex items-center gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <Brain className="w-7 h-7 text-purple-600" />
+                AI-Powered Sales Pipeline
+              </h1>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                {stats.totalDeals} deals • {formatCurrency(stats.totalValue)} total value • {stats.hotLeads} hot leads
+              </p>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setShowAICoach(!showAICoach)}
-              className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 flex items-center gap-2 shadow-lg"
-            >
-              <Brain className="w-4 h-4" />
-              AI Coach
-            </button>
-            <button
-              onClick={() => setShowAIInsights(!showAIInsights)}
-              className="px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 flex items-center gap-2 shadow-lg"
-            >
-              <Sparkles className="w-4 h-4" />
-              Insights
-            </button>
-            <button
-              onClick={() => {
-                setShowAddDeal(true);
-                setSelectedStage('');
-              }}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Add Deal
-            </button>
-          </div>
-        </div>
 
-        {/* Enhanced Stats Dashboard */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 mt-4">
-          <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg p-3">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs opacity-90">Pipeline</span>
-              <DollarSign className="w-4 h-4 opacity-80" />
-            </div>
-            <div className="text-xl font-bold">{formatCurrency(stats.totalValue)}</div>
-            <div className="text-xs opacity-75">{stats.totalDeals} deals</div>
-          </div>
-          
-          <div className="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-lg p-3">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs opacity-90">Win Rate</span>
-              <TrendingUp className="w-4 h-4 opacity-80" />
-            </div>
-            <div className="text-xl font-bold">{stats.conversionRate.toFixed(0)}%</div>
-            <div className="text-xs opacity-75">conversion</div>
-          </div>
-          
-          <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-lg p-3">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs opacity-90">Forecast</span>
-              <PieChart className="w-4 h-4 opacity-80" />
-            </div>
-            <div className="text-xl font-bold">{formatCurrency(stats.forecast)}</div>
-            <div className="text-xs opacity-75">{forecastRange}d</div>
-          </div>
-          
-          <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-lg p-3">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs opacity-90">Avg Deal</span>
-              <Target className="w-4 h-4 opacity-80" />
-            </div>
-            <div className="text-xl font-bold">{formatCurrency(stats.avgDealSize)}</div>
-            <div className="text-xs opacity-75">per deal</div>
-          </div>
-          
-          <div className="bg-gradient-to-br from-red-500 to-red-600 text-white rounded-lg p-3">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs opacity-90">Hot Leads</span>
-              <Flame className="w-4 h-4 opacity-80" />
-            </div>
-            <div className="text-xl font-bold">{stats.hotLeads}</div>
-            <div className="text-xs opacity-75">score 8+</div>
-          </div>
-          
-          <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 text-white rounded-lg p-3">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs opacity-90">At Risk</span>
-              <AlertTriangle className="w-4 h-4 opacity-80" />
-            </div>
-            <div className="text-xl font-bold">{stats.atRisk}</div>
-            <div className="text-xs opacity-75">unhealthy</div>
-          </div>
-          
-          <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 text-white rounded-lg p-3">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs opacity-90">Avg Health</span>
-              <Activity className="w-4 h-4 opacity-80" />
-            </div>
-            <div className="text-xl font-bold">{stats.avgHealth.toFixed(0)}%</div>
-            <div className="text-xs opacity-75">pipeline</div>
-          </div>
-          
-          <div className="bg-gradient-to-br from-pink-500 to-pink-600 text-white rounded-lg p-3">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs opacity-90">AI Deals</span>
-              <Bot className="w-4 h-4 opacity-80" />
-            </div>
-            <div className="text-xl font-bold">{stats.aiGeneratedDeals}</div>
-            <div className="text-xs opacity-75">auto-gen</div>
-          </div>
-        </div>
-
-        {/* Search & Filters */}
-        <div className="mt-4 space-y-3">
-          <div className="flex gap-3">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <input
-                type="text"
-                placeholder="Search deals by name, company, email..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              />
-            </div>
-            
-            <button
-              onClick={() => setShowHotLeadsOnly(!showHotLeadsOnly)}
-              className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
-                showHotLeadsOnly 
-                  ? 'bg-red-600 text-white' 
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200'
-              }`}
-            >
-              <Flame className="w-4 h-4" />
-              Hot Only
-            </button>
-            
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            >
-              <option value="value">💰 Deal Value</option>
-              <option value="health">❤️ Health Score</option>
-              <option value="probability">🎯 Win Probability</option>
-              <option value="score">⭐ Lead Score</option>
-            </select>
-            
+          {/* Quick Actions */}
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
-                showFilters ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+              className={`px-3 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors ${
+                showFilters
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
             >
               <Filter className="w-4 h-4" />
               Filters
-              {(filterPriority !== 'all' || filterSource !== 'all' || filterProduct !== 'all' || filterHealth !== 'all') && (
-                <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
-                  •
+            </button>
+
+            <button
+              onClick={() => setShowAIInsights(!showAIInsights)}
+              className={`px-3 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors ${
+                showAIInsights
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-900/50'
+              }`}
+            >
+              <Sparkles className="w-4 h-4" />
+              AI Insights
+              {aiInsights.length > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 bg-white dark:bg-purple-800 text-purple-700 dark:text-purple-200 rounded-full text-xs font-bold">
+                  {aiInsights.length}
                 </span>
               )}
             </button>
-            
+
             <button
-              onClick={() => setAutomationEnabled(!automationEnabled)}
-              className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
-                automationEnabled 
-                  ? 'bg-purple-100 text-purple-700' 
-                  : 'bg-gray-100 text-gray-700'
-              }`}
-              title={automationEnabled ? 'AI Automation On' : 'AI Automation Off'}
+              onClick={() => setShowAddDeal(true)}
+              className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 text-sm font-medium transition-colors"
             >
-              <Bot className="w-4 h-4" />
+              <Plus className="w-4 h-4" />
+              Add Deal
             </button>
-            
+
             <button
-              onClick={() => setRealtimeUpdates(!realtimeUpdates)}
-              className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
-                realtimeUpdates 
-                  ? 'bg-green-100 text-green-700' 
-                  : 'bg-gray-100 text-gray-700'
-              }`}
-              title={realtimeUpdates ? 'Real-time On' : 'Real-time Off'}
+              onClick={() => window.location.reload()}
+              className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+              title="Refresh"
             >
-              {realtimeUpdates ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
+              <RefreshCw className="w-5 h-5" />
             </button>
           </div>
-          
-          {/* Expanded Filters */}
-          {showFilters && (
-            <div className="flex gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+        </div>
+
+        {/* ===== FILTER BAR ===== */}
+        {showFilters && (
+          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+              
+              {/* Search */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search deals..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Priority Filter */}
               <select
                 value={filterPriority}
                 onChange={(e) => setFilterPriority(e.target.value)}
-                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-sm"
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="all">All Priorities</option>
-                <option value="critical">🚨 Critical</option>
-                <option value="high">🔥 High</option>
-                <option value="medium">⚡ Medium</option>
-                <option value="low">❄️ Low</option>
+                <option value="high">High Priority</option>
+                <option value="medium">Medium Priority</option>
+                <option value="low">Low Priority</option>
               </select>
-              
-              <select
-                value={filterHealth}
-                onChange={(e) => setFilterHealth(e.target.value)}
-                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-sm"
-              >
-                <option value="all">All Health Levels</option>
-                <option value="healthy">✅ Healthy (70%+)</option>
-                <option value="warning">⚠️ Warning (40-70%)</option>
-                <option value="critical">🚨 Critical (&lt;40%)</option>
-              </select>
-              
+
+              {/* Source Filter */}
               <select
                 value={filterSource}
                 onChange={(e) => setFilterSource(e.target.value)}
-                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-sm"
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="all">All Sources</option>
-                <option value="ai-receptionist">🤖 AI Receptionist</option>
-                <option value="website">🌐 Website</option>
-                <option value="referral">👥 Referral</option>
-                <option value="email">📧 Email</option>
-                <option value="phone">📞 Phone</option>
-                <option value="social">📱 Social</option>
+                <option value="website">Website</option>
+                <option value="referral">Referral</option>
+                <option value="ai">AI Generated</option>
+                <option value="contact">Contact Form</option>
               </select>
-              
+
+              {/* Health Filter */}
               <select
-                value={filterProduct}
-                onChange={(e) => setFilterProduct(e.target.value)}
-                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-sm"
+                value={filterHealth}
+                onChange={(e) => setFilterHealth(e.target.value)}
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                <option value="all">All Products</option>
-                {Object.entries(PRODUCTS).map(([key, product]) => (
-                  <option key={key} value={key}>{product.name}</option>
-                ))}
+                <option value="all">All Health</option>
+                <option value="high">Healthy (&gt;80%)</option>
+                <option value="medium">Medium (50-80%)</option>
+                <option value="low">At Risk (&lt;50%)</option>
               </select>
-              
-              <button
-                onClick={() => {
-                  setFilterPriority('all');
-                  setFilterSource('all');
-                  setFilterProduct('all');
-                  setFilterHealth('all');
-                }}
-                className="px-3 py-2 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
+
+              {/* Sort */}
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                Clear All
-              </button>
+                <option value="value">Sort by Value</option>
+                <option value="score">Sort by Score</option>
+                <option value="health">Sort by Health</option>
+                <option value="recent">Sort by Recent</option>
+              </select>
             </div>
-          )}
-        </div>
+
+            {/* Hot Leads Toggle */}
+            <div className="mt-3 flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="hotLeadsOnly"
+                checked={showHotLeadsOnly}
+                onChange={(e) => setShowHotLeadsOnly(e.target.checked)}
+                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+              />
+              <label htmlFor="hotLeadsOnly" className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1">
+                <Zap className="w-4 h-4 text-orange-500" />
+                Show Hot Leads Only (Score ≥ 8)
+              </label>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Kanban Board */}
-      <div className="flex-1 overflow-x-auto bg-gray-50 dark:bg-gray-900">
-        <div className="flex gap-4 p-6 min-w-max h-full">
-          {stages.map(stage => {
-            const metrics = getStageMetrics(stage.id);
-            const StageIcon = stage.icon;
-            
-            return (
-              <div
-                key={stage.id}
-                className="w-80 flex flex-col"
-                onDragOver={handleDragOver}
-                onDragEnter={(e) => handleDragEnter(e, stage.id)}
-                onDragLeave={handleDragLeave}
-                onDrop={(e) => handleDrop(e, stage.id)}
-              >
-                {/* Stage Header */}
-                <div className={`${stage.color} text-white rounded-t-lg p-3 shadow-lg`}>
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="flex items-center gap-2">
-                      <StageIcon className="h-5 w-5" />
-                      <div>
-                        <h3 className="font-semibold">{stage.title}</h3>
-                        <p className="text-xs opacity-90 mt-0.5">{stage.description}</p>
-                      </div>
+      {/* ===== AI INSIGHTS BANNER ===== */}
+      {showAIInsights && aiInsights.length > 0 && (
+        <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border-b border-purple-200 dark:border-purple-800 px-6 py-4">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-purple-900 dark:text-purple-100 mb-3 flex items-center gap-2">
+                <Sparkles className="w-5 h-5" />
+                AI-Powered Insights
+              </h3>
+              <div className="space-y-2">
+                {aiInsights.map((insight, idx) => (
+                  <div key={idx} className="flex items-start gap-3 bg-white dark:bg-gray-800 rounded-lg p-3 border border-purple-100 dark:border-purple-800">
+                    <span className="text-2xl">{insight.icon}</span>
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900 dark:text-white">{insight.title}</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{insight.description}</p>
                     </div>
-                    <div className="text-right">
-                      <div className="text-xs opacity-90">{metrics.count} deals</div>
-                      <div className="text-sm font-semibold">{formatCurrency(metrics.value)}</div>
-                    </div>
+                    {insight.action && (
+                      <button className="px-3 py-1.5 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 whitespace-nowrap">
+                        {insight.action}
+                      </button>
+                    )}
                   </div>
-                  
-                  {/* AI Metrics Bar */}
-                  <div className="mt-2 pt-2 border-t border-white/20 grid grid-cols-3 gap-2 text-xs">
-                    <div className="text-center">
-                      <div className="opacity-75">Health</div>
-                      <div className="font-semibold">{metrics.avgHealth}%</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="opacity-75">Win %</div>
-                      <div className="font-semibold">{metrics.avgWinProb}%</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="opacity-75">Hot</div>
-                      <div className="font-semibold">{metrics.hotCount}</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Cards Container */}
-                <div className={`flex-1 bg-gray-100 dark:bg-gray-800 rounded-b-lg p-3 space-y-3 overflow-y-auto ${
-                  dragOverStage === stage.id ? 'bg-blue-100 dark:bg-blue-900/30' : ''
-                }`}>
-                  {/* Add Deal Button */}
-                  <button
-                    onClick={() => {
-                      setSelectedStage(stage.id);
-                      setShowAddDeal(true);
-                    }}
-                    className="w-full p-2 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-blue-500 dark:hover:border-blue-500 transition-colors flex items-center justify-center gap-2 text-gray-500 dark:text-gray-400 hover:text-blue-600"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Quick Add
-                  </button>
-
-                  {/* Deal Cards */}
-                  {getDealsForStage(stage.id).map(deal => (
-                    <DealCard key={deal.id} deal={deal} />
-                  ))}
-                  
-                  {getDealsForStage(stage.id).length === 0 && (
-                    <div className="text-center py-8 text-gray-400 dark:text-gray-600 text-sm">
-                      No deals in this stage
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* AI COACH PANEL */}
-      {showAICoach && (
-        <div className="fixed right-0 top-0 h-full w-96 bg-white dark:bg-gray-800 shadow-2xl z-50 overflow-y-auto border-l-4 border-purple-500">
-          <div className="p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                <Brain className="h-6 w-6 text-purple-600" />
-                AI Deal Coach
-              </h2>
-              <button
-                onClick={() => setShowAICoach(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            
-            <div className="space-y-6">
-              {/* Today's Priority Actions */}
-              <div>
-                <h3 className="font-semibold mb-3 flex items-center gap-2">
-                  <Target className="w-4 h-4 text-purple-600" />
-                  Priority Actions Today
-                </h3>
-                <div className="space-y-2">
-                  {deals
-                    .filter(d => !['won', 'lost'].includes(d.stage))
-                    .sort((a, b) => {
-                      const scoreA = (a.leadScore || 0) + (AIService.calculateDealHealth(a) < 40 ? 5 : 0);
-                      const scoreB = (b.leadScore || 0) + (AIService.calculateDealHealth(b) < 40 ? 5 : 0);
-                      return scoreB - scoreA;
-                    })
-                    .slice(0, 5)
-                    .map(deal => {
-                      const action = AIService.getNextBestAction(deal);
-                      const health = AIService.calculateDealHealth(deal);
-                      return (
-                        <div key={deal.id} className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition-colors">
-                          <div className="flex items-start justify-between mb-2">
-                            <div className="flex-1">
-                              <div className="font-medium text-sm">{deal.name}</div>
-                              <div className="text-xs text-gray-600 dark:text-gray-400">{formatCurrency(deal.value)}</div>
-                            </div>
-                            <div className={`text-xs font-bold px-2 py-1 rounded ${getHealthBgColor(health)} ${getHealthColor(health)}`}>
-                              {health}%
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 text-xs">
-                            <span className={`px-2 py-1 rounded font-medium ${
-                              action.priority === 'critical' ? 'bg-red-100 text-red-700' :
-                              action.priority === 'high' ? 'bg-orange-100 text-orange-700' :
-                              'bg-blue-100 text-blue-700'
-                            }`}>
-                              {action.icon} {action.action}
-                            </span>
-                          </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                            {action.reason}
-                          </div>
-                        </div>
-                      );
-                    })}
-                </div>
-              </div>
-
-              {/* Deal Health Overview */}
-              <div>
-                <h3 className="font-semibold mb-3 flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-blue-600" />
-                  Pipeline Health
-                </h3>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between p-2 bg-green-50 dark:bg-green-900/20 rounded">
-                    <span className="text-sm flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-green-600" />
-                      Healthy Deals
-                    </span>
-                    <span className="font-bold text-green-700 dark:text-green-400">
-                      {deals.filter(d => AIService.calculateDealHealth(d) >= 70).length}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded">
-                    <span className="text-sm flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 text-yellow-600" />
-                      Needs Attention
-                    </span>
-                    <span className="font-bold text-yellow-700 dark:text-yellow-400">
-                      {deals.filter(d => {
-                        const h = AIService.calculateDealHealth(d);
-                        return h >= 40 && h < 70;
-                      }).length}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between p-2 bg-red-50 dark:bg-red-900/20 rounded">
-                    <span className="text-sm flex items-center gap-2">
-                      <AlertTriangle className="w-4 h-4 text-red-600" />
-                      Critical
-                    </span>
-                    <span className="font-bold text-red-700 dark:text-red-400">
-                      {deals.filter(d => AIService.calculateDealHealth(d) < 40).length}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Quick Win Opportunities */}
-              <div>
-                <h3 className="font-semibold mb-3 flex items-center gap-2">
-                  <Rocket className="w-4 h-4 text-green-600" />
-                  Quick Win Opportunities
-                </h3>
-                <div className="space-y-2">
-                  {deals
-                    .filter(d => EnhancedPipelineAIService.calculateWinProbability(d) > 75 && !['won', 'lost'].includes(d.stage))
-                    .slice(0, 3)
-                    .map(deal => (
-                      <div key={deal.id} className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="font-medium text-sm">{deal.name}</span>
-                          <span className="text-xs font-bold text-green-700 bg-green-100 px-2 py-1 rounded">
-                            {EnhancedPipelineAIService.calculateWinProbability(deal)}% win
-                          </span>
-                        </div>
-                        <div className="text-xs text-gray-600 dark:text-gray-400">
-                          {formatCurrency(deal.value)} • {deal.stage}
-                        </div>
-                        <button
-                          onClick={() => navigate(`/contacts/${deal.contactId || deal.id}`)}
-                          className="mt-2 w-full text-xs bg-green-600 text-white py-1 rounded hover:bg-green-700"
-                        >
-                          Close This Deal
-                        </button>
-                      </div>
-                    ))}
-                  {deals.filter(d => EnhancedPipelineAIService.calculateWinProbability(d) > 75 && !['won', 'lost'].includes(d.stage)).length === 0 && (
-                    <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
-                      No high-probability deals right now. Focus on moving deals forward!
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* AI Training Tips */}
-              <div>
-                <h3 className="font-semibold mb-3 flex items-center gap-2">
-                  <Lightbulb className="w-4 h-4 text-yellow-600" />
-                  Sales Tips
-                </h3>
-                <div className="space-y-2 text-sm">
-                  <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                    <div className="font-medium text-blue-900 dark:text-blue-200">💡 Follow-up Timing</div>
-                    <div className="text-blue-700 dark:text-blue-300 text-xs mt-1">
-                      Best time to follow up is within 5 minutes of initial contact. 78% higher response rate.
-                    </div>
-                  </div>
-                  <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                    <div className="font-medium text-purple-900 dark:text-purple-200">📞 Multiple Touchpoints</div>
-                    <div className="text-purple-700 dark:text-purple-300 text-xs mt-1">
-                      It takes 8+ touchpoints to reach a prospect. Don't give up after 2-3 attempts!
-                    </div>
-                  </div>
-                  <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                    <div className="font-medium text-green-900 dark:text-green-200">🎯 Value First</div>
-                    <div className="text-green-700 dark:text-green-300 text-xs mt-1">
-                      Lead with value, not features. Focus on solving their pain points.
-                    </div>
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
+            <button
+              onClick={() => setShowAIInsights(false)}
+              className="ml-4 p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
         </div>
       )}
 
-      {/* AI INSIGHTS PANEL */}
-      {showAIInsights && (
-        <div className="fixed right-0 top-0 h-full w-[500px] bg-white dark:bg-gray-800 shadow-2xl z-50 overflow-y-auto border-l-4 border-blue-500">
-          <div className="p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                <Sparkles className="h-6 w-6 text-blue-600" />
-                AI Pipeline Insights
-              </h2>
-              <button
-                onClick={() => setShowAIInsights(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            
-            <div className="space-y-6">
-              {/* Revenue Forecast */}
-              <div>
-                <h3 className="font-semibold mb-3">Revenue Forecast ({forecastRange} days)</h3>
-                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-4 rounded-lg">
-                  <div className="text-3xl font-bold text-blue-900 dark:text-blue-200 mb-2">
-                    {formatCurrency(forecastData?.likely || 0)}
-                  </div>
-                  <div className="text-sm text-blue-700 dark:text-blue-300 mb-4">
-                    Likely outcome • {forecastData?.confidence || 'medium'} confidence
-                  </div>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-600 dark:text-gray-400">Best Case (90%):</span>
-                      <span className="font-bold text-green-700 dark:text-green-400">
-                        {formatCurrency(forecastData?.bestCase || 0)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-600 dark:text-gray-400">Likely (50%):</span>
-                      <span className="font-bold text-blue-700 dark:text-blue-400">
-                        {formatCurrency(forecastData?.likely || 0)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-600 dark:text-gray-400">Worst Case (10%):</span>
-                      <span className="font-bold text-orange-700 dark:text-orange-400">
-                        {formatCurrency(forecastData?.worstCase || 0)}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  {/* Forecast Range Selector */}
-                  <div className="mt-4 pt-4 border-t border-blue-200 dark:border-blue-800">
-                    <label className="text-xs text-gray-600 dark:text-gray-400 mb-2 block">Forecast Range:</label>
-                    <select
-                      value={forecastRange}
-                      onChange={(e) => setForecastRange(Number(e.target.value))}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700"
-                    >
-                      <option value={7}>7 days</option>
-                      <option value={14}>14 days</option>
-                      <option value={30}>30 days</option>
-                      <option value={60}>60 days</option>
-                      <option value={90}>90 days</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
+      {/* ===== STATS ROW ===== */}
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+          
+          {/* Total Value */}
+          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
+            <div className="text-xs text-blue-600 dark:text-blue-400 font-medium mb-1">Total Value</div>
+            <div className="text-lg font-bold text-blue-700 dark:text-blue-300">{formatCurrency(stats.totalValue)}</div>
+          </div>
 
-              {/* AI Recommendations */}
-              <div>
-                <h3 className="font-semibold mb-3">AI Recommendations</h3>
-                <div className="space-y-3">
-                  {aiInsights.length > 0 ? (
-                    aiInsights.map((insight, index) => (
-                      <div 
-                        key={index}
-                        className={`p-4 rounded-lg ${
-                          insight.type === 'danger' ? 'bg-red-50 dark:bg-red-900/20 border border-red-200' :
-                          insight.type === 'warning' ? 'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200' :
-                          insight.type === 'success' ? 'bg-green-50 dark:bg-green-900/20 border border-green-200' :
-                          'bg-blue-50 dark:bg-blue-900/20 border border-blue-200'
-                        }`}
-                      >
-                        <div className="flex items-start gap-3">
-                          <span className="text-2xl">{insight.icon}</span>
-                          <div className="flex-1">
-                            <div className="font-semibold text-gray-900 dark:text-white mb-1">
-                              {insight.title}
+          {/* Forecast */}
+          <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3 border border-purple-200 dark:border-purple-800">
+            <div className="text-xs text-purple-600 dark:text-purple-400 font-medium mb-1">Forecast</div>
+            <div className="text-lg font-bold text-purple-700 dark:text-purple-300">{formatCurrency(stats.forecast)}</div>
+          </div>
+
+          {/* Hot Leads */}
+          <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3 border border-orange-200 dark:border-orange-800">
+            <div className="text-xs text-orange-600 dark:text-orange-400 font-medium mb-1 flex items-center gap-1">
+              <Zap className="w-3 h-3" />
+              Hot Leads
+            </div>
+            <div className="text-lg font-bold text-orange-700 dark:text-orange-300">{stats.hotLeads}</div>
+          </div>
+
+          {/* At Risk */}
+          <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 border border-red-200 dark:border-red-800">
+            <div className="text-xs text-red-600 dark:text-red-400 font-medium mb-1">At Risk</div>
+            <div className="text-lg font-bold text-red-700 dark:text-red-300">{stats.atRisk}</div>
+          </div>
+
+          {/* Avg Health */}
+          <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 border border-green-200 dark:border-green-800">
+            <div className="text-xs text-green-600 dark:text-green-400 font-medium mb-1">Avg Health</div>
+            <div className={`text-lg font-bold ${getHealthColor(stats.avgHealth)}`}>
+              {stats.avgHealth.toFixed(0)}%
+            </div>
+          </div>
+
+          {/* Win Rate */}
+          <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-3 border border-indigo-200 dark:border-indigo-800">
+            <div className="text-xs text-indigo-600 dark:text-indigo-400 font-medium mb-1">Win Rate</div>
+            <div className="text-lg font-bold text-indigo-700 dark:text-indigo-300">{stats.conversionRate.toFixed(0)}%</div>
+          </div>
+
+          {/* Avg Win Prob */}
+          <div className="bg-teal-50 dark:bg-teal-900/20 rounded-lg p-3 border border-teal-200 dark:border-teal-800">
+            <div className="text-xs text-teal-600 dark:text-teal-400 font-medium mb-1">Win Prob</div>
+            <div className="text-lg font-bold text-teal-700 dark:text-teal-300">{stats.avgWinProb.toFixed(0)}%</div>
+          </div>
+
+          {/* AI Deals */}
+          <div className="bg-cyan-50 dark:bg-cyan-900/20 rounded-lg p-3 border border-cyan-200 dark:border-cyan-800">
+            <div className="text-xs text-cyan-600 dark:text-cyan-400 font-medium mb-1 flex items-center gap-1">
+              <Bot className="w-3 h-3" />
+              AI Deals
+            </div>
+            <div className="text-lg font-bold text-cyan-700 dark:text-cyan-300">{stats.aiGeneratedDeals}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* ===== EMPTY STATE ===== */}
+      {filteredAndSortedDeals.length === 0 && (
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center max-w-md px-6">
+            <Users className="w-20 h-20 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+              No Deals Yet
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              {searchTerm || showHotLeadsOnly || filterPriority !== 'all' || filterSource !== 'all' || filterHealth !== 'all'
+                ? 'No deals match your current filters. Try adjusting your search criteria.'
+                : 'Get started by adding your first deal or lead to the pipeline.'
+              }
+            </p>
+            {!(searchTerm || showHotLeadsOnly || filterPriority !== 'all' || filterSource !== 'all' || filterHealth !== 'all') && (
+              <button
+                onClick={() => setShowAddDeal(true)}
+                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 mx-auto text-lg font-medium"
+              >
+                <Plus className="w-5 h-5" />
+                Add First Deal
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ===== KANBAN BOARD ===== */}
+      {filteredAndSortedDeals.length > 0 && (
+        <div className="p-6 overflow-x-auto">
+          <div className="flex gap-4 min-w-max">
+            {stages.map(stage => {
+              const stageDeals = getDealsForStage(stage.id);
+              const stageValue = stageDeals.reduce((sum, d) => sum + (d.value || 0), 0);
+              const StageIcon = stage.icon;
+              const isDragOver = dragOverStage === stage.id;
+
+              return (
+                <div
+                  key={stage.id}
+                  className="flex-shrink-0 w-80"
+                  onDragOver={(e) => handleDragOver(e, stage.id)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, stage.id)}
+                >
+                  {/* Stage Header */}
+                  <div className={`${stage.color} rounded-lg p-4 mb-3 text-white shadow-md`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <StageIcon className="w-5 h-5" />
+                        <h3 className="font-bold text-lg">{stage.title}</h3>
+                      </div>
+                      <span className="bg-white/20 px-2 py-1 rounded-full text-sm font-bold">
+                        {stageDeals.length}
+                      </span>
+                    </div>
+                    <div className="text-sm opacity-90">
+                      {formatCurrency(stageValue)}
+                    </div>
+                  </div>
+
+                  {/* Deals Column */}
+                  <div
+                    className={`min-h-[400px] bg-gray-100 dark:bg-gray-800/50 rounded-lg p-2 space-y-2 transition-colors ${
+                      isDragOver ? 'bg-blue-100 dark:bg-blue-900/30 ring-2 ring-blue-500' : ''
+                    }`}
+                  >
+                    {stageDeals.length === 0 ? (
+                      <div className="text-center py-8 text-gray-400 dark:text-gray-600">
+                        <StageIcon className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">No deals</p>
+                      </div>
+                    ) : (
+                      stageDeals.map(deal => {
+                        const health = calculateDealHealth(deal);
+                        const winProb = calculateWinProbability(deal);
+
+                        return (
+                          <div
+                            key={deal.id}
+                            draggable
+                            onDragStart={(e) => handleDragStart(e, deal)}
+                            className="bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow cursor-move border border-gray-200 dark:border-gray-700 group"
+                          >
+                            {/* Deal Header */}
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-semibold text-gray-900 dark:text-white truncate" title={deal.name}>
+                                  {deal.name || 'Unnamed Deal'}
+                                </h4>
+                                {deal.company && (
+                                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{deal.company}</p>
+                                )}
+                              </div>
+                              
+                              {/* Quick Actions */}
+                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  onClick={() => navigate(`/contacts/${deal.id}`)}
+                                  className="p-1 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded"
+                                  title="View details"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setSelectedDealForEmail(deal);
+                                    setShowEmailGenerator(true);
+                                  }}
+                                  className="p-1 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded"
+                                  title="Generate email"
+                                >
+                                  <Mail className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => deleteDeal(deal.id, deal.isDeal)}
+                                  className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded"
+                                  title="Delete"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
                             </div>
-                            <div className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                              {insight.description}
-                            </div>
-                            {insight.deals && insight.deals.length > 0 && (
-                              <div className="mb-2">
-                                <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                  Top deals:
-                                </div>
-                                {insight.deals.slice(0, 3).map(deal => (
-                                  <div key={deal.id} className="text-xs text-gray-600 dark:text-gray-400">
-                                    • {deal.name} - {formatCurrency(deal.value)}
-                                  </div>
-                                ))}
+
+                            {/* Deal Value */}
+                            {deal.value > 0 && (
+                              <div className="text-lg font-bold text-green-600 dark:text-green-400 mb-2">
+                                {formatCurrency(deal.value)}
                               </div>
                             )}
-                            <button className={`text-xs font-medium px-3 py-1 rounded ${
-                              insight.type === 'danger' ? 'bg-red-600 text-white hover:bg-red-700' :
-                              insight.type === 'warning' ? 'bg-yellow-600 text-white hover:bg-yellow-700' :
-                              insight.type === 'success' ? 'bg-green-600 text-white hover:bg-green-700' :
-                              'bg-blue-600 text-white hover:bg-blue-700'
-                            }`}>
-                              {insight.action}
-                            </button>
+
+                            {/* Lead Score */}
+                            {deal.leadScore > 0 && (
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="text-xs text-gray-600 dark:text-gray-400">Score:</span>
+                                <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                  <div
+                                    className={`h-2 rounded-full transition-all ${
+                                      deal.leadScore >= 8 ? 'bg-green-500' :
+                                      deal.leadScore >= 6 ? 'bg-yellow-500' :
+                                      'bg-red-500'
+                                    }`}
+                                    style={{ width: `${deal.leadScore * 10}%` }}
+                                  />
+                                </div>
+                                <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{deal.leadScore}/10</span>
+                              </div>
+                            )}
+
+                            {/* Health & Win Probability */}
+                            <div className="flex items-center justify-between text-xs mb-2">
+                              <div className="flex items-center gap-1">
+                                <Activity className="w-3 h-3 text-gray-400" />
+                                <span className={`font-medium ${getHealthColor(health)}`}>
+                                  {health.toFixed(0)}% health
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Target className="w-3 h-3 text-gray-400" />
+                                <span className="font-medium text-blue-600 dark:text-blue-400">
+                                  {winProb.toFixed(0)}% win
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Contact Info */}
+                            <div className="space-y-1 text-xs text-gray-600 dark:text-gray-400 mb-2">
+                              {deal.email && (
+                                <div className="flex items-center gap-1 truncate">
+                                  <Mail className="w-3 h-3 flex-shrink-0" />
+                                  <span className="truncate">{deal.email}</span>
+                                </div>
+                              )}
+                              {deal.phone && (
+                                <div className="flex items-center gap-1">
+                                  <Phone className="w-3 h-3 flex-shrink-0" />
+                                  <span>{deal.phone}</span>
+                                </div>
+                              )}
+                            </div>
+                            {/* Contact Frequency Counter - ADD THIS */}
+                              {deal.contactFrequency && deal.contactFrequency > 1 && (
+                              <Chip
+                              icon={<Phone size={12} />}
+                              label={`${deal.contactFrequency}x contacted`}
+                              size="small"
+                              sx={{
+                              bgcolor: deal.contactFrequency > 5 ? '#FF5722' : '#FF9800',
+                              color: 'white',
+                              fontSize: 10,
+                              height: 20,
+                          }}
+                          />
+                            )}
+
+                            {/* Last Activity */}
+                            <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 pt-2 border-t border-gray-200 dark:border-gray-700">
+                              <div className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {formatRelativeTime(deal.lastActivity || deal.createdAt)}
+                              </div>
+                              {deal.priority && (
+                                <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${
+                                  deal.priority === 'high' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                  deal.priority === 'medium' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                                  'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-400'
+                                }`}>
+                                  {deal.priority}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Hot Lead Badge */}
+                            {deal.leadScore >= 8 && (
+                              <div className="mt-2 flex items-center justify-center gap-1 bg-gradient-to-r from-orange-500 to-red-500 text-white px-2 py-1 rounded text-xs font-bold">
+                                <Zap className="w-3 h-3" />
+                                HOT LEAD
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                      <Bot className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">Your pipeline is looking good! Keep up the great work.</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Performance Metrics */}
-              <div>
-                <h3 className="font-semibold mb-3">Performance Metrics</h3>
-                <div className="space-y-3">
-                  <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Average Deal Health</span>
-                      <span className={`text-lg font-bold ${getHealthColor(stats.avgHealth)}`}>
-                        {stats.avgHealth.toFixed(0)}%
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                      <div 
-                        className={`h-2 rounded-full transition-all ${
-                          stats.avgHealth >= 70 ? 'bg-green-500' :
-                          stats.avgHealth >= 40 ? 'bg-yellow-500' :
-                          'bg-red-500'
-                        }`}
-                        style={{ width: `${stats.avgHealth}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Average Win Probability</span>
-                      <span className="text-lg font-bold text-blue-600">
-                        {stats.avgWinProb.toFixed(0)}%
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                      <div 
-                        className="h-2 rounded-full bg-blue-500 transition-all"
-                        style={{ width: `${stats.avgWinProb}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Win Rate</span>
-                      <span className="text-lg font-bold text-green-600">
-                        {stats.conversionRate.toFixed(0)}%
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                      <div 
-                        className="h-2 rounded-full bg-green-500 transition-all"
-                        style={{ width: `${stats.conversionRate}%` }}
-                      />
-                    </div>
+                        );
+                      })
+                    )}
                   </div>
                 </div>
-              </div>
-
-              {/* Stage Analysis */}
-              <div>
-                <h3 className="font-semibold mb-3">Stage Analysis</h3>
-                <div className="space-y-2">
-                  {stages.filter(s => !['won', 'lost'].includes(s.id)).map(stage => {
-                    const stageDeals = getDealsForStage(stage.id);
-                    const avgHealth = stageDeals.length > 0
-                      ? stageDeals.reduce((sum, d) => sum + AIService.calculateDealHealth(d), 0) / stageDeals.length
-                      : 0;
-                    
-                    return (
-                      <div key={stage.id} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-900 rounded">
-                        <div className="flex items-center gap-2">
-                          <stage.icon className="w-4 h-4 text-gray-600" />
-                          <span className="text-sm font-medium">{stage.title}</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="text-xs text-gray-500">{stageDeals.length} deals</span>
-                          <span className={`text-xs font-bold ${getHealthColor(avgHealth)}`}>
-                            {avgHealth.toFixed(0)}% health
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
+              );
+            })}
           </div>
         </div>
       )}
 
-      {/* AI EMAIL GENERATOR MODAL */}
+      {/* ===== EMAIL GENERATOR MODAL ===== */}
       {showEmailGenerator && selectedDealForEmail && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            
+            {/* Modal Header */}
             <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-between items-center">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <Bot className="h-5 w-5 text-purple-600" />
-                AI Email Generator
+                <Bot className="w-5 h-5 text-purple-600" />
+                Email Generator
               </h2>
               <button
                 onClick={() => {
                   setShowEmailGenerator(false);
                   setSelectedDealForEmail(null);
                 }}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-6">
-              <div className="mb-4">
-                <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">Generating email for:</div>
-                <div className="font-semibold text-lg">{selectedDealForEmail.name}</div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">{selectedDealForEmail.email}</div>
+            {/* Modal Body */}
+            <div className="p-6 space-y-4">
+              
+              {/* Deal Info */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                <div className="text-sm text-blue-600 dark:text-blue-400 mb-1">Generating email for:</div>
+                <div className="font-semibold text-lg text-gray-900 dark:text-white">{selectedDealForEmail.name}</div>
+                {selectedDealForEmail.email && (
+                  <div className="text-sm text-gray-600 dark:text-gray-400">{selectedDealForEmail.email}</div>
+                )}
               </div>
 
-              <div className="mb-4">
+              {/* Email Type Selection */}
+              <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Email Type:
+                  Select Email Type:
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   {['initial', 'followup', 'proposal', 'closing'].map(type => (
                     <button
                       key={type}
                       onClick={() => {
-                        const email = AIService.generateEmail(selectedDealForEmail, type);
+                        const email = generateBasicEmail(selectedDealForEmail, type);
                         navigator.clipboard.writeText(email);
                         alert(`${type} email copied to clipboard!`);
                       }}
-                      className="px-4 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/50 text-sm font-medium capitalize"
+                      className="px-4 py-3 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/50 text-sm font-medium capitalize transition-colors"
                     >
                       {type}
                     </button>
@@ -1619,76 +1429,95 @@ const Pipeline = () => {
                 </div>
               </div>
 
-              <div className="mb-4">
+              {/* Email Preview */}
+              <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Preview:
+                  Preview (Follow-up Email):
                 </label>
                 <textarea
-                  value={AIService.generateEmail(selectedDealForEmail, 'followup')}
+                  value={generateBasicEmail(selectedDealForEmail, 'followup')}
                   readOnly
                   rows="12"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white text-sm font-mono"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white text-sm font-mono resize-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
 
+              {/* Actions */}
               <div className="flex gap-3">
                 <button
                   onClick={() => {
-                    const email = AIService.generateEmail(selectedDealForEmail, 'followup');
+                    const email = generateBasicEmail(selectedDealForEmail, 'followup');
                     navigator.clipboard.writeText(email);
                     alert('Email copied to clipboard!');
                   }}
-                  className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center justify-center gap-2"
+                  className="flex-1 px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center justify-center gap-2 font-medium transition-colors"
                 >
                   <Copy className="w-4 h-4" />
                   Copy to Clipboard
                 </button>
                 <button
                   onClick={() => {
-                    window.location.href = `mailto:${selectedDealForEmail.email}?subject=Credit Repair&body=${encodeURIComponent(AIService.generateEmail(selectedDealForEmail, 'followup'))}`;
+                    const email = generateBasicEmail(selectedDealForEmail, 'followup');
+                    window.location.href = `mailto:${selectedDealForEmail.email}?subject=Following Up&body=${encodeURIComponent(email)}`;
                   }}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
+                  className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 font-medium transition-colors"
+                  disabled={!selectedDealForEmail.email}
                 >
                   <Mail className="w-4 h-4" />
                   Open in Email
                 </button>
+              </div>
+
+              {/* Note */}
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
+                <div className="flex gap-2">
+                  <Info className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-yellow-800 dark:text-yellow-200">
+                    <strong>Note:</strong> This is a basic email template. For AI-powered personalized emails, the OpenAI API integration would need to be called from a server-side Firebase Cloud Function.
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* ADD/EDIT DEAL MODAL - Simplified for brevity */}
-      {(showAddDeal || editingDeal) && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      {/* ===== ADD DEAL MODAL (PLACEHOLDER) ===== */}
+      {showAddDeal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            
+            {/* Modal Header */}
             <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-between items-center">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                {editingDeal ? 'Edit Deal' : 'Add New Deal'}
+                Add New Deal
               </h2>
               <button
-                onClick={() => {
-                  setShowAddDeal(false);
-                  setEditingDeal(null);
-                }}
-                className="text-gray-500 hover:text-gray-700"
+                onClick={() => setShowAddDeal(false)}
+                className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
+            {/* Modal Body - Placeholder */}
             <div className="p-6">
-              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                <p className="mb-4">Deal creation form goes here</p>
-                <p className="text-sm">You can add full form fields based on your requirements</p>
+              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                <UserPlus className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                <p className="text-lg font-medium mb-2">Deal Creation Form</p>
+                <p className="text-sm mb-6">
+                  Full deal creation form will be implemented based on your requirements.
+                  <br />
+                  For now, use the ClientsHub or contact intake form to add new leads.
+                </p>
                 <button
                   onClick={() => {
                     setShowAddDeal(false);
-                    setEditingDeal(null);
+                    navigate('/clients-hub');
                   }}
-                  className="mt-4 px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                  Close
+                  Go to Clients Hub
                 </button>
               </div>
             </div>

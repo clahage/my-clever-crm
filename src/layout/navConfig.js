@@ -161,7 +161,7 @@ export function isVisible(item, userRole, isMobile = false) {
 
 export const navigationItems = [
   // ==========================================================================
-  // 🏠 DASHBOARD - ANALYTICS & METRICS (SmartDashboard)
+  // ðŸ  DASHBOARD - ANALYTICS & METRICS (SmartDashboard)
   // ==========================================================================
   {
     id: 'dashboard',
@@ -175,7 +175,7 @@ export const navigationItems = [
   },
 
   // ==========================================================================
-  // 🏡 HOME - WELCOME HUB / LANDING PAGE
+  // ðŸ¡ HOME - WELCOME HUB / LANDING PAGE
   // ==========================================================================
   {
     id: 'home',
@@ -189,11 +189,11 @@ export const navigationItems = [
   },
 
   // ==========================================================================
-  // 🎯 ADMIN COMMAND CENTER
+  // ðŸŽ¯ ADMIN COMMAND CENTER
   // ==========================================================================
   {
     id: 'admin-portal',
-    title: '🎯 Admin Portal',
+    title: 'ðŸŽ¯ Admin Portal',
     path: '/portal',
     icon: LayoutDashboard,
     permission: 'admin',
@@ -204,11 +204,11 @@ export const navigationItems = [
   },
 
   // ==========================================================================
-  // 👤 CLIENT PORTAL
+  // ðŸ‘¤ CLIENT PORTAL
   // ==========================================================================
   {
     id: 'client-portal',
-    title: '👤 Client Portal',
+    title: 'ðŸ‘¤ Client Portal',
     path: '/client-portal',
     icon: User,
     permission: 'client', // Clients and prospects
@@ -219,11 +219,11 @@ export const navigationItems = [
   },
 
   // ==========================================================================
-  // 📊 CREDIT REPORTS HUB (Consolidated IDIQ System)
+  // ðŸ“Š CREDIT REPORTS HUB (Consolidated IDIQ System)
   // ==========================================================================
   {
     id: 'credit-hub',
-    title: '📊 Credit Reports Hub',
+    title: 'ðŸ“Š Credit Reports Hub',
     path: '/credit-hub',
     icon: Shield,
     permission: 'client',
@@ -232,12 +232,27 @@ export const navigationItems = [
     description: 'Complete IDIQ credit management system - 7 tools in one hub',
     category: 'credit'
   },
+
   // ==========================================================================
-  // 🎯 HYBRID HUBS - ALL 41 BUSINESS HUBS ORGANIZED
+  // 📈 SALES PIPELINE - STANDALONE (T3 Enterprise with 120+ AI Features)
+  // ==========================================================================
+  {
+    id: 'pipeline-standalone',
+    title: '📈 Sales Pipeline',
+    path: '/pipeline',
+    icon: GitBranch,
+    permission: 'user',
+    mobileHidden: false,
+    badge: 'AI',
+    description: 'T3 Enterprise pipeline with win probability, forecasting, routing & 120+ AI features',
+    category: 'sales'
+  },
+  // ==========================================================================
+  // ðŸŽ¯ HYBRID HUBS - ALL 41 BUSINESS HUBS ORGANIZED
   // ==========================================================================
   {
     id: 'hubs-group',
-    title: '🎯 Business Hubs',
+    title: 'ðŸŽ¯ Business Hubs',
     icon: LayoutDashboard,
     isGroup: true,
     permission: 'user',
@@ -601,7 +616,7 @@ export const navigationItems = [
   },
 
   // ==========================================================================
-  // 📊 CREDIT REPORT WORKFLOW (Admin Only)
+  // ðŸ“Š CREDIT REPORT WORKFLOW (Admin Only)
   // ==========================================================================
   
   {
@@ -617,7 +632,7 @@ export const navigationItems = [
   },
 
   // ==========================================================================
-  // 🤖 AI REVIEW SYSTEM (Admin Only)
+  // ðŸ¤– AI REVIEW SYSTEM (Admin Only)
   // ==========================================================================
   {
     id: 'ai-reviews',
@@ -656,7 +671,7 @@ export const navigationItems = [
   },
 
   // ==========================================================================
-  // 👥 CONTACT MANAGEMENT
+  // ðŸ‘¥ CONTACT MANAGEMENT
   // ==========================================================================
   {
     id: 'contacts-group',
@@ -684,15 +699,6 @@ export const navigationItems = [
         permission: 'user',
         mobileHidden: true,
         description: 'Add new client'
-      },
-      { 
-        id: 'pipeline', 
-        title: 'Sales Pipeline', 
-        path: '/pipeline', 
-        icon: GitBranch, 
-        permission: 'user',
-        mobileHidden: true,
-        description: 'Sales funnel'
       },
       { 
         id: 'import-contacts', 
@@ -734,7 +740,7 @@ export const navigationItems = [
   },
 
   // ==========================================================================
-  // 💳 CREDIT MANAGEMENT
+  // ðŸ’³ CREDIT MANAGEMENT
   // ==========================================================================
   {
     id: 'credit-group',
@@ -825,7 +831,7 @@ export const navigationItems = [
   },
 
   // ==========================================================================
-  // 📨 COMMUNICATIONS
+  // ðŸ“¨ COMMUNICATIONS
   // ==========================================================================
   {
     id: 'comms-group',
@@ -913,7 +919,7 @@ export const navigationItems = [
   },
 
   // ==========================================================================
-  // 🎓 LEARNING & RESOURCES
+  // ðŸŽ“ LEARNING & RESOURCES
   // ==========================================================================
   {
     id: 'learning-group',
@@ -955,7 +961,7 @@ export const navigationItems = [
   },
 
   // ==========================================================================
-  // 📄 DOCUMENTS & FORMS
+  // ðŸ“„ DOCUMENTS & FORMS
   // ==========================================================================
   {
     id: 'docs-group',
@@ -1061,7 +1067,7 @@ export const navigationItems = [
   },
 
   // ==========================================================================
-  // 🏢 BUSINESS MANAGEMENT
+  // ðŸ¢ BUSINESS MANAGEMENT
   // ==========================================================================
   {
     id: 'business-group',
@@ -1103,7 +1109,7 @@ export const navigationItems = [
   },
 
   // ==========================================================================
-  // 📅 SCHEDULING & TASKS
+  // ðŸ“… SCHEDULING & TASKS
   // ==========================================================================
   {
     id: 'schedule-group',
@@ -1154,7 +1160,7 @@ export const navigationItems = [
   },
 
   // ==========================================================================
-  // 📊 ANALYTICS & REPORTS
+  // ðŸ“Š ANALYTICS & REPORTS
   // ==========================================================================
   {
     id: 'analytics-group',
@@ -1196,7 +1202,7 @@ export const navigationItems = [
   },
 
   // ==========================================================================
-  // 📱 RESOURCES
+  // ðŸ“± RESOURCES
   // ==========================================================================
   {
     id: 'resources-group',
@@ -1229,7 +1235,7 @@ export const navigationItems = [
   },
 
   // ==========================================================================
-  // 📱 MOBILE APPS
+  // ðŸ“± MOBILE APPS
   // ==========================================================================
   {
     id: 'apps-group',
@@ -1280,7 +1286,7 @@ export const navigationItems = [
   },
 
   // ==========================================================================
-  // ⚙️ ADMINISTRATION
+  // âš™ï¸ ADMINISTRATION
   // ==========================================================================
   {
     id: 'admin-group',
@@ -1358,7 +1364,7 @@ export const navigationItems = [
   },
 
   // ==========================================================================
-  // 🎨 WHITE LABEL (Master Admin Only)
+  // ðŸŽ¨ WHITE LABEL (Master Admin Only)
   // ==========================================================================
   {
     id: 'white-label-group',
