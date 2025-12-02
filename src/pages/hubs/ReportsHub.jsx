@@ -327,7 +327,6 @@ const UltimateReportsHub = () => {
     // Handle numeric roles (legacy support)
     if (typeof role === 'number') {
       return role >= 5; // user(5) or higher
->>>>>>> origin/claude/payment-system-dashboard-reports-fix-011CV4zSNPPjxVYyYV4c1wjt
     }
 
     return false;
@@ -336,7 +335,6 @@ const UltimateReportsHub = () => {
   const canExport = useMemo(() => {
     if (!userProfile) return false;
 
-<<<<<<< HEAD
     const userRole = userProfile.role;
 
     // Handle string roles (case-insensitive)
@@ -349,22 +347,6 @@ const UltimateReportsHub = () => {
     // Handle numeric roles
     if (typeof userRole === 'number') {
       return userRole >= 6; // manager(6) or higher
-=======
-    const role = userProfile.role;
-
-    // Master Admin can export
-    if (role === 'masterAdmin') return true;
-
-    // Admin can export
-    if (role === 'admin') return true;
-
-    // Manager can export
-    if (role === 'manager') return true;
-
-    // Handle numeric roles (legacy support)
-    if (typeof role === 'number') {
-      return role >= 6; // manager(6) or higher
->>>>>>> origin/claude/payment-system-dashboard-reports-fix-011CV4zSNPPjxVYyYV4c1wjt
     }
 
     return false;

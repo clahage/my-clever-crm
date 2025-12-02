@@ -153,12 +153,6 @@ import {
   CardMedia,
   Checkbox,
   FormGroup,
-  Timeline,
-  TimelineItem,
-  TimelineSeparator,
-  TimelineConnector,
-  TimelineContent,
-  TimelineDot,
   AvatarGroup,
   SpeedDial,
   SpeedDialAction,
@@ -168,6 +162,15 @@ import {
   Autocomplete,
   Container,
 } from '@mui/material';
+
+import {
+  Timeline,
+  TimelineItem,
+  TimelineSeparator,
+  TimelineConnector,
+  TimelineContent,
+  TimelineDot,
+} from '@mui/lab';
 import {
   Star as StarIcon,
   StarBorder as StarBorderIcon,
@@ -327,7 +330,6 @@ import {
   Support as SupportIcon,
   SupportAgent as SupportAgentIcon,
   RecordVoiceOver as RecordVoiceOverIcon,
-  Interpreter as InterpreterIcon,
   Translate as TranslateIcon,
   GTranslate as GTranslateIcon,
   Language as LanguageIcon,
