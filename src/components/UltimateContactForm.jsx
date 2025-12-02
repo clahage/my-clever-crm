@@ -1,10 +1,10 @@
 // Path: /src/components/UltimateContactForm.jsx
 // ============================================================================
-// ULTIMATE CONTACT FORM - AI-POWERED COMPREHENSIVE CLIENT INTAKE
+// ULTIMATE CONTACT FORM - AI-POWERED COMPREHENSIVE CONTACT INTAKE
 // ============================================================================
-// Version: 3.0 - Complete client intelligence capture system
+// Version: 3.1 - Complete contact intelligence capture system
 // Features: 2980+ lines, 50+ AI capabilities, duplicate detection
-// Last Updated: 2025-12-01
+// Last Updated: 2025-12-02 - Changed "Client" to "Contact" terminology
 // ============================================================================
 
 import { useState, useEffect, useRef } from 'react';
@@ -794,7 +794,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
             lastContact: serverTimestamp(),
             tags: [...new Set([...(existing.data().tags || []), 'repeat-contact'])],
           });
-          console.log('✅ Duplicate detected! Updated contact frequency.');
+          console.log('âœ… Duplicate detected! Updated contact frequency.');
           return existing.id; // Return existing ID
         }
       }
@@ -810,7 +810,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
             contactFrequency: (existing.data().contactFrequency || 1) + 1,
             lastContact: serverTimestamp(),
           });
-          console.log('✅ Duplicate detected! Updated contact frequency.');
+          console.log('âœ… Duplicate detected! Updated contact frequency.');
           return existing.id;
         }
       }
@@ -840,7 +840,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
       }
     }
     
-    addTimelineEvent('form_saved', 'Client information saved manually');
+    addTimelineEvent('form_saved', 'Contact information saved manually');
     onSave(finalData);
   };
 
@@ -892,7 +892,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
       <div className="flex items-center justify-between mb-6">
         <div className="flex-1">
           <h2 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            Complete Client Intelligence Profile
+            Complete Contact Intelligence Profile
             {autoSaving && (
               <span className="text-sm font-normal text-blue-600 flex items-center gap-1">
                 <Clock className="w-4 h-4 animate-spin" /> Saving...
@@ -904,7 +904,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
               </span>
             )}
           </h2>
-          <p className="text-gray-600 text-sm mt-1">AI-powered comprehensive client management</p>
+          <p className="text-gray-600 text-sm mt-1">AI-powered comprehensive contact management</p>
           
           {/* Data Quality Meter */}
           <div className="mt-3 flex items-center gap-4">
@@ -955,7 +955,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
           >
             <Activity className="w-4 h-4" />
-            Save Client
+            Save Contact
           </button>
         </div>
       </div>
@@ -1009,7 +1009,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
                     <p className="text-sm font-medium text-gray-900">{suggestion.message}</p>
                     {suggestion.action && (
                       <p className="text-xs text-gray-600 mt-1">
-                        💡 Recommended: {suggestion.action}
+                        ðŸ’¡ Recommended: {suggestion.action}
                       </p>
                     )}
                   </div>
@@ -1036,7 +1036,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
                 Found {duplicates.length} similar contact{duplicates.length !== 1 ? 's' : ''} in the system.
               </p>
               <button className="text-sm text-yellow-700 hover:text-yellow-800 font-medium mt-2 underline">
-                Review Duplicates →
+                Review Duplicates â†’
               </button>
             </div>
           </div>
@@ -1122,7 +1122,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
                   <div className="flex-1">
                     <p className="text-sm font-medium text-gray-900">{call.summary || 'Call summary'}</p>
                     <p className="text-xs text-gray-600 mt-1">
-                      {new Date(call.timestamp).toLocaleString()} • Duration: {Math.round(call.duration / 60)}min
+                      {new Date(call.timestamp).toLocaleString()} â€¢ Duration: {Math.round(call.duration / 60)}min
                     </p>
                     {call.sentiment && (
                       <span className={`text-xs px-2 py-0.5 rounded-full inline-block mt-1 ${
@@ -2783,7 +2783,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
               <div className="text-center py-12">
                 <Clock className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                 <p className="text-gray-500">No activity recorded yet</p>
-                <p className="text-xs text-gray-400 mt-1">Events will appear here as you interact with the client</p>
+                <p className="text-xs text-gray-400 mt-1">Events will appear here as you interact with the contact</p>
               </div>
             ) : (
               <>
@@ -2850,7 +2850,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
           value={formData.notes}
           onChange={(e) => updateField('notes', e.target.value)}
           rows="5"
-          placeholder="AI will analyze all interactions and add insights here automatically. You can also add manual notes...&#10;&#10;Examples:&#10;- Client prefers morning calls&#10;- Very motivated to improve credit&#10;- Has urgent need for car loan&#10;- Follow up on disputed items next week"
+          placeholder="AI will analyze all interactions and add insights here automatically. You can also add manual notes...&#10;&#10;Examples:&#10;- Contact prefers morning calls&#10;- Very motivated to improve credit&#10;- Has urgent need for car loan&#10;- Follow up on disputed items next week"
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
         />
         
@@ -2897,7 +2897,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
             ))}
           </div>
           <p className="text-xs text-gray-500 mt-2">
-            💡 Contact role is permanent. Add additional roles as needed.
+            ðŸ’¡ Contact role is permanent. Add additional roles as needed.
           </p>
         </div>
         
@@ -2957,7 +2957,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
 
       {/* Summary Stats Footer */}
       <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg">
-        <h3 className="text-sm font-semibold text-gray-900 mb-3">Client Profile Summary</h3>
+        <h3 className="text-sm font-semibold text-gray-900 mb-3">Contact Profile Summary</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div>
             <p className="text-xs text-gray-600 mb-1">Completeness</p>
@@ -3013,7 +3013,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
             className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 font-medium flex items-center gap-2 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Brain className="w-5 h-5" />
-            Save Client Profile
+            Save Contact Profile
             {dataQuality.score < 30 && (
               <span className="text-xs bg-white/20 px-2 py-0.5 rounded">
                 {30 - dataQuality.score}% needed
