@@ -440,7 +440,7 @@ export const navigationItems = [
        id: 'payment-integration-hub',
        title: 'Payment Integrations',
        path: '/payment-integration-hub',
-      icon: 'LucideCreditCard',
+      icon: LucideCreditCard,
        requiredRole: 'admin',
        badge: 'PRO',
        description: 'Stripe & PayPal integration'

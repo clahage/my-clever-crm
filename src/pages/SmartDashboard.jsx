@@ -373,8 +373,10 @@ const generateAIInsights = (dashboardData) => {
   }
   
   // Dispute insights
-  if (dashboardData.disputes) {
-    const successRate = (dashboardData.disputes.filter(d => d.status === 'resolved').length / dashboardData.disputes.length * 100).toFixed(0);
+  if (Array.isArray(dashboardData.disputes)) {
+    const totalDisputes = dashboardData.disputes.length;
+    const resolvedDisputes = dashboardData.disputes.filter(d => d.status === 'resolved').length;
+    const successRate = totalDisputes > 0 ? ((resolvedDisputes / totalDisputes) * 100).toFixed(0) : 0;
     insights.push({
       type: successRate > 70 ? 'success' : 'info',
       icon: Award,
@@ -385,19 +387,18 @@ const generateAIInsights = (dashboardData) => {
   }
   
   // Task insights
-  if (dashboardData.tasks) {
-    const overdueTasks = dashboardData.tasks.filter(t => new Date(t.dueDate) < new Date() && t.status !== 'completed');
-    if (overdueTasks.length > 0) {
-      insights.push({
-        type: 'error',
-        icon: Clock,
-        title: `${overdueTasks.length} overdue tasks`,
-        description: 'Prioritize these to stay on track',
-        action: 'View Tasks',
-        priority: 'high'
-      });
+    if (Array.isArray(dashboardData.tasks)) {
+      const overdueTasks = dashboardData.tasks.filter(t => new Date(t.dueDate) < new Date() && t.status !== 'completed');
+      if (overdueTasks.length > 0) {
+        insights.push({
+          type: 'error',
+          icon: Clock,
+          title: `${overdueTasks.length} overdue tasks`,
+          description: 'Complete these tasks to stay on track',
+          priority: 'high'
+        });
+      }
     }
-  }
   
   // Opportunity insights
   insights.push({
