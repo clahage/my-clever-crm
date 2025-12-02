@@ -31,7 +31,7 @@ import {
   Smartphone, Palette, Brush, Info,
 
   // ===== MISC =====
-  MapPin, AlertCircle, Eye, Wrench, Lock, Key, HelpCircle, ExternalLink
+  MapPin, AlertCircle, Eye, Wrench, Lock, Key, HelpCircle, ExternalLink, RefreshCw
 } from 'lucide-react';
 
 // ============================================================================
@@ -161,7 +161,22 @@ export function isVisible(item, userRole, isMobile = false) {
 
 export const navigationItems = [
   // ==========================================================================
-  // ðŸ  DASHBOARD - ANALYTICS & METRICS (SmartDashboard)
+  // 🎯 SMART DASHBOARD - INTELLIGENT ROLE-BASED LANDING
+  // ==========================================================================
+  {
+    id: 'smart-dashboard',
+    title: '🎯 Smart Dashboard',
+    path: '/smart-dashboard',
+    icon: Sparkles,
+    permission: 'prospect', // Everyone sees smart dashboard
+    mobileHidden: false,
+    badge: 'AI',
+    description: 'Intelligent dashboard that adapts to your role',
+    category: 'core'
+  },
+
+  // ==========================================================================
+  // 🏠 DASHBOARD - ALWAYS VISIBLE AT TOP
   // ==========================================================================
   {
     id: 'dashboard',
@@ -231,6 +246,78 @@ export const navigationItems = [
     badge: 'AI',
     description: 'Complete IDIQ credit management system - 7 tools in one hub',
     category: 'credit'
+  },
+
+  // ==========================================================================
+  // 💳 PAYMENT MANAGEMENT - Hybrid ACH + Zelle System
+  // ==========================================================================
+  {
+    id: 'payments-group',
+    title: '💳 Payments',
+    icon: DollarSign,
+    isGroup: true,
+    permission: 'admin',
+    mobileHidden: false,
+    category: 'financial',
+    defaultExpanded: false,
+    items: [
+      {
+        id: 'payments-dashboard',
+        title: 'Payment Dashboard',
+        path: '/payments',
+        icon: LayoutDashboard,
+        permission: 'admin',
+        description: 'Main payment management hub'
+      },
+      {
+        id: 'payment-setup',
+        title: 'Setup Payment Method',
+        path: '/payments/setup',
+        icon: LucideCreditCard,
+        permission: 'admin',
+        description: 'Add ACH or Zelle payment methods'
+      },
+      {
+        id: 'payment-tracking',
+        title: 'Track Payments',
+        path: '/payments/tracking',
+        icon: Eye,
+        permission: 'admin',
+        description: 'Search and track payment status'
+      },
+      {
+        id: 'recurring-payments',
+        title: 'Recurring Payments',
+        path: '/payments/recurring',
+        icon: RefreshCw,
+        permission: 'admin',
+        description: 'Manage recurring payment schedules'
+      },
+      {
+        id: 'collections-list',
+        title: "Today's Collections",
+        path: '/payments/collections',
+        icon: Calendar,
+        permission: 'admin',
+        description: 'Daily payment collection list'
+      },
+      {
+        id: 'payment-reconciliation',
+        title: 'Reconcile Chase CSV',
+        path: '/payments/reconciliation',
+        icon: Upload,
+        permission: 'admin',
+        description: 'Import and reconcile Chase transactions'
+      },
+      {
+        id: 'payment-history',
+        title: 'Payment History',
+        path: '/payments/history',
+        icon: FileText,
+        permission: 'admin',
+        description: 'Complete payment transaction history'
+      }
+    ]
   },
 
   // ==========================================================================

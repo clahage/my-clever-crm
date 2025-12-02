@@ -171,6 +171,15 @@ const LearningCenter = lazy(() => import('@/pages/LearningCenter'));
 const Achievements = lazy(() => import('@/pages/Achievements'));
 const Certificates = lazy(() => import('@/pages/Certificates'));
 
+// ===== PAYMENTS =====
+const PaymentsDashboard = lazy(() => import('@/pages/Payments/PaymentsDashboard'));
+const ClientPaymentSetup = lazy(() => import('@/pages/Payments/ClientPaymentSetup'));
+const PaymentTracking = lazy(() => import('@/pages/Payments/PaymentTracking'));
+const RecurringPayments = lazy(() => import('@/pages/Payments/RecurringPayments'));
+const PaymentHistory = lazy(() => import('@/pages/Payments/PaymentHistory'));
+const CollectionList = lazy(() => import('@/pages/Payments/CollectionList'));
+const PaymentReconciliation = lazy(() => import('@/pages/Payments/PaymentReconciliation'));
+
 // ===== DOCUMENTS =====
 const Documents = lazy(() => import('@/pages/Documents'));
 const EContracts = lazy(() => import('@/pages/EContracts'));
@@ -477,21 +486,25 @@ const AppContent = () => {
         {/* Billing Hub redirects */}
         <Route path="invoices" element={<Navigate to="/billing-hub" replace />} />
         <Route path="payment-success" element={<Suspense fallback={<LoadingFallback />}><PaymentSuccess /></Suspense>} />
-        <Route path="affiliates" element={<Navigate to="/affiliates-hub" replace />} />
-        <Route path="billing" element={<Navigate to="/billing-hub" replace />} />
-        <Route path="products" element={<Navigate to="/billing-hub" replace />} />
+  <Route path="affiliates" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><Affiliates /></Suspense></ProtectedRoute>} />
+  <Route path="billing" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><Billing /></Suspense></ProtectedRoute>} />
+  <Route path="products" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><Products /></Suspense></ProtectedRoute>} />
 
-        {/* Tasks/Calendar Hub redirects */}
-        <Route path="calendar" element={<Navigate to="/calendar-hub" replace />} />
-        <Route path="appointments" element={<Navigate to="/calendar-hub" replace />} />
-        <Route path="tasks" element={<Navigate to="/tasks-hub" replace />} />
-        <Route path="reminders" element={<Navigate to="/tasks-hub" replace />} />
-
-        {/* Analytics Hub redirects */}
-        <Route path="analytics" element={<Navigate to="/analytics-hub" replace />} />
-        <Route path="reports" element={<Navigate to="/reports-hub" replace />} />
-        <Route path="goals" element={<Navigate to="/analytics-hub" replace />} />
-
+  {/* Payment Management System Routes */}
+  <Route path="payments" element={<ProtectedRoute requiredRoles={["admin", "masterAdmin"]}><Suspense fallback={<LoadingFallback />}><PaymentsDashboard /></Suspense></ProtectedRoute>} />
+  <Route path="payments/setup" element={<ProtectedRoute requiredRoles={["admin", "masterAdmin", "client"]}><Suspense fallback={<LoadingFallback />}><ClientPaymentSetup /></Suspense></ProtectedRoute>} />
+  <Route path="payments/tracking" element={<ProtectedRoute requiredRoles={["admin", "masterAdmin", "client"]}><Suspense fallback={<LoadingFallback />}><PaymentTracking /></Suspense></ProtectedRoute>} />
+  <Route path="payments/recurring" element={<ProtectedRoute requiredRoles={["admin", "masterAdmin"]}><Suspense fallback={<LoadingFallback />}><RecurringPayments /></Suspense></ProtectedRoute>} />
+  <Route path="payments/history" element={<ProtectedRoute requiredRoles={["admin", "masterAdmin", "client"]}><Suspense fallback={<LoadingFallback />}><PaymentHistory /></Suspense></ProtectedRoute>} />
+  <Route path="payments/collections" element={<ProtectedRoute requiredRoles={["admin", "masterAdmin"]}><Suspense fallback={<LoadingFallback />}><CollectionList /></Suspense></ProtectedRoute>} />
+  <Route path="payments/reconciliation" element={<ProtectedRoute requiredRoles={["admin", "masterAdmin"]}><Suspense fallback={<LoadingFallback />}><PaymentReconciliation /></Suspense></ProtectedRoute>} />
+  <Route path="calendar" element={<Suspense fallback={<LoadingFallback />}><Calendar /></Suspense>} />
+  <Route path="appointments" element={<Suspense fallback={<LoadingFallback />}><Appointments /></Suspense>} />
+  <Route path="tasks" element={<Suspense fallback={<LoadingFallback />}><Tasks /></Suspense>} />
+  <Route path="reminders" element={<Suspense fallback={<LoadingFallback />}><Reminders /></Suspense>} />
+  <Route path="analytics" element={<Navigate to="/analytics-hub" replace />} />
+  <Route path="reports" element={<Navigate to="/reports-hub" replace />} />
+  <Route path="goals" element={<Navigate to="/analytics-hub" replace />} />
         {/* Resources & Support redirects */}
         <Route path="resources/articles" element={<Navigate to="/resources-hub" replace />} />
         <Route path="resources/faq" element={<Navigate to="/support-hub" replace />} />
@@ -730,7 +743,7 @@ const AppContent = () => {
 <Route
   path="reports-hub"
   element={
-    <ProtectedRoute requiredRole="user">
+    <ProtectedRoute requiredRoles={['user', 'manager', 'admin', 'masterAdmin']}>
       <Suspense fallback={<LoadingFallback />}>
         <ReportsHub />
       </Suspense>

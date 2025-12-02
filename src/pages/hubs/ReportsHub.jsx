@@ -310,18 +310,24 @@ const UltimateReportsHub = () => {
   const hasAccess = useMemo(() => {
     if (!userProfile) return false;
 
-    const userRole = userProfile.role;
+    const role = userProfile.role;
 
-    // Handle string roles (case-insensitive)
-    if (typeof userRole === 'string') {
-      const roleLower = userRole.toLowerCase().replace(/[-_]/g, '');
-      // Allow: user, manager, admin, masteradmin (any case/format)
-      return ['user', 'manager', 'admin', 'masteradmin'].includes(roleLower);
-    }
+    // Master Admin has full access
+    if (role === 'masterAdmin') return true;
 
-    // Handle numeric roles
-    if (typeof userRole === 'number') {
-      return userRole >= 5; // user(5) or higher
+    // Admin has full access
+    if (role === 'admin') return true;
+
+    // Manager has access
+    if (role === 'manager') return true;
+
+    // User/Employee has access
+    if (role === 'user') return true;
+
+    // Handle numeric roles (legacy support)
+    if (typeof role === 'number') {
+      return role >= 5; // user(5) or higher
+>>>>>>> origin/claude/payment-system-dashboard-reports-fix-011CV4zSNPPjxVYyYV4c1wjt
     }
 
     return false;
@@ -330,6 +336,7 @@ const UltimateReportsHub = () => {
   const canExport = useMemo(() => {
     if (!userProfile) return false;
 
+<<<<<<< HEAD
     const userRole = userProfile.role;
 
     // Handle string roles (case-insensitive)
@@ -342,6 +349,22 @@ const UltimateReportsHub = () => {
     // Handle numeric roles
     if (typeof userRole === 'number') {
       return userRole >= 6; // manager(6) or higher
+=======
+    const role = userProfile.role;
+
+    // Master Admin can export
+    if (role === 'masterAdmin') return true;
+
+    // Admin can export
+    if (role === 'admin') return true;
+
+    // Manager can export
+    if (role === 'manager') return true;
+
+    // Handle numeric roles (legacy support)
+    if (typeof role === 'number') {
+      return role >= 6; // manager(6) or higher
+>>>>>>> origin/claude/payment-system-dashboard-reports-fix-011CV4zSNPPjxVYyYV4c1wjt
     }
 
     return false;
@@ -875,6 +898,13 @@ const UltimateReportsHub = () => {
         <Alert severity="error">
           <AlertTitle>Access Denied</AlertTitle>
           You do not have permission to access the Reports Hub.
+          {userProfile && (
+            <div style={{ marginTop: '10px', fontSize: '12px' }}>
+              <strong>Your Role:</strong> {userProfile.role || 'Unknown'}<br />
+              <strong>Required:</strong> User, Manager, Admin, or Master Admin<br />
+              <strong>User ID:</strong> {currentUser?.uid}
+            </div>
+          )}
         </Alert>
       </Box>
     );

@@ -84,6 +84,57 @@ exports.sendZelleConfirmationReminders = sendZelleConfirmationReminders;
 */
 
 // ============================================
+// PAYMENT REMINDERS & AUTOMATION
+// ============================================
+// ✅ Automated email reminders for payment due dates
+const {
+  dailyPaymentReminderScheduler,
+  testPaymentReminders,
+  sendPaymentReminder
+} = require('./payments/paymentReminderService');
+
+exports.dailyPaymentReminderScheduler = dailyPaymentReminderScheduler;
+exports.testPaymentReminders = testPaymentReminders;
+exports.sendPaymentReminder = sendPaymentReminder;
+
+// ✅ Automatic PDF receipt generation for completed payments
+const {
+  autoGenerateReceipt,
+  generateReceipt
+} = require('./payments/receiptGenerationService');
+
+exports.autoGenerateReceipt = autoGenerateReceipt;
+exports.generateReceipt = generateReceipt;
+
+// ✅ Failed payment retry logic with exponential backoff
+const {
+  dailyPaymentRetryScheduler,
+  autoScheduleRetry,
+  retryFailedPayment
+} = require('./payments/failedPaymentRetryService');
+
+exports.dailyPaymentRetryScheduler = dailyPaymentRetryScheduler;
+exports.autoScheduleRetry = autoScheduleRetry;
+exports.retryFailedPayment = retryFailedPayment;
+
+// ✅ Plaid integration for direct ACH processing (framework - requires setup)
+const {
+  createPlaidLinkToken,
+  exchangePlaidPublicToken,
+  getPlaidAccountBalance,
+  initiatePlaidPayment,
+  plaidWebhook,
+  getPlaidSetupInstructions
+} = require('./payments/plaidIntegrationService');
+
+exports.createPlaidLinkToken = createPlaidLinkToken;
+exports.exchangePlaidPublicToken = exchangePlaidPublicToken;
+exports.getPlaidAccountBalance = getPlaidAccountBalance;
+exports.initiatePlaidPayment = initiatePlaidPayment;
+exports.plaidWebhook = plaidWebhook;
+exports.getPlaidSetupInstructions = getPlaidSetupInstructions;
+
+// ============================================
 // CONFIGURATION
 // ============================================
 
