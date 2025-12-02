@@ -28,7 +28,7 @@ import {
   Filter,
   ArrowRight
 } from 'lucide-react';
-import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -40,12 +40,55 @@ const PaymentsDashboard = () => {
   const [recentPayments, setRecentPayments] = useState([]);
   const [todaysCollections, setTodaysCollections] = useState([]);
 
-  // ===== LOAD DASHBOARD DATA =====
+  // ===== LOAD DASHBOARD DATA WITH REAL-TIME UPDATES =====
   useEffect(() => {
     if (currentUser) {
+      // Initial load
       loadDashboardData();
+
+      // Set up real-time listener for payments collection
+      const unsubscribe = setupRealtimeUpdates();
+
+      // Cleanup listener on unmount
+      return () => {
+        if (unsubscribe) {
+          unsubscribe();
+        }
+      };
     }
   }, [currentUser]);
+
+  const setupRealtimeUpdates = () => {
+    try {
+      const paymentsRef = collection(db, 'payments');
+      const today = new Date();
+      const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+
+      // Listen to this month's payments for real-time updates
+      const q = query(
+        paymentsRef,
+        where('dueDate', '>=', thisMonthStart),
+        orderBy('dueDate', 'desc')
+      );
+
+      // Set up real-time listener with onSnapshot
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        console.log('🔄 Real-time update received - refreshing dashboard data');
+
+        // Refresh dashboard data when changes detected
+        loadStats();
+        loadRecentPayments();
+        loadTodaysCollections();
+      }, (error) => {
+        console.error('Error in real-time listener:', error);
+      });
+
+      return unsubscribe;
+    } catch (error) {
+      console.error('Error setting up real-time updates:', error);
+      return null;
+    }
+  };
 
   const loadDashboardData = async () => {
     setLoading(true);
