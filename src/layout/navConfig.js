@@ -193,7 +193,7 @@ export const navigationItems = [
   // ==========================================================================
   {
     id: 'admin-portal',
-    title: 'ðŸŽ¯ Admin Portal',
+    title: 'Admin Portal',
     path: '/portal',
     icon: LayoutDashboard,
     permission: 'admin',
@@ -208,7 +208,7 @@ export const navigationItems = [
   // ==========================================================================
   {
     id: 'client-portal',
-    title: 'ðŸ‘¤ Client Portal',
+    title: 'Client Portal',
     path: '/client-portal',
     icon: User,
     permission: 'client', // Clients and prospects
@@ -223,7 +223,7 @@ export const navigationItems = [
   // ==========================================================================
   {
     id: 'credit-hub',
-    title: 'ðŸ“Š Credit Reports Hub',
+    title: 'Credit Reports Hub',
     path: '/credit-hub',
     icon: Shield,
     permission: 'client',
@@ -238,7 +238,7 @@ export const navigationItems = [
   // ==========================================================================
   {
     id: 'pipeline-standalone',
-    title: '📈 Sales Pipeline',
+    title: 'Sales Pipeline',
     path: '/pipeline',
     icon: GitBranch,
     permission: 'user',
@@ -252,7 +252,7 @@ export const navigationItems = [
   // ==========================================================================
   {
     id: 'hubs-group',
-    title: 'ðŸŽ¯ Business Hubs',
+    title: 'Business Hubs',
     icon: LayoutDashboard,
     isGroup: true,
     permission: 'user',
