@@ -2,6 +2,8 @@
 // ============================================================================
 // TIER 3 TASK SERVICE - Complete Firebase CRUD + Real-time Operations
 // ============================================================================
+// This service acts as the main facade for all task-related operations and
+// delegates to specialized services for templates, comments, time tracking, etc.
 
 import {
   collection,
@@ -22,6 +24,15 @@ import {
   startAfter
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+
+// Import specialized services
+import { taskTemplatesService } from './taskTemplatesService';
+import { taskCommentsService } from './taskCommentsService';
+import { timeEntriesService } from './timeEntriesService';
+import { automationRulesService } from './automationRulesService';
+import { recurringTasksService } from './recurringTasksService';
+import { taskHistoryService } from './taskHistoryService';
+import { taskAttachmentsService } from './taskAttachmentsService';
 
 // Collection names
 const COLLECTIONS = {
@@ -418,500 +429,113 @@ class TaskService {
   }
 
   // ============================================================================
-  // TASK TEMPLATES
+  // TASK TEMPLATES - Delegated to taskTemplatesService
   // ============================================================================
 
-  /**
-   * Create a task template
-   */
   async createTemplate(templateData) {
-    try {
-      const template = {
-        name: templateData.name || '',
-        description: templateData.description || '',
-        category: templateData.category || TASK_CATEGORIES.OTHER,
-
-        // Template task defaults
-        defaultTitle: templateData.defaultTitle || '',
-        defaultDescription: templateData.defaultDescription || '',
-        defaultPriority: templateData.defaultPriority || TASK_PRIORITY.MEDIUM,
-        defaultEstimatedMinutes: templateData.defaultEstimatedMinutes || 0,
-        defaultChecklist: templateData.defaultChecklist || [],
-        defaultTags: templateData.defaultTags || [],
-
-        // Workflow steps
-        steps: templateData.steps || [],
-
-        // Credit repair specific
-        disputeType: templateData.disputeType || null,
-        bureaus: templateData.bureaus || [],
-
-        // Usage tracking
-        usageCount: 0,
-        lastUsed: null,
-
-        // Audit
-        createdBy: templateData.createdBy || null,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        isActive: true
-      };
-
-      const docRef = await addDoc(collection(db, COLLECTIONS.TASK_TEMPLATES), template);
-
-      return { success: true, id: docRef.id, template: { id: docRef.id, ...template } };
-    } catch (error) {
-      console.error('Error creating template:', error);
-      return { success: false, error: error.message };
-    }
+    return taskTemplatesService.createTemplate(templateData);
   }
 
-  /**
-   * Get all templates
-   */
   async getTemplates(category = null) {
-    try {
-      let q = query(
-        collection(db, COLLECTIONS.TASK_TEMPLATES),
-        where('isActive', '==', true)
-      );
-
-      if (category) {
-        q = query(q, where('category', '==', category));
-      }
-
-      q = query(q, orderBy('name', 'asc'));
-
-      const snapshot = await getDocs(q);
-      const templates = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-      return { success: true, templates };
-    } catch (error) {
-      console.error('Error getting templates:', error);
-      return { success: false, error: error.message, templates: [] };
-    }
+    return taskTemplatesService.getTemplates(category);
   }
 
-  /**
-   * Create task from template
-   */
   async createTaskFromTemplate(templateId, overrides = {}, userId = null) {
-    try {
-      const templateRef = doc(db, COLLECTIONS.TASK_TEMPLATES, templateId);
-      const templateSnap = await getDoc(templateRef);
-
-      if (!templateSnap.exists()) {
-        return { success: false, error: 'Template not found' };
-      }
-
-      const template = templateSnap.data();
-
-      const taskData = {
-        title: overrides.title || template.defaultTitle,
-        description: overrides.description || template.defaultDescription,
-        priority: overrides.priority || template.defaultPriority,
-        category: template.category,
-        estimatedMinutes: template.defaultEstimatedMinutes,
-        checklist: template.defaultChecklist.map(item => ({ ...item, completed: false })),
-        tags: [...template.defaultTags, ...(overrides.tags || [])],
-        templateId: templateId,
-        createdBy: userId,
-        ...overrides
-      };
-
-      const result = await this.createTask(taskData);
-
-      // Update template usage
-      await updateDoc(templateRef, {
-        usageCount: (template.usageCount || 0) + 1,
-        lastUsed: serverTimestamp()
-      });
-
-      return result;
-    } catch (error) {
-      console.error('Error creating task from template:', error);
-      return { success: false, error: error.message };
+    // Get the template first
+    const templateResult = await taskTemplatesService.getTemplate(templateId);
+    if (!templateResult.success) {
+      return templateResult;
     }
+
+    const template = templateResult.template;
+
+    // Build task data from template
+    const taskData = {
+      title: overrides.title || template.defaultTitle,
+      description: overrides.description || template.defaultDescription,
+      priority: overrides.priority || template.defaultPriority,
+      category: template.category,
+      estimatedMinutes: template.defaultEstimatedMinutes,
+      checklist: template.defaultChecklist?.map(item => ({ ...item, completed: false })) || [],
+      tags: [...(template.defaultTags || []), ...(overrides.tags || [])],
+      templateId: templateId,
+      createdBy: userId,
+      ...overrides
+    };
+
+    // Create the task
+    const result = await this.createTask(taskData);
+
+    // Update template usage
+    if (result.success) {
+      await taskTemplatesService.incrementUsage(templateId);
+    }
+
+    return result;
   }
 
   // ============================================================================
-  // RECURRING TASKS
+  // RECURRING TASKS - Delegated to recurringTasksService
   // ============================================================================
 
-  /**
-   * Create a recurring task rule
-   */
   async createRecurringRule(ruleData) {
-    try {
-      const rule = {
-        name: ruleData.name || '',
-        templateId: ruleData.templateId || null,
-
-        // Recurrence pattern
-        frequency: ruleData.frequency || 'daily', // daily, weekly, monthly, custom
-        interval: ruleData.interval || 1,
-        daysOfWeek: ruleData.daysOfWeek || [], // [0-6] for weekly
-        dayOfMonth: ruleData.dayOfMonth || null,
-
-        // Time settings
-        createTime: ruleData.createTime || '09:00',
-        timezone: ruleData.timezone || 'America/New_York',
-
-        // Assignment
-        assignTo: ruleData.assignTo || null,
-        teamId: ruleData.teamId || null,
-
-        // Task defaults
-        taskDefaults: ruleData.taskDefaults || {},
-
-        // Schedule bounds
-        startDate: ruleData.startDate ? Timestamp.fromDate(new Date(ruleData.startDate)) : serverTimestamp(),
-        endDate: ruleData.endDate ? Timestamp.fromDate(new Date(ruleData.endDate)) : null,
-
-        // Tracking
-        lastRun: null,
-        nextRun: null,
-        runCount: 0,
-
-        // Status
-        isActive: true,
-        isPaused: false,
-
-        // Audit
-        createdBy: ruleData.createdBy || null,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      };
-
-      const docRef = await addDoc(collection(db, COLLECTIONS.RECURRING_TASKS), rule);
-
-      return { success: true, id: docRef.id, rule: { id: docRef.id, ...rule } };
-    } catch (error) {
-      console.error('Error creating recurring rule:', error);
-      return { success: false, error: error.message };
-    }
+    return recurringTasksService.createRecurringRule(ruleData);
   }
 
-  /**
-   * Get all recurring rules
-   */
   async getRecurringRules(filters = {}) {
-    try {
-      let q = collection(db, COLLECTIONS.RECURRING_TASKS);
-      const constraints = [];
-
-      if (filters.isActive !== undefined) {
-        constraints.push(where('isActive', '==', filters.isActive));
-      }
-      if (filters.teamId) {
-        constraints.push(where('teamId', '==', filters.teamId));
-      }
-
-      if (constraints.length > 0) {
-        q = query(q, ...constraints);
-      }
-
-      q = query(q, orderBy('createdAt', 'desc'));
-
-      const snapshot = await getDocs(q);
-      const rules = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-      return { success: true, rules };
-    } catch (error) {
-      console.error('Error getting recurring rules:', error);
-      return { success: false, error: error.message, rules: [] };
-    }
+    return recurringTasksService.getRecurringRules(filters);
   }
 
   // ============================================================================
-  // AUTOMATION RULES
+  // AUTOMATION RULES - Delegated to automationRulesService
   // ============================================================================
 
-  /**
-   * Create an automation rule
-   */
   async createAutomationRule(ruleData) {
-    try {
-      const rule = {
-        name: ruleData.name || '',
-        description: ruleData.description || '',
-
-        // Trigger configuration
-        triggerType: ruleData.triggerType || 'event', // event, schedule, condition
-        triggerEvent: ruleData.triggerEvent || null, // task_created, task_completed, etc.
-        triggerConditions: ruleData.triggerConditions || [],
-
-        // Action configuration
-        actionType: ruleData.actionType || 'create_task', // create_task, update_task, notify, etc.
-        actionConfig: ruleData.actionConfig || {},
-
-        // Filters
-        filters: ruleData.filters || {},
-
-        // Status
-        isActive: true,
-
-        // Stats
-        executionCount: 0,
-        lastExecution: null,
-        lastError: null,
-
-        // Audit
-        createdBy: ruleData.createdBy || null,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      };
-
-      const docRef = await addDoc(collection(db, COLLECTIONS.AUTOMATION_RULES), rule);
-
-      return { success: true, id: docRef.id, rule: { id: docRef.id, ...rule } };
-    } catch (error) {
-      console.error('Error creating automation rule:', error);
-      return { success: false, error: error.message };
-    }
+    return automationRulesService.createAutomationRule(ruleData);
   }
 
-  /**
-   * Get automation rules
-   */
   async getAutomationRules(filters = {}) {
-    try {
-      let q = collection(db, COLLECTIONS.AUTOMATION_RULES);
-
-      if (filters.isActive !== undefined) {
-        q = query(q, where('isActive', '==', filters.isActive));
-      }
-
-      q = query(q, orderBy('createdAt', 'desc'));
-
-      const snapshot = await getDocs(q);
-      const rules = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-      return { success: true, rules };
-    } catch (error) {
-      console.error('Error getting automation rules:', error);
-      return { success: false, error: error.message, rules: [] };
-    }
+    return automationRulesService.getAutomationRules(filters);
   }
 
   // ============================================================================
-  // TIME TRACKING
+  // TIME TRACKING - Delegated to timeEntriesService
   // ============================================================================
 
-  /**
-   * Start time tracking for a task
-   */
   async startTimeTracking(taskId, userId) {
-    try {
-      const entry = {
-        taskId,
-        userId,
-        startTime: serverTimestamp(),
-        endTime: null,
-        duration: 0,
-        notes: '',
-        isBillable: true,
-        isRunning: true,
-        createdAt: serverTimestamp()
-      };
-
-      const docRef = await addDoc(collection(db, COLLECTIONS.TIME_ENTRIES), entry);
-
-      return { success: true, id: docRef.id, entry: { id: docRef.id, ...entry } };
-    } catch (error) {
-      console.error('Error starting time tracking:', error);
-      return { success: false, error: error.message };
-    }
+    return timeEntriesService.startTimeTracking(taskId, userId);
   }
 
-  /**
-   * Stop time tracking
-   */
   async stopTimeTracking(entryId, notes = '') {
-    try {
-      const entryRef = doc(db, COLLECTIONS.TIME_ENTRIES, entryId);
-      const entrySnap = await getDoc(entryRef);
-
-      if (!entrySnap.exists()) {
-        return { success: false, error: 'Time entry not found' };
-      }
-
-      const entry = entrySnap.data();
-      const startTime = entry.startTime.toDate();
-      const endTime = new Date();
-      const duration = Math.round((endTime - startTime) / 60000); // minutes
-
-      await updateDoc(entryRef, {
-        endTime: serverTimestamp(),
-        duration,
-        notes,
-        isRunning: false
-      });
-
-      // Update task actual minutes
-      if (entry.taskId) {
-        const taskRef = doc(db, COLLECTIONS.TASKS, entry.taskId);
-        const taskSnap = await getDoc(taskRef);
-        if (taskSnap.exists()) {
-          const task = taskSnap.data();
-          await updateDoc(taskRef, {
-            actualMinutes: (task.actualMinutes || 0) + duration,
-            updatedAt: serverTimestamp()
-          });
-        }
-      }
-
-      return { success: true, duration };
-    } catch (error) {
-      console.error('Error stopping time tracking:', error);
-      return { success: false, error: error.message };
-    }
+    return timeEntriesService.stopTimeTracking(entryId, notes);
   }
 
-  /**
-   * Get time entries for a task or user
-   */
   async getTimeEntries(filters = {}) {
-    try {
-      let q = collection(db, COLLECTIONS.TIME_ENTRIES);
-      const constraints = [];
-
-      if (filters.taskId) {
-        constraints.push(where('taskId', '==', filters.taskId));
-      }
-      if (filters.userId) {
-        constraints.push(where('userId', '==', filters.userId));
-      }
-      if (filters.startDate) {
-        constraints.push(where('startTime', '>=', Timestamp.fromDate(new Date(filters.startDate))));
-      }
-      if (filters.endDate) {
-        constraints.push(where('startTime', '<=', Timestamp.fromDate(new Date(filters.endDate))));
-      }
-
-      if (constraints.length > 0) {
-        q = query(q, ...constraints);
-      }
-
-      q = query(q, orderBy('startTime', 'desc'));
-
-      const snapshot = await getDocs(q);
-      const entries = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-      return { success: true, entries };
-    } catch (error) {
-      console.error('Error getting time entries:', error);
-      return { success: false, error: error.message, entries: [] };
-    }
+    return timeEntriesService.getTimeEntries(filters);
   }
 
   // ============================================================================
-  // TASK COMMENTS
+  // TASK COMMENTS - Delegated to taskCommentsService
   // ============================================================================
 
-  /**
-   * Add a comment to a task
-   */
   async addComment(taskId, commentData) {
-    try {
-      const comment = {
-        taskId,
-        content: commentData.content || '',
-        authorId: commentData.authorId || null,
-        authorName: commentData.authorName || 'Unknown',
-        mentions: commentData.mentions || [],
-        attachments: commentData.attachments || [],
-        isInternal: commentData.isInternal || false,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      };
-
-      const docRef = await addDoc(collection(db, COLLECTIONS.TASK_COMMENTS), comment);
-
-      // Update task comment count
-      const taskRef = doc(db, COLLECTIONS.TASKS, taskId);
-      const taskSnap = await getDoc(taskRef);
-      if (taskSnap.exists()) {
-        await updateDoc(taskRef, {
-          commentCount: (taskSnap.data().commentCount || 0) + 1,
-          updatedAt: serverTimestamp()
-        });
-      }
-
-      return { success: true, id: docRef.id, comment: { id: docRef.id, ...comment } };
-    } catch (error) {
-      console.error('Error adding comment:', error);
-      return { success: false, error: error.message };
-    }
+    return taskCommentsService.addComment(taskId, commentData);
   }
 
-  /**
-   * Get comments for a task
-   */
   async getComments(taskId) {
-    try {
-      const q = query(
-        collection(db, COLLECTIONS.TASK_COMMENTS),
-        where('taskId', '==', taskId),
-        orderBy('createdAt', 'asc')
-      );
-
-      const snapshot = await getDocs(q);
-      const comments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-      return { success: true, comments };
-    } catch (error) {
-      console.error('Error getting comments:', error);
-      return { success: false, error: error.message, comments: [] };
-    }
+    return taskCommentsService.getComments(taskId);
   }
 
   // ============================================================================
-  // TASK HISTORY
+  // TASK HISTORY - Delegated to taskHistoryService
   // ============================================================================
 
-  /**
-   * Log task history
-   */
   async logTaskHistory(taskId, action, previousData, newData, userId) {
-    try {
-      const history = {
-        taskId,
-        action,
-        previousData: previousData || null,
-        newData: newData || null,
-        userId,
-        timestamp: serverTimestamp()
-      };
-
-      await addDoc(collection(db, COLLECTIONS.TASK_HISTORY), history);
-
-      return { success: true };
-    } catch (error) {
-      console.error('Error logging task history:', error);
-      return { success: false, error: error.message };
-    }
+    return taskHistoryService.logTaskHistory(taskId, action, previousData, newData, userId);
   }
 
-  /**
-   * Get task history
-   */
   async getTaskHistory(taskId) {
-    try {
-      const q = query(
-        collection(db, COLLECTIONS.TASK_HISTORY),
-        where('taskId', '==', taskId),
-        orderBy('timestamp', 'desc')
-      );
-
-      const snapshot = await getDocs(q);
-      const history = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-      return { success: true, history };
-    } catch (error) {
-      console.error('Error getting task history:', error);
-      return { success: false, error: error.message, history: [] };
-    }
+    return taskHistoryService.getTaskHistory(taskId);
   }
 
   // ============================================================================
@@ -1060,7 +684,34 @@ class TaskService {
       return { success: false, error: error.message };
     }
   }
+
+  // ============================================================================
+  // TASK ATTACHMENTS - Delegated to taskAttachmentsService
+  // ============================================================================
+
+  async attachFile(taskId, file, metadata = {}) {
+    return taskAttachmentsService.attachFile(taskId, file, metadata);
+  }
+
+  async getAttachments(taskId) {
+    return taskAttachmentsService.getAttachments(taskId);
+  }
+
+  async deleteAttachment(attachmentId, taskId = null) {
+    return taskAttachmentsService.deleteAttachment(attachmentId, taskId);
+  }
 }
 
 export const taskService = new TaskService();
 export default taskService;
+
+// Re-export specialized services for direct access if needed
+export {
+  taskTemplatesService,
+  taskCommentsService,
+  timeEntriesService,
+  automationRulesService,
+  recurringTasksService,
+  taskHistoryService,
+  taskAttachmentsService
+};
