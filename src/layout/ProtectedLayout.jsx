@@ -455,6 +455,14 @@ const ProtectedLayout = () => {
               </div>
             </div>
           )}
+          {!isSidebarOpen && (
+            <img
+              src="/brand/default/logo-brand-128.png"
+              alt="SpeedyCRM Logo"
+              className="w-8 h-8 object-contain"
+              title="SpeedyCRM"
+            />
+          )}
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
             className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors"

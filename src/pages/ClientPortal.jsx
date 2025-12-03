@@ -1301,7 +1301,15 @@ const ClientPortal = () => {
             <IconButton sx={{ display: { md: 'none' }, mr: 2 }} onClick={() => setMobileDrawerOpen(true)}>
               <MenuIcon />
             </IconButton>
-            
+
+            <Box sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
+              <img
+                src="/brand/default/logo-brand-128.png"
+                alt="SpeedyCRM"
+                style={{ width: '32px', height: '32px', objectFit: 'contain' }}
+              />
+            </Box>
+
             <Breadcrumbs sx={{ flexGrow: 1 }}>
               <Typography color="inherit" sx={{ cursor: 'pointer' }} onClick={() => setActiveTab('dashboard')}>
                 Home

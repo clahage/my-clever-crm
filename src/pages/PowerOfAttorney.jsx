@@ -534,13 +534,20 @@ const PowerOfAttorney = () => {
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <Box sx={{ p: 3 }}>
         {/* Header */}
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h4" fontWeight={600} gutterBottom>
-            Power of Attorney for Credit Repair
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Limited authorization to act on your behalf for credit repair services
-          </Typography>
+        <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', gap: 2 }}>
+          <img
+            src="/brand/default/logo-brand-128.png"
+            alt="Speedy Credit Repair"
+            style={{ width: '48px', height: '48px', objectFit: 'contain' }}
+          />
+          <Box>
+            <Typography variant="h4" fontWeight={600} gutterBottom>
+              Power of Attorney for Credit Repair
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Limited authorization to act on your behalf for credit repair services
+            </Typography>
+          </Box>
         </Box>
 
         {/* Existing POA Documents */}

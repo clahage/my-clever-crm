@@ -1,14 +1,100 @@
 {
-  "name": "Speedy Credit Repair CRM",
+  "name": "SpeedyCRM - Credit Repair Management System",
   "short_name": "SpeedyCRM",
+  "description": "Professional credit repair CRM system by Speedy Credit Repair - 30 years of excellence in credit restoration services since 1995",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "background_color": "#ffffff",
   "theme_color": "#1C9A3E",
+  "categories": ["business", "finance", "productivity"],
+  "lang": "en-US",
+  "dir": "ltr",
   "icons": [
-    { "src": "/brand/default/android-chrome-192x192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/brand/default/android-chrome-512x512.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "/brand/default/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+    {
+      "src": "/brand/default/logo-brand-16.png",
+      "sizes": "16x16",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/brand/default/logo-brand-32.png",
+      "sizes": "32x32",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/brand/default/logo-brand-128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/brand/default/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/brand/default/logo-brand-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/brand/default/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/brand/default/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/brand/default/splash-light-phone.png",
+      "sizes": "750x1334",
+      "type": "image/png",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/brand/default/splash-light-tablet.png",
+      "sizes": "1536x2048",
+      "type": "image/png",
+      "form_factor": "wide"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Open the main dashboard",
+      "url": "/dashboard",
+      "icons": [
+        {
+          "src": "/brand/default/logo-brand-128.png",
+          "sizes": "128x128",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Client Portal",
+      "short_name": "Portal",
+      "description": "Access client portal",
+      "url": "/client-portal",
+      "icons": [
+        {
+          "src": "/brand/default/logo-brand-128.png",
+          "sizes": "128x128",
+          "type": "image/png"
+        }
+      ]
+    }
   ]
 }
