@@ -1,6 +1,13 @@
 // ============================================
+// ⚠️ ARCHIVED FILE - DO NOT USE
+// ============================================
+// ARCHIVED ON: December 3, 2025
+// REASON: Functionality merged into BillingHub.jsx during navigation consolidation
+// PHASE: Navigation Optimization (53 hubs → 20 hubs)
+// REPLACEMENT: Use /src/pages/hubs/BillingHub.jsx (Financial Operations Hub)
+// ============================================
 // ENHANCED BILLING HUB
-// Path: /src/pages/hubs/EnhancedBillingHub.jsx
+// Path: /src/pages/hubs/EnhancedBillingHub.jsx (ARCHIVED)
 // ============================================
 // Comprehensive billing and revenue management
 // Combines BillingHub + BillingPaymentsHub functionality
