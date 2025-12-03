@@ -669,46 +669,64 @@ const ClientsHub = () => {
   
   const runPredictiveAnalysis = useCallback(async (clientData) => {
     setMlProcessing(true);
+    // Declare variables in outer scope
+    let churnPredictions = [];
+    let clvForecasts = [];
+    let upsellOpportunities = [];
+    let nextBestActions = [];
+    let winBackCandidates = [];
+    let engagementScores = [];
     try {
       // Use the comprehensive AI service with 300+ features
-      const churnPredictions = RealPipelineAIService.analyzeChurnRisk(clientData);
-      const clvForecasts = RealPipelineAIService.calculateCustomerLifetimeValue(clientData);
-      const upsellOpportunities = RealPipelineAIService.identifyUpsellOpportunities(clientData);
-      const nextBestActions = RealPipelineAIService.generateNextBestActions(clientData);
+      churnPredictions = RealPipelineAIService.analyzeChurnRisk(clientData);
+      clvForecasts = RealPipelineAIService.calculateCustomerLifetimeValue(clientData);
+      upsellOpportunities = RealPipelineAIService.identifyUpsellOpportunities(clientData);
+      nextBestActions = RealPipelineAIService.generateNextBestActions(clientData);
 
-      setPredictions({
-        churnPredictions,
-        clvForecasts,
-        upsellOpportunities,
-        nextBestActions
-      });
-    } catch (error) {
-      console.error('AI Analysis error:', error);
-    } finally {
-      setMlProcessing(false);
-    }
-                
+      // Calculate winBackCandidates (example logic, adjust as needed)
+      winBackCandidates = clientData
+        .filter(client => client.status === 'cancelled')
+        .map(client => {
+          const daysSinceCancellation = client.cancelledAt
+            ? Math.floor((new Date() - client.cancelledAt.toDate()) / (1000 * 60 * 60 * 24))
+            : 999;
+          let winBackScore = 50;
+          if (daysSinceCancellation < 90) winBackScore += 20;
+          if (client.previousSatisfaction > 7) winBackScore += 15;
+          if (client.totalRevenue > 2000) winBackScore += 10;
+          if (client.cancellationReason === 'price') winBackScore += 15;
+          if (client.engagementScore > 60) winBackScore += 10;
+          const probability = Math.min(95, Math.max(10, winBackScore)) / 100;
+          return {
+            clientId: client.id,
+            clientName: `${client.firstName} ${client.lastName}`,
+            daysSinceCancellation,
+            probability,
+            strategies: [
+              'Personalized offer',
+              'Follow-up call',
+              'Special discount',
+              'Survey for feedback',
+            ],
+          };
+        });
+
       // 6. ENGAGEMENT SCORES (ML-based)
-      const engagementScores = clientData.map(client => {
+      engagementScores = clientData.map(client => {
         // Calculate comprehensive engagement score
         let score = 0;
-        
         // Communication frequency (0-30 points)
         const commsLast30Days = client.communicationsLast30Days || 0;
         score += Math.min(30, commsLast30Days * 3);
-        
         // Response rate (0-25 points)
         const responseRate = client.responseRate || 0;
         score += responseRate * 0.25;
-        
         // Portal activity (0-20 points)
         const portalVisits = client.portalVisitsLast30Days || 0;
         score += Math.min(20, portalVisits * 2);
-        
         // Task completion (0-15 points)
         const taskCompletionRate = client.taskCompletionRate || 0;
         score += taskCompletionRate * 0.15;
-        
         // Recency (0-10 points)
         const daysSinceContact = client.lastContact 
           ? Math.floor((new Date() - client.lastContact.toDate()) / (1000 * 60 * 60 * 24))
@@ -716,10 +734,8 @@ const ClientsHub = () => {
         if (daysSinceContact < 7) score += 10;
         else if (daysSinceContact < 14) score += 7;
         else if (daysSinceContact < 30) score += 4;
-        
         const engagementScore = Math.min(100, Math.round(score));
         const trend = calculateEngagementTrend(client);
-        
         return {
           clientId: client.id,
           clientName: `${client.firstName} ${client.lastName}`,
@@ -734,7 +750,7 @@ const ClientsHub = () => {
           },
         };
       });
-      
+
       setPredictions({
         churnPredictions,
         clvForecasts,
@@ -755,9 +771,12 @@ const ClientsHub = () => {
         });
       } catch (error) {
         console.error('❌ Error in predictive analysis:', error);
-      } finally {
-        setMlProcessing(false);
       }
+    } catch (error) {
+      console.error('AI Analysis error:', error);
+    } finally {
+      setMlProcessing(false);
+    }
   }, []);
   
   const calculateEngagementTrend = (client) => {
