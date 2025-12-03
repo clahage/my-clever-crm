@@ -665,204 +665,370 @@ const ClientsHub = () => {
     }
   }, []);
   
-  // ===== PREDICTIVE ANALYSIS (NEW) =====
+  // ===== PREDICTIVE ANALYSIS =====
   
   const runPredictiveAnalysis = useCallback(async (clientData) => {
     setMlProcessing(true);
-    // Declare variables in outer scope
-    let churnPredictions = [];
-    let clvForecasts = [];
-    let upsellOpportunities = [];
-    let nextBestActions = [];
-    let winBackCandidates = [];
-    let engagementScores = [];
     try {
-      // Use the comprehensive AI service with 300+ features
-      churnPredictions = RealPipelineAIService.analyzeChurnRisk(clientData);
-      clvForecasts = RealPipelineAIService.calculateCustomerLifetimeValue(clientData);
-      upsellOpportunities = RealPipelineAIService.identifyUpsellOpportunities(clientData);
-      nextBestActions = RealPipelineAIService.generateNextBestActions(clientData);
-
-      // Calculate winBackCandidates (example logic, adjust as needed)
-      winBackCandidates = clientData
-        .filter(client => client.status === 'cancelled')
-        .map(client => {
-          const daysSinceCancellation = client.cancelledAt
-            ? Math.floor((new Date() - client.cancelledAt.toDate()) / (1000 * 60 * 60 * 24))
-            : 999;
-          let winBackScore = 50;
-          if (daysSinceCancellation < 90) winBackScore += 20;
-          if (client.previousSatisfaction > 7) winBackScore += 15;
-          if (client.totalRevenue > 2000) winBackScore += 10;
-          if (client.cancellationReason === 'price') winBackScore += 15;
-          if (client.engagementScore > 60) winBackScore += 10;
-          const probability = Math.min(95, Math.max(10, winBackScore)) / 100;
+      // 1. CHURN PREDICTION
+      const churnPredictions = clientData
+        .filter((c) => c.status === 'active')
+        .map((client) => {
+            let churnScore = 0;
+            const daysSinceContact = client.lastContact
+              ? Math.floor((new Date() - client.lastContact.toDate()) / (1000 * 60 * 60 * 24))
+              : 365;
+            if (daysSinceContact > 90) churnScore += 40;
+            else if (daysSinceContact > 60) churnScore += 30;
+            else if (daysSinceContact > 30) churnScore += 15;
+            const engagement = client.engagementScore || 50;
+            if (engagement < 30) churnScore += 35;
+            else if (engagement < 50) churnScore += 20;
+            else if (engagement < 70) churnScore += 5;
+            if (client.missedPayments > 0) churnScore += 15;
+            if (client.disputesRaised > 2) churnScore += 10;
+            if (client.openTickets > 3) churnScore += 10;
+            if (client.usageTrend === 'declining') churnScore += 15;
+            const churnProbability = Math.min(95, Math.max(5, churnScore));
+            const risk =
+              churnProbability > 70 ? 'high' :
+              churnProbability > 40 ? 'medium' :
+              'low';
+            const interventions = [];
+            if (daysSinceContact > 60) interventions.push('Schedule check-in call');
+            if (engagement < 50) interventions.push('Send engagement survey');
+            if (client.missedPayments > 0) interventions.push('Review payment plan');
+            if (client.openTickets > 2) interventions.push('Escalate support issues');
+            if (client.usageTrend === 'declining') interventions.push('Offer training session');
+            return {
+              clientId: client.id,
+              clientName: `${client.firstName} ${client.lastName}`,
+              churnProbability,
+              risk,
+              factors: [
+                {
+                  name: 'Days Since Contact',
+                  value: daysSinceContact,
+                  impact: daysSinceContact > 30 ? 'high' : 'low',
+                },
+                {
+                  name: 'Engagement Score',
+                  value: engagement,
+                  impact: engagement < 50 ? 'high' : 'low',
+                },
+                {
+                  name: 'Payment Issues',
+                  value: client.missedPayments || 0,
+                  impact: client.missedPayments > 0 ? 'medium' : 'low',
+                },
+              ],
+              interventions,
+              predictedChurnDate: new Date(
+                Date.now() + (90 - daysSinceContact) * 24 * 60 * 60 * 1000
+              ),
+            };
+          })
+          .filter((p) => p.risk !== 'low')
+          .sort((a, b) => b.churnProbability - a.churnProbability)
+          .slice(0, 10);
+        // 2. CLV FORECASTING
+        const clvForecasts = clientData
+          .filter((c) => c.status === 'active' || c.status === 'prospect')
+          .map((client) => {
+            const currentValue = client.totalRevenue || 0;
+            const createdAt =
+              client.createdAt?.toDate?.() != null
+                ? client.createdAt.toDate()
+                : client.createdAt
+                ? new Date(client.createdAt)
+                : null;
+            const daysAsClient = createdAt
+              ? Math.max(
+                  0,
+                  (new Date().getTime() - createdAt.getTime()) /
+                    (1000 * 60 * 60 * 24),
+                )
+              : 0;
+            const monthsAsClient = Math.max(1, Math.floor(daysAsClient / 30));
+            const avgMonthlyValue =
+              monthsAsClient > 0 ? currentValue / monthsAsClient : currentValue;
+            const engagement = client.engagementScore || 50;
+            const retentionMultiplier =
+              engagement >= 80 ? 1.4 :
+              engagement >= 60 ? 1.2 :
+              engagement >= 40 ? 1.0 :
+              0.8;
+            const horizonMonths = 12;
+            const predictedCLV = Math.max(
+              0,
+              Math.round(avgMonthlyValue * horizonMonths * retentionMultiplier),
+            );
+            const tier =
+              predictedCLV >= 20000 ? 'platinum' :
+              predictedCLV >= 10000 ? 'gold' :
+              predictedCLV >= 5000 ? 'silver' :
+              'bronze';
+            const confidenceBase =
+              engagement >= 80 ? 90 :
+              engagement >= 60 ? 80 :
+              engagement >= 40 ? 70 :
+              60;
+            const confidence = Math.min(95, Math.max(50, confidenceBase));
+            return {
+              clientId: client.id,
+              clientName: `${client.firstName} ${client.lastName}`,
+              currentValue: Math.round(currentValue),
+              predictedCLV,
+              tier,
+              confidence,
+            };
+          })
+          .sort((a, b) => b.predictedCLV - a.predictedCLV);
+        // 3. NEXT BEST ACTIONS
+        const nextBestActions = clientData
+          .map((client) => {
+            const actions = [];
+            const daysSinceContact = client.lastContact 
+              ? Math.floor((new Date() - client.lastContact.toDate()) / (1000 * 60 * 60 * 24))
+              : 365;
+            if (client.status === 'lead' && daysSinceContact < 7) {
+              actions.push({
+                action: 'Follow-up call',
+                priority: 'high',
+                reasoning: 'Recent lead, hot prospect',
+                expectedImpact: '+30% conversion',
+                effort: 'low',
+              });
+            }
+            if (client.status === 'prospect' && client.leadScore > 7) {
+              actions.push({
+                action: 'Send proposal',
+                priority: 'high',
+                reasoning: 'High lead score, ready to close',
+                expectedImpact: '+50% close rate',
+                effort: 'medium',
+              });
+            }
+            if (client.status === 'active' && (client.engagementScore || 50) < 40) {
+              actions.push({
+                action: 'Re-engagement campaign',
+                priority: 'medium',
+                reasoning: 'Low engagement, churn risk',
+                expectedImpact: '+20% retention',
+                effort: 'low',
+              });
+            }
+            if (client.status === 'active' && client.totalRevenue > 5000 && !client.referrals) {
+              actions.push({
+                action: 'Request referral',
+                priority: 'medium',
+                reasoning: 'High-value, satisfied client',
+                expectedImpact: '+1-2 referrals',
+                effort: 'low',
+              });
+            }
+            if (client.status === 'completed') {
+              actions.push({
+                action: 'Request testimonial',
+                priority: 'low',
+                reasoning: 'Successfully completed program',
+                expectedImpact: 'Improved conversion',
+                effort: 'low',
+              });
+            }
+            return {
+              clientId: client.id,
+              clientName: `${client.firstName} ${client.lastName}`,
+              actions,
+            };
+          })
+          .filter((c) => c.actions.length > 0)
+          .slice(0, 15);
+        // 4. UPSELL OPPORTUNITIES
+        const upsellOpportunities = clientData
+          .filter((c) => c.status === 'active')
+          .map((client) => {
+            const opportunities = [];
+            if ((client.engagementScore || 50) > 70 && client.currentPlan === 'basic') {
+              opportunities.push({
+                type: 'plan_upgrade',
+                description: 'Upgrade to Premium Plan',
+                estimatedValue: 500,
+                probability: 0.65,
+                reasoning: 'High engagement, ready for advanced features',
+              });
+            }
+            if (client.totalRevenue > 3000 && !client.hasAddonServices) {
+              opportunities.push({
+                type: 'addon_service',
+                description: 'Add Credit Monitoring',
+                estimatedValue: 300,
+                probability: 0.55,
+                reasoning: 'High-value client, natural add-on',
+              });
+            }
+            if (client.monthsAsClient > 6 && client.satisfactionScore > 8) {
+              opportunities.push({
+                type: 'referral_program',
+                description: 'Enroll in Referral Program',
+                estimatedValue: 200,
+                probability: 0.7,
+                reasoning: 'Long-term satisfied client',
+              });
+            }
+            return {
+              clientId: client.id,
+              clientName: `${client.firstName} ${client.lastName}`,
+              opportunities,
+              totalPotentialValue: opportunities.reduce(
+                (sum, o) => sum + o.estimatedValue,
+                0
+              ),
+            };
+          })
+          .filter((c) => c.opportunities.length > 0)
+          .sort((a, b) => b.totalPotentialValue - a.totalPotentialValue)
+          .slice(0, 10);
+        // 5. WIN-BACK CANDIDATES
+        const winBackCandidates = clientData
+          .filter((c) => c.status === 'inactive' || c.status === 'cancelled')
+          .map((client) => {
+            const daysSinceCancellation = client.cancellationDate
+              ? Math.floor(
+                  (new Date() - client.cancellationDate.toDate()) /
+                    (1000 * 60 * 60 * 24)
+                )
+              : 90;
+            let winBackScore = 50;
+            if (daysSinceCancellation < 90) winBackScore += 20;
+            if (client.previousSatisfaction > 7) winBackScore += 15;
+            if (client.totalRevenue > 2000) winBackScore += 10;
+            if (client.cancellationReason === 'price') winBackScore += 15;
+            if (client.engagementScore > 60) winBackScore += 10;
+            const probability = Math.min(95, Math.max(10, winBackScore)) / 100;
+            return {
+              clientId: client.id,
+              clientName: `${client.firstName} ${client.lastName}`,
+              daysSinceCancellation,
+              probability,
+              strategies: [
+                'Personalized offer',
+                'Follow-up call',
+                'Special discount',
+                'Survey for feedback',
+              ],
+            };
+          })
+          .filter((c) => c.probability > 0.3)
+          .sort((a, b) => b.probability - a.probability)
+          .slice(0, 10);
+        // 6. ENGAGEMENT SCORES (ML-based)
+        const engagementScores = clientData.map((client) => {
+          let score = 0;
+          const commsLast30Days = client.communicationsLast30Days || 0;
+          score += Math.min(30, commsLast30Days * 3);
+          const responseRate = client.responseRate || 0;
+          score += responseRate * 0.25;
+          const portalVisits = client.portalVisitsLast30Days || 0;
+          score += Math.min(20, portalVisits * 2);
+          const taskCompletionRate = client.taskCompletionRate || 0;
+          score += taskCompletionRate * 0.15;
+          const daysSinceContact = client.lastContact
+            ? Math.floor((new Date() - client.lastContact.toDate()) / (1000 * 60 * 60 * 24))
+            : 365;
+          if (daysSinceContact < 7) score += 10;
+          else if (daysSinceContact < 14) score += 7;
+          else if (daysSinceContact < 30) score += 4;
+          const engagementScore = Math.min(100, Math.round(score));
+          const previous = client.previousEngagementScore || 50;
+          const change = engagementScore - previous;
+          let trend = 'stable';
+          if (change > 10) trend = 'increasing';
+          else if (change < -10) trend = 'decreasing';
           return {
             clientId: client.id,
             clientName: `${client.firstName} ${client.lastName}`,
-            daysSinceCancellation,
-            probability,
-            strategies: [
-              'Personalized offer',
-              'Follow-up call',
-              'Special discount',
-              'Survey for feedback',
-            ],
+            score: engagementScore,
+            trend,
+            category:
+              engagementScore > 80
+                ? 'highly_engaged'
+                : engagementScore > 50
+                ? 'moderately_engaged'
+                : 'low_engagement',
+            factors: {
+              communication: Math.min(100, commsLast30Days * 10),
+              response: responseRate,
+              activity: Math.min(100, portalVisits * 10),
+              tasks: taskCompletionRate,
+            },
           };
         });
-
-      // 6. ENGAGEMENT SCORES (ML-based)
-      engagementScores = clientData.map(client => {
-        // Calculate comprehensive engagement score
-        let score = 0;
-        // Communication frequency (0-30 points)
-        const commsLast30Days = client.communicationsLast30Days || 0;
-        score += Math.min(30, commsLast30Days * 3);
-        // Response rate (0-25 points)
-        const responseRate = client.responseRate || 0;
-        score += responseRate * 0.25;
-        // Portal activity (0-20 points)
-        const portalVisits = client.portalVisitsLast30Days || 0;
-        score += Math.min(20, portalVisits * 2);
-        // Task completion (0-15 points)
-        const taskCompletionRate = client.taskCompletionRate || 0;
-        score += taskCompletionRate * 0.15;
-        // Recency (0-10 points)
-        const daysSinceContact = client.lastContact 
-          ? Math.floor((new Date() - client.lastContact.toDate()) / (1000 * 60 * 60 * 24))
-          : 365;
-        if (daysSinceContact < 7) score += 10;
-        else if (daysSinceContact < 14) score += 7;
-        else if (daysSinceContact < 30) score += 4;
-        const engagementScore = Math.min(100, Math.round(score));
-        const trend = calculateEngagementTrend(client);
-        return {
-          clientId: client.id,
-          clientName: `${client.firstName} ${client.lastName}`,
-          score: engagementScore,
-          trend,
-          category: engagementScore > 80 ? 'highly_engaged' : engagementScore > 50 ? 'moderately_engaged' : 'low_engagement',
-          factors: {
-            communication: Math.min(100, commsLast30Days * 10),
-            response: responseRate,
-            activity: Math.min(100, portalVisits * 10),
-            tasks: taskCompletionRate,
-          },
-        };
-      });
-
-      setPredictions({
-        churnPredictions,
-        clvForecasts,
-        nextBestActions,
-        upsellOpportunities,
-        winBackCandidates,
-        engagementScores,
-      });
-
-      try {
-        console.log('✅ Predictive analysis complete');
-        console.log('📊 Results:', {
+        setPredictions({
+          churnPredictions,
+          clvForecasts,
+          nextBestActions,
+          upsellOpportunities,
+          winBackCandidates,
+          engagementScores,
+        });
+        console.log('✅ Predictive analysis complete', {
           churnRisk: churnPredictions.length,
-          clvForecasts: clvForecasts.length,
+          clvCount: clvForecasts.length,
           nextActions: nextBestActions.length,
           upsells: upsellOpportunities.length,
           winBacks: winBackCandidates.length,
         });
       } catch (error) {
         console.error('❌ Error in predictive analysis:', error);
+        setSnackbar({
+          open: true,
+          message: 'Predictive analysis failed',
+          severity: 'error',
+        });
+      } finally {
+        setMlProcessing(false);
       }
-    } catch (error) {
-      console.error('AI Analysis error:', error);
-    } finally {
-      setMlProcessing(false);
-    }
-  }, []);
-  
-  const calculateEngagementTrend = (client) => {
-    // Compare current engagement to 30 days ago
-    const current = client.engagementScore || 50;
-    const previous = client.previousEngagementScore || 50;
-    const change = current - previous;
-    
-    if (change > 10) return 'increasing';
-    if (change < -10) return 'decreasing';
-    return 'stable';
-  };
-  
-  // ===== FILTERING & SEARCH =====
-  
-  useEffect(() => {
-    console.log('🔍 Applying filters to', clients.length, 'clients');
-    
+    }, []);
+
+  // ===== CLIENT FILTERING AND SORTING =====
+  useMemo(() => {
     let filtered = [...clients];
-    
-    // Text search
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(c =>
-        c.firstName?.toLowerCase().includes(term) ||
-        c.lastName?.toLowerCase().includes(term) ||
-        c.email?.toLowerCase().includes(term) ||
-        c.phone?.includes(term) ||
-        c.tags?.some(tag => tag.toLowerCase().includes(term))
-      );
-    }
-    
-    // Status filter
     if (statusFilter !== 'all') {
       filtered = filtered.filter(c => c.status === statusFilter);
     }
-    
-    // Source filter
     if (sourceFilter !== 'all') {
       filtered = filtered.filter(c => c.source === sourceFilter);
     }
-    
-    // Journey stage filter
     if (stageFilter !== 'all') {
       filtered = filtered.filter(c => c.journeyStage === stageFilter);
     }
-    
-    // Advanced filters
     if (showAdvancedFilters) {
-      // Lead score range
       filtered = filtered.filter(c =>
         (c.leadScore || 0) >= advancedFilters.leadScoreMin &&
         (c.leadScore || 0) <= advancedFilters.leadScoreMax
       );
-      
-      // Engagement range
       filtered = filtered.filter(c =>
         (c.engagementScore || 0) >= advancedFilters.engagementMin &&
         (c.engagementScore || 0) <= advancedFilters.engagementMax
       );
-      
-      // Revenue range
       filtered = filtered.filter(c =>
         (c.totalRevenue || 0) >= advancedFilters.revenueMin &&
         (c.totalRevenue || 0) <= advancedFilters.revenueMax
       );
-      
-      // Last contact days
       filtered = filtered.filter(c => {
         if (!c.lastContact) return false;
         const daysSince = Math.floor((new Date() - c.lastContact.toDate()) / (1000 * 60 * 60 * 24));
         return daysSince <= advancedFilters.lastContactDays;
       });
-      
-      // Tags
       if (advancedFilters.tags.length > 0) {
         filtered = filtered.filter(c =>
           c.tags && advancedFilters.tags.some(tag => c.tags.includes(tag))
         );
       }
     }
-    
-    // Sorting
     filtered.sort((a, b) => {
       let aVal, bVal;
-      
       switch (sortBy) {
         case 'name':
           aVal = `${a.firstName} ${a.lastName}`.toLowerCase();
@@ -890,14 +1056,12 @@ const ClientsHub = () => {
           bVal = b.createdAt ? b.createdAt.toMillis() : 0;
           break;
       }
-      
       if (sortOrder === 'asc') {
         return aVal > bVal ? 1 : -1;
       } else {
         return aVal < bVal ? 1 : -1;
       }
     });
-    
     setFilteredClients(filtered);
     console.log(`✅ Filtered to ${filtered.length} clients`);
   }, [clients, searchTerm, statusFilter, sourceFilter, stageFilter, sortBy, sortOrder, advancedFilters, showAdvancedFilters]);

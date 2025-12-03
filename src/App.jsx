@@ -269,6 +269,7 @@ const SettingsHub = lazy(() => import('@/pages/hubs/SettingsHub'));
 const SocialMediaHub = lazy(() => import('@/pages/hubs/SocialMediaHub'));
 const SupportHub = lazy(() => import('@/pages/hubs/SupportHub'));
 const TasksSchedulingHub = lazy(() => import('@/pages/hubs/TasksSchedulingHub'));
+const TaxServicesHub = lazy(() => import('@/pages/hubs/TaxServicesHub'));
 const TrainingHub = lazy(() => import('@/pages/hubs/TrainingHub'));
 const WebsiteLandingPagesHub = lazy(() => import('@/pages/hubs/WebsiteLandingPagesHub'));
 
@@ -803,6 +804,18 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
         <TasksSchedulingHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Tax Services Hub - AI-powered tax preparation and management */}
+<Route
+  path="tax-services-hub"
+  element={
+    <ProtectedRoute requiredRole="user">
+      <Suspense fallback={<LoadingFallback />}>
+        <TaxServicesHub />
       </Suspense>
     </ProtectedRoute>
   }
