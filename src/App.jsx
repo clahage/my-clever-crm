@@ -272,6 +272,15 @@ const TasksSchedulingHub = lazy(() => import('@/pages/hubs/TasksSchedulingHub'))
 const TrainingHub = lazy(() => import('@/pages/hubs/TrainingHub'));
 const WebsiteLandingPagesHub = lazy(() => import('@/pages/hubs/WebsiteLandingPagesHub'));
 
+// ===== NEW ENTERPRISE AI HUBS (November 2025) =====
+const RentalApplicationBoostHub = lazy(() => import('@/pages/hubs/RentalApplicationBoostHub'));
+const MortgageReadinessHub = lazy(() => import('@/pages/hubs/MortgageReadinessHub'));
+const AutoLoanConciergeHub = lazy(() => import('@/pages/hubs/AutoLoanConciergeHub'));
+const CreditEmergencyResponseHub = lazy(() => import('@/pages/hubs/CreditEmergencyResponseHub'));
+const AttorneyNetworkHub = lazy(() => import('@/pages/hubs/AttorneyNetworkHub'));
+const CertificationAcademyHub = lazy(() => import('@/pages/hubs/CertificationAcademyHub'));
+const WhiteLabelCRMHub = lazy(() => import('@/pages/hubs/WhiteLabelCRMHub'));
+
 // ============================================================================
 // PROTECTED ROUTE WRAPPER
 // ============================================================================
@@ -906,6 +915,94 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="admin">
       <Suspense fallback={<LoadingFallback />}>
         <MobileAppHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* ============================================================================ */}
+{/* ===== 🆕 NEW ENTERPRISE AI HUBS (November 2025) ===== */}
+{/* ============================================================================ */}
+
+{/* Rental Application Boost Hub - AI-powered rental preparation */}
+<Route
+  path="rental-boost-hub"
+  element={
+    <ProtectedRoute requiredRoles={[3,4,5,6,7,8]}>
+      <Suspense fallback={<LoadingFallback />}>
+        <RentalApplicationBoostHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Mortgage Readiness Accelerator Hub - 90-day mortgage prep */}
+<Route
+  path="mortgage-readiness-hub"
+  element={
+    <ProtectedRoute requiredRoles={[3,4,5,6,7,8]}>
+      <Suspense fallback={<LoadingFallback />}>
+        <MortgageReadinessHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Auto Loan Concierge Hub - AI auto financing */}
+<Route
+  path="auto-loan-hub"
+  element={
+    <ProtectedRoute requiredRoles={[3,4,5,6,7,8]}>
+      <Suspense fallback={<LoadingFallback />}>
+        <AutoLoanConciergeHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Credit Emergency Response Hub - 7-14 day rapid repair */}
+<Route
+  path="credit-emergency-hub"
+  element={
+    <ProtectedRoute requiredRoles={[3,4,5,6,7,8]}>
+      <Suspense fallback={<LoadingFallback />}>
+        <CreditEmergencyResponseHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Attorney Network Hub - FCRA/FDCPA violation cases and attorney matching */}
+<Route
+  path="attorney-network-hub"
+  element={
+    <ProtectedRoute requiredRoles={[3,4,5,6,7,8]}>
+      <Suspense fallback={<LoadingFallback />}>
+        <AttorneyNetworkHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Certification Academy Hub - Credit repair professional training */}
+<Route
+  path="certification-academy-hub"
+  element={
+    <ProtectedRoute requiredRoles={[3,4,5,6,7,8]}>
+      <Suspense fallback={<LoadingFallback />}>
+        <CertificationAcademyHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* White Label CRM Licensing Hub - Partner management and licensing */}
+<Route
+  path="white-label-crm-hub"
+  element={
+    <ProtectedRoute requiredRoles={[7,8]}>
+      <Suspense fallback={<LoadingFallback />}>
+        <WhiteLabelCRMHub />
       </Suspense>
     </ProtectedRoute>
   }
