@@ -306,8 +306,8 @@ async function processPaymentRetry(paymentId, paymentData) {
   console.log(`\n🔄 Processing retry attempt ${currentAttempt} for payment ${paymentId}`);
 
   // Get client information
-  const clientEmail = await getClientEmail(paymentData.clientId);
-  if (!clientEmail) {
+  const clientEmailAddress = await getClientEmail(paymentData.clientId);
+  if (!clientEmailAddress) {
     console.error('❌ Client email not found');
     return { success: false, error: 'Client email not found' };
   }
@@ -354,7 +354,7 @@ async function processPaymentRetry(paymentId, paymentData) {
   );
 
   // Send retry notification to client
-  const clientEmail = getClientRetryEmail(
+  const clientRetryEmail = getClientRetryEmail(
     paymentData.clientName,
     paymentData.amount,
     currentAttempt,
@@ -366,7 +366,7 @@ async function processPaymentRetry(paymentId, paymentData) {
     })
   );
 
-  await sendEmail(clientEmail, clientEmail.subject, clientEmail.html, clientEmail.text);
+  await sendEmail(clientRetryEmail, clientRetryEmail.subject, clientRetryEmail.html, clientRetryEmail.text);
 
   // Notify admins
   const adminEmails = await getAdminEmails();
