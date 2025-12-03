@@ -660,6 +660,73 @@ export function findNavigationItem(id, items = navigationItems) {
 // EXPORT DEFAULT
 // ============================================================================
 
+/**
+ * Get mobile-optimized navigation for specific role
+ * Returns simplified menu with only essential items
+ */
+export function getMobileNavigation(userRole) {
+  const baseItems = [
+    { id: 'dashboard', title: 'Dashboard', path: '/smart-dashboard', icon: LayoutDashboard },
+  ];
+
+  const roleSpecificItems = {
+    masterAdmin: [
+      { id: 'portal', title: 'Admin', path: '/portal', icon: LayoutDashboard },
+      { id: 'contacts', title: 'Contacts', path: '/contacts', icon: Users },
+      { id: 'credit-hub', title: 'Credit Hub', path: '/credit-hub', icon: Shield },
+      { id: 'analytics', title: 'Analytics', path: '/analytics', icon: BarChart },
+      { id: 'settings', title: 'Settings', path: '/settings', icon: Settings },
+    ],
+    admin: [
+      { id: 'portal', title: 'Admin', path: '/portal', icon: LayoutDashboard },
+      { id: 'contacts', title: 'Contacts', path: '/contacts', icon: Users },
+      { id: 'credit-hub', title: 'Credit Hub', path: '/credit-hub', icon: Shield },
+      { id: 'reports', title: 'Reports', path: '/reports', icon: FileText },
+      { id: 'settings', title: 'Settings', path: '/settings', icon: Settings },
+    ],
+    manager: [
+      { id: 'contacts', title: 'Contacts', path: '/contacts', icon: Users },
+      { id: 'credit-hub', title: 'Credit Hub', path: '/credit-hub', icon: Shield },
+      { id: 'pipeline', title: 'Pipeline', path: '/pipeline', icon: GitBranch },
+      { id: 'reports', title: 'Reports', path: '/reports', icon: FileText },
+      { id: 'settings', title: 'Settings', path: '/settings', icon: Settings },
+    ],
+    user: [
+      { id: 'contacts', title: 'Contacts', path: '/contacts', icon: Users },
+      { id: 'credit-hub', title: 'Credit Hub', path: '/credit-hub', icon: Shield },
+      { id: 'tasks', title: 'Tasks', path: '/tasks', icon: CheckSquare },
+      { id: 'calendar', title: 'Calendar', path: '/calendar', icon: Calendar },
+      { id: 'settings', title: 'Settings', path: '/settings', icon: Settings },
+    ],
+    client: [
+      { id: 'portal', title: 'My Portal', path: '/client-portal', icon: User },
+      { id: 'credit-hub', title: 'My Credit', path: '/credit-hub', icon: Shield },
+      { id: 'scores', title: 'Scores', path: '/credit-scores', icon: TrendingUp },
+      { id: 'disputes', title: 'Disputes', path: '/dispute-letters', icon: FileText },
+      { id: 'documents', title: 'Documents', path: '/documents', icon: FileText },
+      { id: 'support', title: 'Support', path: '/support', icon: HelpCircle },
+    ],
+    prospect: [
+      { id: 'portal', title: 'Portal', path: '/client-portal', icon: User },
+      { id: 'learning', title: 'Learn', path: '/learning-center', icon: BookOpen },
+      { id: 'resources', title: 'Resources', path: '/resources/articles', icon: FileText },
+      { id: 'support', title: 'Support', path: '/support', icon: HelpCircle },
+    ],
+    affiliate: [
+      { id: 'dashboard', title: 'Dashboard', path: '/affiliates', icon: Handshake },
+      { id: 'referrals', title: 'Referrals', path: '/affiliates', icon: Users },
+      { id: 'commissions', title: 'Earnings', path: '/affiliates', icon: DollarSign },
+      { id: 'settings', title: 'Settings', path: '/settings', icon: Settings },
+    ],
+    viewer: [
+      { id: 'reports', title: 'Reports', path: '/reports', icon: FileText },
+      { id: 'analytics', title: 'Analytics', path: '/analytics', icon: BarChart },
+    ]
+  };
+
+  return [...baseItems, ...(roleSpecificItems[userRole] || roleSpecificItems.client)];
+}
+
 export default {
   navigationItems,
   ROLE_HIERARCHY,
@@ -668,5 +735,6 @@ export default {
   isVisible,
   filterNavigationByRole,
   getAllNavigationItems,
-  findNavigationItem
+  findNavigationItem,
+  getMobileNavigation
 };
