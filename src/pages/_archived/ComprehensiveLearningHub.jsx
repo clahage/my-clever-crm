@@ -1,6 +1,13 @@
 // ============================================
+// ⚠️ ARCHIVED FILE - DO NOT USE
+// ============================================
+// ARCHIVED ON: December 3, 2025
+// REASON: Functionality consolidated into LearningHub.jsx during navigation optimization
+// PHASE: Navigation Optimization (53 hubs → 20 hubs)
+// REPLACEMENT: Use /src/pages/hubs/LearningHub.jsx (Enterprise Learning Hub)
+// ============================================
 // COMPREHENSIVE LEARNING HUB
-// Path: /home/user/my-clever-crm/src/pages/hubs/ComprehensiveLearningHub.jsx
+// Path: /home/user/my-clever-crm/src/pages/hubs/ComprehensiveLearningHub.jsx (ARCHIVED)
 // ============================================
 // MERGED: LearningHub.jsx + TrainingHub.jsx
 // Combines 30+ AI features with lazy loading and real-time updates
