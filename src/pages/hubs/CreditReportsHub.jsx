@@ -23,6 +23,7 @@ import {
   Timeline as MonitorIcon,
   Dashboard as ControlIcon,
   Settings as ConfigIcon,
+  TrendingUp as OptimizerIcon,
 } from '@mui/icons-material';
 import { useAuth } from '@/contexts/AuthContext';
 import { ROLE_HIERARCHY } from '@/layout/navConfig';
@@ -33,6 +34,7 @@ const ClientCreditReport = lazy(() => import('../../components/credit/ClientCred
 const CreditReportWorkflow = lazy(() => import('../../components/credit/CreditReportWorkflow'));
 const AIDisputeGenerator = lazy(() => import('../../components/credit/AIDisputeGenerator'));
 const CreditMonitoringSystem = lazy(() => import('../../components/credit/CreditMonitoringSystem'));
+const CreditScoreOptimizer = lazy(() => import('../hubs/CreditScoreOptimizer'));
 const IDIQControlCenter = lazy(() => import('../../components/credit/IDIQControlCenter'));
 const IDIQConfig = lazy(() => import('../../components/credit/IDIQConfig'));
 
@@ -43,6 +45,7 @@ const TABS = [
   { id: 'workflow', label: 'Workflows', icon: WorkflowIcon, component: CreditReportWorkflow, permission: 'user' },
   { id: 'disputes', label: 'Disputes', icon: DisputeIcon, component: AIDisputeGenerator, permission: 'client' },
   { id: 'monitoring', label: 'Monitoring', icon: MonitorIcon, component: CreditMonitoringSystem, permission: 'client' },
+  { id: 'optimizer', label: 'Score Optimizer', icon: OptimizerIcon, component: CreditScoreOptimizer, permission: 'client', badge: 'AI' },
   { id: 'control', label: 'Control Center', icon: ControlIcon, component: IDIQControlCenter, permission: 'admin' },
   { id: 'config', label: 'Settings', icon: ConfigIcon, component: IDIQConfig, permission: 'admin' },
 ];
