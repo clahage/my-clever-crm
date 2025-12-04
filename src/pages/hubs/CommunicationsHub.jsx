@@ -212,7 +212,7 @@ import {
   HelpCircle,
   ExternalLink,
   Maximize,
-  Minimize, UserPlus
+  Minimize, UserPlus, Printer
 } from 'lucide-react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
@@ -223,6 +223,7 @@ import { format, formatDistanceToNow, subDays, subMonths, startOfMonth, endOfMon
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import * as XLSX from 'xlsx';
+import EmailFaxManager from '@/components/communications/EmailFaxManager';
 
 // ============================================================================
 // 🎨 CONSTANTS & CONFIGURATION
@@ -613,7 +614,7 @@ const UltimateCommunicationsHub = () => {
   const [success, setSuccess] = useState(null);
   
   // Tab management
-  const [activeTab, setActiveTab] = useState('email');
+  const [activeTab, setActiveTab] = useState('emailfax');
   
   // Data states
   const [emails, setEmails] = useState([]);
@@ -2232,6 +2233,7 @@ const UltimateCommunicationsHub = () => {
             borderColor: 'divider',
           }}
         >
+          <Tab value="emailfax" label="Email & Fax" icon={<Printer className="w-5 h-5" />} iconPosition="start" />
           <Tab value="email" label="Email Manager" icon={<Mail className="w-5 h-5" />} iconPosition="start" />
           <Tab value="sms" label="SMS Manager" icon={<MessageSquare className="w-5 h-5" />} iconPosition="start" />
           <Tab value="templates" label="Templates" icon={<FileText className="w-5 h-5" />} iconPosition="start" />
@@ -2243,6 +2245,7 @@ const UltimateCommunicationsHub = () => {
         </Tabs>
 
         <Box sx={{ p: { xs: 2, md: 3 } }}>
+          {activeTab === 'emailfax' && <EmailFaxManager />}
           {activeTab === 'email' && renderEmailManagerTab()}
           {activeTab === 'sms' && renderSMSManagerTab()}
           {activeTab === 'templates' && renderTemplatesTab()}
