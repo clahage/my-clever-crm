@@ -35,12 +35,8 @@ import {
   Phone, Smartphone, Globe, Cloud, Lock, Unlock, Key,
   LayoutDashboard, BarChart,
 } from 'lucide-react';
-import {
-  LineChart, Line, BarChart, Bar, PieChart as RechartsPie, Pie, Cell,
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
-  Legend, ResponsiveContainer, RadarChart, Radar, PolarGrid,
-  PolarAngleAxis, PolarRadiusAxis,
-} from 'recharts';
+import { LineChart, Line, Bar, Cell, AreaChart, Area, XAxis, YAxis, CartesianGrid, Legend, ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
+import { BarChart as RechartsBarChart, PieChart as RechartsPie, Pie, Tooltip as RechartsTooltip } from 'recharts';
 import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/lib/firebase';
 import {
@@ -1994,7 +1990,7 @@ const AutomationHub = () => {
               Execution by Workflow Type
             </Typography>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={[
+              <RechartsBarChart data={[
                 { type: 'Client Management', count: 89 },
                 { type: 'Communication', count: 67 },
                 { type: 'Billing', count: 45 },
@@ -2006,7 +2002,7 @@ const AutomationHub = () => {
                 <YAxis />
                 <RechartsTooltip />
                 <Bar dataKey="count" fill={COLORS.primary} />
-              </BarChart>
+              </RechartsBarChart>
             </ResponsiveContainer>
           </Paper>
         </Grid>
