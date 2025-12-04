@@ -98,6 +98,7 @@ import {
   Play,
   Pause,
   RefreshCw,
+  LayoutDashboard,
   Download,
   Upload,
   Share,

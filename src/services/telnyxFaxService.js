@@ -17,7 +17,7 @@
  * @date 2025-12-04
  */
 
-import { db } from '../firebase/config';
+import { db } from '../lib/firebase';
 import {
   collection,
   addDoc,
@@ -628,5 +628,51 @@ class TelnyxFaxService {
 const telnyxFaxService = new TelnyxFaxService();
 export default telnyxFaxService;
 
-// Named exports
+// Named exports for direct function access
+
+// Cancel a fax by Telnyx fax ID (API call)
+export const cancelFax = async (telnyxId) => {
+  if (!telnyxId) throw new Error('No fax ID provided');
+  const apiKey = telnyxFaxService.apiKey;
+  const baseUrl = telnyxFaxService.baseUrl;
+  const response = await fetch(`${baseUrl}/${telnyxId}/actions/cancel`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+  });
+  if (!response.ok) {
+    const result = await response.json();
+    throw new Error(result.errors?.[0]?.detail || 'Failed to cancel fax');
+  }
+  return { success: true };
+};
+
+// List received faxes for the account (API call)
+export const listReceivedFaxes = async (params = {}) => {
+  const apiKey = telnyxFaxService.apiKey;
+  const baseUrl = telnyxFaxService.baseUrl;
+  // Optionally filter by to/from, status, etc.
+  const url = new URL(baseUrl);
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) url.searchParams.append(key, value);
+  });
+  const response = await fetch(url.toString(), {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+    },
+  });
+  const result = await response.json();
+  if (!response.ok) {
+    throw new Error(result.errors?.[0]?.detail || 'Failed to list received faxes');
+  }
+  // Only return inbound faxes
+  return (result.data || []).filter(fax => fax.direction === 'inbound');
+};
+
+export const sendFax = (...args) => telnyxFaxService.sendFax(...args);
+export const getFaxStatus = (...args) => telnyxFaxService.checkFaxStatus(...args);
+export const sendBatchFaxes = (...args) => telnyxFaxService.sendBulkFaxes(...args);
 export { TelnyxFaxService };
