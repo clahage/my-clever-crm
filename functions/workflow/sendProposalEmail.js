@@ -42,7 +42,7 @@ const { format, addDays, addHours, parseISO } = require('date-fns');
 // ============================================================================
 
 // SendGrid API Key (from Firebase config)
-const SENDGRID_API_KEY = functions.config().sendgrid?.api_key || process.env.SENDGRID_API_KEY;
+const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 if (SENDGRID_API_KEY) {
   sgMail.setApiKey(SENDGRID_API_KEY);
 }

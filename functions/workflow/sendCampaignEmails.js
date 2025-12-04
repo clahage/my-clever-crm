@@ -46,7 +46,7 @@ const { format, addHours, addDays, differenceInHours } = require('date-fns');
 // ============================================================================
 
 // SendGrid API configuration
-const SENDGRID_API_KEY = functions.config().sendgrid?.api_key || process.env.SENDGRID_API_KEY;
+const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 if (SENDGRID_API_KEY) {
   sgMail.setApiKey(SENDGRID_API_KEY);
 }

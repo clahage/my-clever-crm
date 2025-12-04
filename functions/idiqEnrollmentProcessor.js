@@ -37,10 +37,10 @@ const db = admin.firestore();
 
 const IDIQ_CONFIG = {
   partnerId: '11981',
-  apiBaseUrl: functions.config().idiq?.api_url || 'https://api.partner.idiq.com',
-  apiKey: functions.config().idiq?.api_key || process.env.IDIQ_API_KEY,
-  apiSecret: functions.config().idiq?.api_secret || process.env.IDIQ_API_SECRET,
-  webhookUrl: functions.config().idiq?.webhook_url || 'https://us-central1-speedycrm.cloudfunctions.net/idiqWebhookHandler',
+  apiBaseUrl: process.env.IDIQ_API_URL || 'https://api.partner.idiq.com',
+  apiKey: process.env.IDIQ_API_KEY,
+  apiSecret: process.env.IDIQ_API_SECRET,
+  webhookUrl: process.env.IDIQ_WEBHOOK_URL || 'https://us-central1-speedycrm.cloudfunctions.net/idiqWebhookHandler',
   
   // Subscription types
   subscriptions: {

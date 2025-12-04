@@ -151,7 +151,7 @@ async function sendEmailNotification({ to, subject, body, priority = 'normal' })
     // Uncomment this block and comment out METHOD 1
     /*
     const sgMail = require('@sendgrid/mail');
-    sgMail.setApiKey(functions.config().sendgrid.key);
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
     
     const msg = {
       to: to,

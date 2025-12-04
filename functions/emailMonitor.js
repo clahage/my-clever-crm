@@ -40,16 +40,16 @@ const { db, admin: adminApp } = require('./firebaseAdmin');
 
 // Initialize OpenAI
 const openai = new OpenAI({
-  apiKey: process.env.VITE_OPENAI_API_KEY || functions.config().openai?.api_key
+  apiKey: process.env.OPENAI_API_KEY
 });
 
 // Initialize SendGrid
-sgMail.setApiKey(process.env.SENDGRID_API_KEY || functions.config().sendgrid?.api_key);
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 // Gmail OAuth2 credentials
-const GMAIL_CLIENT_ID = functions.config().gmail?.client_id;
-const GMAIL_CLIENT_SECRET = functions.config().gmail?.client_secret;
-const GMAIL_REFRESH_TOKEN = functions.config().gmail?.refresh_token;
+const GMAIL_CLIENT_ID = process.env.GMAIL_CLIENT_ID;
+const GMAIL_CLIENT_SECRET = process.env.GMAIL_CLIENT_SECRET;
+const GMAIL_REFRESH_TOKEN = process.env.GMAIL_REFRESH_TOKEN;
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════

@@ -32,7 +32,7 @@ const db = admin.firestore();
 // OPENAI INTEGRATION
 // ═══════════════════════════════════════════════════════════════════════════
 const { OpenAI } = require('openai');
-const openaiKey = functions.config().openai?.api_key || process.env.OPENAI_API_KEY;
+const openaiKey = process.env.OPENAI_API_KEY;
 const openai = openaiKey ? new OpenAI({ apiKey: openaiKey }) : null;
 
 if (!openai) {

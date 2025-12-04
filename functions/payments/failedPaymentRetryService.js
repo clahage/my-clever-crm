@@ -13,7 +13,7 @@ const sgMail = require('@sendgrid/mail');
 const db = admin.firestore();
 
 // Initialize SendGrid
-const SENDGRID_API_KEY = functions.config().sendgrid?.apikey || process.env.SENDGRID_API_KEY;
+const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 if (SENDGRID_API_KEY) {
   sgMail.setApiKey(SENDGRID_API_KEY);
 }

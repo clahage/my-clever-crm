@@ -47,9 +47,9 @@ const db = admin.firestore();
 let openai = null;
 function getOpenAI() {
   if (!openai) {
-    const apiKey = functions.config().openai?.api_key;
+    const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey || apiKey === 'YOUR_KEY') {
-      throw new Error('OpenAI API key not configured. Run: firebase functions:config:set openai.api_key="sk-..."');
+      throw new Error('OpenAI API key not configured. Set OPENAI_API_KEY in your .env file.');
     }
     openai = new OpenAI({ apiKey });
   }
@@ -57,9 +57,9 @@ function getOpenAI() {
 }
 
 // Initialize Anthropic configuration
-// API key stored securely in Firebase Functions config
+// API key now loaded from environment variable
 const anthropicConfig = {
-  apiKey: functions.config().anthropic?.api_key,
+  apiKey: process.env.ANTHROPIC_API_KEY,
   apiVersion: '2023-06-01',
   baseURL: 'https://api.anthropic.com/v1/messages'
 };

@@ -636,8 +636,8 @@ exports.getIDIQPartnerToken = functions.https.onRequest(async (req, res) => {
  * Get IDIQ Partner Token (Callable version)
  */
 exports.getIDIQPartnerTokenCallable = functions.https.onCall(async (data, context) => {
-  const partnerId = process.env.IDIQ_PARTNER_ID || functions.config().idiq?.partner_id || '';
-  const partnerSecret = process.env.IDIQ_PARTNER_SECRET || functions.config().idiq?.partner_secret || '';
+  const partnerId = process.env.IDIQ_PARTNER_ID || '';
+  const partnerSecret = process.env.IDIQ_PARTNER_SECRET || '';
   
   if (!partnerId || !partnerSecret) {
     throw new functions.https.HttpsError("failed-precondition", "Missing IDIQ credentials");

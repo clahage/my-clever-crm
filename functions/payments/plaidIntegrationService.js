@@ -29,10 +29,10 @@ const db = admin.firestore();
  * Get these from Firebase config or environment variables
  */
 const PLAID_CONFIG = {
-  clientId: functions.config().plaid?.client_id || process.env.PLAID_CLIENT_ID,
-  secret: functions.config().plaid?.secret || process.env.PLAID_SECRET,
-  env: functions.config().plaid?.env || process.env.PLAID_ENV || 'sandbox', // sandbox, development, or production
-  webhookUrl: functions.config().plaid?.webhook_url || 'https://us-central1-your-project.cloudfunctions.net/plaidWebhook'
+  clientId: process.env.PLAID_CLIENT_ID,
+  secret: process.env.PLAID_SECRET,
+  env: process.env.PLAID_ENV || 'sandbox', // sandbox, development, or production
+  webhookUrl: process.env.PLAID_WEBHOOK_URL || 'https://us-central1-your-project.cloudfunctions.net/plaidWebhook'
 };
 
 /**

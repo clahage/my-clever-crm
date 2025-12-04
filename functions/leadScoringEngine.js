@@ -31,7 +31,7 @@ const { OpenAI } = require('openai');
 // CONFIGURATION
 // ═══════════════════════════════════════════════════════════════════════════
 
-const openaiKey = functions.config().openai?.api_key || process.env.VITE_OPENAI_API_KEY;
+const openaiKey = process.env.OPENAI_API_KEY;
 const openai = openaiKey ? new OpenAI({ apiKey: openaiKey }) : null;
 
 // Scoring weights based on 30 years of credit repair experience
