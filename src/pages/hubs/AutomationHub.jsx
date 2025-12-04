@@ -33,6 +33,7 @@ import {
   Sparkles, Bell, Share2, ExternalLink, PieChart,
   LineChart as LineChartIcon, Workflow, Repeat, Timer, Send,
   Phone, Smartphone, Globe, Cloud, Lock, Unlock, Key,
+  LayoutDashboard, BarChart,
 } from 'lucide-react';
 import {
   LineChart, Line, BarChart, Bar, PieChart as RechartsPie, Pie, Cell,
@@ -47,6 +48,7 @@ import {
   getDocs, query, where, orderBy, limit, serverTimestamp,
   onSnapshot,
 } from 'firebase/firestore';
+import LeadLifecycleEngine from '@/components/automation/LeadLifecycleEngine';
 
 // ============================================================================
 // CONSTANTS & CONFIGURATION
@@ -2096,6 +2098,7 @@ const AutomationHub = () => {
           <Tab icon={<LinkIcon size={20} />} label="Integrations" iconPosition="start" />
           <Tab icon={<Activity size={20} />} label="Monitoring" iconPosition="start" />
           <Tab icon={<BarChart size={20} />} label="Analytics" iconPosition="start" />
+          <Tab icon={<Repeat size={20} />} label="Lead Lifecycle AI" iconPosition="start" />
         </Tabs>
       </Paper>
 
@@ -2108,6 +2111,7 @@ const AutomationHub = () => {
       {activeTab === 5 && renderIntegrationsTab()}
       {activeTab === 6 && renderMonitoringTab()}
       {activeTab === 7 && renderAnalyticsTab()}
+      {activeTab === 8 && <LeadLifecycleEngine />}
 
       {/* Snackbar */}
       <Snackbar
