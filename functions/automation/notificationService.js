@@ -4,6 +4,7 @@
 
 const admin = require('firebase-admin');
 const functions = require('firebase-functions');
+const { onSchedule } = require('firebase-functions/v2/scheduler');
 
 // Email service (you can use SendGrid, AWS SES, or Firebase Extensions)
 // For now, using Firebase's built-in email capability
@@ -175,10 +176,10 @@ async function sendEmailNotification({ to, subject, body, priority = 'normal' })
  * Send morning summary email to Laurie
  * Scheduled function that runs at 7:00am Mon-Thu, Sat
  */
-exports.sendMorningSummary = functions.pubsub
-  .schedule('0 7 * * 1,2,3,4,6') // 7am Mon-Thu, Sat
-  .timeZone('America/Los_Angeles')
-  .onRun(async (context) => {
+exports.sendMorningSummary = onSchedule({
+  schedule: '0 7 * * 1,2,3,4,6',
+  timeZone: 'America/Los_Angeles',
+}, async (event) => {
     try {
       const db = admin.firestore();
       

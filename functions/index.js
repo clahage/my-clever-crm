@@ -201,9 +201,8 @@ function handlePreflight(req, res) {
 /**
  * Track email opens via 1x1 tracking pixel
  */
-exports.trackEmailOpen = functions.runWith({
-  invoker: 'public'
-}).https.onRequest(async (req, res) => {
+const { onRequest, onCall } = require('firebase-functions/v2/https');
+exports.trackEmailOpen = onRequest({ invoker: 'public' }, async (req, res) => {
   const trackingId = req.path.split('/').pop();
   
   if (!trackingId || trackingId === 'trackEmailOpen') {
@@ -266,7 +265,8 @@ exports.trackEmailOpen = functions.runWith({
  * Call this once to retroactively fix contacts with missing names
  * URL: https://us-central1-my-clever-crm.cloudfunctions.net/fixUnknownContacts?apiKey=YOUR_KEY
  */
-exports.fixUnknownContacts = functions.https.onRequest(async (req, res) => {
+// Duplicate import removed; already imported above
+exports.fixUnknownContacts = onRequest(async (req, res) => {
   // Security check
   const apiKey = req.query.apiKey;
   const WEBHOOK_API_KEY = 'scr-webhook-2025-secure-key-abc123';
@@ -393,7 +393,7 @@ exports.fixUnknownContacts = functions.https.onRequest(async (req, res) => {
  * NEW FUNCTION: Get contacts that need manual review
  * URL: https://us-central1-my-clever-crm.cloudfunctions.net/getReviewNeededContacts?apiKey=YOUR_KEY
  */
-exports.getReviewNeededContacts = functions.https.onRequest(async (req, res) => {
+exports.getReviewNeededContacts = onRequest(async (req, res) => {
   const apiKey = req.query.apiKey;
   const WEBHOOK_API_KEY = 'scr-webhook-2025-secure-key-abc123';
   
@@ -447,9 +447,7 @@ exports.getReviewNeededContacts = functions.https.onRequest(async (req, res) => 
 /**
  * Track email link clicks
  */
-exports.trackEmailClick = functions.runWith({
-  invoker: 'public'
-}).https.onRequest(async (req, res) => {
+exports.trackEmailClick = onRequest({ invoker: 'public' }, async (req, res) => {
   const pathParts = req.path.split('/');
   const trackingId = pathParts[pathParts.length - 1];
   const destinationUrl = req.query.url;
@@ -490,9 +488,7 @@ exports.trackEmailClick = functions.runWith({
 /**
  * Track website visitor events
  */
-exports.trackWebsite = functions.runWith({
-  invoker: 'public'
-}).https.onRequest(async (req, res) => {
+exports.trackWebsite = onRequest({ invoker: 'public' }, async (req, res) => {
   cors(req, res, async () => {
     if (req.method !== 'POST') {
       res.status(405).send('Method Not Allowed');
@@ -525,7 +521,7 @@ exports.trackWebsite = functions.runWith({
 /**
  * Get IDIQ Partner Token
  */
-exports.getIDIQPartnerToken = functions.https.onRequest(async (req, res) => {
+exports.getIDIQPartnerToken = onRequest(async (req, res) => {
   setCors(req, res);
   if (handlePreflight(req, res)) return;
 
@@ -635,7 +631,7 @@ exports.getIDIQPartnerToken = functions.https.onRequest(async (req, res) => {
 /**
  * Get IDIQ Partner Token (Callable version)
  */
-exports.getIDIQPartnerTokenCallable = functions.https.onCall(async (data, context) => {
+exports.getIDIQPartnerTokenCallable = onCall(async (data, context) => {
   const partnerId = process.env.IDIQ_PARTNER_ID || '';
   const partnerSecret = process.env.IDIQ_PARTNER_SECRET || '';
   
@@ -670,7 +666,7 @@ exports.getIDIQPartnerTokenCallable = functions.https.onCall(async (data, contex
 /**
  * Enroll Member in IDIQ
  */
-exports.enrollIDIQMember = functions.https.onRequest(async (req, res) => {
+exports.enrollIDIQMember = onRequest(async (req, res) => {
   setCors(req, res);
   if (handlePreflight(req, res)) return;
 
@@ -718,7 +714,7 @@ exports.enrollIDIQMember = functions.https.onRequest(async (req, res) => {
 /**
  * Get Member Token
  */
-exports.getIDIQMemberToken = functions.https.onRequest(async (req, res) => {
+exports.getIDIQMemberToken = onRequest(async (req, res) => {
   setCors(req, res);
   if (handlePreflight(req, res)) return;
 
@@ -754,7 +750,7 @@ exports.getIDIQMemberToken = functions.https.onRequest(async (req, res) => {
 /**
  * Get Verification Questions
  */
-exports.getVerificationQuestions = functions.https.onRequest(async (req, res) => {
+exports.getVerificationQuestions = onRequest(async (req, res) => {
   setCors(req, res);
   if (handlePreflight(req, res)) return;
 
@@ -782,7 +778,7 @@ exports.getVerificationQuestions = functions.https.onRequest(async (req, res) =>
 /**
  * Submit Verification Answers
  */
-exports.submitVerificationAnswers = functions.https.onRequest(async (req, res) => {
+exports.submitVerificationAnswers = onRequest(async (req, res) => {
   setCors(req, res);
   if (handlePreflight(req, res)) return;
 
@@ -814,7 +810,7 @@ exports.submitVerificationAnswers = functions.https.onRequest(async (req, res) =
 /**
  * Generate IDIQ Dashboard URL
  */
-exports.getIDIQDashboardURL = functions.https.onRequest(async (req, res) => {
+exports.getIDIQDashboardURL = onRequest(async (req, res) => {
   setCors(req, res);
   if (handlePreflight(req, res)) return;
 
@@ -831,7 +827,7 @@ exports.getIDIQDashboardURL = functions.https.onRequest(async (req, res) => {
 /**
  * Get Credit Score
  */
-exports.getIDIQCreditScore = functions.https.onRequest(async (req, res) => {
+exports.getIDIQCreditScore = onRequest(async (req, res) => {
   setCors(req, res);
   if (handlePreflight(req, res)) return;
 
@@ -859,7 +855,7 @@ exports.getIDIQCreditScore = functions.https.onRequest(async (req, res) => {
 /**
  * Get Quick View Report
  */
-exports.getIDIQQuickViewReport = functions.https.onRequest(async (req, res) => {
+exports.getIDIQQuickViewReport = onRequest(async (req, res) => {
   setCors(req, res);
   if (handlePreflight(req, res)) return;
 
@@ -887,7 +883,7 @@ exports.getIDIQQuickViewReport = functions.https.onRequest(async (req, res) => {
 /**
  * Get Full Credit Report
  */
-exports.getIDIQCreditReport = functions.https.onRequest(async (req, res) => {
+exports.getIDIQCreditReport = onRequest(async (req, res) => {
   setCors(req, res);
   if (handlePreflight(req, res)) return;
 
@@ -915,7 +911,7 @@ exports.getIDIQCreditReport = functions.https.onRequest(async (req, res) => {
 /**
  * Submit Dispute
  */
-exports.submitIDIQDispute = functions.https.onRequest(async (req, res) => {
+exports.submitIDIQDispute = onRequest(async (req, res) => {
   setCors(req, res);
   if (handlePreflight(req, res)) return;
 
@@ -947,7 +943,7 @@ exports.submitIDIQDispute = functions.https.onRequest(async (req, res) => {
 /**
  * Get Dispute Status
  */
-exports.getIDIQDisputeStatus = functions.https.onRequest(async (req, res) => {
+exports.getIDIQDisputeStatus = onRequest(async (req, res) => {
   setCors(req, res);
   if (handlePreflight(req, res)) return;
 
@@ -979,7 +975,7 @@ exports.getIDIQDisputeStatus = functions.https.onRequest(async (req, res) => {
 /**
  * Set User Custom Claims (Master Admin Only)
  */
-exports.setUserClaims = functions.https.onCall(async (data, context) => {
+exports.setUserClaims = onCall(async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError("unauthenticated", "Sign in first.");
   }
@@ -1013,7 +1009,7 @@ exports.setUserClaims = functions.https.onCall(async (data, context) => {
 /**
  * AI Lead Scoring
  */
-exports.scoreLead = functions.https.onRequest(async (req, res) => {
+exports.scoreLead = onRequest(async (req, res) => {
   setCors(req, res);
   if (handlePreflight(req, res)) return;
 
@@ -1064,7 +1060,7 @@ exports.scoreLead = functions.https.onRequest(async (req, res) => {
  * Updated AI Webhook with improved name handling
  * This replaces your existing aiWebhook function
  */
-exports.aiWebhook = functions.https.onRequest(async (req, res) => {
+exports.aiWebhook = onRequest(async (req, res) => {
   // Security check
   const apiKey = req.query.apiKey || req.body.apiKey;
   const WEBHOOK_API_KEY = 'scr-webhook-2025-secure-key-abc123';
@@ -1129,7 +1125,7 @@ exports.aiWebhook = functions.https.onRequest(async (req, res) => {
  * Test endpoint to verify webhook is working
  * Call this URL manually: https://us-central1-my-clever-crm.cloudfunctions.net/testAiWebhook
  */
-exports.testAiWebhook = functions.https.onRequest(async (req, res) => {
+exports.testAiWebhook = onRequest(async (req, res) => {
   try {
     // API Key Authentication
     const apiKey = req.headers['x-api-key'] || req.query.apiKey;
@@ -1394,22 +1390,17 @@ CRITICAL INSTRUCTIONS:
  * ✅ HYBRID APPROACH: Use intake form + parse transcript for complete data
  * ✅ TRIGGERS ON: Both CREATE and UPDATE events (so you can reprocess by changing processed flag)
  */
-exports.processAIReceptionistCall = functions.firestore
-  .document('aiReceptionistCalls/{docId}')
-  .onWrite(async (change, context) => {
-    // Handle both create and update events
-    const snap = change.after;
-    
-    // If document was deleted, do nothing
-    if (!snap.exists) {
-      console.log('Document deleted, skipping');
-      return null;
-    }
-    
-    const data = snap.data();
-    const docId = context.params.docId;
-    
-    console.log('🔄 Processing AI call:', docId);
+const { onDocumentWritten } = require('firebase-functions/v2/firestore');
+exports.processAIReceptionistCall = onDocumentWritten('aiReceptionistCalls/{docId}', async (event) => {
+  const snap = event.data.after;
+  const docId = event.params.docId;
+  // If document was deleted, do nothing
+  if (!snap.exists) {
+    console.log('Document deleted, skipping');
+    return null;
+  }
+  const data = snap.data();
+  console.log('🔄 Processing AI call:', docId);
     
     try {
       if (data.processed) {
@@ -1676,9 +1667,7 @@ exports.processAIReceptionistCall = functions.firestore
 /**
  * Simple test endpoint to verify functions are working
  */
-exports.testFunction = functions.runWith({
-  invoker: 'public'
-}).https.onRequest((req, res) => {
+exports.testFunction = onRequest({ invoker: 'public' }, (req, res) => {
   setCors(req, res);
   if (handlePreflight(req, res)) return;
 
@@ -1719,11 +1708,10 @@ const {
 // ═══════════════════════════════════════════════════════════════════════════
 
 // Trigger: When contact is created
-exports.onContactCreated = functions.firestore
-  .document('contacts/{contactId}')
-  .onCreate(async (snap, context) => {
-    const contactId = context.params.contactId;
-    const contactData = snap.data();
+const { onDocumentCreated } = require('firebase-functions/v2/firestore');
+exports.onContactCreated = onDocumentCreated('contacts/{contactId}', async (event) => {
+  const contactId = event.params.contactId;
+  const contactData = event.data;
     
     try {
       console.log(`📞 New contact created: ${contactId}`);
@@ -1743,10 +1731,11 @@ exports.onContactCreated = functions.firestore
   });
 
 // Scheduled: Process due workflow stages
-exports.processWorkflowStages = functions.pubsub
-  .schedule('every 15 minutes')
-  .timeZone('America/Los_Angeles')
-  .onRun(async (context) => {
+const { onSchedule } = require('firebase-functions/v2/scheduler');
+exports.processWorkflowStages = onSchedule({
+  schedule: 'every 15 minutes',
+  timeZone: 'America/Los_Angeles',
+}, async (event) => {
     console.log('⏰ Processing due workflow stages...');
     
     try {
@@ -1760,7 +1749,7 @@ exports.processWorkflowStages = functions.pubsub
   });
 
 // Webhook: Handle SendGrid events (opens, clicks, bounces, etc.)
-exports.handleSendGridWebhook = functions.https.onRequest(async (req, res) => {
+exports.handleSendGridWebhook = onRequest(async (req, res) => {
   try {
     const events = req.body;
     
@@ -1785,7 +1774,7 @@ exports.handleSendGridWebhook = functions.https.onRequest(async (req, res) => {
 // Note: scheduled Pub/Sub function defined above is the single exporter for processing stages
 
 // Manual send (callable)
-exports.manualSendEmail = functions.https.onCall(async (data, context) => {
+exports.manualSendEmail = onCall(async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated');
   }
@@ -1800,7 +1789,7 @@ exports.manualSendEmail = functions.https.onCall(async (data, context) => {
 });
 
 // Pause/resume wrappers
-exports.pauseWorkflowForContact = functions.https.onCall(async (data, context) => {
+exports.pauseWorkflowForContact = onCall(async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated');
   }
@@ -1812,7 +1801,7 @@ exports.pauseWorkflowForContact = functions.https.onCall(async (data, context) =
   }
 });
 
-exports.resumeWorkflowForContact = functions.https.onCall(async (data, context) => {
+exports.resumeWorkflowForContact = onCall(async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated');
   }
@@ -1825,7 +1814,7 @@ exports.resumeWorkflowForContact = functions.https.onCall(async (data, context) 
 });
 
 // Get workflow status
-exports.getContactWorkflowStatus = functions.https.onCall(async (data, context) => {
+exports.getContactWorkflowStatus = onCall(async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated');
   }
@@ -1838,7 +1827,7 @@ exports.getContactWorkflowStatus = functions.https.onCall(async (data, context) 
 });
 
 // Legacy compatibility callables
-exports.checkIDIQApplications = functions.https.onCall(async (data, context) => {
+exports.checkIDIQApplications = onCall(async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated');
   }
@@ -1850,7 +1839,7 @@ exports.checkIDIQApplications = functions.https.onCall(async (data, context) => 
   }
 });
 
-exports.generateAIEmailContent = functions.https.onCall(async (data, context) => {
+exports.generateAIEmailContent = onCall(async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated');
   }
@@ -1883,7 +1872,7 @@ exports.idiqWebhook = idiqEnrollment.idiqWebhook;
  * 1. Predict Credit Score
  * Used by: InformationSheet.jsx
  */
-exports.predictCreditScore = functions.https.onCall(async (data, context) => {
+exports.predictCreditScore = onCall(async (data, context) => {
   try {
     console.log('🎯 AI Credit Score Prediction requested');
     const openaiKey = functions.config().openai?.api_key;
@@ -1922,7 +1911,7 @@ Respond ONLY with a JSON object:
  * 2. Analyze Financial Health
  * Used by: InformationSheet.jsx
  */
-exports.analyzeFinancialHealth = functions.https.onCall(async (data, context) => {
+exports.analyzeFinancialHealth = onCall(async (data, context) => {
   try {
     console.log('📊 AI Financial Health Analysis requested');
     const openaiKey = functions.config().openai?.api_key;
@@ -1968,7 +1957,7 @@ Respond ONLY with JSON:
  * 3. Identify Dispute Items
  * Used by: InformationSheet.jsx
  */
-exports.identifyDisputeItems = functions.https.onCall(async (data, context) => {
+exports.identifyDisputeItems = onCall(async (data, context) => {
   try {
     console.log('🔍 AI Dispute Identification requested');
     const openaiKey = functions.config().openai?.api_key;
@@ -2014,7 +2003,7 @@ Respond ONLY with JSON:
  * 4. Classify Document
  * Used by: InformationSheet.jsx
  */
-exports.classifyDocument = functions.https.onCall(async (data, context) => {
+exports.classifyDocument = onCall(async (data, context) => {
   try {
     console.log('📄 AI Document Classification requested');
     const openaiKey = functions.config().openai?.api_key;
@@ -2051,7 +2040,7 @@ Respond ONLY with JSON:
  * 5. Optimize Budget
  * Used by: InformationSheet.jsx
  */
-exports.optimizeBudget = functions.https.onCall(async (data, context) => {
+exports.optimizeBudget = onCall(async (data, context) => {
   try {
     console.log('💰 AI Budget Optimization requested');
     const openaiKey = functions.config().openai?.api_key;
@@ -2092,7 +2081,7 @@ Respond ONLY with JSON:
  * 6. Recommend Service Package
  * Used by: FullAgreement.jsx
  */
-exports.recommendServicePackage = functions.https.onCall(async (data, context) => {
+exports.recommendServicePackage = onCall(async (data, context) => {
   try {
     console.log('📦 AI Package Recommendation requested');
     const openaiKey = functions.config().openai?.api_key;
@@ -2139,7 +2128,7 @@ Respond ONLY with JSON:
  * 7. Optimize Pricing
  * Used by: FullAgreement.jsx
  */
-exports.optimizePricing = functions.https.onCall(async (data, context) => {
+exports.optimizePricing = onCall(async (data, context) => {
   try {
     console.log('💵 AI Pricing Optimization requested');
     const openaiKey = functions.config().openai?.api_key;
@@ -2181,7 +2170,7 @@ Respond ONLY with JSON:
  * 8. Analyze Contract Risk
  * Used by: FullAgreement.jsx
  */
-exports.analyzeContractRisk = functions.https.onCall(async (data, context) => {
+exports.analyzeContractRisk = onCall(async (data, context) => {
   try {
     console.log('⚠️ AI Contract Risk Analysis requested');
     const openaiKey = functions.config().openai?.api_key;
@@ -2224,7 +2213,7 @@ Respond ONLY with JSON:
  * 9. Predict Credit Timeline
  * Used by: FullAgreement.jsx
  */
-exports.predictCreditTimeline = functions.https.onCall(async (data, context) => {
+exports.predictCreditTimeline = onCall(async (data, context) => {
   try {
     console.log('📅 AI Timeline Prediction requested');
     const openaiKey = functions.config().openai?.api_key;
@@ -2266,7 +2255,7 @@ Respond ONLY with JSON:
  * 10. Detect Payment Fraud
  * Used by: ACHAuthorization.jsx
  */
-exports.detectPaymentFraud = functions.https.onCall(async (data, context) => {
+exports.detectPaymentFraud = onCall(async (data, context) => {
   try {
     console.log('🔒 AI Fraud Detection requested');
     const openaiKey = functions.config().openai?.api_key;
@@ -2308,7 +2297,7 @@ Respond ONLY with JSON:
  * 11. Assess Payment Risk
  * Used by: ACHAuthorization.jsx
  */
-exports.assessPaymentRisk = functions.https.onCall(async (data, context) => {
+exports.assessPaymentRisk = onCall(async (data, context) => {
   try {
     console.log('📈 AI Payment Risk Assessment requested');
     const openaiKey = functions.config().openai?.api_key;
@@ -2353,7 +2342,7 @@ Respond ONLY with JSON:
  * 12. Verify Bank Info
  * Used by: ACHAuthorization.jsx
  */
-exports.verifyBankInfo = functions.https.onCall(async (data, context) => {
+exports.verifyBankInfo = onCall(async (data, context) => {
   try {
     console.log('🏦 AI Bank Verification requested');
     // This would typically use a real bank verification API
@@ -2399,7 +2388,7 @@ exports.verifyBankInfo = functions.https.onCall(async (data, context) => {
  * 13. Predict Payment Success
  * Used by: ACHAuthorization.jsx
  */
-exports.predictPaymentSuccess = functions.https.onCall(async (data, context) => {
+exports.predictPaymentSuccess = onCall(async (data, context) => {
   try {
     console.log('🎯 AI Payment Success Prediction requested');
     const openaiKey = functions.config().openai?.api_key;
@@ -2442,7 +2431,7 @@ Respond ONLY with JSON:
  * 14. Verify POA Compliance
  * Used by: PowerOfAttorney.jsx
  */
-exports.verifyPOACompliance = functions.https.onCall(async (data, context) => {
+exports.verifyPOACompliance = onCall(async (data, context) => {
   try {
     console.log('⚖️ AI POA Compliance Verification requested');
     const openaiKey = functions.config().openai?.api_key;
@@ -2485,7 +2474,7 @@ Respond ONLY with JSON:
  * 15. Summarize POA
  * Used by: PowerOfAttorney.jsx
  */
-exports.summarizePOA = functions.https.onCall(async (data, context) => {
+exports.summarizePOA = onCall(async (data, context) => {
   try {
     console.log('📝 AI POA Summary requested');
     const openaiKey = functions.config().openai?.api_key;
@@ -2526,7 +2515,7 @@ Respond ONLY with JSON:
  * 16. Recommend POA Scope
  * Used by: PowerOfAttorney.jsx
  */
-exports.recommendPOAScope = functions.https.onCall(async (data, context) => {
+exports.recommendPOAScope = onCall(async (data, context) => {
   try {
     console.log('🎯 AI POA Scope Recommendation requested');
     const openaiKey = functions.config().openai?.api_key;
@@ -2568,7 +2557,7 @@ Respond ONLY with JSON:
  * 17. Get Form Suggestions (AI Auto-Complete)
  * Used by: InformationSheet.jsx
  */
-exports.getFormSuggestions = functions.https.onCall(async (data, context) => {
+exports.getFormSuggestions = onCall(async (data, context) => {
   try {
     console.log('💡 AI Form Suggestions requested');
     const openaiKey = functions.config().openai?.api_key;

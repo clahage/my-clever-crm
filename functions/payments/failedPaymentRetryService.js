@@ -7,6 +7,7 @@
 // ============================================================================
 
 const functions = require('firebase-functions');
+const { onSchedule } = require('firebase-functions/v2/scheduler');
 const admin = require('firebase-admin');
 const sgMail = require('@sendgrid/mail');
 
@@ -405,10 +406,10 @@ async function processPaymentRetry(paymentId, paymentData) {
  * Cloud Function: Daily scheduler to process payment retries
  * Runs every day at 10 AM EST
  */
-exports.dailyPaymentRetryScheduler = functions.pubsub
-  .schedule('0 10 * * *')
-  .timeZone('America/New_York')
-  .onRun(async (context) => {
+exports.dailyPaymentRetryScheduler = onSchedule({
+  schedule: '0 10 * * *',
+  timeZone: 'America/New_York',
+}, async (event) => {
     console.log('🚀 Starting daily payment retry scheduler...');
 
     try {
@@ -470,12 +471,11 @@ exports.dailyPaymentRetryScheduler = functions.pubsub
  * Cloud Function: Auto-schedule retry when payment fails
  * Triggered when payment status changes to failed
  */
-exports.autoScheduleRetry = functions.firestore
-  .document('payments/{paymentId}')
-  .onUpdate(async (change, context) => {
-    const paymentId = context.params.paymentId;
-    const beforeData = change.before.data();
-    const afterData = change.after.data();
+const { onDocumentUpdated } = require('firebase-functions/v2/firestore');
+exports.autoScheduleRetry = onDocumentUpdated('payments/{paymentId}', async (event) => {
+  const paymentId = event.params.paymentId;
+  const beforeData = event.data.before;
+  const afterData = event.data.after;
 
     // Check if payment just failed
     if (beforeData.status !== 'failed' && afterData.status === 'failed') {

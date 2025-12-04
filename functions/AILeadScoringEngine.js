@@ -1050,7 +1050,8 @@ exports.onContactCreated = functions.firestore
 /**
  * Manual scoring endpoint
  */
-exports.scoreLead = functions.https.onCall(async (data, context) => {
+const { onCall } = require('firebase-functions/v2/https');
+exports.scoreLead = onCall(async (data, context) => {
   // Verify authentication
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
@@ -1071,7 +1072,7 @@ exports.scoreLead = functions.https.onCall(async (data, context) => {
 /**
  * Re-score all leads (admin function)
  */
-exports.rescoreAllLeads = functions.https.onCall(async (data, context) => {
+exports.rescoreAllLeads = onCall(async (data, context) => {
   // Check admin role
   if (!context.auth || context.auth.token.role < 7) {
     throw new functions.https.HttpsError('permission-denied', 'Admin only');

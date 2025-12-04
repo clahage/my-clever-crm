@@ -6,6 +6,7 @@
 // ============================================================================
 
 const functions = require('firebase-functions');
+const { onDocumentUpdated } = require('firebase-functions/v2/firestore');
 const admin = require('firebase-admin');
 const sgMail = require('@sendgrid/mail');
 const puppeteer = require('puppeteer');
@@ -578,12 +579,10 @@ async function generateAndSendReceipt(paymentId, paymentData) {
  * Cloud Function: Auto-generate receipt when payment is completed
  * Triggered by Firestore payment document updates
  */
-exports.autoGenerateReceipt = functions.firestore
-  .document('payments/{paymentId}')
-  .onUpdate(async (change, context) => {
-    const paymentId = context.params.paymentId;
-    const beforeData = change.before.data();
-    const afterData = change.after.data();
+exports.autoGenerateReceipt = onDocumentUpdated('payments/{paymentId}', async (event) => {
+  const paymentId = event.params.paymentId;
+  const beforeData = event.data.before;
+  const afterData = event.data.after;
 
     // Only generate receipt if payment just became completed and doesn't have a receipt yet
     if (

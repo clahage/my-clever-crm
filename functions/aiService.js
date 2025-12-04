@@ -156,7 +156,8 @@ async function verifyAuth(context) {
  *   maxTokens: 500
  * });
  */
-exports.aiComplete = functions.https.onCall(async (data, context) => {
+const { onCall } = require('firebase-functions/v2/https');
+exports.aiComplete = onCall(async (data, context) => {
   try {
     const userId = await verifyAuth(context);
 
@@ -231,7 +232,7 @@ exports.aiComplete = functions.https.onCall(async (data, context) => {
  *   temperature: 0.7
  * });
  */
-exports.anthropicComplete = functions.https.onCall(async (data, context) => {
+exports.anthropicComplete = onCall(async (data, context) => {
   try {
     const userId = await verifyAuth(context);
 
@@ -327,7 +328,7 @@ exports.anthropicComplete = functions.https.onCall(async (data, context) => {
  *   type: 'credit-analysis' | 'lead-scoring' | 'general'
  * });
  */
-exports.generateInsights = functions.https.onCall(async (data, context) => {
+exports.generateInsights = onCall(async (data, context) => {
   try {
     const userId = await verifyAuth(context);
 
@@ -434,7 +435,7 @@ exports.generateInsights = functions.https.onCall(async (data, context) => {
  *   clientInfo: {...}
  * });
  */
-exports.analyzeCreditReport = functions.https.onCall(async (data, context) => {
+exports.analyzeCreditReport = onCall(async (data, context) => {
   try {
     const userId = await verifyAuth(context);
 
@@ -531,7 +532,7 @@ Client Info: ${JSON.stringify(data.clientInfo || {}, null, 2)}`;
  *   clientInfo: {...}
  * });
  */
-exports.generateDisputeLetter = functions.https.onCall(async (data, context) => {
+exports.generateDisputeLetter = onCall(async (data, context) => {
   try {
     const userId = await verifyAuth(context);
 
@@ -639,7 +640,7 @@ Bureau: ${data.bureau || 'All Three Bureaus'}`;
  *   leadData: {...}
  * });
  */
-exports.scoreLead = functions.https.onCall(async (data, context) => {
+exports.scoreLead = onCall(async (data, context) => {
   try {
     const userId = await verifyAuth(context);
 
@@ -740,7 +741,7 @@ ${JSON.stringify(data.leadData, null, 2)}`;
  *   bureau: "Experian"
  * });
  */
-exports.parseCreditReport = functions.https.onCall(async (data, context) => {
+exports.parseCreditReport = onCall(async (data, context) => {
   try {
     const userId = await verifyAuth(context);
 
@@ -909,7 +910,7 @@ function calculateAnthropicCost(model, usage) {
 /**
  * Get AI usage statistics for a user
  */
-exports.getAIUsageStats = functions.https.onCall(async (data, context) => {
+exports.getAIUsageStats = onCall(async (data, context) => {
   try {
     const userId = await verifyAuth(context);
 
@@ -959,7 +960,7 @@ exports.getAIUsageStats = functions.https.onCall(async (data, context) => {
 /**
  * Admin: Get all AI usage for cost tracking
  */
-exports.getAllAIUsage = functions.https.onCall(async (data, context) => {
+exports.getAllAIUsage = onCall(async (data, context) => {
   try {
     const userId = await verifyAuth(context);
 

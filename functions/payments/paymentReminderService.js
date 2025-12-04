@@ -6,6 +6,7 @@
 // ============================================================================
 
 const functions = require('firebase-functions');
+const { onSchedule } = require('firebase-functions/v2/scheduler');
 const admin = require('firebase-admin');
 const sgMail = require('@sendgrid/mail');
 
@@ -410,10 +411,10 @@ async function processPaymentReminders(daysBeforeDue, reminderType, templateFunc
  * Cloud Function: Daily Payment Reminder Scheduler
  * Runs every day at 9 AM EST to send payment reminders
  */
-exports.dailyPaymentReminderScheduler = functions.pubsub
-  .schedule('0 9 * * *')
-  .timeZone('America/New_York')
-  .onRun(async (context) => {
+exports.dailyPaymentReminderScheduler = onSchedule({
+  schedule: '0 9 * * *',
+  timeZone: 'America/New_York',
+}, async (event) => {
     console.log('🚀 Starting daily payment reminder scheduler...');
 
     try {
@@ -456,7 +457,8 @@ exports.dailyPaymentReminderScheduler = functions.pubsub
  * Cloud Function: Manual trigger for testing payment reminders
  * Can be called via HTTP to test the reminder system
  */
-exports.testPaymentReminders = functions.https.onRequest(async (req, res) => {
+const { onRequest, onCall } = require('firebase-functions/v2/https');
+exports.testPaymentReminders = onRequest(async (req, res) => {
   // Simple authentication check
   const apiKey = req.headers['x-api-key'];
   if (apiKey !== 'test-payment-reminders-key') {
@@ -503,7 +505,7 @@ exports.testPaymentReminders = functions.https.onRequest(async (req, res) => {
  * Cloud Function: Send immediate payment reminder
  * Triggered by HTTP request for specific payment
  */
-exports.sendPaymentReminder = functions.https.onCall(async (data, context) => {
+exports.sendPaymentReminder = onCall(async (data, context) => {
   // Verify user is authenticated and is admin
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
