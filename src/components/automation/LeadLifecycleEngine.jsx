@@ -308,6 +308,9 @@ const LeadLifecycleEngine = ({ contactId, embedded = false }) => {
       loadLifecycleHistory();
       loadAutomations();
       generateAISuggestions();
+    } else {
+      // No contactId provided - set loading to false and show contact selector
+      setLoading(false);
     }
   }, [contactId]);
 
@@ -841,10 +844,86 @@ const LeadLifecycleEngine = ({ contactId, embedded = false }) => {
 
   if (!contact) {
     return (
-      <Alert severity="error">
-        <AlertTitle>Contact Not Found</AlertTitle>
-        Unable to load contact data.
-      </Alert>
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Paper sx={{ p: 4, textAlign: 'center' }}>
+          <Activity size={64} style={{ opacity: 0.3, marginBottom: 16 }} />
+          <Typography variant="h5" gutterBottom>
+            Lead Lifecycle Engine
+          </Typography>
+          <Typography variant="body1" color="text.secondary" paragraph>
+            Automate your complete lead-to-client workflow with AI assistance at every step
+          </Typography>
+
+          <Box sx={{ mt: 4, p: 3, bgcolor: 'background.default', borderRadius: 2 }}>
+            <Typography variant="h6" gutterBottom>
+              🎯 How to Use This Feature
+            </Typography>
+            <List sx={{ textAlign: 'left', maxWidth: 600, margin: '0 auto' }}>
+              <ListItem>
+                <ListItemIcon>
+                  <Chip label="1" color="primary" size="small" />
+                </ListItemIcon>
+                <ListItemText
+                  primary="Open a Contact"
+                  secondary="Go to Clients & Pipeline Hub and select a contact"
+                />
+              </ListItem>
+              <ListItem>
+                <ListItemIcon>
+                  <Chip label="2" color="primary" size="small" />
+                </ListItemIcon>
+                <ListItemText
+                  primary="Access Lifecycle Tab"
+                  secondary="The Lead Lifecycle Engine will appear in the contact's detail view"
+                />
+              </ListItem>
+              <ListItem>
+                <ListItemIcon>
+                  <Chip label="3" color="primary" size="small" />
+                </ListItemIcon>
+                <ListItemText
+                  primary="AI Automation"
+                  secondary="AI will score, route, and suggest next actions for each contact"
+                />
+              </ListItem>
+            </List>
+          </Box>
+
+          <Box sx={{ mt: 4 }}>
+            <Alert severity="info">
+              <AlertTitle>💡 Pro Tip</AlertTitle>
+              This engine works best when integrated with individual contacts. Each contact gets personalized AI scoring, routing, and automation based on their lifecycle stage.
+            </Alert>
+          </Box>
+
+          <Box sx={{ mt: 4 }}>
+            <Typography variant="body2" color="text.secondary" paragraph>
+              <strong>13 Lifecycle Stages:</strong> NEW_CONTACT → AI_EVALUATION → LEAD_QUALIFIED → FIRST_CONTACT → NURTURE → PROPOSAL_SENT → NEGOTIATION → CLOSED_WON → ONBOARDING → ACTIVE_CLIENT → CLIENT_SUCCESS → DISQUALIFIED → DO_NOT_CALL
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              <strong>200+ AI Decision Points:</strong> Lead scoring, automatic routing, email triggers, task creation, and intelligent suggestions
+            </Typography>
+          </Box>
+
+          <Box sx={{ mt: 4 }}>
+            <Button
+              variant="contained"
+              size="large"
+              href="/clients-pipeline-hub"
+              sx={{ mr: 2 }}
+            >
+              Go to Clients Hub
+            </Button>
+            <Button
+              variant="outlined"
+              size="large"
+              onClick={() => window.location.href = '/contacts'}
+            >
+              View All Contacts
+            </Button>
+          </Box>
+        </Paper>
+      </Container>
     );
   }
 
