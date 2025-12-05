@@ -99,7 +99,7 @@ import {
   AutoGraph as AutoGraphIcon,
   Summarize as SummarizeIcon,
   TextSnippet as TextSnippetIcon,
-  DriveFileRename as RenameIcon,
+  DriveFileRenameOutline as RenameIcon,
   FactCheck as FactCheckIcon,
   GppGood as GppGoodIcon,
   GppBad as GppBadIcon,

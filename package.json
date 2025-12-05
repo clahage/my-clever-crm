@@ -86,6 +86,7 @@
     "react-big-calendar": "^1.19.4",
     "react-calendar": "^6.0.0",
     "react-chartjs-2": "^5.3.0",
+    "react-confetti": "^6.4.0",
     "react-datepicker": "^8.7.0",
     "react-dom": "^18.3.1",
     "react-force-graph": "^1.48.1",

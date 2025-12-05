@@ -14,7 +14,7 @@
  * - Licensing tiers and pricing management
  * - Partner analytics and reporting
  *
- * @version 1.0.0
+ * @version 1.0.1
  * @date November 2025
  */
 
@@ -146,7 +146,6 @@ import {
   ChevronRight,
   ChevronDown,
   ChevronUp,
-  ExpandMore,
   MoreHorizontal,
   MoreVertical,
   Lock,
@@ -163,77 +162,10 @@ import {
   Box as BoxIcon,
   Server,
   Database,
-  Cloud,
-  CloudUpload,
-  Wifi,
-  Monitor,
-  Smartphone,
-  Tablet,
-  Layout,
-  LayoutDashboard,
-  PanelLeft,
-  Image,
-  Type,
-  Brush,
-  Droplet,
-  Contrast,
-  Sun,
-  Moon,
-  Sliders,
-  Gauge,
-  Percent,
-  Calculator,
-  Receipt,
-  CreditCard,
-  Wallet,
-  PiggyBank,
-  Banknote,
-  Coins,
-  HandCoins,
-  ArrowUpRight,
-  ArrowDownRight,
-  TrendingDown,
-  Milestone,
-  Flag,
-  MapPin,
-  Navigation,
-  Compass,
-  Route,
-  Send,
-  Inbox,
-  Bell,
-  BellRing,
-  Megaphone,
-  Gift,
-  PartyPopper,
-  Confetti,
-  Heart,
-  ThumbsUp,
-  ThumbsDown,
-  Handshake,
-  UserPlus,
-  UserCheck,
-  UserX,
-  UserCog,
-  UsersRound,
-  Building,
-  Store,
-  ShoppingBag,
-  Tag,
-  Tags,
-  Bookmark,
-  Hash,
-  AtSign,
-  QrCode,
-  Barcode,
-  Fingerprint,
-  ScanLine,
-  Code,
   Terminal,
   Bug,
   TestTube,
   Wrench,
-  Tool,
   Hammer,
   Cog,
   Settings2,
@@ -251,8 +183,22 @@ import {
   Triangle,
   Hexagon,
   Octagon,
-  Pentagon
+  Pentagon,
+  // Added missing imports below
+  LayoutDashboard,
+  UserPlus,
+  ArrowUpRight,
+  ArrowDownRight,
+  UserCheck,
+  Percent,
+  Coins,
+  HandCoins,
+  Image,
+  Gift
 } from 'lucide-react';
+
+// Use MUI's ExpandMoreIcon for accordions
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 import {
   LineChart as RechartsLineChart,
@@ -277,6 +223,8 @@ import {
   Legend,
   ResponsiveContainer
 } from 'recharts';
+
+import Confetti from 'react-confetti';
 
 // ============================================================================
 // CONSTANTS & CONFIGURATION

@@ -1,8 +1,11 @@
+// ...existing code...
+import React, { lazy, Suspense } from 'react';
+// Add import for FinancialPlanningHub
+const FinancialPlanningHub = lazy(() => import('@/pages/hubs/FinancialPlanningHub'));
 // src/App.jsx - SpeedyCRM Complete Application Router
 // VERSION: 3.0 - HYBRID HUB ARCHITECTURE INTEGRATION
 // LAST UPDATED: 2025-11-06 - All 18 Hubs Integrated
 import EmailWorkflowDashboard from './components/EmailWorkflowDashboard';
-import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
@@ -997,6 +1000,18 @@ const AppContent = () => {
   }
 />
 
+{/* Financial Planning Hub - Specialized Services (ADDED HERE) */}
+<Route
+  path="financial-planning-hub"
+  element={
+    <ProtectedRoute requiredRoles={['client', 'admin', 'masterAdmin']}>
+      <Suspense fallback={<LoadingFallback />}>
+        <FinancialPlanningHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
 {/* Certification Academy Hub - Credit repair professional training */}
 <Route
   path="certification-academy-hub"
@@ -1176,6 +1191,7 @@ const AppContent = () => {
       </Route>
     </Routes>
   );
+        
 };
 
 // ============================================================================

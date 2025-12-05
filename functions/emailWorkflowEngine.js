@@ -1,3 +1,4 @@
+const functions = require('firebase-functions');
 /**
  * ═══════════════════════════════════════════════════════════════════════════
  * MEGA ENTERPRISE EMAIL WORKFLOW ENGINE - SpeedyCRM
@@ -25,7 +26,6 @@
  * @updated Switched from SendGrid to Google Workspace SMTP
  */
 
-const functions = require('firebase-functions');
 const { db, admin } = require('./firebaseAdmin');
 const { EMAIL_BRANDING } = require('./emailBrandingConfig');
 const { getEmailTemplate } = require('./emailTemplates');
@@ -36,7 +36,6 @@ const { getEmailTemplate } = require('./emailTemplates');
 
 // Google Workspace SMTP (using nodemailer)
 const nodemailer = require('nodemailer');
-const functions = require('firebase-functions');
 const gmailUser = functions.config().gmail && functions.config().gmail.user ? functions.config().gmail.user : 'chris@speedycreditrepair.com';
 const gmailAppPassword = functions.config().gmail && functions.config().gmail.app_password;
 const fromEmail = functions.config().gmail && functions.config().gmail.from_email ? functions.config().gmail.from_email : 'chris@speedycreditrepair.com';
