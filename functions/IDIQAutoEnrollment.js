@@ -24,6 +24,13 @@
  */
 
 const functions = require('firebase-functions');
+const { param } = require('firebase-functions/params');
+
+const IDIQ_API_URL = param('IDIQ_API_URL');
+const IDIQ_API_KEY = param('IDIQ_API_KEY');
+const IDIQ_API_SECRET = param('IDIQ_API_SECRET');
+const IDIQ_WEBHOOK_URL = param('IDIQ_WEBHOOK_URL');
+const IDIQ_ENVIRONMENT = param('IDIQ_ENVIRONMENT');
 const { db, admin } = require('./firebaseAdmin');
 const axios = require('axios');
 const crypto = require('crypto');
@@ -35,11 +42,11 @@ const crypto = require('crypto');
 // IDIQ Partner Configuration
 const IDIQ_CONFIG = {
   partnerId: '11981',
-  apiUrl: functions.config().idiq?.api_url || 'https://api.idiq.com',
-  apiKey: functions.config().idiq?.api_key,
-  apiSecret: functions.config().idiq?.api_secret,
-  webhookUrl: functions.config().idiq?.webhook_url || 'https://myclevercrm.com/api/idiq-webhook',
-  environment: functions.config().idiq?.environment || 'production'
+  apiUrl: IDIQ_API_URL.value() || 'https://api.idiq.com',
+  apiKey: IDIQ_API_KEY.value(),
+  apiSecret: IDIQ_API_SECRET.value(),
+  webhookUrl: IDIQ_WEBHOOK_URL.value() || 'https://myclevercrm.com/api/idiq-webhook',
+  environment: IDIQ_ENVIRONMENT.value() || 'production'
 };
 
 // Enrollment Plans

@@ -9,6 +9,13 @@
 // ============================================
 
 const functions = require('firebase-functions');
+const { param } = require('firebase-functions/params');
+
+const IDIQ_PARTNER_ID = param('IDIQ_PARTNER_ID');
+const IDIQ_PARTNER_SECRET = param('IDIQ_PARTNER_SECRET');
+const IDIQ_OFFER_CODE = param('IDIQ_OFFER_CODE');
+const IDIQ_PLAN_CODE = param('IDIQ_PLAN_CODE');
+const IDIQ_ENVIRONMENT = param('IDIQ_ENVIRONMENT');
 const admin = require('firebase-admin');
 const axios = require('axios');
 const crypto = require('crypto');
@@ -20,11 +27,11 @@ const crypto = require('crypto');
 const IDIQ_CONFIG = {
   PROD_BASE_URL: 'https://api.identityiq.com/pif-service/',
   STAGE_BASE_URL: 'https://api-stage.identityiq.com/pif-service/',
-  PARTNER_ID: functions.config().idiq?.partner_id || '11981',
-  PARTNER_SECRET: functions.config().idiq?.partner_secret,
-  OFFER_CODE: functions.config().idiq?.offer_code || '4312869N',
-  PLAN_CODE: functions.config().idiq?.plan_code || 'PLAN03B',
-  ENVIRONMENT: functions.config().idiq?.environment || 'prod',
+  PARTNER_ID: IDIQ_PARTNER_ID.value() || '11981',
+  PARTNER_SECRET: IDIQ_PARTNER_SECRET.value(),
+  OFFER_CODE: IDIQ_OFFER_CODE.value() || '4312869N',
+  PLAN_CODE: IDIQ_PLAN_CODE.value() || 'PLAN03B',
+  ENVIRONMENT: IDIQ_ENVIRONMENT.value() || 'prod',
   TIMEOUT: 30000, // 30 seconds
   MAX_RETRIES: 3,
   RETRY_DELAY: 2000 // 2 seconds
