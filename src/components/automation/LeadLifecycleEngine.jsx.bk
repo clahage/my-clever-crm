@@ -303,23 +303,13 @@ const LeadLifecycleEngine = ({ contactId, embedded = false }) => {
 
   // ===== LOAD DATA =====
   useEffect(() => {
-    if (!currentUser) {
-      console.log('⚠️ No currentUser, skipping data load');
-      setLoading(false);
-      return;
-    }
-
     if (contactId) {
-      // Detail mode - specific contact  
       loadContactData();
       loadLifecycleHistory();
       loadAutomations();
       generateAISuggestions();
-    } else {
-      // Overview mode - all contacts
-      loadOverviewData();
     }
-  }, [contactId, currentUser]);
+  }, [contactId]);
 
   const loadContactData = async () => {
     setLoading(true);
@@ -364,86 +354,6 @@ const LeadLifecycleEngine = ({ contactId, embedded = false }) => {
       setActiveAutomations(automations);
     } catch (error) {
       console.error('Error loading automations:', error);
-    }
-  };
-
-  // ===== OVERVIEW MODE DATA LOADING =====
-  const loadOverviewData = async () => {
-    setLoading(true);
-    try {
-      console.log('🔄 Loading lifecycle overview...');
-      
-      const contactsRef = collection(db, 'contacts');
-      const contactsQuery = query(contactsRef, orderBy('createdAt', 'desc'), limit(100));
-      const snapshot = await getDocs(contactsQuery);
-      const allContacts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-      const lifecycleContacts = allContacts.filter(c => 
-        c.roles && Array.isArray(c.roles) && 
-        c.roles.some(role => ['lead', 'prospect', 'client'].includes(role))
-      );
-
-      const distribution = {};
-      Object.keys(LIFECYCLE_STAGES).forEach(key => {
-        distribution[key] = lifecycleContacts.filter(c => 
-          (c.currentStage || c.lifecycleStage) === key
-        ).length;
-      });
-      const noStage = lifecycleContacts.filter(c => !c.currentStage && !c.lifecycleStage).length;
-      distribution['new_contact'] = (distribution['new_contact'] || 0) + noStage;
-
-      const automationsRef = collection(db, 'automationWorkflows');
-      const automationsQuery = query(automationsRef, where('status', '==', 'active'));
-      const automationsSnap = await getDocs(automationsQuery);
-      const activeAutomations = automationsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setAutomations(activeAutomations);
-
-      const suggestions = [];
-      if (distribution['lead_qualified'] > 0) {
-        suggestions.push({
-          priority: 'critical',
-          type: 'alert',
-          title: `${distribution['lead_qualified']} Qualified Leads Awaiting Action`,
-          description: 'High-priority leads require immediate follow-up',
-          action: 'view_qualified',
-          icon: Star,
-        });
-      }
-      if (distribution['ai_analysis_pending'] > 0) {
-        suggestions.push({
-          priority: 'high',
-          type: 'action',
-          title: `${distribution['ai_analysis_pending']} AI Analyses Pending Review`,
-          description: 'Credit analyses require human approval',
-          action: 'review_analyses',
-          icon: Brain,
-        });
-      }
-      if (distribution['document_signing'] > 0) {
-        suggestions.push({
-          priority: 'high',
-          type: 'opportunity',
-          title: `${distribution['document_signing']} Contracts Awaiting Signature`,
-          description: 'Follow up on pending e-signatures',
-          action: 'check_documents',
-          icon: FileText,
-        });
-      }
-      setAiSuggestions(suggestions);
-
-      const historyRef = collection(db, 'lifecycleHistory');
-      const historyQuery = query(historyRef, orderBy('timestamp', 'desc'), limit(20));
-      const historySnap = await getDocs(historyQuery);
-      setLifecycleHistory(historySnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-
-      window.__stageDistribution = distribution;
-      window.__lifecycleContacts = lifecycleContacts;
-
-      console.log('✅ Overview loaded:', { total: lifecycleContacts.length });
-    } catch (error) {
-      console.error('❌ Error loading overview:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -807,99 +717,7 @@ const LeadLifecycleEngine = ({ contactId, embedded = false }) => {
     setAiSuggestions(suggestions);
   };
 
-  // ===== OVERVIEW DASHBOARD =====
-  const renderOverviewDashboard = () => {
-    const distribution = window.__stageDistribution || {};
-    const contacts = window.__lifecycleContacts || [];
-
-    return (
-      <Box>
-        {!embedded && (
-          <Box sx={{ mb: 4 }}>
-            <Typography variant="h4" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Activity />
-              Lead Lifecycle Engine - Overview
-              <Chip icon={<Brain />} label="AI Powered" sx={{ ml: 2 }} color="primary" />
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
-              Automated lifecycle management across {contacts.length} contacts
-            </Typography>
-          </Box>
-        )}
-
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          {Object.entries(LIFECYCLE_STAGES).map(([key, stage]) => {
-            const count = distribution[key] || 0;
-            const StageIcon = stage.icon;
-            return (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={key}>
-                <Card elevation={2} sx={{ height: '100%', borderLeft: `4px solid ${stage.color}` }}>
-                  <CardContent>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                      <Avatar sx={{ bgcolor: alpha(stage.color, 0.2), color: stage.color, width: 56, height: 56 }}>
-                        <StageIcon size={28} />
-                      </Avatar>
-                      <Typography variant="h3" sx={{ fontWeight: 700, color: stage.color }}>
-                        {count}
-                      </Typography>
-                    </Box>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 0.5 }}>
-                      {stage.label}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {stage.description}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-            );
-          })}
-        </Grid>
-
-        {aiSuggestions.length > 0 && (
-          <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
-            <Typography variant="h6" sx={{ fontWeight: 600, mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Sparkles size={24} />
-              AI-Powered Insights
-            </Typography>
-            {renderAISuggestions()}
-          </Paper>
-        )}
-
-        <Paper elevation={2} sx={{ p: 3 }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Activity size={24} />
-            Recent Activity
-          </Typography>
-          {lifecycleHistory.length === 0 ? (
-            <Alert severity="info">No recent activity</Alert>
-          ) : (
-            <List>
-              {lifecycleHistory.slice(0, 10).map((event, idx) => {
-                const stage = Object.values(LIFECYCLE_STAGES).find(s => s.id === (event.toStage || event.stage));
-                const StageIcon = stage?.icon || Activity;
-                return (
-                  <ListItem key={event.id}>
-                    <ListItemIcon>
-                      <Avatar sx={{ bgcolor: alpha(stage?.color || '#666', 0.2) }}>
-                        <StageIcon size={20} />
-                      </Avatar>
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={event.contactName || `Contact ${event.contactId}`}
-                      secondary={`${stage?.label || 'Stage Change'} • ${event.timestamp?.toDate?.()?.toLocaleString() || 'N/A'}`}
-                    />
-                  </ListItem>
-                );
-              })}
-            </List>
-          )}
-        </Paper>
-      </Box>
-    );
-  };
-
-    // ===== RENDER FUNCTIONS =====
+  // ===== RENDER FUNCTIONS =====
 
   const renderLifecycleTimeline = () => (
     <Timeline position="right">
@@ -1015,33 +833,17 @@ const LeadLifecycleEngine = ({ contactId, embedded = false }) => {
 
   if (loading) {
     return (
-      <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress size={60} />
-        <Typography color="text.secondary" sx={{ mt: 2 }}>
-          Loading lifecycle data...
-        </Typography>
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+        <CircularProgress />
       </Box>
     );
-  }
-
-  if (!currentUser) {
-    return (
-      <Alert severity="warning">
-        <AlertTitle>Authentication Required</AlertTitle>
-        Please log in to view lifecycle automation data.
-      </Alert>
-    );
-  }
-
-  if (!contactId) {
-    return renderOverviewDashboard();
   }
 
   if (!contact) {
     return (
       <Alert severity="error">
         <AlertTitle>Contact Not Found</AlertTitle>
-        Unable to load contact data for ID: {contactId}
+        Unable to load contact data.
       </Alert>
     );
   }

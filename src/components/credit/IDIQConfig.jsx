@@ -841,6 +841,10 @@ const IDIQConfig = () => {
       if (configDoc.exists()) {
         setConfig({ ...config, ...configDoc.data() });
         console.log('✅ Configuration loaded');
+      } else {
+        // Set a default config if none exists
+        setConfig({ ...config });
+        console.warn('⚠️ No IDIQ config found in Firestore, using defaults');
       }
     } catch (err) {
       console.error('❌ Error loading configuration:', err);
@@ -1195,9 +1199,15 @@ const IDIQConfig = () => {
           </Box>
         ) : (
           <>
-            {/* ========================================= */}
-            {/* TAB 0: API CREDENTIALS */}
-            {/* ========================================= */}
+            {(!config || Object.keys(config).length === 0) && (
+              <Alert severity="warning" className="mb-4">
+                <AlertTitle>Warning</AlertTitle>
+                No configuration found. Using defaults. Please check your Firestore or save your configuration.
+              </Alert>
+            )}
+            {/* ========================================= */
+            /* TAB 0: API CREDENTIALS */
+            /* ========================================= */}
             {activeTab === 0 && (
               <Box>
                 <Box className="flex justify-between items-center mb-6">

@@ -114,14 +114,18 @@ const LeadScoringDashboard = ({ embedded = false, contactId = null }) => {
   
   // ===== FIREBASE LISTENERS =====
   useEffect(() => {
+    let unsubscribe;
     if (contactId) {
       // Single contact mode
       loadSingleContact();
     } else {
       // Dashboard mode
-      loadAllLeads();
+      unsubscribe = loadAllLeads();
       loadAnalytics();
     }
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, [contactId, filterStatus, sortBy]);
   
   // Load single contact score

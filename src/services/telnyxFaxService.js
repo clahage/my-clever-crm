@@ -29,6 +29,7 @@ import {
   getDocs,
   serverTimestamp
 } from 'firebase/firestore';
+import { limit as limitFn } from 'firebase/firestore';
 
 // Telnyx API Configuration
 const TELNYX_API_URL = 'https://api.telnyx.com/v2/faxes';
@@ -413,12 +414,12 @@ class TelnyxFaxService {
   async getFaxHistory(clientId, limit = 50) {
     try {
       const faxesRef = collection(db, 'faxes');
-      const q = query(
-        faxesRef,
-        where('clientId', '==', clientId),
-        orderBy('createdAt', 'desc'),
-        limit(limit)
-      );
+      let q;
+      if (clientId === 'all') {
+        q = query(faxesRef, orderBy('createdAt', 'desc'), limitFn(limit));
+      } else {
+        q = query(faxesRef, where('clientId', '==', clientId), orderBy('createdAt', 'desc'), limitFn(limit));
+      }
 
       const snapshot = await getDocs(q);
       const faxes = [];
