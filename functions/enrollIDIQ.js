@@ -568,7 +568,7 @@ async function callIdiqEnrollmentApi(contact) {
     const response = await axios.post(`${IDIQ_API_BASE_URL}/enroll`, enrollmentPayload, {
       headers: {
         'X-Partner-ID': IDIQ_PARTNER_ID,
-        'X-API-Key': process.env.IDIQ_API_KEY,
+        'X-API-Key': functions.config().idiq?.api_key,
         'Content-Type': 'application/json',
       },
       timeout: 30000, // 30 second timeout

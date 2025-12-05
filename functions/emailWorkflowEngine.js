@@ -36,11 +36,12 @@ const { getEmailTemplate } = require('./emailTemplates');
 
 // Google Workspace SMTP (using nodemailer)
 const nodemailer = require('nodemailer');
-const gmailUser = process.env.GMAIL_USER || 'chris@speedycreditrepair.com';
-const gmailAppPassword = process.env.GMAIL_APP_PASSWORD;
-const fromEmail = process.env.GMAIL_FROM_EMAIL || 'chris@speedycreditrepair.com';
-const fromName = process.env.GMAIL_FROM_NAME || 'Chris Lahage - Speedy Credit Repair';
-const replyTo = process.env.GMAIL_REPLY_TO || 'contact@speedycreditrepair.com';
+const functions = require('firebase-functions');
+const gmailUser = functions.config().gmail && functions.config().gmail.user ? functions.config().gmail.user : 'chris@speedycreditrepair.com';
+const gmailAppPassword = functions.config().gmail && functions.config().gmail.app_password;
+const fromEmail = functions.config().gmail && functions.config().gmail.from_email ? functions.config().gmail.from_email : 'chris@speedycreditrepair.com';
+const fromName = functions.config().gmail && functions.config().gmail.from_name ? functions.config().gmail.from_name : 'Chris Lahage - Speedy Credit Repair';
+const replyTo = functions.config().gmail && functions.config().gmail.reply_to ? functions.config().gmail.reply_to : 'contact@speedycreditrepair.com';
 
 let transporter = null;
 
@@ -61,7 +62,7 @@ if (gmailAppPassword) {
 
 // OpenAI
 const { OpenAI } = require('openai');
-const openaiKey = process.env.OPENAI_API_KEY;
+const openaiKey = functions.config().openai && functions.config().openai.key;
 const openai = openaiKey ? new OpenAI({ apiKey: openaiKey }) : null;
 
 if (openai) {

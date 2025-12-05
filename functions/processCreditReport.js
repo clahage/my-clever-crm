@@ -317,7 +317,7 @@ async function fetchIdiqCreditReport(enrollment) {
       {
         headers: {
           'X-Partner-ID': IDIQ_PARTNER_ID,
-          'X-API-Key': process.env.IDIQ_API_KEY,
+          'X-API-Key': functions.config().idiq?.api_key,
         },
         timeout: 60000, // 60 second timeout (reports can be large)
       }

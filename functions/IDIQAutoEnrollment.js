@@ -35,11 +35,11 @@ const crypto = require('crypto');
 // IDIQ Partner Configuration
 const IDIQ_CONFIG = {
   partnerId: '11981',
-  apiUrl: process.env.IDIQ_API_URL || 'https://api.idiq.com',
-  apiKey: process.env.IDIQ_API_KEY,
-  apiSecret: process.env.IDIQ_API_SECRET,
-  webhookUrl: process.env.IDIQ_WEBHOOK_URL || 'https://myclevercrm.com/api/idiq-webhook',
-  environment: process.env.IDIQ_ENVIRONMENT || 'production'
+  apiUrl: functions.config().idiq?.api_url || 'https://api.idiq.com',
+  apiKey: functions.config().idiq?.api_key,
+  apiSecret: functions.config().idiq?.api_secret,
+  webhookUrl: functions.config().idiq?.webhook_url || 'https://myclevercrm.com/api/idiq-webhook',
+  environment: functions.config().idiq?.environment || 'production'
 };
 
 // Enrollment Plans

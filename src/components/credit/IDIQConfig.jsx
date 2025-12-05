@@ -371,13 +371,15 @@ Return ONLY valid JSON:
   "improvements": ["Enable audit logging", "Set up budget alerts"]
 }`;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+
+    // Call the Firebase openaiProxy function instead of OpenAI directly
+    const response = await fetch('/openaiProxy', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
+        endpoint: 'chat/completions',
         model: 'gpt-4',
         messages: [
           {

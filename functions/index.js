@@ -145,12 +145,12 @@ const MASTER_ADMIN_UID = "BgTAnHE4zMOLr4ZhBqCBfFb3h6D3";
 const IDIQ_CONFIG = {
   STAGE_BASE_URL: 'https://api-stage.identityiq.com/pif-service/',
   PROD_BASE_URL: 'https://api.identityiq.com/pif-service/',
-  OFFER_CODE: process.env.IDIQ_OFFER_CODE || '4312869N',
-  PLAN_CODE: process.env.IDIQ_PLAN_CODE || 'PLAN03B'
+  OFFER_CODE: functions.config().idiq?.offer_code || '4312869N',
+  PLAN_CODE: functions.config().idiq?.plan_code || 'PLAN03B'
 };
 
-const IDIQ_ENV = process.env.IDIQ_ENV || "stage";
-const IDIQ_PARTNER_TOKEN_PATH = process.env.IDIQ_PARTNER_TOKEN_PATH;
+const IDIQ_ENV = functions.config().idiq?.env || "stage";
+const IDIQ_PARTNER_TOKEN_PATH = functions.config().idiq?.partner_token_path;
 
 // ✅ BEST PRACTICE: Use Set for O(1) lookup performance
 const ALLOW_ORIGINS = new Set([
@@ -526,8 +526,8 @@ exports.getIDIQPartnerToken = onRequest(async (req, res) => {
   if (handlePreflight(req, res)) return;
 
   try {
-    const partnerId = process.env.IDIQ_PARTNER_ID || '';
-    const partnerSecret = process.env.IDIQ_PARTNER_SECRET || '';
+    const partnerId = functions.config().idiq?.partner_id || '';
+    const partnerSecret = functions.config().idiq?.partner_secret || '';
     
     if (!partnerId || !partnerSecret) {
       throw new Error("Missing IDIQ credentials");
@@ -632,8 +632,8 @@ exports.getIDIQPartnerToken = onRequest(async (req, res) => {
  * Get IDIQ Partner Token (Callable version)
  */
 exports.getIDIQPartnerTokenCallable = onCall(async (data, context) => {
-  const partnerId = process.env.IDIQ_PARTNER_ID || '';
-  const partnerSecret = process.env.IDIQ_PARTNER_SECRET || '';
+  const partnerId = functions.config().idiq?.partner_id || '';
+  const partnerSecret = functions.config().idiq?.partner_secret || '';
   
   if (!partnerId || !partnerSecret) {
     throw new functions.https.HttpsError("failed-precondition", "Missing IDIQ credentials");
@@ -1387,7 +1387,7 @@ CRITICAL INSTRUCTIONS:
 
 /**
  * Process AI Receptionist Calls (Firestore Trigger)
- * ✅ HYBRID APPROACH: Use intake form + parse transcript for complete data
+ * ✅ HYBRID APPROACH: Use intake form + transcript parsing + AI extraction
  * ✅ TRIGGERS ON: Both CREATE and UPDATE events (so you can reprocess by changing processed flag)
  */
 const { onDocumentWritten } = require('firebase-functions/v2/firestore');
@@ -2591,3 +2591,51 @@ Respond ONLY with JSON:
 });
 
 console.log('🤖 E-Contract AI Enhancement Functions loaded (17 functions)!');
+
+// ============================================
+// OPENAI PROXY FUNCTION
+// ============================================
+// This function securely proxies requests to the OpenAI API
+exports.openaiProxy = onRequest(async (req, res) => {
+  // Security check
+  const apiKey = req.query.apiKey || req.headers['x-api-key'];
+  if (apiKey !== WEBHOOK_API_KEY) {
+    return res.status(403).json({ error: 'Unauthorized' });
+  }
+  
+  // Extract OpenAI request data
+  const { model, messages, temperature, max_tokens } = req.body;
+  
+  if (!model || !messages || messages.length === 0) {
+    return res.status(400).json({ error: 'Invalid request data' });
+  }
+  
+  try {
+    // Call OpenAI API
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${functions.config().openai?.api_key}`
+      },
+      body: JSON.stringify({
+        model,
+        messages,
+        temperature: temperature !== undefined ? temperature : 0.7,
+        max_tokens: max_tokens || 150
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      return res.status(200).json(data);
+    } else {
+      console.error('OpenAI API error:', data);
+      return res.status(response.status).json({ error: data.error?.message || 'OpenAI API error' });
+    }
+  } catch (error) {
+    console.error('❌ OpenAI proxy error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});

@@ -20,11 +20,11 @@ const crypto = require('crypto');
 const IDIQ_CONFIG = {
   PROD_BASE_URL: 'https://api.identityiq.com/pif-service/',
   STAGE_BASE_URL: 'https://api-stage.identityiq.com/pif-service/',
-  PARTNER_ID: process.env.IDIQ_PARTNER_ID || '11981',
-  PARTNER_SECRET: process.env.IDIQ_PARTNER_SECRET,
-  OFFER_CODE: process.env.IDIQ_OFFER_CODE || '4312869N',
-  PLAN_CODE: process.env.IDIQ_PLAN_CODE || 'PLAN03B',
-  ENVIRONMENT: process.env.IDIQ_ENVIRONMENT || 'prod',
+  PARTNER_ID: functions.config().idiq?.partner_id || '11981',
+  PARTNER_SECRET: functions.config().idiq?.partner_secret,
+  OFFER_CODE: functions.config().idiq?.offer_code || '4312869N',
+  PLAN_CODE: functions.config().idiq?.plan_code || 'PLAN03B',
+  ENVIRONMENT: functions.config().idiq?.environment || 'prod',
   TIMEOUT: 30000, // 30 seconds
   MAX_RETRIES: 3,
   RETRY_DELAY: 2000 // 2 seconds
