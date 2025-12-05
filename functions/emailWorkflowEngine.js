@@ -26,13 +26,6 @@
  */
 
 const functions = require('firebase-functions');
-const { param } = require('firebase-functions/params');
-
-const GMAIL_USER = param('GMAIL_USER');
-const GMAIL_APP_PASSWORD = param('GMAIL_APP_PASSWORD');
-const GMAIL_FROM_EMAIL = param('GMAIL_FROM_EMAIL');
-const GMAIL_FROM_NAME = param('GMAIL_FROM_NAME');
-const GMAIL_REPLY_TO = param('GMAIL_REPLY_TO');
 const { db, admin } = require('./firebaseAdmin');
 const { EMAIL_BRANDING } = require('./emailBrandingConfig');
 const { getEmailTemplate } = require('./emailTemplates');
@@ -44,11 +37,11 @@ const { getEmailTemplate } = require('./emailTemplates');
 // Google Workspace SMTP (using nodemailer)
 const nodemailer = require('nodemailer');
 const functions = require('firebase-functions');
-const gmailUser = GMAIL_USER.value() || 'chris@speedycreditrepair.com';
-const gmailAppPassword = GMAIL_APP_PASSWORD.value();
-const fromEmail = GMAIL_FROM_EMAIL.value() || 'chris@speedycreditrepair.com';
-const fromName = GMAIL_FROM_NAME.value() || 'Chris Lahage - Speedy Credit Repair';
-const replyTo = GMAIL_REPLY_TO.value() || 'contact@speedycreditrepair.com';
+const gmailUser = functions.config().gmail && functions.config().gmail.user ? functions.config().gmail.user : 'chris@speedycreditrepair.com';
+const gmailAppPassword = functions.config().gmail && functions.config().gmail.app_password;
+const fromEmail = functions.config().gmail && functions.config().gmail.from_email ? functions.config().gmail.from_email : 'chris@speedycreditrepair.com';
+const fromName = functions.config().gmail && functions.config().gmail.from_name ? functions.config().gmail.from_name : 'Chris Lahage - Speedy Credit Repair';
+const replyTo = functions.config().gmail && functions.config().gmail.reply_to ? functions.config().gmail.reply_to : 'contact@speedycreditrepair.com';
 
 let transporter = null;
 

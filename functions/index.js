@@ -5,21 +5,6 @@
 // ============================================
 
 const functions = require('firebase-functions');
-const { defineSecret, defineString, defineInt, defineBoolean, param } = require('firebase-functions/params');
-
-// Define environment params for secrets (IDIQ, OpenAI, Gmail, Telnyx)
-const IDIQ_OFFER_CODE = param('IDIQ_OFFER_CODE');
-const IDIQ_PLAN_CODE = param('IDIQ_PLAN_CODE');
-const IDIQ_ENV = param('IDIQ_ENV');
-const IDIQ_PARTNER_TOKEN_PATH = param('IDIQ_PARTNER_TOKEN_PATH');
-const IDIQ_PARTNER_ID = param('IDIQ_PARTNER_ID');
-const IDIQ_PARTNER_SECRET = param('IDIQ_PARTNER_SECRET');
-const OPENAI_API_KEY = param('OPENAI_API_KEY');
-const GMAIL_USER = param('GMAIL_USER');
-const GMAIL_APP_PASSWORD = param('GMAIL_APP_PASSWORD');
-const GMAIL_FROM_EMAIL = param('GMAIL_FROM_EMAIL');
-const GMAIL_FROM_NAME = param('GMAIL_FROM_NAME');
-const GMAIL_REPLY_TO = param('GMAIL_REPLY_TO');
 const admin = require('firebase-admin');
 const cors = require('cors')({ origin: true });
 const fetch = require('node-fetch');
@@ -160,12 +145,12 @@ const MASTER_ADMIN_UID = "BgTAnHE4zMOLr4ZhBqCBfFb3h6D3";
 const IDIQ_CONFIG = {
   STAGE_BASE_URL: 'https://api-stage.identityiq.com/pif-service/',
   PROD_BASE_URL: 'https://api.identityiq.com/pif-service/',
-  OFFER_CODE: IDIQ_OFFER_CODE.value() || '4312869N',
-  PLAN_CODE: IDIQ_PLAN_CODE.value() || 'PLAN03B'
+  OFFER_CODE: functions.config().idiq?.offer_code || '4312869N',
+  PLAN_CODE: functions.config().idiq?.plan_code || 'PLAN03B'
 };
 
-const idiqEnv = IDIQ_ENV.value() || "stage";
-const idiqPartnerTokenPath = IDIQ_PARTNER_TOKEN_PATH.value();
+const IDIQ_ENV = functions.config().idiq?.env || "stage";
+const IDIQ_PARTNER_TOKEN_PATH = functions.config().idiq?.partner_token_path;
 
 // ✅ BEST PRACTICE: Use Set for O(1) lookup performance
 const ALLOW_ORIGINS = new Set([
@@ -541,8 +526,8 @@ exports.getIDIQPartnerToken = onRequest(async (req, res) => {
   if (handlePreflight(req, res)) return;
 
   try {
-    const partnerId = IDIQ_PARTNER_ID.value() || '';
-    const partnerSecret = IDIQ_PARTNER_SECRET.value() || '';
+    const partnerId = functions.config().idiq?.partner_id || '';
+    const partnerSecret = functions.config().idiq?.partner_secret || '';
     
     if (!partnerId || !partnerSecret) {
       throw new Error("Missing IDIQ credentials");

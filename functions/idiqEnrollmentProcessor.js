@@ -22,12 +22,6 @@
  */
 
 const functions = require('firebase-functions');
-const { param } = require('firebase-functions/params');
-
-const IDIQ_API_URL = param('IDIQ_API_URL');
-const IDIQ_API_KEY = param('IDIQ_API_KEY');
-const IDIQ_API_SECRET = param('IDIQ_API_SECRET');
-const IDIQ_WEBHOOK_URL = param('IDIQ_WEBHOOK_URL');
 const admin = require('firebase-admin');
 const axios = require('axios');
 const crypto = require('crypto');
@@ -43,10 +37,10 @@ const db = admin.firestore();
 
 const IDIQ_CONFIG = {
   partnerId: '11981',
-  apiBaseUrl: IDIQ_API_URL.value() || 'https://api.partner.idiq.com',
-  apiKey: IDIQ_API_KEY.value(),
-  apiSecret: IDIQ_API_SECRET.value(),
-  webhookUrl: IDIQ_WEBHOOK_URL.value() || 'https://us-central1-speedycrm.cloudfunctions.net/idiqWebhookHandler',
+  apiBaseUrl: functions.config().idiq?.api_url || 'https://api.partner.idiq.com',
+  apiKey: functions.config().idiq?.api_key,
+  apiSecret: functions.config().idiq?.api_secret,
+  webhookUrl: functions.config().idiq?.webhook_url || 'https://us-central1-speedycrm.cloudfunctions.net/idiqWebhookHandler',
   
   // Subscription types
   subscriptions: {

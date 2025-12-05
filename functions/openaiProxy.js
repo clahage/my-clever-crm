@@ -5,8 +5,7 @@ const functions = require('firebase-functions');
 const fetch = require('node-fetch');
 
 // Store your OpenAI API key in Firebase environment config, not in code!
-const { param } = require('firebase-functions/params');
-const OPENAI_API_KEY = param('OPENAI_API_KEY').value();
+const OPENAI_API_KEY = functions.config().openai.key;
 
 exports.openaiProxy = functions.https.onRequest(async (req, res) => {
   if (req.method !== 'POST') {
