@@ -1937,7 +1937,7 @@ ${content}
                         <Grid item xs={12}>
   <Autocomplete
     options={[
-      { id: 'manual', displayName: '➕ Manual Entry (New Client)', name: 'Manual Entry', email: '' },
+      { id: 'manual', displayName: '➕ Manual Entry (New Contact)', name: 'Manual Entry', email: '' },
       ...clients.map(client => ({
         ...client,
         displayName: client.displayName || client.name || `${client.firstName || ''} ${client.lastName || ''}`.trim() || 'Unnamed Contact'
@@ -1945,7 +1945,7 @@ ${content}
     ]}
     getOptionLabel={(option) => {
       if (!option) return '';
-      if (option.id === 'manual') return '➕ Manual Entry (New Client)';
+      if (option.id === 'manual') return '➕ Manual Entry (New Contact)';
       return option.displayName || option.name || 'Unnamed';
     }}
     renderOption={(props, option) => {
@@ -1956,8 +1956,8 @@ ${content}
             {option.id === 'manual' ? <Plus /> : <User />}
           </ListItemIcon>
           <ListItemText
-            primary={option.id === 'manual' ? 'Manual Entry (New Client)' : (option.displayName || option.name)}
-            secondary={option.id === 'manual' ? 'Enter client details manually' : option.email}
+            primary={option.id === 'manual' ? 'Manual Entry (New Contact)' : (option.displayName || option.name)}
+            secondary={option.id === 'manual' ? 'Enter contact details manually' : option.email}
           />
         </Box>
       );
