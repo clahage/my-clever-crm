@@ -139,6 +139,9 @@ const AIReviewEditor = lazy(() => import('@/components/AIReviewEditor'));
 const CreditAnalysisEngine = lazy(() => import('@/pages/CreditAnalysisEngine'));
 const PredictiveAnalytics = lazy(() => import('@/pages/PredictiveAnalytics'));
 
+// ===== AI WORKFLOW TESTING =====
+const WorkflowTestingSimulator = lazy(() => import('@/components/WorkflowTestingSimulator'));
+
 // ===== CONTACT & CRM PAGES =====
 const Contacts = lazy(() => import('@/pages/Contacts'));
 const DuplicateManager = lazy(() => import('@/components/DuplicateManager'));
@@ -1020,6 +1023,18 @@ const AppContent = () => {
     <ProtectedRoute requiredRoles={[5,6,7,8]}>
       <Suspense fallback={<LoadingFallback />}>
         <Tier3Dashboard />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* AI Workflow Testing Simulator - Test workflows with AI guidance */}
+<Route
+  path="workflow-testing"
+  element={
+    <ProtectedRoute requiredRoles={[5,6,7,8]}>
+      <Suspense fallback={<LoadingFallback />}>
+        <WorkflowTestingSimulator />
       </Suspense>
     </ProtectedRoute>
   }
