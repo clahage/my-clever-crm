@@ -9,7 +9,7 @@
 import {
   Users, User, UserPlus, Crown, Shield, Briefcase, Eye,
   FileText, Mail, Phone, Calendar, CreditCard, Settings,
-  BarChart, Brain, MessageSquare, Award, Building
+  BarChart, Brain, MessageSquare, Award, Building, Handshake
 } from 'lucide-react';
 
 // ============================================================================

@@ -235,6 +235,7 @@ const WhiteLabelTenants = lazy(() => import('@/pages/whitelabel/Tenants'));
 const AffiliatesHub = lazy(() => import('@/pages/hubs/AffiliatesHub'));
 const AIHub = lazy(() => import('@/pages/hubs/AIHub'));
 const AnalyticsHub = lazy(() => import('@/pages/hubs/AnalyticsHub'));
+const AnalyticsReportingHub = lazy(() => import('@/pages/hubs/AnalyticsReportingHub'));
 const AutomationHub = lazy(() => import('@/pages/hubs/AutomationHub'));
 const BillingHub = lazy(() => import('@/pages/hubs/BillingHub'));
 const BillingPaymentsHub = lazy(() => import('@/pages/hubs/BillingPaymentsHub'));
@@ -561,9 +562,28 @@ const AppContent = () => {
         {/* Billing Hub redirects */}
         <Route path="invoices" element={<Navigate to="/billing-hub" replace />} />
         <Route path="payment-success" element={<Suspense fallback={<LoadingFallback />}><PaymentSuccess /></Suspense>} />
+<<<<<<< HEAD
   <Route path="affiliates" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><Affiliates /></Suspense></ProtectedRoute>} />
   <Route path="billing" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><Billing /></Suspense></ProtectedRoute>} />
   <Route path="products" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><Products /></Suspense></ProtectedRoute>} />
+=======
+        <Route path="affiliates" element={<Navigate to="/affiliates-hub" replace />} />
+        <Route path="billing" element={<Navigate to="/billing-hub" replace />} />
+        <Route path="products" element={<Navigate to="/billing-hub" replace />} />
+
+        {/* Tasks/Calendar Hub redirects */}
+        <Route path="calendar" element={<Navigate to="/calendar-hub" replace />} />
+        <Route path="appointments" element={<Navigate to="/calendar-hub" replace />} />
+        <Route path="tasks" element={<Navigate to="/tasks-hub" replace />} />
+        <Route path="reminders" element={<Navigate to="/tasks-hub" replace />} />
+
+        {/* Analytics & Reporting Hub redirects - CONSOLIDATED */}
+        <Route path="analytics" element={<Navigate to="/analytics-reporting-hub" replace />} />
+        <Route path="reports" element={<Navigate to="/analytics-reporting-hub" replace />} />
+        <Route path="analytics-hub" element={<Navigate to="/analytics-reporting-hub" replace />} />
+        <Route path="reports-hub" element={<Navigate to="/analytics-reporting-hub" replace />} />
+        <Route path="goals" element={<Navigate to="/analytics-reporting-hub" replace />} />
+>>>>>>> a7b32e0 (feat: Phase 1 - Consolidate Analytics + Reports into Analytics & Reporting Hub)
 
   {/* Payment Management System Routes */}
   <Route path="payments" element={<ProtectedRoute requiredRoles={["admin", "masterAdmin"]}><Suspense fallback={<LoadingFallback />}><PaymentsDashboard /></Suspense></ProtectedRoute>} />
@@ -712,13 +732,13 @@ const AppContent = () => {
   }
 />
 
-{/* Analytics Hub - Business intelligence and reporting */}
+{/* Analytics & Reporting Hub - CONSOLIDATED business intelligence platform */}
 <Route
-  path="analytics-hub"
+  path="analytics-reporting-hub"
   element={
     <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
-        <AnalyticsHub />
+        <AnalyticsReportingHub />
       </Suspense>
     </ProtectedRoute>
   }
@@ -874,6 +894,7 @@ const AppContent = () => {
   }
 />
 
+<<<<<<< HEAD
 {/* Reports Hub - Comprehensive reporting */}
 <Route
   path="reports-hub"
@@ -885,6 +906,10 @@ const AppContent = () => {
     </ProtectedRoute>
   }
 />
+=======
+{/* Reports Hub - DEPRECATED - Redirects to Analytics & Reporting Hub */}
+<Route path="reports-hub" element={<Navigate to="/analytics-reporting-hub" replace />} />
+>>>>>>> a7b32e0 (feat: Phase 1 - Consolidate Analytics + Reports into Analytics & Reporting Hub)
 
 {/* Revenue Hub - Revenue tracking and analytics */}
 <Route

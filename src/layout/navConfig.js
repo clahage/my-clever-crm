@@ -178,9 +178,8 @@ export const navigationItems = [
     description: 'Intelligent role-adaptive dashboard with AI insights',
     category: 'core'
   },
-
   // ============================================================================
-  // 🎯 HYBRID HUBS - ALL 41 BUSINESS HUBS ORGANIZED
+  // 🎯 HYBRID HUBS - ALL BUSINESS HUBS ORGANIZED
   // ============================================================================
   {
     id: 'hubs-group',
@@ -192,85 +191,6 @@ export const navigationItems = [
     category: 'hubs',
     defaultExpanded: false,
     items: [
-      // HUB 1: CLIENTS & PIPELINE (Consolidated: 6 items → 1 hub)
-=======
-    icon: LayoutDashboard,
-    permission: 'prospect', // Everyone sees dashboard
-    mobileHidden: false,
-    description: 'Analytics, metrics, and role-based widgets',
-    category: 'core'
-  },
-
-  // ==========================================================================
-  // 🏡 HOME - WELCOME HUB (Removed - functionality merged into Smart Dashboard)
-  // ==========================================================================
-  // {
-  //   id: 'home',
-  //   title: 'Welcome Hub',
-  //   path: '/home',
-  //   icon: Home,
-  //   permission: 'prospect',
-  //   mobileHidden: false,
-  //   description: 'Welcome page, feature overview, and getting started guide',
-  //   category: 'core'
-  // },
-
-  // ==========================================================================
-  // 🎯 ADMIN COMMAND CENTER (Removed - functionality merged into Smart Dashboard)
-  // ==========================================================================
-  // {
-  //   id: 'admin-portal',
-  //   title: '🎯 Admin Portal',
-  //   path: '/portal',
-  //   icon: LayoutDashboard,
-  //   permission: 'admin',
-  //   mobileHidden: true, // Too complex for mobile
-  //   badge: 'ADMIN',
-  //   description: '6-tab command center for complete system control',
-  //   category: 'admin'
-  // },
-
-  // ==========================================================================
-  // 👤 CLIENT PORTAL (Removed - functionality merged into Smart Dashboard)
-  // ==========================================================================
-  // {
-  //   id: 'client-portal',
-  //   title: '👤 Client Portal',
-  //   path: '/client-portal',
-  //   icon: User,
-  //   permission: 'client', // Clients and prospects
-  //   mobileHidden: false,
-  //   badge: 'NEW',
-  //   description: 'Client progress dashboard with scores, disputes, payments',
-  //   category: 'client'
-  // },
-
-  // ==========================================================================
-  // 🎯 HYBRID HUBS - ALL 41 BUSINESS HUBS ORGANIZED
-  // ==========================================================================
-  // NOTE: Credit Reports Hub removed from root level - now only in Business Hubs
-  // to eliminate duplicate /credit-hub URLs (was line 226)
-  {
-    id: 'hubs-group',
-    title: '🎯 Business Hubs',
-    icon: LayoutDashboard,
-    isGroup: true,
-    permission: 'user',
-    mobileHidden: false,
-    category: 'hubs',
-    defaultExpanded: false,
-    items: [
-<<<<<<< HEAD
-<<<<<<< HEAD
->>>>>>> 2229387 (Phase 3: Consolidate navigation from 113 items to 24 hub-based items)
-=======
-      // CORE OPERATIONS (9 hubs - Dashboard Hub consolidated into SmartDashboard)
->>>>>>> 4508cc6 (feat: Consolidate dashboards into universal Smart Dashboard)
-=======
-      // ========================================
-      // 📋 DAILY OPERATIONS
-      // ========================================
->>>>>>> 21e0dc3 (feat: Reorganize hub navigation into logical groups)
       {
         id: 'clients-pipeline-hub',
         title: 'Clients & Pipeline',
@@ -278,10 +198,8 @@ export const navigationItems = [
         icon: Users,
         permission: 'user',
         badge: 'AI',
-<<<<<<< HEAD
         description: 'Complete client & contact management',
       },
-      // HUB 2: CREDIT REPORTS & ANALYSIS (Consolidated: 5 items → 1 hub)
       {
         id: 'credit-hub',
         title: 'Credit Intelligence Hub',
@@ -291,7 +209,6 @@ export const navigationItems = [
         badge: 'AI',
         description: 'Complete IDIQ + AI credit analysis',
       },
-      // HUB 3: DISPUTE MANAGEMENT (Consolidated: 4 items → 1 hub)
       {
         id: 'dispute-management-hub',
         title: 'Dispute Management',
@@ -301,7 +218,6 @@ export const navigationItems = [
         badge: 'AI',
         description: 'Dispute tracking, letter generation, admin panel, status monitoring',
       },
-      // HUB 4: COMMUNICATIONS (Consolidated: 7 items → 1 hub)
       {
         id: 'communications-hub',
         title: 'Communications',
@@ -311,7 +227,6 @@ export const navigationItems = [
         badge: 'AI',
         description: 'Email, SMS, drip campaigns, call logs, templates',
       },
-      // HUB 5: DOCUMENTS & CONTRACTS (Consolidated: 12 items → 1 hub)
       {
         id: 'documents-contracts-hub',
         title: 'Documents & Contracts',
@@ -320,7 +235,6 @@ export const navigationItems = [
         permission: 'user',
         description: 'Document management, forms, templates, e-contracts, agreements',
       },
-      // HUB 6: TASKS & PRODUCTIVITY (Consolidated: 6 items → 1 hub)
       {
         id: 'tasks-productivity-hub',
         title: 'Tasks & Productivity',
@@ -330,7 +244,6 @@ export const navigationItems = [
         badge: 'AI',
         description: 'Calendar, tasks, scheduling, reminders, goals, team management',
       },
-      // HUB 7: AUTOMATION
       {
         id: 'automation-hub',
         title: 'Automation',
@@ -340,7 +253,6 @@ export const navigationItems = [
         badge: 'AI',
         description: 'Workflows, triggers, automations',
       },
-      // HUB 8: ANALYTICS
       {
         id: 'analytics-hub',
         title: 'Analytics',
@@ -350,7 +262,6 @@ export const navigationItems = [
         badge: 'AI',
         description: 'Reports, dashboards, insights',
       },
-      // HUB 9: LEARNING & RESOURCES
       {
         id: 'learning-hub',
         title: 'Learning & Resources',
@@ -359,7 +270,6 @@ export const navigationItems = [
         permission: 'user',
         description: 'Courses, guides, knowledge base',
       },
-      // HUB 10: SUPPORT
       {
         id: 'support-hub',
         title: 'Support',
@@ -368,7 +278,6 @@ export const navigationItems = [
         permission: 'user',
         description: 'Support tickets, help center',
       },
-      // HUB 11: FINANCIAL PLANNING
       {
         id: 'financial-planning-hub',
         title: 'Financial Planning',
@@ -378,7 +287,6 @@ export const navigationItems = [
         badge: 'AI',
         description: 'Debt reduction & budget planning',
       },
-      // HUB 12: TRADELINE SERVICES
       {
         id: 'tradeline-hub',
         title: 'Tradeline Services',
@@ -388,7 +296,6 @@ export const navigationItems = [
         badge: 'AI',
         description: 'Tradeline rental management',
       },
-      // HUB 13: REVENUE
       {
         id: 'revenue-hub',
         title: 'Revenue Hub',
@@ -398,7 +305,6 @@ export const navigationItems = [
         badge: 'ADMIN',
         description: 'Revenue tracking and forecasting',
       },
-      // HUB 14: BILLING
       {
         id: 'billing-hub',
         title: 'Billing & Payments',
@@ -408,7 +314,6 @@ export const navigationItems = [
         badge: 'ADMIN',
         description: 'Invoices, payments, subscriptions',
       },
-      // HUB 15: COLLECTIONS
       {
         id: 'collections-hub',
         title: 'Collections & AR',
@@ -418,7 +323,6 @@ export const navigationItems = [
         badge: 'ADMIN',
         description: 'Accounts receivable management',
       },
-      // HUB 16: PAYMENT INTEGRATIONS
       {
         id: 'payment-integration-hub',
         title: 'Payment Integrations',
@@ -428,7 +332,6 @@ export const navigationItems = [
         badge: 'PRO',
         description: 'Stripe & PayPal integration',
       },
-      // HUB 17: CONTRACTS
       {
         id: 'contracts-hub',
         title: 'Contract Management',
@@ -437,7 +340,6 @@ export const navigationItems = [
         permission: 'user',
         description: 'Contract lifecycle management',
       },
-      // HUB 18: BUREAU COMMUNICATION
       {
         id: 'bureau-hub',
         title: 'Bureau Communication',
@@ -446,7 +348,6 @@ export const navigationItems = [
         permission: 'user',
         description: 'Credit bureau integration',
       },
-      // HUB 19: DISPUTE ADMIN
       {
         id: 'dispute-admin',
         title: 'Dispute Admin Panel',
@@ -456,7 +357,6 @@ export const navigationItems = [
         badge: 'ADMIN',
         description: 'Admin dispute management',
       },
-      // HUB 20: COMPLIANCE
       {
         id: 'compliance-hub',
         title: 'Compliance Hub',
@@ -465,143 +365,6 @@ export const navigationItems = [
         permission: 'admin',
         badge: 'ADMIN',
         description: 'Regulatory compliance',
-      },
-    ],
-  },
-];
-        permission: 'user',
-        description: 'Dispute management & letters'
->>>>>>> 2229387 (Phase 3: Consolidate navigation from 113 items to 24 hub-based items)
-=======
-        title: 'Credit Intelligence Hub',
-        path: '/credit-hub',
-        icon: Shield,
-        permission: 'user',
-        badge: 'AI',
-        description: 'Complete IDIQ + AI credit analysis'
->>>>>>> 4508cc6 (feat: Consolidate dashboards into universal Smart Dashboard)
-      },
-
-      // HUB 3: DISPUTE MANAGEMENT (Consolidated: 4 items → 1 hub)
-      {
-<<<<<<< HEAD
-        id: 'dispute-management-hub',
-        title: 'Dispute Management',
-        path: '/dispute-hub',
-        icon: AlertCircle,
-        permission: 'user',
-        badge: 'AI',
-        description: 'Dispute tracking, letter generation, admin panel, status monitoring',
-        consolidated: ['DisputeHub', 'DisputeLetters', 'DisputeStatus', 'DisputeAdminPanel']
-      },
-
-      // HUB 4: COMMUNICATIONS (Consolidated: 7 items → 1 hub)
-      {
-        id: 'communications-hub',
-=======
-=======
->>>>>>> 21e0dc3 (feat: Reorganize hub navigation into logical groups)
-        id: 'comms-hub',
-<<<<<<< HEAD
->>>>>>> 2229387 (Phase 3: Consolidate navigation from 113 items to 24 hub-based items)
-        title: 'Communications',
-=======
-        title: 'Communications Hub',
->>>>>>> 4508cc6 (feat: Consolidate dashboards into universal Smart Dashboard)
-        path: '/comms-hub',
-        icon: MessageSquare,
-        permission: 'user',
-        badge: 'AI',
-<<<<<<< HEAD
-<<<<<<< HEAD
-        description: 'Email, SMS, drip campaigns, call logs, templates',
-        consolidated: ['CommunicationsHub', 'Emails', 'SMS', 'DripCampaigns', 'CallLogs', 'Templates', 'CampaignPlanner']
-=======
-        description: 'Email, SMS, calls, campaigns'
->>>>>>> 2229387 (Phase 3: Consolidate navigation from 113 items to 24 hub-based items)
-=======
-        description: 'Email, SMS, campaigns, automation'
->>>>>>> 4508cc6 (feat: Consolidate dashboards into universal Smart Dashboard)
-      },
-
-      // HUB 5: DOCUMENTS & CONTRACTS (Consolidated: 12 items → 1 hub)
-      {
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-        id: 'documents-contracts-hub',
-        title: 'Documents & Contracts',
-        path: '/documents-hub',
-        icon: FolderOpen,
-        permission: 'user',
-        description: 'Document management, forms, templates, e-contracts, agreements',
-        consolidated: ['DocumentsHub', 'Forms', 'Templates', 'EContracts', 'FullAgreement', 'Addendums', 'InformationSheet', 'DocumentCenter', 'DocumentStorage', 'ContractManagementHub']
-=======
-        id: 'documents-hub',
-        title: 'Documents',
-        path: '/documents-hub',
-        icon: FolderOpen,
-        permission: 'user',
-        description: 'All documents & e-contracts'
->>>>>>> 2229387 (Phase 3: Consolidate navigation from 113 items to 24 hub-based items)
-=======
-        id: 'dispute-hub',
-        title: 'Dispute Management',
-        path: '/dispute-hub',
-        icon: AlertCircle,
-        permission: 'user',
-        description: 'Dispute tracking and management'
->>>>>>> 4508cc6 (feat: Consolidate dashboards into universal Smart Dashboard)
-      },
-
-      // HUB 6: TASKS & PRODUCTIVITY (Consolidated: 6 items → 1 hub)
-      {
-<<<<<<< HEAD
-        id: 'tasks-productivity-hub',
-        title: 'Tasks & Productivity',
-        path: '/tasks-hub',
-        icon: Calendar,
-        permission: 'user',
-        badge: 'AI',
-        description: 'Calendar, tasks, scheduling, reminders, goals, team management',
-        consolidated: ['TasksSchedulingHub', 'Calendar', 'Tasks', 'Reminders', 'Goals', 'CalendarSchedulingHub']
-      },
-
-      // HUB 7: AUTOMATION
-=======
-=======
->>>>>>> 21e0dc3 (feat: Reorganize hub navigation into logical groups)
-        id: 'tasks-hub',
-        title: 'Tasks & Scheduling',
-        path: '/tasks-hub',
-        icon: Calendar,
-        permission: 'user',
-        description: 'Task and calendar management'
-      },
-      {
-        id: 'dispute-hub',
-        title: 'Dispute Management',
-        path: '/dispute-hub',
-        icon: AlertCircle,
-        permission: 'user',
-        description: 'Dispute tracking and management'
-      },
-      {
-        id: 'documents-hub',
-        title: 'Documents Hub',
-        path: '/documents-hub',
-        icon: FolderOpen,
-        permission: 'user',
-        description: 'Document management system'
-      },
-      {
-        id: 'calendar-hub',
-        title: 'Calendar Hub',
-        path: '/calendar-hub',
-        icon: Calendar,
-        permission: 'user',
-        description: 'Advanced calendar features'
-      },
 
       // ========================================
       // 💳 CREDIT & COMPLIANCE
@@ -800,46 +563,6 @@ export const navigationItems = [
         permission: 'user',
         description: 'Comprehensive reports'
       },
->>>>>>> 2229387 (Phase 3: Consolidate navigation from 113 items to 24 hub-based items)
-      {
-        id: 'ai-hub',
-        title: 'AI Hub',
-        path: '/ai-hub',
-        icon: Brain,
-        permission: 'user',
-        badge: 'AI',
-        description: 'AI-powered tools and insights'
-      },
-      {
-        id: 'automation-hub',
-        title: 'Automation Hub',
-        path: '/automation-hub',
-        icon: Zap,
-        permission: 'user',
-        badge: 'PRO',
-<<<<<<< HEAD
-        description: 'Workflow automation and AI-powered tools'
-=======
-        description: 'Workflow automation'
-<<<<<<< HEAD
->>>>>>> 2229387 (Phase 3: Consolidate navigation from 113 items to 24 hub-based items)
-      }
-    ]
-  },
-
-  // ==========================================================================
-<<<<<<< HEAD
-  // 💰 FINANCIAL OPERATIONS - 2 HUBS
-  // ==========================================================================
-  {
-    id: 'financial-group',
-    title: 'Financial Operations',
-    icon: DollarSign,
-    isGroup: true,
-    permission: 'admin',
-    mobileHidden: false,
-    category: 'financial',
-    defaultExpanded: false,
     items: [
       // HUB 8: FINANCIAL OPERATIONS (Consolidated: 6 hubs → 1 hub)
       {
@@ -852,8 +575,6 @@ export const navigationItems = [
         description: 'Billing, payments, collections, invoicing, payment integrations',
         consolidated: ['BillingHub', 'BillingPaymentsHub', 'CollectionsARHub', 'PaymentIntegrationHub', 'PaymentHub', 'Invoices']
       },
-<<<<<<< HEAD
-
       // HUB 9: REVENUE & ANALYTICS (Consolidated: 3 hubs → 1 hub)
       {
         id: 'revenue-analytics-hub',
@@ -1153,30 +874,6 @@ export const navigationItems = [
     mobileHidden: true,
     badge: 'ADMIN',
     description: '6-tab command center for complete system control',
-    category: 'admin'
-=======
-  // ⚙️ SYSTEM (3 items - Admin only)
-  // ==========================================================================
-  {
-    id: 'system-hubs',
-    title: 'System',
-    icon: Settings,
-    isGroup: true,
-    permission: 'admin',
-    mobileHidden: true,
-    category: 'system',
-    items: [
-=======
-      },
->>>>>>> 4508cc6 (feat: Consolidate dashboards into universal Smart Dashboard)
-      {
-        id: 'bureau-hub',
-        title: 'Bureau Communication',
-        path: '/bureau-hub',
-        icon: Send,
-        permission: 'user',
-        description: 'Credit bureau integration'
-      },
       {
         id: 'mobile-app-hub',
         title: 'Mobile App Hub',
@@ -1698,21 +1395,21 @@ export function getMobileNavigation(userRole) {
       { id: 'portal', title: 'Admin', path: '/portal', icon: LayoutDashboard },
       { id: 'contacts', title: 'Contacts', path: '/clients-hub', icon: Users },
       { id: 'credit-hub', title: 'Credit Hub', path: '/credit-hub', icon: Shield },
-      { id: 'analytics', title: 'Analytics', path: '/analytics-hub', icon: BarChart },
+      { id: 'analytics-reporting', title: 'Analytics & Reporting', path: '/analytics-reporting-hub', icon: BarChart },
       { id: 'settings', title: 'Settings', path: '/settings', icon: Settings },
     ],
     admin: [
       { id: 'portal', title: 'Admin', path: '/portal', icon: LayoutDashboard },
       { id: 'contacts', title: 'Contacts', path: '/clients-hub', icon: Users },
       { id: 'credit-hub', title: 'Credit Hub', path: '/credit-hub', icon: Shield },
-      { id: 'reports', title: 'Reports', path: '/reports-hub', icon: FileText },
+      { id: 'analytics-reporting', title: 'Analytics & Reporting', path: '/analytics-reporting-hub', icon: BarChart },
       { id: 'settings', title: 'Settings', path: '/settings', icon: Settings },
     ],
     manager: [
       { id: 'contacts', title: 'Contacts', path: '/clients-hub', icon: Users },
       { id: 'credit-hub', title: 'Credit Hub', path: '/credit-hub', icon: Shield },
       { id: 'pipeline', title: 'Pipeline', path: '/clients-hub', icon: GitBranch },
-      { id: 'reports', title: 'Reports', path: '/reports-hub', icon: FileText },
+      { id: 'analytics-reporting', title: 'Analytics & Reporting', path: '/analytics-reporting-hub', icon: BarChart },
       { id: 'settings', title: 'Settings', path: '/settings', icon: Settings },
     ],
     user: [
@@ -1743,8 +1440,7 @@ export function getMobileNavigation(userRole) {
       { id: 'settings', title: 'Settings', path: '/settings', icon: Settings },
     ],
     viewer: [
-      { id: 'reports', title: 'Reports', path: '/reports-hub', icon: FileText },
-      { id: 'analytics', title: 'Analytics', path: '/analytics-hub', icon: BarChart },
+      { id: 'analytics-reporting', title: 'Analytics & Reporting', path: '/analytics-reporting-hub', icon: BarChart },
     ]
   };
 
