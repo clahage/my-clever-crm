@@ -150,19 +150,19 @@ const Home = () => {
               gradient="from-blue-600 to-indigo-600"
             />
             <QuickActionButton
-              to="/add-contact"
+              to="/contacts"
               icon="👤"
               label="Add Contact"
               gradient="from-green-500 to-emerald-600"
             />
             <QuickActionButton
-              to="/dispute-hub"
+              to="/disputes-hub"
               icon="⚖️"
               label="Create Dispute"
               gradient="from-purple-500 to-pink-600"
             />
             <QuickActionButton
-              to="/comms-hub"
+              to="/communications-hub"
               icon="💬"
               label="Send Message"
               gradient="from-orange-500 to-red-500"

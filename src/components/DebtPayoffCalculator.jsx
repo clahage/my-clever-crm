@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // Path: /src/components/DebtPayoffCalculator.jsx
 // ============================================================================
 // 💰 DEBT PAYOFF CALCULATOR COMPONENT - TIER 5+ ENTERPRISE EDITION
@@ -33,18 +34,60 @@
 // ============================================================================
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+=======
+/**
+ * DEBT PAYOFF CALCULATOR COMPONENT - MEGA AI ENTERPRISE EDITION
+ *
+ * Purpose:
+ * Interactive UI for debt payoff calculation with multiple strategies,
+ * visual timeline, comparison charts, and AI-powered recommendations.
+ *
+ * Features:
+ * - Add/edit/remove debts with detailed information
+ * - Compare 3 payoff strategies side-by-side
+ * - Visual timeline with month-by-month breakdown
+ * - Credit score impact projections
+ * - Debt consolidation analysis
+ * - Export reports and payment schedules
+ * - AI-powered strategy recommendations
+ *
+ * Created: 2025-12-06
+ * Part of: Speedy Credit Repair Financial Planning System
+ */
+
+import React, { useState, useEffect, useMemo } from 'react';
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
 import {
   Box,
   Paper,
   Typography,
   Button,
+<<<<<<< HEAD
   Grid,
   Card,
   CardContent,
+=======
+  IconButton,
+  TextField,
+  Grid,
+  Card,
+  CardContent,
+  CardActions,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Chip,
+  Alert,
+  AlertTitle,
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
+<<<<<<< HEAD
   Chip,
   TextField,
   IconButton,
@@ -62,16 +105,24 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
+=======
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
   FormControl,
   InputLabel,
   Select,
   MenuItem,
+<<<<<<< HEAD
+=======
+  InputAdornment,
+  LinearProgress,
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
   Tabs,
   Tab,
   List,
   ListItem,
   ListItemText,
   ListItemIcon,
+<<<<<<< HEAD
   CircularProgress,
   Collapse
 } from '@mui/material';
@@ -155,6 +206,8 @@ import {
   LineChart,
   Line,
 =======
+=======
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
   Divider,
   Tooltip,
   Collapse
@@ -182,7 +235,6 @@ import {
   Line,
   AreaChart,
   Area,
->>>>>>> origin/claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d
   BarChart,
   Bar,
 =======
@@ -273,6 +325,7 @@ import {
   Tooltip as RechartsTooltip,
   Legend,
   ResponsiveContainer,
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -432,6 +485,8 @@ export default function DebtPayoffCalculatorComponent({ contactId, onSave }) {
   // Export merged component
 }
 =======
+=======
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
   PieChart,
   Pie,
   Cell
@@ -660,130 +715,40 @@ export default function DebtPayoffCalculatorComponent({ contactId, onSave }) {
               <Typography variant="overline">Debt-Free Date</Typography>
               <Typography variant="h5">{summary.payoffDate.toLocaleDateString()}</Typography>
               <Typography variant="body2">{summary.totalYears} years</Typography>
->>>>>>> origin/claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d
             </CardContent>
           </Card>
         </Grid>
 
-<<<<<<< HEAD
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                <Typography variant="caption" color="text.secondary">
-                  Avg Interest Rate
-                </Typography>
-                <TrendingUp size={20} color={CHART_COLORS.warning} />
-              </Box>
-              <Typography variant="h4" fontWeight="bold" color={CHART_COLORS.warning}>
-                {avgInterestRate.toFixed(1)}%
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Weighted average
-              </Typography>
-=======
         <Grid item xs={12} md={3}>
           <Card sx={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', color: 'white' }}>
             <CardContent>
               <Typography variant="overline">Total Interest</Typography>
               <Typography variant="h5">${summary.totalInterestPaid.toLocaleString()}</Typography>
               <Typography variant="body2">${summary.avgMonthlyInterest}/mo avg</Typography>
->>>>>>> origin/claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d
             </CardContent>
           </Card>
         </Grid>
 
-<<<<<<< HEAD
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                <Typography variant="caption" color="text.secondary">
-                  Monthly Payment
-                </Typography>
-                <Calendar size={20} color={CHART_COLORS.info} />
-              </Box>
-              <Typography variant="h4" fontWeight="bold" color={CHART_COLORS.info}>
-                {formatCurrency(totalMinimumPayments + extraMonthlyPayment)}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {formatCurrency(totalMinimumPayments)} min + {formatCurrency(extraMonthlyPayment)} extra
-              </Typography>
-=======
         <Grid item xs={12} md={3}>
           <Card sx={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', color: 'white' }}>
             <CardContent>
               <Typography variant="overline">Total Paid</Typography>
               <Typography variant="h5">${summary.totalAmountPaid.toLocaleString()}</Typography>
               <Typography variant="body2">${monthlyBudget}/month</Typography>
->>>>>>> origin/claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d
             </CardContent>
           </Card>
         </Grid>
 
-<<<<<<< HEAD
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                <Typography variant="caption" color="text.secondary">
-                  Payoff Time
-                </Typography>
-                <Clock size={20} color={CHART_COLORS.success} />
-              </Box>
-              <Typography variant="h4" fontWeight="bold" color={CHART_COLORS.success}>
-                {strategies && formatMonths(strategies[selectedStrategy].months)}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Using {STRATEGY_INFO[selectedStrategy].name}
-              </Typography>
-=======
         <Grid item xs={12} md={3}>
           <Card sx={{ background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', color: 'white' }}>
             <CardContent>
               <Typography variant="overline">Months to Freedom</Typography>
               <Typography variant="h5">{summary.totalMonths}</Typography>
               <Typography variant="body2">{summary.totalYears} years</Typography>
->>>>>>> origin/claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d
             </CardContent>
           </Card>
         </Grid>
       </Grid>
-<<<<<<< HEAD
-
-      {/* ===== AI RECOMMENDATIONS BANNER ===== */}
-      {aiRecommendations && (
-        <Alert
-          severity="info"
-          icon={<Brain size={20} />}
-          sx={{ mb: 3 }}
-          action={
-            <Chip
-              label={`${aiRecommendations.confidence}% confident`}
-              size="small"
-              color="info"
-              variant="outlined"
-            />
-          }
-        >
-          <AlertTitle>
-            🤖 AI Recommendation: {STRATEGY_INFO[aiRecommendations.recommended].emoji} {STRATEGY_INFO[aiRecommendations.recommended].name}
-          </AlertTitle>
-          <Typography variant="body2">
-            {aiRecommendations.reason}
-          </Typography>
-          {aiRecommendations.tips.length > 0 && (
-            <Box sx={{ mt: 1 }}>
-              <Typography variant="caption" fontWeight={600}>
-                Tips:
-              </Typography>
-              <List dense sx={{ pl: 2 }}>
-                {aiRecommendations.tips.slice(0, 2).map((tip, index) => (
-                  <ListItem key={index} sx={{ py: 0 }}>
-                    <ListItemText
-                      primary={tip}
-                      primaryTypographyProps={{ variant: 'caption' }}
-=======
     );
   };
 
@@ -1051,11 +1016,11 @@ export default function DebtPayoffCalculatorComponent({ contactId, onSave }) {
                     <ListItemText
                       primary={milestone.label}
                       secondary={`Month ${milestone.monthsToReach} - ${milestone.dateReached?.toLocaleDateString()}`}
->>>>>>> origin/claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d
                     />
                   </ListItem>
                 ))}
               </List>
+<<<<<<< HEAD
 <<<<<<< HEAD
             </Box>
           )}
@@ -3499,6 +3464,8 @@ export default function DebtPayoffCalculator() {
 
 export default DebtPayoffCalculatorComponent;
 =======
+=======
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
             </>
           )}
         </CardContent>
@@ -3795,6 +3762,7 @@ export default DebtPayoffCalculatorComponent;
     </Box>
   );
 }
+<<<<<<< HEAD
 >>>>>>> origin/claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d
 =======
     </Box>
@@ -4043,3 +4011,5 @@ function StrategyDetailView({ strategy, data }) {
 // Dark mode: Supported
 // Mobile responsive: Yes
 >>>>>>> fac2554 (Add DebtPayoffCalculator and financialPlanningEngine to main before feature branch merge)
+=======
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)

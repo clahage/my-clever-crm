@@ -3,13 +3,8 @@
 // ============================================================================
 // The Crown Jewel of SpeedyCRM
 // Production-ready, AI-powered, customizable dashboard
-// Version: 2.0.0 - CONSOLIDATED DASHBOARD
-// Lines: 5,000+
-// 
-// CONSOLIDATION: This dashboard now serves as the universal landing page
-// for all user roles, replacing separate Welcome Hub, Admin Portal, and
-// Client Portal pages. Role-based views ensure users see only what's
-// relevant to their permission level.
+// Version: 1.0.0
+// Lines: 3,500-4,000+
 // ============================================================================
 
 import React, { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
@@ -338,6 +333,7 @@ const detectAnomalies = (data, field = 'amount') => {
 const generateAIInsights = (dashboardData) => {
   const insights = [];
   // Revenue insights
+<<<<<<< HEAD
   if (dashboardData.revenue && Array.isArray(dashboardData.revenue.revenue)) {
     const recentRevenue = dashboardData.revenue.revenue.slice(-7);
     if (recentRevenue.length > 0) {
@@ -352,6 +348,9 @@ const generateAIInsights = (dashboardData) => {
       });
     }
   } else if (dashboardData.revenue) {
+=======
+  if (dashboardData.revenue) {
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
     const revenueArr = Array.isArray(dashboardData.revenue)
       ? dashboardData.revenue
       : [dashboardData.revenue];
@@ -386,6 +385,7 @@ const generateAIInsights = (dashboardData) => {
       ? dashboardData.clients
       : [];
     const atRiskClients = clientsArr.filter(c => calculateClientHealthScore(c) < 50);
+<<<<<<< HEAD
     if (atRiskClients.length > 0) {
       insights.push({
         type: 'warning',
@@ -446,6 +446,8 @@ const generateAIInsights = (dashboardData) => {
     return priorityOrder[a.priority] - priorityOrder[b.priority];
   });
 };
+=======
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
     if (atRiskClients.length > 0) {
       insights.push({
         type: 'warning',
@@ -460,14 +462,20 @@ const generateAIInsights = (dashboardData) => {
   
   // Dispute insights
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
   if (Array.isArray(dashboardData.disputes)) {
     const totalDisputes = dashboardData.disputes.length;
     const resolvedDisputes = dashboardData.disputes.filter(d => d.status === 'resolved').length;
     const successRate = totalDisputes > 0 ? ((resolvedDisputes / totalDisputes) * 100).toFixed(0) : 0;
+<<<<<<< HEAD
 =======
   if (dashboardData.disputes && Array.isArray(dashboardData.disputes)) {
     const successRate = (dashboardData.disputes.filter(d => d.status === 'resolved').length / dashboardData.disputes.length * 100).toFixed(0);
 >>>>>>> 9bb51df (Complete hub architecture consolidation - Pipeline integrated into Clients Hub)
+=======
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
     insights.push({
       type: successRate > 70 ? 'success' : 'info',
       icon: Award,
@@ -1094,8 +1102,8 @@ const ClientOverviewWidget = () => {
         </IconButton>
       </Box>
 
-      <Grid container columns={12} spacing={2} sx={{ mb: 2 }}>
-        <Grid columnSpan={6}>
+      <Grid container spacing={2} sx={{ mb: 2 }}>
+        <Grid xs={12} sm={6}>
           <Box sx={{ textAlign: 'center', p: 2, backgroundColor: 'rgba(16, 185, 129, 0.1)', borderRadius: 1 }}>
             <Typography variant="h5" fontWeight="bold" sx={{ color: COLORS.success }}>
               {data.active}
@@ -1105,7 +1113,7 @@ const ClientOverviewWidget = () => {
             </Typography>
           </Box>
         </Grid>
-        <Grid columnSpan={6}>
+        <Grid xs={12} sm={6}>
           <Box sx={{ textAlign: 'center', p: 2, backgroundColor: 'rgba(59, 130, 246, 0.1)', borderRadius: 1 }}>
             <Typography variant="h5" fontWeight="bold" sx={{ color: COLORS.info }}>
               {data.new}
@@ -1243,8 +1251,8 @@ const DisputeOverviewWidget = () => {
         />
       </Box>
 
-      <Grid container columns={12} spacing={2} sx={{ mb: 2 }}>
-        <Grid columnSpan={4}>
+      <Grid container spacing={2} sx={{ mb: 2 }}>
+        <Grid xs={12} sm={6} md={4}>
           <Box sx={{ textAlign: 'center', p: 1.5, backgroundColor: 'rgba(59, 130, 246, 0.1)', borderRadius: 1 }}>
             <Typography variant="h6" fontWeight="bold" sx={{ color: COLORS.info }}>
               {data.active}
@@ -1254,7 +1262,7 @@ const DisputeOverviewWidget = () => {
             </Typography>
           </Box>
         </Grid>
-        <Grid columnSpan={4}>
+        <Grid xs={12} sm={6} md={4}>
           <Box sx={{ textAlign: 'center', p: 1.5, backgroundColor: 'rgba(245, 158, 11, 0.1)', borderRadius: 1 }}>
             <Typography variant="h6" fontWeight="bold" sx={{ color: COLORS.warning }}>
               {data.pending}
@@ -1264,7 +1272,7 @@ const DisputeOverviewWidget = () => {
             </Typography>
           </Box>
         </Grid>
-        <Grid columnSpan={4}>
+        <Grid xs={12} sm={6} md={4}>
           <Box sx={{ textAlign: 'center', p: 1.5, backgroundColor: 'rgba(16, 185, 129, 0.1)', borderRadius: 1 }}>
             <Typography variant="h6" fontWeight="bold" sx={{ color: COLORS.success }}>
               {data.resolved}
@@ -4735,34 +4743,12 @@ const SmartDashboard = () => {
   const handleCreateTask = () => navigate('/tasks?action=create');
   const handleNewInvoice = () => navigate('/invoices?action=create');
 
-  // Determine user role and map to dashboard view
+  // Determine user role
   const userRole = userProfile?.role || 'staff';
   const isMasterAdmin = userRole === 'masterAdmin' || userRole === 'master-admin';
-  
-  // Role-to-view mapping for consolidated dashboard
-  const getRoleView = (role) => {
-    const roleMap = {
-      'masterAdmin': 'masterAdmin',
-      'master-admin': 'masterAdmin',
-      'admin': 'admin',
-      'manager': 'manager',
-      'user': 'staff',
-      'client': 'client',
-      'prospect': 'client',
-      'affiliate': 'affiliate',
-      'viewer': 'client'
-    };
-    return roleMap[role] || 'staff';
-  };
-  
-  const activeView = isMasterAdmin ? currentView : getRoleView(userRole);
+  const activeView = isMasterAdmin ? currentView : userRole;
 
-  console.log('📊 SmartDashboard (Consolidated)', { 
-    userRole, 
-    activeView, 
-    isMasterAdmin,
-    note: 'Replaces Welcome Hub, Admin Portal, Client Portal' 
-  });
+  console.log('📊 SmartDashboard loaded, role:', userRole, 'view:', activeView);
 
   // Load layout from localStorage
   useEffect(() => {
@@ -4796,44 +4782,45 @@ const SmartDashboard = () => {
         const lastMonthEnd = endOfMonth(subMonths(now, 1));
         
         // ===== QUERY 1: REVENUE from invoices collection =====
-        let revenueData = { total: 0, change: '+0%', trend: 'neutral', monthlyRevenue: 0, revenue: [] };
+        let revenueData = { total: 0, change: '+0%', trend: 'neutral', monthlyRevenue: 0 };
         try {
           const invoicesQuery = query(
             collection(db, 'invoices'),
+            where('createdAt', '>=', Timestamp.fromDate(currentMonthStart)),
             where('status', 'in', ['paid', 'pending'])
           );
           const invoicesSnapshot = await getDocs(invoicesQuery);
-          const allInvoices = invoicesSnapshot.docs.map(doc => {
+          
+          const currentMonthRevenue = invoicesSnapshot.docs.reduce((sum, doc) => {
             const data = doc.data();
-            return {
-              id: doc.id,
-              amount: data.amount || 0,
-              date: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
-              status: data.status || 'unknown',
-            };
-          });
-          // Sort by date ascending
-          allInvoices.sort((a, b) => a.date - b.date);
-          // Get last 30 days of revenue
-          const now = new Date();
-          const thirtyDaysAgo = new Date(now);
-          thirtyDaysAgo.setDate(now.getDate() - 30);
-          const recentRevenue = allInvoices.filter(inv => inv.date >= thirtyDaysAgo);
-          // For summary stats
-          const currentMonthStart = startOfMonth(now);
-          const lastMonthStart = startOfMonth(subMonths(now, 1));
-          const currentMonthRevenue = recentRevenue.filter(inv => inv.date >= currentMonthStart).reduce((sum, inv) => sum + inv.amount, 0);
-          const lastMonthRevenue = recentRevenue.filter(inv => inv.date >= lastMonthStart && inv.date < currentMonthStart).reduce((sum, inv) => sum + inv.amount, 0);
+            return sum + (data.amount || 0);
+          }, 0);
+          
+          // Get last month for comparison
+          const lastMonthQuery = query(
+            collection(db, 'invoices'),
+            where('createdAt', '>=', Timestamp.fromDate(lastMonthStart)),
+            where('createdAt', '<', Timestamp.fromDate(currentMonthStart)),
+            where('status', 'in', ['paid', 'pending'])
+          );
+          const lastMonthSnapshot = await getDocs(lastMonthQuery);
+          const lastMonthRevenue = lastMonthSnapshot.docs.reduce((sum, doc) => {
+            const data = doc.data();
+            return sum + (data.amount || 0);
+          }, 0);
+          
+          // Calculate change percentage
           const changePercent = lastMonthRevenue > 0 
             ? ((currentMonthRevenue - lastMonthRevenue) / lastMonthRevenue * 100).toFixed(1)
             : currentMonthRevenue > 0 ? 100 : 0;
+          
           revenueData = {
             total: currentMonthRevenue,
             monthlyRevenue: currentMonthRevenue,
             change: `${changePercent >= 0 ? '+' : ''}${changePercent}%`,
-            trend: changePercent >= 0 ? 'up' : 'down',
-            revenue: recentRevenue // Array of last 30 days' invoices
+            trend: changePercent >= 0 ? 'up' : 'down'
           };
+          
           console.log('💰 Revenue:', revenueData);
         } catch (err) {
           console.error('Error fetching revenue:', err);
@@ -5364,30 +5351,9 @@ const SmartDashboard = () => {
         </DialogTitle>
         <DialogContent dividers>
           <UltimateContactForm
-            onSave={async (contactData) => {
-              try {
-                // Add userId and timestamp
-                const dataToSave = {
-                  ...contactData,
-                  userId: currentUser.uid,
-                  createdAt: serverTimestamp(),
-                  updatedAt: serverTimestamp()
-                };
-                
-                // Save to Firebase
-                const docRef = await addDoc(collection(db, 'contacts'), dataToSave);
-                console.log('✅ Contact saved with ID:', docRef.id);
-                
-                // Close form (success message shown by form component)
-                setShowContactForm(false);
-                
-                // Optional: Refresh dashboard data
-                // The Firebase listener should automatically pick up the new contact
-              } catch (error) {
-                console.error('❌ Error saving contact:', error);
-                // Error is already shown by form component
-                throw error; // Re-throw so form can handle it
-              }
+            onSuccess={(newContact) => {
+              setShowContactForm(false);
+              console.log('✅ New contact created:', newContact);
             }}
             onCancel={() => setShowContactForm(false)}
           />

@@ -267,35 +267,9 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
   const [dataQuality, setDataQuality] = useState({ score: 0, issues: [] });
   const [uploadingFile, setUploadingFile] = useState(false);
   const [realtimeData, setRealtimeData] = useState(null);
-  const [saveSuccess, setSaveSuccess] = useState(false);
-  const [saveError, setSaveError] = useState(null);
-  const [showHelper, setShowHelper] = useState(true);
   
   const autoSaveTimerRef = useRef(null);
   const fileInputRef = useRef(null);
-  
-  // Helper function to get CSS class for required fields
-  const getRequiredFieldClass = (value, isRequired = true) => {
-    if (!isRequired) return "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500";
-    const isEmpty = !value || (Array.isArray(value) && value.length === 0) || (typeof value === 'string' && value.trim() === '');
-    return `w-full px-3 py-2 border ${isEmpty ? 'border-red-300 bg-red-50' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500`;
-  };
-  
-  // Check if minimum required fields are met
-  const meetsMinimumRequirements = () => {
-    const hasName = formData.firstName || formData.lastName;
-    const hasContact = (formData.emails.length > 0 && formData.emails[0].address) || 
-                      (formData.phones.length > 0 && formData.phones[0].number);
-    return hasName && hasContact;
-  };
-  
-  // Auto-capitalize proper names (first letter of each word)
-  const capitalizeProperName = (str) => {
-    if (!str) return '';
-    return str.toLowerCase().split(' ').map(word => 
-      word.charAt(0).toUpperCase() + word.slice(1)
-    ).join(' ');
-  };
 
   // Real-time listener for AI receptionist calls
   useEffect(() => {
@@ -660,32 +634,28 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
   };
 
   const handleZipCodeChange = async (zip, addressIndex) => {
-    // Update ZIP immediately
-    updateArrayItem('addresses', addressIndex, { zip });
-    
     if (zip.length === 5) {
-      try {
-        // Use free Zippopotam.us API for ALL US ZIP codes
-        const response = await fetch(`https://api.zippopotam.us/us/${zip}`);
-        
-        if (response.ok) {
-          const data = await response.json();
-          const place = data.places[0];
-          
-          updateArrayItem('addresses', addressIndex, { 
-            zip, 
-            city: place['place name'], 
-            state: place['state abbreviation']
-          });
-          
-          addTimelineEvent('address_lookup', `ZIP code ${zip} auto-populated: ${place['place name']}, ${place['state abbreviation']}`);
-        } else {
-          console.log(`ZIP code ${zip} not found`);
-        }
-      } catch (error) {
-        console.error('ZIP lookup error:', error);
-        // Silently fail - user can enter manually
-      }
+      // In production: call real ZIP API
+      const zipData = {
+        '90620': { city: 'Buena Park', state: 'CA' },
+        '92647': { city: 'Huntington Beach', state: 'CA' },
+        '92648': { city: 'Huntington Beach', state: 'CA' },
+        '92649': { city: 'Huntington Beach', state: 'CA' },
+        '90630': { city: 'Cypress', state: 'CA' },
+        '92683': { city: 'Westminster', state: 'CA' },
+        '92655': { city: 'Midway City', state: 'CA' },
+        '92646': { city: 'Huntington Beach', state: 'CA' }
+      };
+      const data = zipData[zip] || { city: '', state: '' };
+      updateArrayItem('addresses', addressIndex, { 
+        zip, 
+        city: data.city, 
+        state: data.state 
+      });
+      
+      addTimelineEvent('address_lookup', `ZIP code ${zip} auto-populated: ${data.city}, ${data.state}`);
+    } else {
+      updateArrayItem('addresses', addressIndex, { zip });
     }
   };
 
@@ -810,6 +780,9 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
   const handleSave = async () => {
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
     // Check for duplicates before creating
     const checkDuplicate = async (email, phone) => {
       const contactsRef = collection(db, 'contacts');
@@ -874,6 +847,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
     
     addTimelineEvent('form_saved', 'Contact information saved manually');
     onSave(finalData);
+<<<<<<< HEAD
 =======
 =======
     console.log('🔍 handleSave called');
@@ -935,6 +909,8 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
       setTimeout(() => setSaveError(null), 5000);
     }
 >>>>>>> 1dc4825 (CRITICAL FIX: Save button now works with proper validation + confirmation)
+=======
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
   };
 
   const SectionHeader = ({ title, icon: Icon, section, badge, aiActive, completeness }) => (
@@ -1045,9 +1021,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
           </button>
           <button
             onClick={handleSave}
-            disabled={!meetsMinimumRequirements()}
-            title={!meetsMinimumRequirements() ? 'Need: (First OR Last name) AND (Email OR Phone number)' : 'Click to save contact'}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
           >
             <Activity className="w-4 h-4" />
             Save Contact
@@ -1259,14 +1233,13 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  First Name <span className="text-red-600 text-lg font-bold">*</span>
+                  First Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={formData.firstName}
-                  onChange={(e) => updateField('firstName', capitalizeProperName(e.target.value))}
-                  onBlur={(e) => updateField('firstName', capitalizeProperName(e.target.value))}
-                  className={`px-3 py-2 border ${!formData.firstName ? 'border-red-300 bg-red-50' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full`}
+                  onChange={(e) => updateField('firstName', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="First name"
                 />
               </div>
@@ -1275,22 +1248,20 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
                 <input
                   type="text"
                   value={formData.middleName}
-                  onChange={(e) => updateField('middleName', capitalizeProperName(e.target.value))}
-                  onBlur={(e) => updateField('middleName', capitalizeProperName(e.target.value))}
+                  onChange={(e) => updateField('middleName', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   placeholder="Middle name"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Last Name <span className="text-red-600 text-lg font-bold">*</span>
+                  Last Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={formData.lastName}
-                  onChange={(e) => updateField('lastName', capitalizeProperName(e.target.value))}
-                  onBlur={(e) => updateField('lastName', capitalizeProperName(e.target.value))}
-                  className={getRequiredFieldClass(formData.lastName)}
+                  onChange={(e) => updateField('lastName', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   placeholder="Last name"
                 />
               </div>
@@ -1317,8 +1288,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
                 <input
                   type="text"
                   value={formData.preferredName}
-                  onChange={(e) => updateField('preferredName', capitalizeProperName(e.target.value))}
-                  onBlur={(e) => updateField('preferredName', capitalizeProperName(e.target.value))}
+                  onChange={(e) => updateField('preferredName', e.target.value)}
                   placeholder="What they like to be called"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
@@ -1333,7 +1303,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
                   type="text"
                   value={formData.namePronunciation}
                   onChange={(e) => updateField('namePronunciation', e.target.value)}
-                  placeholder="e.g., SMITH or JON-son"
+                  placeholder="e.g., La-HAH-gee"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
                 <p className="text-xs text-gray-500 mt-1">Helps team pronounce name correctly</p>
@@ -1343,13 +1313,13 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Date of Birth <span className="text-red-600 text-lg font-bold">*</span>
+                  Date of Birth <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="date"
                   value={formData.dateOfBirth}
                   onChange={(e) => updateField('dateOfBirth', e.target.value)}
-                  className={getRequiredFieldClass(formData.dateOfBirth)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
                 {formData.dateOfBirth && (
                   <p className="text-xs text-gray-500 mt-1">
@@ -1501,28 +1471,13 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
                     <option value="work">Work</option>
                     <option value="other">Other</option>
                   </select>
-                  <div className="flex-1 min-w-[250px] relative">
-                    <input
-                      type="email"
-                      value={email.address}
-                      onChange={(e) => updateArrayItem('emails', index, { address: e.target.value })}
-                      placeholder="email@example.com"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    />
-                    {email.address && !email.address.includes('@') && (
-                      <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 p-2 flex flex-wrap gap-1">
-                        {['@gmail.com', '@yahoo.com', '@outlook.com', '@hotmail.com', '@icloud.com', '@aol.com'].map(suffix => (
-                          <button
-                            key={suffix}
-                            onClick={() => updateArrayItem('emails', index, { address: email.address + suffix })}
-                            className="px-2 py-1 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 rounded border border-blue-200"
-                          >
-                            {email.address}{suffix}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  <input
+                    type="email"
+                    value={email.address}
+                    onChange={(e) => updateArrayItem('emails', index, { address: e.target.value })}
+                    placeholder="email@example.com"
+                    className="flex-1 min-w-[250px] px-3 py-2 border border-gray-300 rounded-lg"
+                  />
                   <label className="flex items-center gap-1 px-2 py-1 bg-white rounded border border-gray-200 cursor-pointer hover:bg-gray-50">
                     <input
                       type="checkbox"
@@ -1611,15 +1566,14 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
                   <input
                     type="text"
                     value={address.street}
-                    onChange={(e) => updateArrayItem('addresses', index, { street: capitalizeProperName(e.target.value) })}
-                    onBlur={(e) => updateArrayItem('addresses', index, { street: capitalizeProperName(e.target.value) })}
+                    onChange={(e) => updateArrayItem('addresses', index, { street: e.target.value })}
                     placeholder="Street Address"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
                   />
                   <input
                     type="text"
                     value={address.unit}
-                    onChange={(e) => updateArrayItem('addresses', index, { unit: e.target.value.toUpperCase() })}
+                    onChange={(e) => updateArrayItem('addresses', index, { unit: e.target.value })}
                     placeholder="Unit/Apt (optional)"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
                   />
@@ -1642,8 +1596,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
                     <input
                       type="text"
                       value={address.city}
-                      onChange={(e) => updateArrayItem('addresses', index, { city: capitalizeProperName(e.target.value) })}
-                      onBlur={(e) => updateArrayItem('addresses', index, { city: capitalizeProperName(e.target.value) })}
+                      onChange={(e) => updateArrayItem('addresses', index, { city: e.target.value })}
                       placeholder="City"
                       className="px-3 py-2 border border-gray-300 rounded-lg bg-white"
                     />
@@ -1920,8 +1873,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
                     <input
                       type="text"
                       value={formData.employment.employer}
-                      onChange={(e) => updateNestedField('employment', 'employer', capitalizeProperName(e.target.value))}
-                      onBlur={(e) => updateNestedField('employment', 'employer', capitalizeProperName(e.target.value))}
+                      onChange={(e) => updateNestedField('employment', 'employer', e.target.value)}
                       placeholder="Company name"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     />
@@ -1931,8 +1883,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
                     <input
                       type="text"
                       value={formData.employment.jobTitle}
-                      onChange={(e) => updateNestedField('employment', 'jobTitle', capitalizeProperName(e.target.value))}
-                      onBlur={(e) => updateNestedField('employment', 'jobTitle', capitalizeProperName(e.target.value))}
+                      onChange={(e) => updateNestedField('employment', 'jobTitle', e.target.value)}
                       placeholder="Position/title"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     />
@@ -1945,8 +1896,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
                     <input
                       type="text"
                       value={formData.employment.industry}
-                      onChange={(e) => updateNestedField('employment', 'industry', capitalizeProperName(e.target.value))}
-                      onBlur={(e) => updateNestedField('employment', 'industry', capitalizeProperName(e.target.value))}
+                      onChange={(e) => updateNestedField('employment', 'industry', e.target.value)}
                       placeholder="e.g., Healthcare"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     />
@@ -2004,8 +1954,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
                   <input
                     type="text"
                     value={formData.employment.employerAddress}
-                    onChange={(e) => updateNestedField('employment', 'employerAddress', capitalizeProperName(e.target.value))}
-                    onBlur={(e) => updateNestedField('employment', 'employerAddress', capitalizeProperName(e.target.value))}
+                    onChange={(e) => updateNestedField('employment', 'employerAddress', e.target.value)}
                     placeholder="Company address"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   />
@@ -2115,7 +2064,6 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
                 {[
                   'Buy a home', 
                   'Buy a car', 
-                  'Rent apartment/home',
                   'Get credit card', 
                   'Lower interest rates', 
                   'Refinance loan', 
@@ -2125,8 +2073,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
                   'Business loan',
                   'Student loan',
                   'Personal loan',
-                  'Improve score',
-                  'Other'
+                  'Improve score'
                 ].map(goal => (
                   <label key={goal} className="flex items-center gap-2 p-2 border border-gray-200 rounded hover:bg-gray-50 cursor-pointer text-sm">
                     <input
@@ -3131,79 +3078,24 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
           </button>
           <button
             onClick={handleSave}
-            disabled={!meetsMinimumRequirements()}
-            title={!meetsMinimumRequirements() ? 'Need: (First OR Last name) AND (Email OR Phone number)' : 'Click to save contact'}
+            disabled={dataQuality.score < 30}
             className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 font-medium flex items-center gap-2 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
+<<<<<<< HEAD
             Save Contact
             {!meetsMinimumRequirements() && (
+=======
+            <Brain className="w-5 h-5" />
+            Save Contact Profile
+            {dataQuality.score < 30 && (
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
               <span className="text-xs bg-white/20 px-2 py-0.5 rounded">
-                Need name + contact
+                {30 - dataQuality.score}% needed
               </span>
             )}
           </button>
         </div>
       </div>
-
-      {/* Save Success Toast */}
-      {saveSuccess && (
-        <div className="fixed top-4 right-4 z-50 animate-fade-in">
-          <div className="bg-green-500 text-white px-6 py-4 rounded-lg shadow-2xl flex items-center gap-3">
-            <CheckCircle className="w-6 h-6" />
-            <div>
-              <p className="font-bold">Contact Saved Successfully!</p>
-              <p className="text-sm text-green-100">All changes have been saved.</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Save Error Toast */}
-      {saveError && (
-        <div className="fixed top-4 right-4 z-50 animate-fade-in">
-          <div className="bg-red-500 text-white px-6 py-4 rounded-lg shadow-2xl flex items-center gap-3">
-            <AlertCircle className="w-6 h-6" />
-            <div>
-              <p className="font-bold">Save Failed</p>
-              <p className="text-sm text-red-100">{saveError}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Helper Tooltip - Shows minimum requirements */}
-      {showHelper && !meetsMinimumRequirements() && (
-        <div className="fixed bottom-24 right-4 max-w-sm animate-fade-in" style={{ zIndex: 9999 }}>
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 rounded-lg shadow-2xl border-2 border-white">
-            <div className="flex items-start justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <Brain className="w-5 h-5" />
-                <p className="font-bold">Quick Start Helper</p>
-              </div>
-              <button 
-                onClick={() => setShowHelper(false)}
-                className="text-white/80 hover:text-white"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <p className="text-sm text-white/90 mb-3">To save this lead, you need:</p>
-            <div className="space-y-2 text-sm">
-              <div className={`flex items-center gap-2 ${(formData.firstName || formData.lastName) ? 'text-green-200' : 'text-white'}`}>
-                {(formData.firstName || formData.lastName) ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
-                <span>Name (first OR last)</span>
-              </div>
-              <div className={`flex items-center gap-2 ${((formData.emails[0]?.address || formData.phones[0]?.number)) ? 'text-green-200' : 'text-white'}`}>
-                {((formData.emails[0]?.address || formData.phones[0]?.number)) ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
-                <span>Contact method (email OR phone)</span>
-              </div>
-            </div>
-            <p className="text-xs text-white/70 mt-3 italic">
-              All other fields optional - add more info anytime!
-            </p>
-          </div>
-        </div>
-      )}
 
       {/* Data Quality Issues Modal Trigger */}
       {dataQuality.issues.length > 0 && (

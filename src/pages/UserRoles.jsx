@@ -6,11 +6,11 @@ import {
   TableCell, TableContainer, TableHead, TableRow, Card, CardContent,
   FormControl, InputLabel, Select, MenuItem, IconButton, Stack, Switch,
   FormControlLabel, Checkbox, Avatar, List, ListItem, ListItemText,
-  ListItemIcon, Divider, Badge, Tabs, Tab
+  ListItemIcon, Divider, Badge
 } from '@mui/material';
 import {
   Users, UserPlus, Edit, Trash2, Shield, Lock, Eye, CheckCircle, XCircle,
-  Mail, Phone, Calendar, Settings, Key, AlertCircle, Crown, Clock
+  Mail, Phone, Calendar, Settings, Key, AlertCircle, Crown
 } from 'lucide-react';
 import { 
   collection, addDoc, updateDoc, deleteDoc, doc, query, where, getDocs,
@@ -19,18 +19,14 @@ import {
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { format } from 'date-fns';
-import DeletionApprovalSystem, { DeletionRequestsDashboard } from '@/components/DeletionApprovalSystem';
-import { canManageRole } from '@/config/roleConfig';
-import { logRoleChange } from '@/services/roleChangeNotificationService';
 
 const UserRoleManager = () => {
-  const { currentUser, userProfile } = useAuth();
+  const { currentUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [permissionsDialogOpen, setPermissionsDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [tabValue, setTabValue] = useState(0);
 
   const [userForm, setUserForm] = useState({
     firstName: '',
@@ -279,15 +275,6 @@ const UserRoleManager = () => {
       return;
     }
 
-    // Validate role management permissions for updates
-    if (selectedUser?.id && selectedUser.role !== userForm.role) {
-      const canChange = canManageRole(userProfile?.role, userForm.role);
-      if (!canChange) {
-        showSnackbar(`You cannot assign ${userForm.role} role`, 'error');
-        return;
-      }
-    }
-
     setLoading(true);
     try {
       const userData = {
@@ -297,26 +284,7 @@ const UserRoleManager = () => {
       };
 
       if (selectedUser?.id) {
-        // Check if role changed and log it
-        const roleChanged = selectedUser.role !== userForm.role;
-        
         await updateDoc(doc(db, 'users', selectedUser.id), userData);
-        
-        // Log role change if applicable
-        if (roleChanged) {
-          await logRoleChange({
-            targetUserId: selectedUser.id,
-            targetUserEmail: selectedUser.email,
-            targetUserName: `${selectedUser.firstName} ${selectedUser.lastName}`,
-            previousRole: selectedUser.role,
-            newRole: userForm.role,
-            changedBy: currentUser.uid,
-            changedByEmail: currentUser.email,
-            changedByName: userProfile?.displayName || currentUser.email,
-            changedByRole: userProfile?.role,
-          });
-        }
-        
         showSnackbar('User updated successfully', 'success');
       } else {
         await addDoc(collection(db, 'users'), {
@@ -354,7 +322,19 @@ const UserRoleManager = () => {
     }
   };
 
-  // Delete user - Now handled by DeletionApprovalSystem component
+  // Delete user
+  const handleDelete = async (userId) => {
+    if (!window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) return;
+
+    try {
+      await deleteDoc(doc(db, 'users', userId));
+      showSnackbar('User deleted successfully', 'success');
+      loadUsers();
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      showSnackbar('Error deleting user', 'error');
+    }
+  };
 
   // Reset form
   const resetForm = () => {
@@ -398,147 +378,130 @@ const UserRoleManager = () => {
         </Button>
       </Box>
 
-      {/* Tabs */}
-      <Paper sx={{ mb: 3 }}>
-        <Tabs value={tabValue} onChange={(e, v) => setTabValue(v)}>
-          <Tab label="Team Members" icon={<Users size={18} />} iconPosition="start" />
-          {(userProfile?.role === 'masterAdmin' || userProfile?.role === 'officeManager') && (
-            <Tab label="Deletion Requests" icon={<Clock size={18} />} iconPosition="start" />
-          )}
-        </Tabs>
-      </Paper>
+      {/* Role Cards */}
+      <Grid container spacing={3} sx={{ mb: 3 }}>
+        {Object.entries(roles).map(([key, role]) => {
+          const RoleIcon = role.icon;
+          const userCount = users.filter(u => u.role === key).length;
+          
+          return (
+            <Grid item xs={12} md={4} lg={2.4} key={key}>
+              <Card>
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                    <RoleIcon size={20} color={role.color} />
+                    <Typography variant="subtitle2" fontWeight={600}>
+                      {role.label}
+                    </Typography>
+                  </Box>
+                  <Typography variant="h4" fontWeight={600}>
+                    {userCount}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {role.description}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          );
+        })}
+      </Grid>
 
-      {/* Tab Panel 0: Team Members */}
-      {tabValue === 0 && (
-        <>
-          {/* Role Cards */}
-          <Grid container spacing={3} sx={{ mb: 3 }}>
-            {Object.entries(roles).map(([key, role]) => {
-              const RoleIcon = role.icon;
-              const userCount = users.filter(u => u.role === key).length;
-              
-              return (
-                <Grid item xs={12} md={4} lg={2.4} key={key}>
-                  <Card>
-                    <CardContent>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                        <RoleIcon size={20} color={role.color} />
-                        <Typography variant="subtitle2" fontWeight={600}>
-                          {role.label}
-                        </Typography>
+      {/* Users Table */}
+      <Paper>
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>User</TableCell>
+                <TableCell>Email</TableCell>
+                <TableCell>Role</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Last Active</TableCell>
+                <TableCell>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {users.map((user) => {
+                const RoleIcon = roles[user.role]?.icon || Users;
+                
+                return (
+                  <TableRow key={user.id}>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Avatar sx={{ bgcolor: roles[user.role]?.color }}>
+                          {user.firstName?.[0]}{user.lastName?.[0]}
+                        </Avatar>
+                        <Box>
+                          <Typography variant="body2" fontWeight={500}>
+                            {user.firstName} {user.lastName}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {user.phone}
+                          </Typography>
+                        </Box>
                       </Box>
-                      <Typography variant="h4" fontWeight={600}>
-                        {userCount}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {role.description}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              );
-            })}
-          </Grid>
-
-          {/* Users Table */}
-          <Paper>
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>User</TableCell>
-                    <TableCell>Email</TableCell>
-                    <TableCell>Role</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Last Active</TableCell>
-                    <TableCell>Actions</TableCell>
+                    </TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>
+                      <Chip
+                        icon={<RoleIcon size={14} />}
+                        label={roles[user.role]?.label}
+                        size="small"
+                        sx={{ backgroundColor: `${roles[user.role]?.color}20` }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Switch
+                        checked={user.status === 'active'}
+                        onChange={() => handleToggleStatus(user)}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      {user.lastActiveAt ? format(
+                        user.lastActiveAt.toDate ? user.lastActiveAt.toDate() : new Date(user.lastActiveAt),
+                        'MM/dd/yyyy'
+                      ) : 'Never'}
+                    </TableCell>
+                    <TableCell>
+                      <Stack direction="row" spacing={1}>
+                        <IconButton
+                          size="small"
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setUserForm(user);
+                            setPermissionsDialogOpen(true);
+                          }}
+                        >
+                          <Shield size={16} />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setUserForm(user);
+                            setDialogOpen(true);
+                          }}
+                        >
+                          <Edit size={16} />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => handleDelete(user.id)}
+                        >
+                          <Trash2 size={16} />
+                        </IconButton>
+                      </Stack>
+                    </TableCell>
                   </TableRow>
-                </TableHead>
-                <TableBody>
-                  {users.map((user) => {
-                    const RoleIcon = roles[user.role]?.icon || Users;
-                    
-                    return (
-                      <TableRow key={user.id}>
-                        <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                            <Avatar sx={{ bgcolor: roles[user.role]?.color }}>
-                              {user.firstName?.[0]}{user.lastName?.[0]}
-                            </Avatar>
-                            <Box>
-                              <Typography variant="body2" fontWeight={500}>
-                                {user.firstName} {user.lastName}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {user.phone}
-                              </Typography>
-                            </Box>
-                          </Box>
-                        </TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>
-                          <Chip
-                            icon={<RoleIcon size={14} />}
-                            label={roles[user.role]?.label}
-                            size="small"
-                            sx={{ backgroundColor: `${roles[user.role]?.color}20` }}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Switch
-                            checked={user.status === 'active'}
-                            onChange={() => handleToggleStatus(user)}
-                            size="small"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          {user.lastActiveAt ? format(
-                            user.lastActiveAt.toDate ? user.lastActiveAt.toDate() : new Date(user.lastActiveAt),
-                            'MM/dd/yyyy'
-                          ) : 'Never'}
-                        </TableCell>
-                        <TableCell>
-                          <Stack direction="row" spacing={1}>
-                            <IconButton
-                              size="small"
-                              onClick={() => {
-                                setSelectedUser(user);
-                                setUserForm(user);
-                                setPermissionsDialogOpen(true);
-                              }}
-                            >
-                              <Shield size={16} />
-                            </IconButton>
-                            <IconButton
-                              size="small"
-                              onClick={() => {
-                                setSelectedUser(user);
-                                setUserForm(user);
-                                setDialogOpen(true);
-                              }}
-                            >
-                              <Edit size={16} />
-                            </IconButton>
-                            <DeletionApprovalSystem
-                              targetUser={user}
-                              onSuccess={() => loadUsers()}
-                            />
-                          </Stack>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Paper>
-        </>
-      )}
-
-      {/* Tab Panel 1: Deletion Requests */}
-      {tabValue === 1 && (userProfile?.role === 'masterAdmin' || userProfile?.role === 'officeManager') && (
-        <DeletionRequestsDashboard />
-      )}
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Paper>
 
       {/* Add/Edit User Dialog */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>

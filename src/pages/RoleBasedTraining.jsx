@@ -59,7 +59,7 @@ import {
   doc,
   getDoc
 } from 'firebase/firestore';
-import { db, auth } from '@/lib/firebase';
+import { db, auth } from '../../lib/firebase';
 
 // ===================================================================
 // ROLE-BASED LEARNING PATHS

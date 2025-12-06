@@ -32,7 +32,12 @@ import {
   Link as LinkIcon, Unlink, Code, Terminal, Cpu, Brain,
   Sparkles, Bell, Share2, ExternalLink, PieChart,
   LineChart as LineChartIcon, Workflow, Repeat, Timer, Send,
+<<<<<<< HEAD
   Phone, Smartphone, Globe, Cloud, Lock, Unlock, Key, LayoutDashboard, BarChart,
+=======
+  Phone, Smartphone, Globe, Cloud, Lock, Unlock, Key,
+  LayoutDashboard, BarChart,
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
 } from 'lucide-react';
 import { LineChart, Line, Bar, Cell, AreaChart, Area, XAxis, YAxis, CartesianGrid, Legend, ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
 import { BarChart as RechartsBarChart, PieChart as RechartsPie, Pie, Tooltip as RechartsTooltip } from 'recharts';

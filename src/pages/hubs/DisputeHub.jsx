@@ -1,44 +1,37 @@
 // ============================================================================
-// DisputeHub.jsx - CONSOLIDATED ULTIMATE DISPUTE & BUREAU MANAGEMENT HUB
+// DisputeHub.jsx - ULTIMATE DISPUTE MANAGEMENT HUB
 // ============================================================================
-// VERSION: 2.0.0 - CONSOLIDATED WITH BUREAU COMMUNICATION HUB
+// VERSION: 1.0.0
 // AUTHOR: SpeedyCRM Development Team
-// LAST UPDATED: 2025-11-22
+// LAST UPDATED: 2025-11-07
 //
 // DESCRIPTION:
-// Complete dispute AND bureau communication management hub with tabbed interface.
-// Consolidates DisputeHub + BureauCommunicationHub into unified workflow.
-//
-// CONSOLIDATION NOTES:
-// - Merged DisputeHub (9 tabs) + BureauCommunicationHub (8 tabs)
-// - Eliminated redundancy: Dispute Tracker + Bureau Dispute Tracker combined
-// - Enhanced features: Better bureau-specific tracking
-// - Total tabs: 10 (from 17 - eliminated 7 redundant tabs)
+// Complete dispute management hub with tabbed interface for all dispute
+// functions. Integrates 9 major components into unified workflow.
 //
 // FEATURES:
-// - 10 comprehensive tabs for all dispute & bureau functions
-// - Bureau-specific tracking (Experian, Equifax, TransUnion)
+// - 9 comprehensive tabs for all dispute functions
 // - Role-based tab visibility
 // - Tab state persistence
 // - Beautiful Material-UI interface
 // - Dark mode support
-// - AI-powered features throughout
+// - AI-powered quick actions
 // - Real-time statistics
 // - Notification system
 // - Responsive design
 // - Mobile optimized
 //
 // DEPENDENCIES:
-// - React, Material-UI, Firebase, Recharts
+// - React, Material-UI, Firebase
 // - AIDisputeGenerator.jsx
-// - DisputeTrackingSystem.jsx
-// - BureauResponseProcessor.jsx
-// - DisputeTemplateManager.jsx
-// - DisputeStrategyAnalyzer.jsx
-// - DisputeAnalyticsDashboard.jsx
-// - AutomatedFollowupSystem.jsx
-// - DisputeHubConfig.jsx
-// - AIDisputeCoach.jsx
+// - DisputeTrackingSystem.jsx (to be built)
+// - BureauResponseProcessor.jsx (to be built)
+// - DisputeTemplateManager.jsx (to be built)
+// - DisputeStrategyAnalyzer.jsx (to be built)
+// - DisputeAnalyticsDashboard.jsx (to be built)
+// - AutomatedFollowupSystem.jsx (to be built)
+// - DisputeHubConfig.jsx (to be built)
+// - AIDisputeCoach.jsx (optional)
 //
 // USAGE:
 // import DisputeHub from './pages/hubs/DisputeHub';
@@ -49,7 +42,7 @@
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, onSnapshot, doc, getDoc, addDoc, updateDoc, deleteDoc, serverTimestamp, orderBy, limit } from 'firebase/firestore';
+import { collection, query, where, getDocs, onSnapshot, doc, getDoc } from 'firebase/firestore';
 
 // ===== MATERIAL-UI IMPORTS =====
 import {
@@ -75,7 +68,6 @@ import {
   Grid,
   Card,
   CardContent,
-  CardActions,
   LinearProgress,
   useTheme,
   useMediaQuery,
@@ -86,28 +78,6 @@ import {
   Zoom,
   Slide,
   Collapse,
-  TextField,
-  InputAdornment,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TablePagination,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  ListItemAvatar,
 } from '@mui/material';
 
 // ===== LUCIDE REACT ICONS =====
@@ -144,14 +114,6 @@ import {
   TrendingDown,
   Award,
   Activity,
-  Building,
-  Send,
-  Edit,
-  Trash2,
-  Eye,
-  Copy,
-  Star,
-  Sparkles,
 } from 'lucide-react';
 
 // ===== LAZY LOAD COMPONENTS (Performance Optimization) =====
@@ -166,99 +128,12 @@ const DisputeHubConfig = lazy(() => import('@/components/dispute/DisputeHubConfi
 const AIDisputeCoach = lazy(() => import('@/components/dispute/AIDisputeCoach'));
 
 // ============================================================================
-// CONSTANTS & CONFIGURATION
-// ============================================================================
-
-const COLORS = {
-  experian: '#0066B2',
-  equifax: '#C8102E',
-  transunion: '#005EB8',
-  success: '#10b981',
-  warning: '#f59e0b',
-  error: '#ef4444',
-  info: '#3b82f6',
-  primary: '#667eea',
-  secondary: '#764ba2',
-};
-
-// Credit bureaus
-const BUREAUS = [
-  {
-    id: 'experian',
-    name: 'Experian',
-    color: COLORS.experian,
-    address: 'P.O. Box 4500, Allen, TX 75013',
-    phone: '1-888-397-3742',
-    website: 'https://www.experian.com',
-    responseTime: 30,
-    logo: '🔵',
-  },
-  {
-    id: 'equifax',
-    name: 'Equifax',
-    color: COLORS.equifax,
-    address: 'P.O. Box 740241, Atlanta, GA 30374',
-    phone: '1-800-685-1111',
-    website: 'https://www.equifax.com',
-    responseTime: 30,
-    logo: '🔴',
-  },
-  {
-    id: 'transunion',
-    name: 'TransUnion',
-    color: COLORS.transunion,
-    address: 'P.O. Box 2000, Chester, PA 19016',
-    phone: '1-800-916-8800',
-    website: 'https://www.transunion.com',
-    responseTime: 30,
-    logo: '🟢',
-  },
-];
-
-// Dispute statuses
-const DISPUTE_STATUSES = [
-  { id: 'draft', label: 'Draft', color: '#6b7280', icon: Edit },
-  { id: 'pending', label: 'Pending', color: '#f59e0b', icon: Clock },
-  { id: 'sent', label: 'Sent', color: '#3b82f6', icon: Send },
-  { id: 'received', label: 'Received', color: '#8b5cf6', icon: CheckCircle },
-  { id: 'resolved-deleted', label: 'Deleted', color: '#10b981', icon: CheckCircle },
-  { id: 'resolved-updated', label: 'Updated', color: '#10b981', icon: CheckCircle },
-  { id: 'resolved-verified', label: 'Verified', color: '#ef4444', icon: XCircle },
-  { id: 'escalated', label: 'Escalated', color: '#dc2626', icon: AlertCircle },
-];
-
-// Dispute item types
-const DISPUTE_TYPES = [
-  'Late Payment',
-  'Charge-Off',
-  'Collection',
-  'Bankruptcy',
-  'Foreclosure',
-  'Repossession',
-  'Inquiry',
-  'Public Record',
-  'Judgment',
-  'Tax Lien',
-  'Other',
-];
-
-// Letter templates categories
-const TEMPLATE_CATEGORIES = [
-  { id: 'initial', name: 'Initial Disputes', icon: FileText, count: 15 },
-  { id: 'follow-up', name: 'Follow-Up Letters', icon: RefreshCw, count: 10 },
-  { id: 'escalation', name: 'Escalation Letters', icon: AlertCircle, count: 8 },
-  { id: 'goodwill', name: 'Goodwill Letters', icon: Star, count: 5 },
-  { id: 'validation', name: 'Validation Requests', icon: Shield, count: 7 },
-  { id: 'cease-desist', name: 'Cease & Desist', icon: XCircle, count: 5 },
-];
-
-// ============================================================================
 // TAB CONFIGURATION
 // ============================================================================
 const TABS = [
   {
     id: 'generator',
-    label: 'AI Generator',
+    label: 'Generator',
     icon: FileText,
     description: 'Create AI-powered dispute letters',
     component: AIDisputeGenerator,
@@ -275,16 +150,6 @@ const TABS = [
     roles: ['user', 'manager', 'admin', 'masterAdmin'],
     color: '#4caf50',
     badge: null,
-  },
-  {
-    id: 'bureau-communication',
-    label: 'Bureau Tracker',
-    icon: Building,
-    description: 'Bureau-specific dispute tracking',
-    component: null, // Custom component rendered inline
-    roles: ['user', 'manager', 'admin', 'masterAdmin'],
-    color: '#9c27b0',
-    badge: 'NEW',
   },
   {
     id: 'responses',
@@ -304,16 +169,6 @@ const TABS = [
     component: DisputeTemplateManager,
     roles: ['user', 'manager', 'admin', 'masterAdmin'],
     color: '#9c27b0',
-    badge: null,
-  },
-  {
-    id: 'deadlines',
-    label: 'Deadlines',
-    icon: Clock,
-    description: '30-day deadline tracking',
-    component: null, // Custom component rendered inline
-    roles: ['user', 'manager', 'admin', 'masterAdmin'],
-    color: '#ff5722',
     badge: null,
   },
   {
@@ -339,7 +194,7 @@ const TABS = [
   {
     id: 'followups',
     label: 'Follow-ups',
-    icon: RefreshCw,
+    icon: Clock,
     description: 'Automated follow-up system',
     component: AutomatedFollowupSystem,
     roles: ['user', 'manager', 'admin', 'masterAdmin'],
@@ -355,6 +210,16 @@ const TABS = [
     roles: ['admin', 'masterAdmin'],
     color: '#607d8b',
     badge: null,
+  },
+  {
+    id: 'coach',
+    label: 'AI Coach',
+    icon: MessageSquare,
+    description: 'Interactive AI strategy coach',
+    component: AIDisputeCoach,
+    roles: ['user', 'manager', 'admin', 'masterAdmin'],
+    color: '#673ab7',
+    badge: 'BETA',
   },
 ];
 
@@ -389,6 +254,7 @@ const DisputeHub = () => {
 
   // ===== STATE MANAGEMENT =====
   const [activeTab, setActiveTab] = useState(() => {
+    // Load last active tab from localStorage
     const saved = localStorage.getItem('disputeHub_activeTab');
     return saved || 'generator';
   });
@@ -401,43 +267,10 @@ const DisputeHub = () => {
     successRate: 0,
     pendingResponses: 0,
     scheduledFollowups: 0,
-    upcomingDeadlines: 0,
-    // Bureau-specific stats
-    experianDisputes: 0,
-    equifaxDisputes: 0,
-    transunionDisputes: 0,
   });
   const [loading, setLoading] = useState(true);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
   const [quickActions, setQuickActions] = useState([]);
-
-  // Bureau tracking state
-  const [disputes, setDisputes] = useState([]);
-  const [responses, setResponses] = useState([]);
-  const [templates, setTemplates] = useState([]);
-  const [deadlines, setDeadlines] = useState([]);
-  
-  // Filter state
-  const [selectedBureau, setSelectedBureau] = useState('all');
-  const [selectedStatus, setSelectedStatus] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
-
-  // Dialog state
-  const [openDisputeDialog, setOpenDisputeDialog] = useState(false);
-  const [disputeForm, setDisputeForm] = useState({
-    clientId: '',
-    clientName: '',
-    bureau: '',
-    itemType: '',
-    accountName: '',
-    accountNumber: '',
-    reason: '',
-    template: '',
-  });
-
-  // Pagination
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   // ===== USER ROLE =====
   const userRole = useMemo(() => {
@@ -454,237 +287,51 @@ const DisputeHub = () => {
     localStorage.setItem('disputeHub_activeTab', activeTab);
   }, [activeTab]);
 
-  // ===== FETCH REAL-TIME DATA =====
+  // ===== FETCH REAL-TIME STATISTICS =====
   useEffect(() => {
     if (!currentUser) return;
 
-    const fetchData = async () => {
+    const fetchStats = async () => {
       try {
         setLoading(true);
-        await Promise.all([
-          loadDisputes(),
-          loadResponses(),
-          loadTemplates(),
-        ]);
+
+        // Query disputes collection
+        const disputesRef = collection(db, 'disputes');
+        const q = query(disputesRef, where('userId', '==', currentUser.uid));
+        
+        // Set up real-time listener
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+          const disputes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          
+          const totalDisputes = disputes.length;
+          const activeDisputes = disputes.filter(d => d.status === 'pending' || d.status === 'sent').length;
+          const resolved = disputes.filter(d => d.status === 'resolved' || d.status === 'deleted').length;
+          const successRate = totalDisputes > 0 ? ((resolved / totalDisputes) * 100).toFixed(1) : 0;
+          const pendingResponses = disputes.filter(d => d.status === 'sent' && !d.response).length;
+          const scheduledFollowups = disputes.filter(d => d.followupScheduled && new Date(d.followupDate) > new Date()).length;
+
+          setStats({
+            totalDisputes,
+            activeDisputes,
+            resolved,
+            successRate,
+            pendingResponses,
+            scheduledFollowups,
+          });
+          
+          setLoading(false);
+        });
+
+        return () => unsubscribe();
       } catch (error) {
-        console.error('❌ Error fetching data:', error);
-        showSnackbar('Failed to load data', 'error');
-      } finally {
+        console.error('❌ Error fetching dispute stats:', error);
         setLoading(false);
+        showSnackbar('Failed to load statistics', 'error');
       }
     };
 
-    fetchData();
+    fetchStats();
   }, [currentUser]);
-
-  // ===== CALCULATE DEADLINES =====
-  useEffect(() => {
-    if (disputes.length > 0) {
-      calculateDeadlines();
-    }
-  }, [disputes]);
-
-  // ===== CALCULATE STATS =====
-  useEffect(() => {
-    calculateStats();
-  }, [disputes, responses, deadlines]);
-
-  // ============================================================================
-  // DATA LOADING FUNCTIONS
-  // ============================================================================
-
-  const loadDisputes = async () => {
-    try {
-      const q = query(
-        collection(db, 'disputes'),
-        where('userId', '==', currentUser.uid),
-        orderBy('createdAt', 'desc'),
-        limit(100)
-      );
-      
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setDisputes(data);
-      });
-
-      return () => unsubscribe();
-    } catch (err) {
-      console.error('Error loading disputes:', err);
-    }
-  };
-
-  const loadResponses = async () => {
-    try {
-      const q = query(
-        collection(db, 'bureauResponses'),
-        orderBy('receivedAt', 'desc'),
-        limit(50)
-      );
-      const snapshot = await getDocs(q);
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setResponses(data);
-    } catch (err) {
-      console.error('Error loading responses:', err);
-    }
-  };
-
-  const loadTemplates = async () => {
-    try {
-      const snapshot = await getDocs(collection(db, 'disputeTemplates'));
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setTemplates(data);
-    } catch (err) {
-      console.error('Error loading templates:', err);
-    }
-  };
-
-  const calculateDeadlines = () => {
-    try {
-      const today = new Date();
-      
-      const activeDisputes = disputes.filter(d => 
-        d.status === 'sent' || d.status === 'received'
-      );
-      
-      const deadlineData = activeDisputes.map(dispute => {
-        const sentDate = dispute.sentAt ? new Date(dispute.sentAt) : new Date();
-        const deadlineDate = new Date(sentDate.getTime() + 30 * 24 * 60 * 60 * 1000);
-        const daysRemaining = Math.ceil((deadlineDate - today) / (1000 * 60 * 60 * 24));
-        
-        return {
-          disputeId: dispute.id,
-          clientName: dispute.clientName || 'Unknown Client',
-          bureau: dispute.bureau,
-          sentDate,
-          deadlineDate,
-          daysRemaining,
-          isOverdue: daysRemaining < 0,
-          isUrgent: daysRemaining <= 5 && daysRemaining >= 0,
-        };
-      });
-      
-      setDeadlines(deadlineData.sort((a, b) => a.daysRemaining - b.daysRemaining));
-    } catch (err) {
-      console.error('Error calculating deadlines:', err);
-    }
-  };
-
-  const calculateStats = () => {
-    const total = disputes.length;
-    const active = disputes.filter(d => 
-      d.status === 'pending' || d.status === 'sent' || d.status === 'received'
-    ).length;
-    const resolved = disputes.filter(d => 
-      d.status === 'resolved' || d.status === 'deleted' || d.status === 'resolved-deleted' || d.status === 'resolved-updated'
-    ).length;
-    const successRate = total > 0 ? ((resolved / total) * 100).toFixed(1) : 0;
-    const pendingResp = responses.filter(r => !r.processed).length;
-    const scheduled = disputes.filter(d => d.followupScheduled && new Date(d.followupDate) > new Date()).length;
-    const upcoming = deadlines.filter(d => !d.isOverdue && d.daysRemaining <= 7).length;
-
-    // Bureau-specific counts
-    const experianCount = disputes.filter(d => d.bureau === 'experian').length;
-    const equifaxCount = disputes.filter(d => d.bureau === 'equifax').length;
-    const transunionCount = disputes.filter(d => d.bureau === 'transunion').length;
-
-    setStats({
-      totalDisputes: total,
-      activeDisputes: active,
-      resolved,
-      successRate,
-      pendingResponses: pendingResp,
-      scheduledFollowups: scheduled,
-      upcomingDeadlines: upcoming,
-      experianDisputes: experianCount,
-      equifaxDisputes: equifaxCount,
-      transunionDisputes: transunionCount,
-    });
-  };
-
-  // ============================================================================
-  // HANDLERS
-  // ============================================================================
-
-  const handleTabChange = useCallback((event, newValue) => {
-    setActiveTab(newValue);
-    if (isMobile) setDrawerOpen(false);
-  }, [isMobile]);
-
-  const handleRefreshStats = useCallback(async () => {
-    showSnackbar('Refreshing statistics...', 'info');
-    await loadDisputes();
-    await loadResponses();
-    setTimeout(() => {
-      showSnackbar('Statistics updated!', 'success');
-    }, 1000);
-  }, []);
-
-  const showSnackbar = useCallback((message, severity = 'info') => {
-    setSnackbar({ open: true, message, severity });
-  }, []);
-
-  const handleCloseSnackbar = useCallback(() => {
-    setSnackbar(prev => ({ ...prev, open: false }));
-  }, []);
-
-  const handleCreateDispute = async () => {
-    try {
-      await addDoc(collection(db, 'disputes'), {
-        ...disputeForm,
-        userId: currentUser.uid,
-        status: 'draft',
-        createdAt: serverTimestamp(),
-        createdBy: currentUser.uid,
-      });
-      
-      showSnackbar('Dispute created successfully!', 'success');
-      setOpenDisputeDialog(false);
-      resetDisputeForm();
-    } catch (err) {
-      console.error('Error creating dispute:', err);
-      showSnackbar('Failed to create dispute', 'error');
-    }
-  };
-
-  const handleSendDispute = async (disputeId) => {
-    try {
-      await updateDoc(doc(db, 'disputes', disputeId), {
-        status: 'sent',
-        sentAt: new Date().toISOString(),
-        updatedAt: serverTimestamp(),
-      });
-      
-      showSnackbar('Dispute sent successfully!', 'success');
-    } catch (err) {
-      console.error('Error sending dispute:', err);
-      showSnackbar('Failed to send dispute', 'error');
-    }
-  };
-
-  const handleDeleteDispute = async (disputeId) => {
-    if (!confirm('Are you sure you want to delete this dispute?')) return;
-    
-    try {
-      await deleteDoc(doc(db, 'disputes', disputeId));
-      showSnackbar('Dispute deleted successfully', 'success');
-    } catch (err) {
-      console.error('Error deleting dispute:', err);
-      showSnackbar('Failed to delete dispute', 'error');
-    }
-  };
-
-  const resetDisputeForm = () => {
-    setDisputeForm({
-      clientId: '',
-      clientName: '',
-      bureau: '',
-      itemType: '',
-      accountName: '',
-      accountNumber: '',
-      reason: '',
-      template: '',
-    });
-  };
 
   // ===== QUICK ACTIONS CONFIGURATION =====
   useEffect(() => {
@@ -692,7 +339,7 @@ const DisputeHub = () => {
       {
         icon: <Plus />,
         name: 'New Dispute',
-        action: () => setOpenDisputeDialog(true),
+        action: () => handleTabChange(null, 'generator'),
       },
       {
         icon: <Search />,
@@ -711,6 +358,7 @@ const DisputeHub = () => {
       },
     ];
 
+    // Filter based on role
     if (userRole === 'admin' || userRole === 'masterAdmin') {
       actions.push({
         icon: <Settings />,
@@ -722,15 +370,33 @@ const DisputeHub = () => {
     setQuickActions(actions);
   }, [userRole]);
 
+  // ===== EVENT HANDLERS =====
+  const handleTabChange = useCallback((event, newValue) => {
+    setActiveTab(newValue);
+    if (isMobile) setDrawerOpen(false);
+  }, [isMobile]);
+
+  const handleRefreshStats = useCallback(async () => {
+    showSnackbar('Refreshing statistics...', 'info');
+    // Stats are real-time via Firestore listener, but we can trigger a manual refresh if needed
+    setTimeout(() => {
+      showSnackbar('Statistics updated!', 'success');
+    }, 1000);
+  }, []);
+
+  const showSnackbar = useCallback((message, severity = 'info') => {
+    setSnackbar({ open: true, message, severity });
+  }, []);
+
+  const handleCloseSnackbar = useCallback(() => {
+    setSnackbar(prev => ({ ...prev, open: false }));
+  }, []);
+
   // ===== ACTIVE COMPONENT =====
   const ActiveComponent = useMemo(() => {
     const tab = TABS.find(t => t.id === activeTab);
     return tab?.component || null;
   }, [activeTab]);
-
-  // ============================================================================
-  // RENDER FUNCTIONS
-  // ============================================================================
 
   // ===== RENDER STATS CARDS =====
   const renderStatsCards = () => (
@@ -804,10 +470,10 @@ const DisputeHub = () => {
         <Card>
           <CardContent sx={{ textAlign: 'center', py: 2 }}>
             <Typography variant="h4" color="secondary.main" fontWeight="bold">
-              {stats.upcomingDeadlines}
+              {stats.scheduledFollowups}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Upcoming Deadlines
+              Scheduled Follow-ups
             </Typography>
           </CardContent>
         </Card>
@@ -815,405 +481,10 @@ const DisputeHub = () => {
     </Grid>
   );
 
-  // ===== RENDER BUREAU COMMUNICATION TAB =====
-  const renderBureauCommunication = () => (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
-        <Typography variant="h5" sx={{ fontWeight: 700 }}>
-          Bureau Communication Tracker
-        </Typography>
-        <Button
-          variant="contained"
-          startIcon={<Plus />}
-          onClick={() => setOpenDisputeDialog(true)}
-        >
-          New Dispute
-        </Button>
-      </Box>
-
-      {/* Bureau Performance Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        {BUREAUS.map(bureau => {
-          const bureauDisputes = disputes.filter(d => d.bureau === bureau.id);
-          const bureauActive = bureauDisputes.filter(d => 
-            d.status === 'sent' || d.status === 'received'
-          ).length;
-          const bureauSuccessful = bureauDisputes.filter(d => 
-            d.status === 'resolved-deleted' || d.status === 'resolved-updated' || d.status === 'resolved'
-          ).length;
-          const successRate = bureauDisputes.length > 0 
-            ? (bureauSuccessful / bureauDisputes.length * 100).toFixed(1) 
-            : 0;
-
-          return (
-            <Grid item xs={12} md={4} key={bureau.id}>
-              <Card 
-                elevation={3}
-                sx={{
-                  borderTop: `4px solid ${bureau.color}`,
-                  transition: 'transform 0.2s',
-                  '&:hover': {
-                    transform: 'translateY(-4px)',
-                  },
-                }}
-              >
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                    <Typography variant="h2" sx={{ mr: 1 }}>{bureau.logo}</Typography>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                        {bureau.name}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {bureauDisputes.length} total disputes
-                      </Typography>
-                    </Box>
-                  </Box>
-
-                  <Box sx={{ mb: 2 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                      <Typography variant="caption">Success Rate</Typography>
-                      <Typography variant="caption" sx={{ fontWeight: 700 }}>
-                        {successRate}%
-                      </Typography>
-                    </Box>
-                    <LinearProgress
-                      variant="determinate"
-                      value={parseFloat(successRate)}
-                      sx={{
-                        height: 8,
-                        borderRadius: 4,
-                        bgcolor: '#e5e7eb',
-                        '& .MuiLinearProgress-bar': {
-                          bgcolor: bureau.color,
-                        },
-                      }}
-                    />
-                  </Box>
-
-                  <Divider sx={{ my: 2 }} />
-
-                  <Grid container spacing={1}>
-                    <Grid item xs={6}>
-                      <Typography variant="caption" color="text.secondary">Active</Typography>
-                      <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                        {bureauActive}
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="caption" color="text.secondary">Resolved</Typography>
-                      <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                        {bureauSuccessful}
-                      </Typography>
-                    </Grid>
-                  </Grid>
-
-                  <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid #e5e7eb' }}>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-                      Contact Info
-                    </Typography>
-                    <Typography variant="caption" sx={{ display: 'block' }}>
-                      {bureau.phone}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                      {bureau.address}
-                    </Typography>
-                  </Box>
-                </CardContent>
-                <CardActions>
-                  <Button size="small" fullWidth onClick={() => setSelectedBureau(bureau.id)}>
-                    Filter {bureau.name}
-                  </Button>
-                </CardActions>
-              </Card>
-            </Grid>
-          );
-        })}
-      </Grid>
-
-      {/* Filters */}
-      <Paper elevation={2} sx={{ p: 2, mb: 3 }}>
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={3}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Bureau</InputLabel>
-              <Select
-                value={selectedBureau}
-                onChange={(e) => setSelectedBureau(e.target.value)}
-                label="Bureau"
-              >
-                <MenuItem value="all">All Bureaus</MenuItem>
-                {BUREAUS.map(b => (
-                  <MenuItem key={b.id} value={b.id}>{b.name}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} md={3}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Status</InputLabel>
-              <Select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                label="Status"
-              >
-                <MenuItem value="all">All Statuses</MenuItem>
-                {DISPUTE_STATUSES.map(s => (
-                  <MenuItem key={s.id} value={s.id}>{s.label}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              size="small"
-              placeholder="Search disputes..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search size={20} />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Grid>
-        </Grid>
-      </Paper>
-
-      {/* Disputes Table */}
-      <Paper elevation={2}>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow sx={{ bgcolor: '#f9fafb' }}>
-                <TableCell sx={{ fontWeight: 700 }}>Client</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Bureau</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Item Type</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Sent Date</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Deadline</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {disputes.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 8 }}>
-                    <FileText size={48} color="#ccc" style={{ marginBottom: 16 }} />
-                    <Typography variant="body1" color="text.secondary">
-                      No disputes yet. Create your first dispute!
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                disputes
-                  .filter(d => {
-                    if (selectedBureau !== 'all' && d.bureau !== selectedBureau) return false;
-                    if (selectedStatus !== 'all' && d.status !== selectedStatus) return false;
-                    if (searchQuery && !d.clientName?.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-                    return true;
-                  })
-                  .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                  .map(dispute => {
-                    const bureau = BUREAUS.find(b => b.id === dispute.bureau);
-                    const status = DISPUTE_STATUSES.find(s => s.id === dispute.status);
-                    
-                    return (
-                      <TableRow key={dispute.id} hover>
-                        <TableCell>
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            {dispute.clientName || 'Unknown Client'}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Chip
-                            label={bureau?.name || dispute.bureau}
-                            size="small"
-                            sx={{
-                              bgcolor: bureau?.color + '20',
-                              color: bureau?.color,
-                              fontWeight: 600,
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell>{dispute.itemType}</TableCell>
-                        <TableCell>
-                          <Chip
-                            label={status?.label || dispute.status}
-                            size="small"
-                            sx={{
-                              bgcolor: status?.color + '20',
-                              color: status?.color,
-                              fontWeight: 600,
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          {dispute.sentAt ? new Date(dispute.sentAt).toLocaleDateString() : '-'}
-                        </TableCell>
-                        <TableCell>
-                          {dispute.sentAt ? (
-                            <Typography variant="caption">
-                              {new Date(new Date(dispute.sentAt).getTime() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()}
-                            </Typography>
-                          ) : '-'}
-                        </TableCell>
-                        <TableCell>
-                          <Box sx={{ display: 'flex', gap: 0.5 }}>
-                            <Tooltip title="View Details">
-                              <IconButton size="small">
-                                <Eye size={16} />
-                              </IconButton>
-                            </Tooltip>
-                            {dispute.status === 'draft' && (
-                              <Tooltip title="Send Dispute">
-                                <IconButton size="small" onClick={() => handleSendDispute(dispute.id)}>
-                                  <Send size={16} />
-                                </IconButton>
-                              </Tooltip>
-                            )}
-                            <Tooltip title="Delete">
-                              <IconButton size="small" onClick={() => handleDeleteDispute(dispute.id)}>
-                                <Trash2 size={16} />
-                              </IconButton>
-                            </Tooltip>
-                          </Box>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        <TablePagination
-          component="div"
-          count={disputes.filter(d => {
-            if (selectedBureau !== 'all' && d.bureau !== selectedBureau) return false;
-            if (selectedStatus !== 'all' && d.status !== selectedStatus) return false;
-            if (searchQuery && !d.clientName?.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-            return true;
-          }).length}
-          page={page}
-          onPageChange={(e, newPage) => setPage(newPage)}
-          rowsPerPage={rowsPerPage}
-          onRowsPerPageChange={(e) => {
-            setRowsPerPage(parseInt(e.target.value, 10));
-            setPage(0);
-          }}
-        />
-      </Paper>
-    </Box>
-  );
-
-  // ===== RENDER DEADLINES TAB =====
-  const renderDeadlines = () => (
-    <Box>
-      <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>
-        Deadline Tracker (30-Day Response Window)
-      </Typography>
-      <Paper elevation={2} sx={{ p: 3 }}>
-        {deadlines.length === 0 ? (
-          <Box sx={{ textAlign: 'center', py: 4 }}>
-            <Clock size={48} color="#ccc" style={{ marginBottom: 16 }} />
-            <Typography variant="body1" color="text.secondary">
-              No active deadlines
-            </Typography>
-          </Box>
-        ) : (
-          <List>
-            {deadlines.map(deadline => {
-              const bureau = BUREAUS.find(b => b.id === deadline.bureau);
-              return (
-                <ListItem
-                  key={deadline.disputeId}
-                  sx={{
-                    mb: 2,
-                    p: 2,
-                    borderRadius: 2,
-                    bgcolor: deadline.isOverdue ? '#fee2e2' : deadline.isUrgent ? '#fef3c7' : '#f0f9ff',
-                    border: `1px solid ${deadline.isOverdue ? '#fca5a5' : deadline.isUrgent ? '#fcd34d' : '#bfdbfe'}`,
-                  }}
-                >
-                  <ListItemAvatar>
-                    <Avatar sx={{ bgcolor: bureau?.color }}>
-                      {bureau?.logo}
-                    </Avatar>
-                  </ListItemAvatar>
-                  <ListItemText
-                    primary={
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
-                        <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                          {deadline.clientName}
-                        </Typography>
-                        <Chip
-                          icon={deadline.isOverdue ? <AlertCircle size={14} /> : <Clock size={14} />}
-                          label={
-                            deadline.isOverdue 
-                              ? `OVERDUE by ${Math.abs(deadline.daysRemaining)} days` 
-                              : deadline.isUrgent 
-                              ? `${deadline.daysRemaining} days left - URGENT`
-                              : `${deadline.daysRemaining} days remaining`
-                          }
-                          size="small"
-                          color={deadline.isOverdue ? 'error' : deadline.isUrgent ? 'warning' : 'info'}
-                          sx={{ fontWeight: 700 }}
-                        />
-                      </Box>
-                    }
-                    secondary={
-                      <Box>
-                        <Typography variant="caption" sx={{ display: 'block' }}>
-                          Sent: {deadline.sentDate.toLocaleDateString()} → 
-                          Deadline: {deadline.deadlineDate.toLocaleDateString()}
-                        </Typography>
-                        <Chip
-                          label={bureau?.name}
-                          size="small"
-                          sx={{
-                            mt: 1,
-                            bgcolor: bureau?.color + '20',
-                            color: bureau?.color,
-                            fontWeight: 600,
-                          }}
-                        />
-                      </Box>
-                    }
-                  />
-                </ListItem>
-              );
-            })}
-          </List>
-        )}
-      </Paper>
-    </Box>
-  );
-
   // ===== RENDER TAB PANELS =====
   const renderTabPanel = (tabId) => {
     if (tabId !== activeTab) return null;
 
-    // Custom tabs rendered inline
-    if (tabId === 'bureau-communication') {
-      return (
-        <Fade in={true} timeout={500}>
-          <Box>{renderBureauCommunication()}</Box>
-        </Fade>
-      );
-    }
-
-    if (tabId === 'deadlines') {
-      return (
-        <Fade in={true} timeout={500}>
-          <Box>{renderDeadlines()}</Box>
-        </Fade>
-      );
-    }
-
-    // Lazy-loaded component tabs
     return (
       <Fade in={true} timeout={500}>
         <Box>
@@ -1296,7 +567,7 @@ const DisputeHub = () => {
       <Box sx={{ p: 2 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Typography variant="h6" fontWeight="bold">
-            Dispute & Bureau Hub
+            Dispute Hub
           </Typography>
           <IconButton onClick={() => setDrawerOpen(false)} size="small">
             <X size={20} />
@@ -1392,10 +663,10 @@ const DisputeHub = () => {
           <Box>
             <Typography variant="h4" fontWeight="bold" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Shield size={32} />
-              Ultimate Dispute & Bureau Hub
+              Ultimate Dispute Hub
             </Typography>
             <Typography variant="body1" color="text.secondary">
-              Complete dispute management & bureau communication system with AI-powered tools
+              Complete dispute management system with AI-powered tools
             </Typography>
           </Box>
           
@@ -1450,93 +721,6 @@ const DisputeHub = () => {
           />
         ))}
       </SpeedDial>
-
-      {/* CREATE DISPUTE DIALOG */}
-      <Dialog open={openDisputeDialog} onClose={() => setOpenDisputeDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Create New Dispute</DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 2 }}>
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Client Name"
-                  value={disputeForm.clientName}
-                  onChange={(e) => setDisputeForm({ ...disputeForm, clientName: e.target.value })}
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Bureau</InputLabel>
-                  <Select
-                    value={disputeForm.bureau}
-                    onChange={(e) => setDisputeForm({ ...disputeForm, bureau: e.target.value })}
-                    label="Bureau"
-                  >
-                    {BUREAUS.map(b => (
-                      <MenuItem key={b.id} value={b.id}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span>{b.logo}</span>
-                          <span>{b.name}</span>
-                        </Box>
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Item Type</InputLabel>
-                  <Select
-                    value={disputeForm.itemType}
-                    onChange={(e) => setDisputeForm({ ...disputeForm, itemType: e.target.value })}
-                    label="Item Type"
-                  >
-                    {DISPUTE_TYPES.map(type => (
-                      <MenuItem key={type} value={type}>{type}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Account Name"
-                  value={disputeForm.accountName}
-                  onChange={(e) => setDisputeForm({ ...disputeForm, accountName: e.target.value })}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Account Number"
-                  value={disputeForm.accountNumber}
-                  onChange={(e) => setDisputeForm({ ...disputeForm, accountNumber: e.target.value })}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  multiline
-                  rows={4}
-                  label="Dispute Reason"
-                  value={disputeForm.reason}
-                  onChange={(e) => setDisputeForm({ ...disputeForm, reason: e.target.value })}
-                  placeholder="Explain why this item should be removed..."
-                />
-              </Grid>
-            </Grid>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => { setOpenDisputeDialog(false); resetDisputeForm(); }}>
-            Cancel
-          </Button>
-          <Button variant="contained" onClick={handleCreateDispute}>
-            Create Dispute
-          </Button>
-        </DialogActions>
-      </Dialog>
 
       {/* SNACKBAR NOTIFICATIONS */}
       <Snackbar

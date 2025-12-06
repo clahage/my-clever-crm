@@ -1,4 +1,7 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
 // ================================================================================
 // PATH: /src/pages/Pipeline.jsx
 // ================================================================================
@@ -28,6 +31,7 @@ import {
   deleteDoc,
   serverTimestamp,
   getDocs
+<<<<<<< HEAD
 =======
 // src/pages/Pipeline.jsx
 // ═══════════════════════════════════════════════════════════════════════════
@@ -421,6 +425,53 @@ const Pipeline = () => {
 
   // (Rendering and handlers would continue here, using the consolidated AIService and state)
 };
+=======
+} from 'firebase/firestore';
+
+// ===== LUCIDE REACT ICONS =====
+import {
+  Users,
+  UserPlus,
+  UserCheck,
+  MessageSquare,
+  FileText,
+  Scale,
+  Trophy,
+  XCircle,
+  Plus,
+  Search,
+  Filter,
+  Download,
+  Upload,
+  Mail,
+  Phone,
+  Calendar,
+  Clock,
+  DollarSign,
+  TrendingUp,
+  TrendingDown,
+  AlertCircle,
+  CheckCircle,
+  X,
+  Edit,
+  Trash2,
+  Eye,
+  BarChart3,
+  Activity,
+  Zap,
+  Target,
+  Brain,
+  Bot,
+  Sparkles,
+  ChevronDown,
+  ChevronRight,
+  MoreVertical,
+  Settings,
+  RefreshCw,
+  Copy,
+  ExternalLink,
+  ArrowRight,
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
   ArrowUp,
   ArrowDown,
   Info
@@ -599,6 +650,7 @@ export const PipelineUtils = {
         priority: 'high'
       });
     }
+<<<<<<< HEAD
 =======
 // ═══════════════════════════════════════════════════════════════════════════
 // AI SERVICE - ENTERPRISE INTELLIGENCE ENGINE
@@ -1000,14 +1052,15 @@ P.S. - Have a friend with credit challenges? Refer them and earn $100 per referr
     const closeDate = new Date();
     closeDate.setDate(closeDate.getDate() + baseDays);
 >>>>>>> 9bb51df (Complete hub architecture consolidation - Pipeline integrated into Clients Hub)
+=======
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
     
-    return {
-      date: closeDate,
-      daysUntilClose: baseDays,
-      confidence: health > 70 ? 'high' : health > 40 ? 'medium' : 'low'
-    };
+    return insights;
   },
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
   
   /**
    * Forecast revenue based on current pipeline
@@ -1016,27 +1069,31 @@ P.S. - Have a friend with credit challenges? Refer them and earn $100 per referr
     const qualified = deals.filter(d => 
       ['qualified', 'proposal', 'negotiation'].includes(d.stage)
     );
+<<<<<<< HEAD
 =======
 
   // AI-powered deal scoring (0-100)
   calculateDealScore: (deal) => {
     let score = 0;
 >>>>>>> 9bb51df (Complete hub architecture consolidation - Pipeline integrated into Clients Hub)
+=======
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
     
-    // Value scoring (25 points)
-    if (deal.value >= 5000) score += 25;
-    else if (deal.value >= 2000) score += 20;
-    else if (deal.value >= 1000) score += 15;
-    else if (deal.value >= 500) score += 10;
-    else score += 5;
+    let forecast = 0;
+    let bestCase = 0;
+    let worstCase = 0;
     
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
     qualified.forEach(deal => {
       const probability = calculateWinProbability(deal) / 100;
       const value = deal.value || 0;
       forecast += value * probability;
       bestCase += value * Math.min(1, probability * 1.3);
       worstCase += value * probability * 0.5;
+<<<<<<< HEAD
 =======
     // Win probability (25 points)
     const winProb = AIService.calculateWinProbability(deal);
@@ -1171,58 +1228,23 @@ P.S. - Have a friend with credit challenges? Refer them and earn $100 per referr
       // Optimistic: All deals at 90% of full value
       forecasts.optimistic += value * 0.90;
 >>>>>>> 9bb51df (Complete hub architecture consolidation - Pipeline integrated into Clients Hub)
+=======
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
     });
     
     return {
-      conservative: Math.round(forecasts.conservative),
-      likely: Math.round(forecasts.likely),
-      optimistic: Math.round(forecasts.optimistic),
-      breakdown: forecasts.breakdown
-    };
-  },
-
-  // Team performance analytics
-  analyzeTeamPerformance: (deals, userId) => {
-    const userDeals = deals.filter(d => d.assignedTo === userId);
-    const totalDeals = userDeals.length;
-    const wonDeals = userDeals.filter(d => d.stage === 'won').length;
-    const lostDeals = userDeals.filter(d => d.stage === 'lost').length;
-    const activeDeals = userDeals.filter(d => d.stage !== 'won' && d.stage !== 'lost').length;
-    
-    const totalValue = userDeals.reduce((sum, d) => sum + (d.value || 0), 0);
-    const wonValue = userDeals.filter(d => d.stage === 'won').reduce((sum, d) => sum + (d.value || 0), 0);
-    
-    const avgDealSize = totalDeals > 0 ? totalValue / totalDeals : 0;
-    const winRate = totalDeals > 0 ? (wonDeals / (wonDeals + lostDeals)) * 100 : 0;
-    
-    // Calculate average time to close
-    const closedDeals = userDeals.filter(d => d.stage === 'won' && d.createdAt && d.closedAt);
-    const avgDaysToClose = closedDeals.length > 0
-      ? closedDeals.reduce((sum, d) => {
-          const days = Math.floor((d.closedAt.seconds - d.createdAt.seconds) / (60 * 60 * 24));
-          return sum + days;
-        }, 0) / closedDeals.length
-      : 0;
-    
-    return {
-      totalDeals,
-      wonDeals,
-      lostDeals,
-      activeDeals,
-      totalValue: Math.round(totalValue),
-      wonValue: Math.round(wonValue),
-      avgDealSize: Math.round(avgDealSize),
-      winRate: Math.round(winRate),
-      avgDaysToClose: Math.round(avgDaysToClose),
-      pipelineHealth: activeDeals > 0 
-        ? userDeals.filter(d => d.stage !== 'won' && d.stage !== 'lost')
-            .reduce((sum, d) => sum + AIService.calculateDealHealth(d), 0) / activeDeals
-        : 0
+      likely: Math.round(forecast),
+      bestCase: Math.round(bestCase),
+      worstCase: Math.round(worstCase),
+      confidence: qualified.length > 10 ? 'high' : qualified.length > 5 ? 'medium' : 'low'
     };
   }
 };
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
 // ================================================================================
 // MAIN PIPELINE COMPONENT
 // ================================================================================
@@ -1240,6 +1262,7 @@ const Pipeline = () => {
   
   // ===== UI STATE =====
   const [searchTerm, setSearchTerm] = useState('');
+<<<<<<< HEAD
 =======
 // ═══════════════════════════════════════════════════════════════════════════
 // PIPELINE STAGES CONFIGURATION
@@ -1271,9 +1294,15 @@ const Pipeline = () => {
   // UI States
   const [viewMode, setViewMode] = useState('kanban'); // kanban, list, analytics
 >>>>>>> 9bb51df (Complete hub architecture consolidation - Pipeline integrated into Clients Hub)
+=======
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
   const [showAddDeal, setShowAddDeal] = useState(false);
+  const [selectedStage, setSelectedStage] = useState('');
   const [editingDeal, setEditingDeal] = useState(null);
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
   const [selectedDeals, setSelectedDeals] = useState([]);
   const [expandedDeals, setExpandedDeals] = useState(new Set());
   const [viewMode, setViewMode] = useState('kanban'); // 'kanban' | 'list' | 'chart'
@@ -1288,17 +1317,23 @@ const Pipeline = () => {
   const [showHotLeadsOnly, setShowHotLeadsOnly] = useState(false);
   
   // ===== AI FEATURES STATE =====
+<<<<<<< HEAD
 =======
   const [selectedDeal, setSelectedDeal] = useState(null);
 >>>>>>> 9bb51df (Complete hub architecture consolidation - Pipeline integrated into Clients Hub)
+=======
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
   const [showAICoach, setShowAICoach] = useState(false);
+  const [showAIInsights, setShowAIInsights] = useState(false);
   const [showEmailGenerator, setShowEmailGenerator] = useState(false);
   const [selectedDealForEmail, setSelectedDealForEmail] = useState(null);
-  const [showFilters, setShowFilters] = useState(false);
-  const [showBulkActions, setShowBulkActions] = useState(false);
-  const [selectedDeals, setSelectedDeals] = useState([]);
+  const [aiInsights, setAIInsights] = useState([]);
+  const [forecastData, setForecastData] = useState(null);
   
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
   // ===== SETTINGS =====
   const [realtimeUpdates, setRealtimeUpdates] = useState(true);
   const [automationEnabled, setAutomationEnabled] = useState(true);
@@ -1421,6 +1456,7 @@ const Pipeline = () => {
 
     if (!realtimeUpdates) {
       console.log('⏸️ Pipeline: Real-time updates disabled');
+<<<<<<< HEAD
 =======
   // Filter States
   const [searchTerm, setSearchTerm] = useState('');
@@ -1466,11 +1502,19 @@ const Pipeline = () => {
     if (!currentUser) {
       console.log('⚠️ No user authenticated');
 >>>>>>> 9bb51df (Complete hub architecture consolidation - Pipeline integrated into Clients Hub)
+=======
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
       setLoading(false);
       return;
     }
+
+    let dealsReceived = false;
+    let contactsReceived = false;
     
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
     const checkLoadingComplete = () => {
       if (dealsReceived && contactsReceived) {
         console.log('✅ Pipeline: All data loaded');
@@ -1778,6 +1822,7 @@ const Pipeline = () => {
     // Product filter
     if (filterProduct !== 'all') {
       filtered = filtered.filter(d => d.product === filterProduct);
+<<<<<<< HEAD
 =======
     console.log('📊 Setting up Pipeline real-time listener...');
     
@@ -1853,11 +1898,16 @@ const Pipeline = () => {
         filtered = filtered.filter(deal => (deal.value || 0) < 1000);
       }
 >>>>>>> 9bb51df (Complete hub architecture consolidation - Pipeline integrated into Clients Hub)
+=======
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
     }
 
     // Health filter
     if (filterHealth !== 'all') {
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
       filtered = filtered.filter(d => {
         const health = calculateDealHealth(d);
         if (filterHealth === 'high') return health >= 80;
@@ -1883,6 +1933,7 @@ const Pipeline = () => {
           return calculateDealHealth(b) - calculateDealHealth(a);
         case 'recent':
           return (b.lastActivity?.toMillis() || 0) - (a.lastActivity?.toMillis() || 0);
+<<<<<<< HEAD
 =======
       filtered = filtered.filter(deal => {
         const health = AIService.calculateDealHealth(deal);
@@ -1919,20 +1970,18 @@ const Pipeline = () => {
           compareB = AIService.calculateDealScore(b);
           break;
 >>>>>>> 9bb51df (Complete hub architecture consolidation - Pipeline integrated into Clients Hub)
+=======
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
         default:
-          compareA = a.name || '';
-          compareB = b.name || '';
-      }
-      
-      if (sortOrder === 'asc') {
-        return compareA > compareB ? 1 : -1;
-      } else {
-        return compareA < compareB ? 1 : -1;
+          return 0;
       }
     });
 
     return filtered;
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
   }, [deals, searchTerm, filterPriority, filterSource, filterProduct, filterHealth, showHotLeadsOnly, sortBy]);
 
   /**
@@ -1972,6 +2021,7 @@ const Pipeline = () => {
           <p className="text-gray-600 dark:text-gray-400">
             You need to be logged in to view the pipeline.
           </p>
+<<<<<<< HEAD
 =======
   }, [deals, searchTerm, filterStage, filterAssignedTo, filterValue, filterHealth, sortBy, sortOrder, currentUser]);
   
@@ -2285,11 +2335,16 @@ const Pipeline = () => {
           <Loader className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
           <p className="text-gray-600 dark:text-gray-400">Loading pipeline...</p>
 >>>>>>> 9bb51df (Complete hub architecture consolidation - Pipeline integrated into Clients Hub)
+=======
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
         </div>
       </div>
     );
   }
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
 
   // ================================================================================
   // RENDER: LOADING STATE
@@ -2331,6 +2386,7 @@ const Pipeline = () => {
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 mx-auto"
           >
             <RefreshCw className="w-4 h-4" />
+<<<<<<< HEAD
 =======
   
   // ===== ERROR STATE =====
@@ -2346,6 +2402,8 @@ const Pipeline = () => {
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
 >>>>>>> 9bb51df (Complete hub architecture consolidation - Pipeline integrated into Clients Hub)
+=======
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
             Retry
           </button>
         </div>
@@ -2353,6 +2411,9 @@ const Pipeline = () => {
     );
   }
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
 
   // ================================================================================
   // RENDER: MAIN PIPELINE VIEW
@@ -2412,6 +2473,7 @@ const Pipeline = () => {
             <button
               onClick={() => setShowAddDeal(true)}
               className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 text-sm font-medium transition-colors"
+<<<<<<< HEAD
 =======
   
   // ═══════════════════════════════════════════════════════════════════════════
@@ -2470,11 +2532,16 @@ const Pipeline = () => {
               onClick={() => setShowAddDeal(true)}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 shadow-lg"
 >>>>>>> 9bb51df (Complete hub architecture consolidation - Pipeline integrated into Clients Hub)
+=======
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
             >
               <Plus className="w-4 h-4" />
               Add Deal
             </button>
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
 
             <button
               onClick={() => window.location.reload()}
@@ -2691,6 +2758,7 @@ const Pipeline = () => {
                 <Plus className="w-5 h-5" />
                 Add First Deal
               </button>
+<<<<<<< HEAD
 =======
           </div>
         </div>
@@ -3247,11 +3315,16 @@ const Pipeline = () => {
                 );
               })
 >>>>>>> 9bb51df (Complete hub architecture consolidation - Pipeline integrated into Clients Hub)
+=======
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
             )}
           </div>
         </div>
       )}
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
 
       {/* ===== KANBAN BOARD ===== */}
       {filteredAndSortedDeals.length > 0 && (
@@ -3453,6 +3526,7 @@ const Pipeline = () => {
                 </div>
               );
             })}
+<<<<<<< HEAD
 =======
       
       {/* ═══════════════════════════════════════════════════════════════════════════ */}
@@ -3751,10 +3825,13 @@ const Pipeline = () => {
               </div>
             </div>
 >>>>>>> 9bb51df (Complete hub architecture consolidation - Pipeline integrated into Clients Hub)
+=======
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
           </div>
         </div>
       )}
 
+<<<<<<< HEAD
 <<<<<<< HEAD
       {/* ===== EMAIL GENERATOR MODAL ===== */}
 =======
@@ -3763,6 +3840,9 @@ const Pipeline = () => {
       {/* ═══════════════════════════════════════════════════════════════════════════ */}
       
 >>>>>>> 9bb51df (Complete hub architecture consolidation - Pipeline integrated into Clients Hub)
+=======
+      {/* ===== EMAIL GENERATOR MODAL ===== */}
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
       {showEmailGenerator && selectedDealForEmail && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -3802,7 +3882,7 @@ const Pipeline = () => {
                   Select Email Type:
                 </label>
                 <div className="grid grid-cols-2 gap-2">
-                  {['initial', 'followup', 'proposal', 'closing', 'negotiation', 'reengagement'].map(type => (
+                  {['initial', 'followup', 'proposal', 'closing'].map(type => (
                     <button
                       key={type}
                       onClick={() => {
@@ -3872,6 +3952,9 @@ const Pipeline = () => {
       )}
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
       {/* ===== ADD DEAL MODAL (PLACEHOLDER) ===== */}
       {showAddDeal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -3884,6 +3967,7 @@ const Pipeline = () => {
               </h2>
               <button
                 onClick={() => setShowAddDeal(false)}
+<<<<<<< HEAD
 =======
       {/* ═══════════════════════════════════════════════════════════════════════════ */}
       {/* ADD/EDIT DEAL MODAL - COMPLETE FORM */}
@@ -3936,6 +4020,8 @@ const Pipeline = () => {
                   });
                 }}
 >>>>>>> 9bb51df (Complete hub architecture consolidation - Pipeline integrated into Clients Hub)
+=======
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
                 className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
               >
                 <X className="w-5 h-5" />
@@ -3943,6 +4029,9 @@ const Pipeline = () => {
             </div>
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
             {/* Modal Body - Placeholder */}
             <div className="p-6">
               <div className="text-center py-12 text-gray-500 dark:text-gray-400">
@@ -3953,6 +4042,7 @@ const Pipeline = () => {
                   <br />
                   For now, use the ClientsHub or contact intake form to add new leads.
                 </p>
+<<<<<<< HEAD
 =======
             <form onSubmit={handleSubmitDeal} className="p-6">
               {/* ===== SECTION 1: BASIC INFO ===== */}
@@ -4360,16 +4450,21 @@ const Pipeline = () => {
               {/* ===== FORM ACTIONS ===== */}
               <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
 >>>>>>> 9bb51df (Complete hub architecture consolidation - Pipeline integrated into Clients Hub)
+=======
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
                 <button
-                  type="button"
                   onClick={() => {
                     setShowAddDeal(false);
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
                     navigate('/clients-hub');
                   }}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   Go to Clients Hub
+<<<<<<< HEAD
 =======
                     setEditingDeal(null);
                     setFormData({
@@ -4606,6 +4701,8 @@ const Pipeline = () => {
                 >
                   <Trash2 className="w-4 h-4" />
 >>>>>>> 9bb51df (Complete hub architecture consolidation - Pipeline integrated into Clients Hub)
+=======
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
                 </button>
               </div>
             </div>

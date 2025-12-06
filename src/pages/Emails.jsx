@@ -39,11 +39,9 @@ import { format, addDays, subDays, differenceInMinutes, parseISO } from 'date-fn
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import ContactAutocomplete from '@/components/ContactAutocomplete';
-import ImpersonationSelector, { useImpersonation } from '@/components/ImpersonationSelector';
 
 const Email = () => {
-  const { currentUser, userProfile } = useAuth();
-  const { canImpersonate, impersonatedUser, setImpersonatedUser, impersonationData, isImpersonating } = useImpersonation();
+  const { currentUser } = useAuth();
   const [tabValue, setTabValue] = useState(0);
   const [campaigns, setCampaigns] = useState([]);
   const [templates, setTemplates] = useState([]);
@@ -1102,16 +1100,6 @@ const Email = () => {
                   onChange={(e) => setCampaignForm(prev => ({ ...prev, fromEmail: e.target.value }))}
                 />
               </Grid>
-              
-              {/* Impersonation Selector */}
-              {canImpersonate && (
-                <Grid item xs={12}>
-                  <ImpersonationSelector
-                    value={impersonatedUser}
-                    onChange={setImpersonatedUser}
-                  />
-                </Grid>
-              )}
               
               <Grid item xs={12}>
                 <Autocomplete

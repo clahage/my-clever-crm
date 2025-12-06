@@ -11,7 +11,6 @@
 // ================================================================================
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Card,
@@ -292,7 +291,6 @@ const SEGMENTATION_CRITERIA = [
 
 const ClientsHub = () => {
   const { currentUser, userProfile } = useAuth();
-  const navigate = useNavigate();
   
   // ===== STATE MANAGEMENT =====
   const [activeTab, setActiveTab] = useState(0);
@@ -406,7 +404,6 @@ const ClientsHub = () => {
   // Analytics State
   const [analytics, setAnalytics] = useState({
     totalClients: 0,
-    contacts: 0, // NEW: pure contacts (not leads/clients yet)
     activeClients: 0,
     leads: 0,
     conversionRate: 0,
@@ -474,21 +471,88 @@ const ClientsHub = () => {
   const [customFieldsDialog, setCustomFieldsDialog] = useState(false);
   const [customFieldsConfig, setCustomFieldsConfig] = useState([]);
 
-  // ===== ANALYTICS CALCULATION =====
+  // ===== FIREBASE LISTENERS =====
+  
+  useEffect(() => {
+    if (!currentUser) return;
+    
+    console.log('🔥 Setting up Firebase listeners for ClientsHub');
+    const unsubscribers = [];
+    
+    // Listen to clients
+    const clientsQuery = query(
+      collection(db, 'contacts'),
+      where('userId', '==', currentUser.uid),
+      orderBy('createdAt', 'desc')
+    );
+    
+    const unsubClients = onSnapshot(clientsQuery, (snapshot) => {
+      console.log(`📥 Received ${snapshot.size} clients from Firebase`);
+      const clientData = [];
+      snapshot.forEach((doc) => {
+        clientData.push({ id: doc.id, ...doc.data() });
+      });
+      setClients(clientData);
+      setFilteredClients(clientData);
+      calculateAnalytics(clientData);
+      runPredictiveAnalysis(clientData);
+    }, (error) => {
+      console.error('❌ Error listening to clients:', error);
+      setSnackbar({ open: true, message: 'Error loading clients', severity: 'error' });
+    });
+    unsubscribers.push(unsubClients);
+    
+    // Listen to segments
+    const segmentsQuery = query(
+      collection(db, 'segments'),
+      where('userId', '==', currentUser.uid)
+    );
+    
+    const unsubSegments = onSnapshot(segmentsQuery, (snapshot) => {
+      const segmentData = [];
+      snapshot.forEach((doc) => {
+        segmentData.push({ id: doc.id, ...doc.data() });
+      });
+      setSegments(segmentData);
+      console.log(`📊 Loaded ${segmentData.length} segments`);
+    });
+    unsubscribers.push(unsubSegments);
+    
+    // Listen to workflows
+    const workflowsQuery = query(
+      collection(db, 'workflows'),
+      where('userId', '==', currentUser.uid)
+    );
+    
+    const unsubWorkflows = onSnapshot(workflowsQuery, (snapshot) => {
+      const workflowData = [];
+      snapshot.forEach((doc) => {
+        workflowData.push({ id: doc.id, ...doc.data() });
+      });
+      setWorkflows(workflowData);
+      console.log(`⚡ Loaded ${workflowData.length} workflows`);
+    });
+    unsubscribers.push(unsubWorkflows);
+    
+    return () => {
+      console.log('🔌 Cleaning up Firebase listeners');
+      unsubscribers.forEach(unsub => unsub());
+    };
+  }, [currentUser]);
+  
+  // ===== CLIENT LIST FUNCTIONS =====
   
   const calculateAnalytics = useCallback((clientData) => {
     console.log('📊 Calculating analytics for', clientData.length, 'clients');
     
     try {
       const total = clientData.length;
-      // Use roles array instead of status field
-      const active = clientData.filter(c => c.roles?.includes('client')).length;
-      const leads = clientData.filter(c => c.roles?.includes('lead')).length;
-      const prospects = clientData.filter(c => c.roles?.includes('prospect')).length;
-      const contacts = clientData.filter(c => c.roles?.includes('contact') && !c.roles?.includes('lead') && !c.roles?.includes('client')).length;
-      const completed = clientData.filter(c => c.roles?.includes('previous-client')).length;
-      const cancelled = clientData.filter(c => c.roles?.includes('inactive')).length;
-      const atRisk = clientData.filter(c => c.status === 'at_risk').length; // Keep status for atRisk if used
+      const active = clientData.filter(c => c.status === 'active').length;
+      const leads = clientData.filter(c => c.status === 'lead').length;
+      const prospects = clientData.filter(c => c.status === 'prospect').length;
+      const completed = clientData.filter(c => c.status === 'completed').length;
+      const cancelled = clientData.filter(c => c.status === 'cancelled').length;
+      const atRisk = clientData.filter(c => c.status === 'at_risk').length;
       
       const conversionRate = leads > 0 ? ((active / leads) * 100).toFixed(1) : 0;
       const avgScore = clientData.length > 0 
@@ -583,7 +647,6 @@ const ClientsHub = () => {
 
       setAnalytics({
         totalClients: total,
-        contacts, // NEW: pure contacts count
         activeClients: active,
         leads,
         conversionRate,
@@ -604,87 +667,6 @@ const ClientsHub = () => {
       console.error('Error calculating analytics:', error);
     }
   }, []);
-
-  // ===== FIREBASE LISTENERS =====
-  
-  // Calculate analytics whenever clients data changes
-  useEffect(() => {
-    if (clients.length > 0) {
-      calculateAnalytics(clients);
-    }
-  }, [clients, calculateAnalytics]);
-  
-  useEffect(() => {
-    if (!currentUser) return;
-    
-    console.log('🔥 Setting up Firebase listeners for ClientsHub');
-    const unsubscribers = [];
-    
-    // Listen to clients
-    const clientsQuery = query(
-      collection(db, 'contacts'),
-      where('userId', '==', currentUser.uid),
-      orderBy('createdAt', 'desc')
-    );
-    
-    const unsubClients = onSnapshot(clientsQuery, (snapshot) => {
-      console.log(`📥 Received ${snapshot.size} clients from Firebase`);
-      const clientData = [];
-      snapshot.forEach((doc) => {
-        const data = { id: doc.id, ...doc.data() };
-        clientData.push(data);
-        console.log('👤 Contact loaded:', data.firstName, data.lastName, 'Status:', data.status || 'no status');
-      });
-      setClients(clientData);
-      setFilteredClients(clientData);
-      console.log('✅ Set clients state with', clientData.length, 'contacts');
-      calculateAnalytics(clientData);
-      runPredictiveAnalysis(clientData);
-    }, (error) => {
-      console.error('❌ Error listening to clients:', error);
-      setSnackbar({ open: true, message: 'Error loading clients', severity: 'error' });
-    });
-    unsubscribers.push(unsubClients);
-    
-    // Listen to segments
-    const segmentsQuery = query(
-      collection(db, 'segments'),
-      where('userId', '==', currentUser.uid)
-    );
-    
-    const unsubSegments = onSnapshot(segmentsQuery, (snapshot) => {
-      const segmentData = [];
-      snapshot.forEach((doc) => {
-        segmentData.push({ id: doc.id, ...doc.data() });
-      });
-      setSegments(segmentData);
-      console.log(`📊 Loaded ${segmentData.length} segments`);
-    });
-    unsubscribers.push(unsubSegments);
-    
-    // Listen to workflows
-    const workflowsQuery = query(
-      collection(db, 'workflows'),
-      where('userId', '==', currentUser.uid)
-    );
-    
-    const unsubWorkflows = onSnapshot(workflowsQuery, (snapshot) => {
-      const workflowData = [];
-      snapshot.forEach((doc) => {
-        workflowData.push({ id: doc.id, ...doc.data() });
-      });
-      setWorkflows(workflowData);
-      console.log(`⚡ Loaded ${workflowData.length} workflows`);
-    });
-    unsubscribers.push(unsubWorkflows);
-    
-    return () => {
-      console.log('🔌 Cleaning up Firebase listeners');
-      unsubscribers.forEach(unsub => unsub());
-    };
-  }, [currentUser]);
-  
-  // ===== CLIENT LIST FUNCTIONS =====
   
   // ===== PREDICTIVE ANALYSIS =====
   
@@ -1110,6 +1092,7 @@ const ClientsHub = () => {
   };
   
   const handleEditClient = (client) => {
+<<<<<<< HEAD
     console.log('✏️ Editing contact:', client.id);
 <<<<<<< HEAD
     setEditingContact(client);
@@ -1118,6 +1101,25 @@ const ClientsHub = () => {
     // Navigate to the full UltimateContactForm with the contact ID
     navigate(`/edit-contact/${client.id}`);
 >>>>>>> fad06dd (Feature: Add edit contact route - clicking edit now opens full UltimateContactForm with existing data)
+=======
+    console.log('✏️ Editing client:', client.id);
+    setClientForm({
+      firstName: client.firstName || '',
+      lastName: client.lastName || '',
+      email: client.email || '',
+      phone: client.phone || '',
+      status: client.status || 'lead',
+      source: client.source || '',
+      leadScore: client.leadScore || 5,
+      engagementScore: client.engagementScore || 50,
+      journeyStage: client.journeyStage || 'awareness',
+      tags: client.tags || [],
+      notes: client.notes || '',
+      customFields: client.customFields || {},
+    });
+    setSelectedClient(client);
+    setActiveTab(1);
+>>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
   };
   
   const handleSaveClient = async () => {
@@ -2390,27 +2392,27 @@ const ClientsHub = () => {
         {/* STATS CARDS */}
         <Grid container spacing={2} sx={{ mb: 3 }}>
           <Grid item xs={6} sm={3}>
-            <Card sx={{ p: 2, textAlign: 'center', bgcolor: '#F3E5F5' }}>
-              <Typography variant="h4" color="text.primary">{analytics.contacts || 0}</Typography>
-              <Typography variant="caption">Unassigned Contacts</Typography>
-            </Card>
-          </Grid>
-          <Grid item xs={6} sm={3}>
-            <Card sx={{ p: 2, textAlign: 'center', bgcolor: '#FFF3E0' }}>
-              <Typography variant="h4" color="warning.main">{analytics.leads || 0}</Typography>
-              <Typography variant="caption">Active Leads</Typography>
+            <Card sx={{ p: 2, textAlign: 'center', bgcolor: '#E3F2FD' }}>
+              <Typography variant="h4" color="primary">{analytics.totalClients}</Typography>
+              <Typography variant="caption">Total Clients</Typography>
             </Card>
           </Grid>
           <Grid item xs={6} sm={3}>
             <Card sx={{ p: 2, textAlign: 'center', bgcolor: '#E8F5E9' }}>
-              <Typography variant="h4" color="success.main">{analytics.activeClients || 0}</Typography>
-              <Typography variant="caption">Active Clients</Typography>
+              <Typography variant="h4" color="success.main">{analytics.activeClients}</Typography>
+              <Typography variant="caption">Active</Typography>
             </Card>
           </Grid>
           <Grid item xs={6} sm={3}>
-            <Card sx={{ p: 2, textAlign: 'center', bgcolor: '#E3F2FD' }}>
-              <Typography variant="h4" color="primary">{analytics.totalClients || 0}</Typography>
-              <Typography variant="caption">Total Contacts</Typography>
+            <Card sx={{ p: 2, textAlign: 'center', bgcolor: '#FFF3E0' }}>
+              <Typography variant="h4" color="warning.main">{analytics.leads}</Typography>
+              <Typography variant="caption">Leads</Typography>
+            </Card>
+          </Grid>
+          <Grid item xs={6} sm={3}>
+            <Card sx={{ p: 2, textAlign: 'center', bgcolor: '#FCE4EC' }}>
+              <Typography variant="h4" color="secondary">{analytics.conversionRate}%</Typography>
+              <Typography variant="caption">Conversion</Typography>
             </Card>
           </Grid>
         </Grid>
@@ -2494,40 +2496,13 @@ const ClientsHub = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredClients.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={10} align="center" sx={{ py: 8 }}>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                      <Users size={48} color="#9e9e9e" />
-                      <Typography variant="h6" color="text.secondary">
-                        No contacts found
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {searchTerm || statusFilter !== 'all' || stageFilter !== 'all' 
-                          ? 'Try adjusting your filters or search query'
-                          : 'Get started by adding your first contact'}
-                      </Typography>
-                      {!searchTerm && statusFilter === 'all' && stageFilter === 'all' && (
-                        <Button
-                          variant="contained"
-                          startIcon={<UserPlus />}
-                          onClick={handleAddClient}
-                          sx={{ mt: 2 }}
-                        >
-                          Add Contact
-                        </Button>
-                      )}
-                    </Box>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredClients
-                  .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                  .map((client) => {
-                    const statusObj = CLIENT_STATUSES.find(s => s.value === client.status);
-                    const stageObj = JOURNEY_STAGES.find(s => s.value === client.journeyStage);
-                    
-                    return (
+              {filteredClients
+                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                .map((client) => {
+                  const statusObj = CLIENT_STATUSES.find(s => s.value === client.status);
+                  const stageObj = JOURNEY_STAGES.find(s => s.value === client.journeyStage);
+                  
+                  return (
                     <TableRow key={client.id} hover>
                       <TableCell padding="checkbox">
                         <Checkbox
@@ -2621,8 +2596,7 @@ const ClientsHub = () => {
                       </TableCell>
                     </TableRow>
                   );
-                })
-              )}
+                })}
             </TableBody>
           </Table>
         </TableContainer>
