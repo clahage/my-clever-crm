@@ -1,0 +1,54 @@
+{
+  "id": "acceleration-tier-onboarding",
+  "name": "Acceleration Tier Onboarding",
+  "description": "Enhanced onboarding for Acceleration tier ($249/month fixed or $169/month + $20 per deletion). Priority service with faster results.",
+  "version": "1.0.0",
+  "tier": "acceleration",
+  "trigger": {
+    "type": "contact_created",
+    "conditions": {
+      "serviceTier": "acceleration",
+      "status": "contact"
+    }
+  },
+  "steps": [
+    {"id": "step_1", "name": "AI Profile Analysis", "type": "ai_analysis", "config": {"analysisType": "full_profile", "includeLeadScore": true}},
+    {"id": "step_2", "name": "Assign High Priority", "type": "role_assignment", "config": {"role": "lead", "priority": "high"}},
+    {"id": "step_3", "name": "Send Premium Welcome Email", "type": "email_send", "config": {"template": "welcome_acceleration", "subject": "Welcome to Acceleration Tier, {{firstName}}! 🚀", "cta": {"text": "Get Priority IDIQ Report", "url": "{{idiqEnrollmentLink}}"}}},
+    {"id": "step_4", "name": "Send Welcome SMS", "type": "sms_send", "config": {"template": "welcome"}},
+    {"id": "step_5", "name": "Create Urgent Task", "type": "task_create", "config": {"title": "URGENT: New Acceleration tier lead - {{firstName}} {{lastName}}", "assignTo": "christopher", "priority": "urgent", "dueDate": "+2 hours"}},
+    {"id": "step_6", "name": "Wait 2 Hours", "type": "wait", "config": {"duration": 2, "unit": "hours"}},
+    {"id": "step_7", "name": "Personal Call Outreach", "type": "email_send", "config": {"subject": "I'll call you tomorrow, {{firstName}}", "body": "Hi {{firstName}},\n\nThanks for your interest in our Acceleration tier!\n\nThis is our most popular plan for people with {{negativeItemCount}} negative items like you.\n\n**I'll personally call you tomorrow** to discuss your situation and answer any questions.\n\nExpect my call at {{phone}} around 2pm.\n\nIn the meantime, please get your free IDIQ credit report so I can analyze it before our call: {{idiqEnrollmentLink}}\n\nLooking forward to talking!\n\nChristopher\nOwner, Speedy Credit Repair\n(555) 123-4567"}},
+    {"id": "step_8", "name": "Wait 24 Hours", "type": "wait", "config": {"duration": 24, "unit": "hours"}},
+    {"id": "step_9", "name": "Check IDIQ Status", "type": "conditional_branch", "config": {"condition": "contact.idiqStatus === 'enrolled'", "truePath": "step_10", "falsePath": "step_20"}},
+    {"id": "step_10", "name": "AI Service Analysis", "type": "service_recommendation", "config": {"useAIAnalysis": true, "tier": "acceleration"}},
+    {"id": "step_11", "name": "Send Detailed Analysis", "type": "email_send", "config": {"template": "acceleration_analysis", "subject": "Your personalized Acceleration plan, {{firstName}}"}},
+    {"id": "step_12", "name": "Schedule Consultation", "type": "task_create", "config": {"title": "Call Acceleration lead: {{firstName}} {{lastName}}", "assignTo": "christopher", "priority": "urgent"}},
+    {"id": "step_13", "name": "Wait for Call Completion", "type": "wait_for_manual_action", "config": {"waitForField": "callCompleted", "timeout": "48 hours"}},
+    {"id": "step_14", "name": "Check Call Outcome", "type": "conditional_branch", "config": {"condition": "contact.postCallStatus === 'interested'", "truePath": "step_15", "falsePath": "step_25"}},
+    {"id": "step_15", "name": "Send Contract Immediately", "type": "email_send", "config": {"template": "contract_ready", "subject": "Your Acceleration contract is ready, {{firstName}}", "cta": {"text": "Sign Contract Now", "url": "{{contractLink}}"}}},
+    {"id": "step_16", "name": "Wait for Signature", "type": "wait_for_manual_action", "config": {"waitForField": "contractSigned", "timeout": "5 days"}},
+    {"id": "step_17", "name": "Check Signature", "type": "conditional_branch", "config": {"condition": "contact.contractSigned === true", "truePath": "step_18", "falsePath": "step_28"}},
+    {"id": "step_18", "name": "Activate Client Status", "type": "update_contact", "config": {"updates": {"status": "client", "tier": "acceleration", "startDate": "{{now}}"}}},
+    {"id": "step_19", "name": "Send VIP Onboarding", "type": "email_send", "config": {"template": "onboarding_complete", "subject": "Welcome to the Acceleration program! 🎉"}},
+    {"id": "step_20", "name": "IDIQ Follow-up Call", "type": "task_create", "config": {"title": "Call to enroll in IDIQ: {{firstName}} {{lastName}}", "priority": "urgent", "assignTo": "christopher"}},
+    {"id": "step_21", "name": "Wait 48 Hours", "type": "wait", "config": {"duration": 48, "unit": "hours"}},
+    {"id": "step_22", "name": "Recheck IDIQ", "type": "conditional_branch", "config": {"condition": "contact.idiqStatus === 'enrolled'", "truePath": "step_10", "falsePath": "step_23"}},
+    {"id": "step_23", "name": "Final IDIQ Push", "type": "email_send", "config": {"subject": "{{firstName}}, we need your credit report to proceed", "body": "Hi {{firstName}},\n\nI've tried reaching you about getting your IDIQ credit report.\n\n**Here's the issue:** I can't create your personalized Acceleration plan without seeing your full credit report.\n\n**The solution:** Get your free report now (takes 2 minutes): {{idiqEnrollmentLink}}\n\nOnce I have it, I'll call you within 2 hours with your complete action plan.\n\nChristopher"}},
+    {"id": "step_24", "name": "Create Manual Follow-up", "type": "task_create", "config": {"title": "Acceleration lead won't get IDIQ - {{firstName}}", "priority": "medium"}},
+    {"id": "step_25", "name": "Not Interested Follow-up", "type": "email_send", "config": {"subject": "No problem, {{firstName}} - let me know if I can help", "body": "Hi {{firstName}},\n\nThanks for taking the time to speak with me.\n\nI understand the Acceleration tier isn't the right fit for you right now.\n\n**A few options:**\n\n1. **Different tier?** Maybe Standard ($179/month) is better for you\n2. **Not ready yet?** I can follow up in a few months\n3. **Questions?** Reply anytime\n\nNo pressure - I'm here when you need me.\n\nChristopher"}},
+    {"id": "step_26", "name": "Wait 7 Days", "type": "wait", "config": {"duration": 7, "unit": "days"}},
+    {"id": "step_27", "name": "End (Nurture)", "type": "workflow_complete", "config": {"nextWorkflow": "lead-nurture-sequence"}},
+    {"id": "step_28", "name": "Contract Not Signed", "type": "task_create", "config": {"title": "Acceleration contract not signed - {{firstName}}", "priority": "high"}},
+    {"id": "step_29", "name": "Contract Reminder", "type": "email_send", "config": {"subject": "{{firstName}}, your contract is waiting", "body": "Quick reminder - I sent your Acceleration contract but haven't received it back.\n\nQuestions? Call me: (555) 123-4567\n\nChristopher"}},
+    {"id": "step_30", "name": "End (Lost)", "type": "workflow_complete", "config": {"updateContactStatus": "lost"}}
+  ],
+  "metadata": {
+    "createdBy": "system",
+    "createdAt": "2025-12-05",
+    "estimatedDuration": "7-14 days",
+    "conversionGoal": 0.35,
+    "tags": ["onboarding", "acceleration", "priority-service"],
+    "notes": "Acceleration tier gets faster response times and personal attention from Christopher"
+  }
+}

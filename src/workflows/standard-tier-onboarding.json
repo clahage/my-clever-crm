@@ -1,0 +1,557 @@
+{
+  "id": "standard-tier-onboarding",
+  "name": "Standard Tier Onboarding",
+  "description": "Complete onboarding for Standard tier clients ($179/month fixed or $129/month + $25 per deletion per bureau). Full-service credit repair with personal support.",
+  "version": "1.0.0",
+  "tier": "standard",
+  "trigger": {
+    "type": "contact_created",
+    "conditions": {
+      "serviceTier": "standard",
+      "status": "contact"
+    }
+  },
+  "steps": [
+    {
+      "id": "step_1",
+      "name": "AI Profile Analysis",
+      "type": "ai_analysis",
+      "description": "Comprehensive contact analysis with lead scoring",
+      "config": {
+        "analysisType": "full_profile",
+        "includeLeadScore": true,
+        "includeServiceRecommendation": true,
+        "returnReasoning": true
+      }
+    },
+    {
+      "id": "step_2",
+      "name": "Assign Lead Score",
+      "type": "role_assignment",
+      "description": "Set initial contact role based on AI analysis",
+      "config": {
+        "role": "lead",
+        "updateLeadScore": true
+      }
+    },
+    {
+      "id": "step_3",
+      "name": "Send Welcome Email",
+      "type": "email_send",
+      "description": "Warm welcome with next steps",
+      "config": {
+        "template": "welcome_standard",
+        "subject": "Welcome to Speedy Credit Repair, {{firstName}}!",
+        "cta": {
+          "text": "Get My Free Credit Report",
+          "url": "{{idiqEnrollmentLink}}"
+        },
+        "personalize": true
+      }
+    },
+    {
+      "id": "step_4",
+      "name": "Send Welcome SMS",
+      "type": "sms_send",
+      "config": {
+        "template": "welcome",
+        "includeLink": true
+      }
+    },
+    {
+      "id": "step_5",
+      "name": "Create Initial Task",
+      "type": "task_create",
+      "description": "Christopher to review new Standard lead",
+      "config": {
+        "title": "Review new Standard tier lead: {{firstName}} {{lastName}}",
+        "description": "Credit score: {{creditScore}}, Negative items: {{negativeItemCount}}, Lead score: {{leadScore}}",
+        "assignTo": "christopher",
+        "priority": "high",
+        "dueDate": "+4 hours"
+      }
+    },
+    {
+      "id": "step_6",
+      "name": "Wait 4 Hours",
+      "type": "wait",
+      "config": {
+        "duration": 4,
+        "unit": "hours"
+      }
+    },
+    {
+      "id": "step_7",
+      "name": "Send IDIQ Offer",
+      "type": "email_send",
+      "description": "Offer free IDIQ credit report",
+      "config": {
+        "template": "idiq_offer",
+        "subject": "{{firstName}}, your free credit report is ready 📊",
+        "cta": {
+          "text": "Access My Free Report",
+          "url": "{{idiqEnrollmentLink}}"
+        }
+      }
+    },
+    {
+      "id": "step_8",
+      "name": "Wait 48 Hours",
+      "type": "wait",
+      "description": "Give time for IDIQ enrollment",
+      "config": {
+        "duration": 48,
+        "unit": "hours"
+      }
+    },
+    {
+      "id": "step_9",
+      "name": "Check IDIQ Enrollment",
+      "type": "conditional_branch",
+      "description": "Did they sign up for IDIQ?",
+      "config": {
+        "condition": "contact.idiqStatus === 'enrolled'",
+        "truePath": "step_10",
+        "falsePath": "step_20"
+      }
+    },
+    {
+      "id": "step_10",
+      "name": "Send IDIQ Confirmation",
+      "type": "email_send",
+      "config": {
+        "subject": "✓ Your credit report is processing, {{firstName}}",
+        "body": "Great news! Your IDIQ credit report is being generated.\n\nYou'll receive it within 24 hours at this email address.\n\nWhile you wait, here's what happens next:\n\n1. We'll analyze your report\n2. I'll create your personalized action plan\n3. You'll receive my service recommendation\n4. We'll schedule your consultation call\n\nExpect my detailed analysis by tomorrow!\n\nBest,\nChristopher",
+        "cta": {
+          "text": "Schedule Consultation",
+          "url": "{{scheduleCallLink}}"
+        }
+      }
+    },
+    {
+      "id": "step_11",
+      "name": "Wait for IDIQ Report",
+      "type": "wait",
+      "description": "Allow time for IDIQ to deliver report",
+      "config": {
+        "duration": 24,
+        "unit": "hours"
+      }
+    },
+    {
+      "id": "step_12",
+      "name": "AI Service Recommendation",
+      "type": "service_recommendation",
+      "description": "AI analyzes IDIQ report and recommends best plan",
+      "config": {
+        "useAIAnalysis": true,
+        "includePricing": true,
+        "includeComparison": true,
+        "returnReasoning": true
+      }
+    },
+    {
+      "id": "step_13",
+      "name": "Send Service Recommendation",
+      "type": "email_send",
+      "config": {
+        "template": "service_recommendation",
+        "subject": "Your personalized credit repair plan, {{firstName}}",
+        "cta": {
+          "text": "Schedule Free Consultation",
+          "url": "{{scheduleCallLink}}"
+        },
+        "personalize": true
+      }
+    },
+    {
+      "id": "step_14",
+      "name": "Wait 24 Hours",
+      "type": "wait",
+      "config": {
+        "duration": 24,
+        "unit": "hours"
+      }
+    },
+    {
+      "id": "step_15",
+      "name": "Check Email Engagement",
+      "type": "conditional_branch",
+      "description": "Did they open the recommendation email?",
+      "config": {
+        "condition": "contact.emailEngagement.opened > 0",
+        "truePath": "step_16",
+        "falsePath": "step_25"
+      }
+    },
+    {
+      "id": "step_16",
+      "name": "Send Consultation Reminder",
+      "type": "email_send",
+      "config": {
+        "subject": "Ready to schedule your consultation, {{firstName}}?",
+        "body": "Hi {{firstName}},\n\nI wanted to follow up on the personalized plan I sent you.\n\n**Quick recap:**\n• Recommended: Standard Tier\n• Investment: $179/month (or $129/month + $25 per deletion)\n• Expected results: 50-100 point improvement in 3-6 months\n\n**Your specific situation:**\nWith {{negativeItemCount}} negative items and a {{creditScore}} credit score, the Standard tier is perfect for you.\n\n**Common questions:**\n\nQ: How does the performance pricing work?\nA: You choose: pay $179/month flat, OR pay $129/month + $25 for each item we successfully remove (per bureau). Most clients save money with performance pricing.\n\nQ: What if I don't see results?\nA: You can cancel after 3 months, no questions asked.\n\n**Let's talk!** Book a 15-minute call: {{scheduleCallLink}}\n\nBest,\nChristopher",
+        "cta": {
+          "text": "Book My Consultation",
+          "url": "{{scheduleCallLink}}"
+        }
+      }
+    },
+    {
+      "id": "step_17",
+      "name": "Wait 48 Hours",
+      "type": "wait",
+      "config": {
+        "duration": 48,
+        "unit": "hours"
+      }
+    },
+    {
+      "id": "step_18",
+      "name": "Check Call Scheduled",
+      "type": "conditional_branch",
+      "config": {
+        "condition": "contact.callScheduled === true",
+        "truePath": "step_30",
+        "falsePath": "step_19"
+      }
+    },
+    {
+      "id": "step_19",
+      "name": "Create Follow-up Task",
+      "type": "task_create",
+      "config": {
+        "title": "Call Standard lead: {{firstName}} {{lastName}}",
+        "description": "Opened recommendation email but hasn't scheduled. Call to close. Lead score: {{leadScore}}",
+        "assignTo": "christopher",
+        "priority": "high"
+      }
+    },
+    {
+      "id": "step_20",
+      "name": "Send IDIQ Reminder",
+      "type": "email_send",
+      "description": "They didn't enroll in IDIQ - send reminder",
+      "config": {
+        "template": "idiq_reminder",
+        "subject": "Don't miss your free credit report, {{firstName}}",
+        "cta": {
+          "text": "Claim My Free Report Now",
+          "url": "{{idiqEnrollmentLink}}"
+        }
+      }
+    },
+    {
+      "id": "step_21",
+      "name": "Send IDIQ SMS Reminder",
+      "type": "sms_send",
+      "config": {
+        "template": "idiq_reminder"
+      }
+    },
+    {
+      "id": "step_22",
+      "name": "Wait 72 Hours",
+      "type": "wait",
+      "config": {
+        "duration": 72,
+        "unit": "hours"
+      }
+    },
+    {
+      "id": "step_23",
+      "name": "Final IDIQ Check",
+      "type": "conditional_branch",
+      "config": {
+        "condition": "contact.idiqStatus === 'enrolled'",
+        "truePath": "step_10",
+        "falsePath": "step_24"
+      }
+    },
+    {
+      "id": "step_24",
+      "name": "Create No-IDIQ Task",
+      "type": "task_create",
+      "config": {
+        "title": "Standard lead won't enroll in IDIQ: {{firstName}} {{lastName}}",
+        "description": "Multiple reminders sent. Call to overcome objection or offer alternative path.",
+        "assignTo": "christopher",
+        "priority": "medium"
+      }
+    },
+    {
+      "id": "step_25",
+      "name": "Send Re-engagement Email",
+      "type": "email_send",
+      "description": "They didn't open recommendation - re-engage",
+      "config": {
+        "subject": "{{firstName}}, I have your credit repair plan ready",
+        "body": "Hi {{firstName}},\n\nI sent you a personalized credit repair plan based on your profile, but I haven't heard back.\n\n**Did my email get buried?** I know inboxes get overwhelming.\n\n**Here's the short version:**\n\nYour credit score: {{creditScore}}\nItems to dispute: {{negativeItemCount}}\nRecommended plan: Standard ($179/month)\nExpected improvement: 50-100 points in 3-6 months\n\n**Why I'm following up:**\n\nEvery month you wait is another month of:\n❌ Higher interest rates\n❌ Lower credit limits\n❌ Difficulty qualifying for loans\n\n**Let's fix this.** 15-minute call: {{scheduleCallLink}}\n\nOr just reply with questions!\n\nChristopher\nSpeedy Credit Repair\n(555) 123-4567",
+        "cta": {
+          "text": "Schedule Quick Call",
+          "url": "{{scheduleCallLink}}"
+        }
+      }
+    },
+    {
+      "id": "step_26",
+      "name": "Wait 5 Days",
+      "type": "wait",
+      "config": {
+        "duration": 5,
+        "unit": "days"
+      }
+    },
+    {
+      "id": "step_27",
+      "name": "Final Engagement Check",
+      "type": "conditional_branch",
+      "config": {
+        "condition": "contact.emailEngagement.opened > 0 || contact.callScheduled === true",
+        "truePath": "step_16",
+        "falsePath": "step_28"
+      }
+    },
+    {
+      "id": "step_28",
+      "name": "Move to Nurture Sequence",
+      "type": "update_contact",
+      "config": {
+        "updates": {
+          "status": "cold_lead",
+          "temperature": "cold"
+        }
+      }
+    },
+    {
+      "id": "step_29",
+      "name": "End Workflow (Cold Lead)",
+      "type": "workflow_complete",
+      "config": {
+        "nextWorkflow": "lead-nurture-sequence"
+      }
+    },
+    {
+      "id": "step_30",
+      "name": "Send Call Confirmation",
+      "type": "email_send",
+      "config": {
+        "subject": "✓ Consultation confirmed for {{callDate}}",
+        "body": "Perfect {{firstName}}!\n\nYour consultation is confirmed:\n\n**When:** {{callDate}} at {{callTime}}\n**Duration:** 15 minutes\n**With:** Christopher (owner)\n**Phone:** I'll call you at {{phone}}\n\n**What we'll cover:**\n1. Your specific credit situation\n2. Dispute strategy for your {{negativeItemCount}} items\n3. Expected timeline and results\n4. Answer all your questions\n5. If we're a good fit, we'll get you started\n\n**Please have ready:**\n• Your IDIQ credit report (I'll email it to you)\n• List of your credit goals (home loan, car loan, etc.)\n• Questions about the process\n\n**Can't make it?** Reschedule here: {{scheduleCallLink}}\n\nLooking forward to talking!\n\nChristopher",
+        "cta": {
+          "text": "Add to Calendar",
+          "url": "{{calendarLink}}"
+        }
+      }
+    },
+    {
+      "id": "step_31",
+      "name": "Send Call Reminder (Day Before)",
+      "type": "wait_until",
+      "description": "Wait until 24 hours before call",
+      "config": {
+        "waitUntil": "{{callDate}} - 24 hours"
+      }
+    },
+    {
+      "id": "step_32",
+      "name": "Send Reminder Email",
+      "type": "email_send",
+      "config": {
+        "subject": "Reminder: Consultation tomorrow at {{callTime}}",
+        "body": "Quick reminder {{firstName}}!\n\nOur consultation is tomorrow at {{callTime}}.\n\nI'll call {{phone}} at that time.\n\nSee you tomorrow!\n\nChristopher",
+        "cta": {
+          "text": "Reschedule if Needed",
+          "url": "{{scheduleCallLink}}"
+        }
+      }
+    },
+    {
+      "id": "step_33",
+      "name": "Send Reminder SMS",
+      "type": "sms_send",
+      "config": {
+        "message": "Reminder {{firstName}}: Consultation tomorrow at {{callTime}}. I'll call {{phone}}. Questions? (555) 123-4567. Reply STOP to opt out."
+      }
+    },
+    {
+      "id": "step_34",
+      "name": "Wait for Call Time",
+      "type": "wait_until",
+      "config": {
+        "waitUntil": "{{callDate}} + 2 hours"
+      }
+    },
+    {
+      "id": "step_35",
+      "name": "Create Post-Call Task",
+      "type": "task_create",
+      "config": {
+        "title": "Follow up after consultation: {{firstName}} {{lastName}}",
+        "description": "Send contract if interested, or move to nurture sequence if not ready.",
+        "assignTo": "christopher",
+        "priority": "high",
+        "dueDate": "+2 hours"
+      }
+    },
+    {
+      "id": "step_36",
+      "name": "Manual Decision Point",
+      "type": "wait_for_manual_action",
+      "description": "Wait for Christopher to update contact after call",
+      "config": {
+        "waitForField": "postCallStatus",
+        "timeout": "72 hours"
+      }
+    },
+    {
+      "id": "step_37",
+      "name": "Check Call Outcome",
+      "type": "conditional_branch",
+      "config": {
+        "condition": "contact.postCallStatus === 'interested'",
+        "truePath": "step_38",
+        "falsePath": "step_28"
+      }
+    },
+    {
+      "id": "step_38",
+      "name": "Send Contract",
+      "type": "email_send",
+      "config": {
+        "template": "contract_ready",
+        "subject": "Your contract is ready to sign, {{firstName}}",
+        "cta": {
+          "text": "Review & Sign Contract",
+          "url": "{{contractLink}}"
+        }
+      }
+    },
+    {
+      "id": "step_39",
+      "name": "Wait for Contract Signature",
+      "type": "wait_for_manual_action",
+      "config": {
+        "waitForField": "contractSigned",
+        "timeout": "7 days"
+      }
+    },
+    {
+      "id": "step_40",
+      "name": "Check Contract Status",
+      "type": "conditional_branch",
+      "config": {
+        "condition": "contact.contractSigned === true",
+        "truePath": "step_41",
+        "falsePath": "step_45"
+      }
+    },
+    {
+      "id": "step_41",
+      "name": "Update to Client Status",
+      "type": "update_contact",
+      "config": {
+        "updates": {
+          "status": "client",
+          "clientStartDate": "{{now}}",
+          "temperature": "hot"
+        }
+      }
+    },
+    {
+      "id": "step_42",
+      "name": "Send Welcome to Clients",
+      "type": "email_send",
+      "config": {
+        "template": "onboarding_complete",
+        "subject": "You're all set! Here's what to expect, {{firstName}}",
+        "cta": {
+          "text": "Access Your Dashboard",
+          "url": "{{dashboardLink}}"
+        }
+      }
+    },
+    {
+      "id": "step_43",
+      "name": "Create Onboarding Task",
+      "type": "task_create",
+      "config": {
+        "title": "New client onboarding: {{firstName}} {{lastName}}",
+        "description": "Send first dispute letters within 48 hours. Review IDIQ report and create action plan.",
+        "assignTo": "christopher",
+        "priority": "high",
+        "dueDate": "+24 hours"
+      }
+    },
+    {
+      "id": "step_44",
+      "name": "Onboarding Complete",
+      "type": "workflow_complete",
+      "config": {
+        "updateContactStatus": "client",
+        "nextWorkflow": "standard-client-monthly-workflow"
+      }
+    },
+    {
+      "id": "step_45",
+      "name": "Send Contract Reminder",
+      "type": "email_send",
+      "description": "Contract not signed after 7 days",
+      "config": {
+        "subject": "{{firstName}}, your contract is still waiting",
+        "body": "Hi {{firstName}},\n\nI sent your Speedy Credit Repair contract a week ago, but I haven't received it back yet.\n\n**Having second thoughts?** Let's talk! I'm here to answer any questions.\n\n**Technical issues?** I can resend the contract or walk you through signing.\n\n**Not ready yet?** That's okay - let me know when makes sense for you.\n\nJust reply to this email or call me at (555) 123-4567.\n\nChristopher",
+        "cta": {
+          "text": "Sign Contract Now",
+          "url": "{{contractLink}}"
+        }
+      }
+    },
+    {
+      "id": "step_46",
+      "name": "Wait 3 Days",
+      "type": "wait",
+      "config": {
+        "duration": 3,
+        "unit": "days"
+      }
+    },
+    {
+      "id": "step_47",
+      "name": "Final Contract Check",
+      "type": "conditional_branch",
+      "config": {
+        "condition": "contact.contractSigned === true",
+        "truePath": "step_41",
+        "falsePath": "step_48"
+      }
+    },
+    {
+      "id": "step_48",
+      "name": "Create Lost Deal Task",
+      "type": "task_create",
+      "config": {
+        "title": "Lost deal - contract not signed: {{firstName}} {{lastName}}",
+        "description": "Had consultation and received contract but never signed. Call for exit feedback.",
+        "assignTo": "christopher",
+        "priority": "low"
+      }
+    },
+    {
+      "id": "step_49",
+      "name": "End Workflow (Lost Deal)",
+      "type": "workflow_complete",
+      "config": {
+        "updateContactStatus": "lost",
+        "nextWorkflow": "win-back-campaign"
+      }
+    }
+  ],
+  "metadata": {
+    "createdBy": "system",
+    "createdAt": "2025-12-05",
+    "estimatedDuration": "14-21 days from contact to client",
+    "conversionGoal": 0.25,
+    "tags": ["onboarding", "standard", "full-service", "croa-compliant"],
+    "notes": "Standard tier is most popular. Focus on IDIQ enrollment and consultation scheduling. No upfront payment per CROA."
+  }
+}

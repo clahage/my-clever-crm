@@ -1,0 +1,38 @@
+{
+  "id": "vip-elite-onboarding",
+  "name": "VIP Elite Tier Onboarding (Hidden)",
+  "description": "Ultra-premium onboarding for VIP Elite tier ($599/month). Invitation-only, concierge-level service. Hidden from public pricing.",
+  "version": "1.0.0",
+  "tier": "vip_elite",
+  "isHidden": true,
+  "trigger": {"type": "manual_assignment", "conditions": {"serviceTier": "vip_elite"}},
+  "steps": [
+    {"id": "step_1", "name": "VIP Analysis", "type": "ai_analysis", "config": {"analysisType": "vip_comprehensive", "priorityLevel": "maximum"}},
+    {"id": "step_2", "name": "Christopher Personal Email", "type": "email_send", "config": {"template": "vip_personal_welcome", "subject": "{{firstName}}, you've been invited to VIP Elite", "body": "{{firstName}},\n\nBased on your situation ({{creditScore}} score, {{negativeItemCount}} complex items), I'm personally inviting you to our VIP Elite tier.\n\n**Why VIP Elite:**\n\nYour case requires advanced techniques that go beyond our standard services:\n\n• Bankruptcy on record\n• Multiple judgments/liens\n• Complex dispute scenarios\n• High-value credit goals ($500K+ home, business loan, etc.)\n\n**VIP Elite includes everything from Premium, PLUS:**\n\n✓ Bi-weekly strategy calls with me personally\n✓ Advanced legal dispute techniques\n✓ Attorney consultation included ($500 value)\n✓ Same-day response guarantee\n✓ Custom dispute letters (not templates)\n✓ Credit builder loan recommendations\n✓ Mortgage readiness planning\n✓ Business credit setup\n\n**Investment:** $599/month (limited to 5 clients at a time)\n\n**This is invitation-only.** I only work with 5 VIP clients at once to ensure white-glove service.\n\nInterested? Reply to schedule a confidential consultation.\n\nChristopher Williams\nOwner, Speedy Credit Repair\n(555) 123-4567 (call/text anytime)", "cta": {"text": "Accept VIP Elite Invitation", "url": "{{scheduleVIPCallLink}}"}}},
+    {"id": "step_3", "name": "VIP Task", "type": "task_create", "config": {"title": "🔥 VIP ELITE INVITATION - {{firstName}} {{lastName}}", "description": "Invited to VIP Elite. Follow up personally within 4 hours.", "assignTo": "christopher", "priority": "urgent"}},
+    {"id": "step_4", "name": "Wait 24 Hours", "type": "wait", "config": {"duration": 24, "unit": "hours"}},
+    {"id": "step_5", "name": "Check Response", "type": "conditional_branch", "config": {"condition": "contact.respondedToVIP === true", "truePath": "step_6", "falsePath": "step_15"}},
+    {"id": "step_6", "name": "Consultation Scheduled", "type": "email_send", "config": {"subject": "VIP Elite consultation confirmed", "body": "Perfect {{firstName}}!\n\nOur VIP consultation is confirmed for {{callDate}} at {{callTime}}.\n\n**What to prepare:**\n• Your credit goals (home, car, business, etc.)\n• Timeline (when do you need improved credit?)\n• Your IDIQ report (I'll send separately)\n• List of creditors you've dealt with\n\nThis will be a comprehensive 45-minute strategy session.\n\nSee you then!\n\nChristopher"}},
+    {"id": "step_7", "name": "Wait for Consultation", "type": "wait_for_manual_action", "config": {"waitForField": "vipCallCompleted"}},
+    {"id": "step_8", "name": "Check Interest", "type": "conditional_branch", "config": {"condition": "contact.vipInterested === true", "truePath": "step_9", "falsePath": "step_16"}},
+    {"id": "step_9", "name": "Send VIP Contract", "type": "email_send", "config": {"subject": "Your VIP Elite agreement + exclusive resources", "body": "{{firstName}},\n\nExcellent conversation! Here's your VIP Elite agreement: {{contractLink}}\n\n**VIP Elite Plan:**\n• Monthly: $599\n• Bi-weekly strategy calls\n• Same-day response\n• Attorney consultation\n• Custom dispute letters\n• Business credit included\n\n**Immediate VIP Bonus Package** ($1,200 value):\n📘 Advanced Legal Dispute Strategies\n⚖️ 1-hour attorney consultation\n💼 Business Credit Building Guide\n🏠 Mortgage Readiness Workbook\n📞 My personal cell number\n\n**Limited Availability:** I maintain maximum 5 VIP clients.\n\nSign today to secure your spot: {{contractLink}}\n\nChristopher\nDirect: (555) 123-4567"}},
+    {"id": "step_10", "name": "Wait for VIP Contract", "type": "wait_for_manual_action", "config": {"waitForField": "vipContractSigned", "timeout": "3 days"}},
+    {"id": "step_11", "name": "Check VIP Signature", "type": "conditional_branch", "config": {"condition": "contact.vipContractSigned === true", "truePath": "step_12", "falsePath": "step_17"}},
+    {"id": "step_12", "name": "Activate VIP Status", "type": "update_contact", "config": {"updates": {"status": "vip_client", "tier": "vip_elite", "vipLevel": "maximum", "christopherDirectAccess": true}}},
+    {"id": "step_13", "name": "VIP Welcome Package", "type": "email_send", "config": {"subject": "🌟 Welcome to VIP Elite, {{firstName}}", "body": "{{firstName}},\n\nWelcome to VIP Elite! You're one of only 5 clients receiving this level of service.\n\n**Your VIP Resources:**\n\nAll bonus materials: {{vipPortalLink}}\n\nYour private dashboard (enhanced features): {{vipDashboardLink}}\n\n**My direct contact:**\nCell: (555) 123-4567 (call/text 7am-9pm)\nEmail: christopher@speedycreditrepair.com\nPriority line: Press 1 when calling\n\n**This Week:**\nDay 1-2: Comprehensive credit analysis\nDay 3: Custom action plan delivered\nDay 4: Attorney reviews your case\nDay 5: First bi-weekly strategy call\nDay 7: First custom disputes sent\n\n**Concierge Service:** Text me anytime with questions or concerns. You'll get same-day response, guaranteed.\n\nLet's achieve your credit goals!\n\nChristopher"}},
+    {"id": "step_14", "name": "VIP Onboarding Complete", "type": "workflow_complete", "config": {"updateContactStatus": "vip_client", "nextWorkflow": "vip-biweekly-workflow"}},
+    {"id": "step_15", "name": "No Response Follow-up", "type": "email_send", "config": {"subject": "{{firstName}}, VIP Elite invitation still open", "body": "Hi {{firstName}},\n\nI sent you a VIP Elite invitation but haven't heard back.\n\nThis tier is invitation-only and I can only take 5 clients.\n\nCurrently: 3 spots remaining.\n\nInterested? Reply or call: (555) 123-4567\n\nNo pressure if the timing isn't right.\n\nChristopher"}},
+    {"id": "step_16", "name": "Not Interested - Offer Premium", "type": "email_send", "config": {"subject": "No problem - here's Premium option", "body": "{{firstName}},\n\nI understand VIP Elite ($599/month) is more than you're looking for.\n\n**How about Premium instead?**\n\n$349/month, includes:\n• Monthly strategy calls\n• Priority support\n• Advanced techniques\n• Much of what VIP offers\n\nInterested? Reply and I'll send details.\n\nChristopher"}},
+    {"id": "step_17", "name": "Contract Not Signed", "type": "task_create", "config": {"title": "VIP contract pending - {{firstName}}", "description": "Follow up personally. High-value opportunity."}},
+    {"id": "step_18", "name": "End VIP Workflow", "type": "workflow_complete", "config": {}}
+  ],
+  "metadata": {
+    "createdBy": "system",
+    "createdAt": "2025-12-05",
+    "estimatedDuration": "3-7 days",
+    "conversionGoal": 0.60,
+    "maxActiveClients": 5,
+    "tags": ["onboarding", "vip", "invitation-only", "concierge"],
+    "notes": "VIP tier is hidden from public. Invitation-only for complex cases or high-value clients. Christopher handles 100% personally."
+  }
+}

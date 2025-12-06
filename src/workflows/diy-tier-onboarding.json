@@ -1,0 +1,414 @@
+{
+  "id": "diy-tier-onboarding",
+  "name": "DIY Credit Builder Onboarding",
+  "description": "Complete onboarding workflow for DIY tier clients ($49/month). Focuses on education and self-service tools.",
+  "version": "1.0.0",
+  "tier": "diy",
+  "trigger": {
+    "type": "contact_created",
+    "conditions": {
+      "serviceTier": "diy",
+      "status": "contact"
+    }
+  },
+  "steps": [
+    {
+      "id": "step_1",
+      "name": "AI Analysis",
+      "type": "ai_analysis",
+      "description": "Analyze contact profile and assess DIY suitability",
+      "config": {
+        "analysisType": "full_profile",
+        "includeLeadScore": true,
+        "includeRecommendations": true
+      }
+    },
+    {
+      "id": "step_2",
+      "name": "Send Welcome Email",
+      "type": "email_send",
+      "description": "Welcome to DIY Credit Builder with immediate payment link",
+      "config": {
+        "template": "diy_welcome",
+        "subject": "Welcome to DIY Credit Builder, {{firstName}}! 🎯",
+        "body": "Hi {{firstName}},\n\nWelcome to the DIY Credit Builder program!\n\n**Your Plan:**\n• $49/month (prepaid)\n• Self-service tools and resources\n• Step-by-step credit repair guides\n• Access to educational videos\n• Monthly credit monitoring\n\n**Important:** DIY tier requires prepayment. Your first month payment is due now to activate your account.\n\n**What you get immediately:**\n✓ Access to credit dispute letter templates\n✓ Video tutorials on credit repair\n✓ Monthly action plan worksheets\n✓ Budget planning tools\n✓ Credit score calculator\n\nThis is perfect for you because you have {{negativeItemCount}} items to address, and you're comfortable handling the paperwork yourself.\n\n**Next steps:**\n1. Pay first month ($49) to activate account\n2. Access your DIY dashboard\n3. Watch the \"Getting Started\" video (5 minutes)\n4. Download your first dispute letter template\n\nLet's improve your credit together!",
+        "cta": {
+          "text": "Pay $49 & Activate Account",
+          "url": "{{paymentLink}}"
+        },
+        "personalize": true
+      }
+    },
+    {
+      "id": "step_3",
+      "name": "Wait 4 Hours",
+      "type": "wait",
+      "description": "Give contact time to make payment",
+      "config": {
+        "duration": 4,
+        "unit": "hours"
+      }
+    },
+    {
+      "id": "step_4",
+      "name": "Check Payment Status",
+      "type": "conditional_branch",
+      "description": "Has contact paid first month?",
+      "config": {
+        "condition": "contact.paymentStatus === 'paid'",
+        "truePath": "step_5",
+        "falsePath": "step_20"
+      }
+    },
+    {
+      "id": "step_5",
+      "name": "Send Dashboard Access",
+      "type": "email_send",
+      "description": "Send login credentials and dashboard tour",
+      "config": {
+        "template": "diy_dashboard_access",
+        "subject": "Your DIY Credit Builder Dashboard is Ready! 🎉",
+        "body": "Great news {{firstName}}!\n\nYour payment was received and your DIY Credit Builder dashboard is now active.\n\n**Login here:** {{dashboardLink}}\n\n**Username:** {{email}}\n**Temporary Password:** {{tempPassword}}\n\n(You'll be asked to change this on first login)\n\n**What's inside your dashboard:**\n\n📝 **Dispute Templates** - Pre-written letters for all 3 bureaus\n🎓 **Video Library** - 20+ tutorials on credit repair\n📊 **Progress Tracker** - Monitor your improvements\n📅 **Monthly Action Plans** - What to do each month\n💰 **Budget Tools** - Debt payoff calculators\n\n**Recommended first actions:**\n1. Watch \"How to Order Your Free Credit Reports\" (3 min)\n2. Download Dispute Letter Template #1\n3. Complete your first month action plan\n4. Set reminder for next month's payment\n\nQuestions? Reply to this email anytime!\n\nYou've got this!",
+        "cta": {
+          "text": "Access My Dashboard",
+          "url": "{{dashboardLink}}"
+        }
+      }
+    },
+    {
+      "id": "step_6",
+      "name": "Send Getting Started SMS",
+      "type": "sms_send",
+      "description": "Quick SMS with dashboard link",
+      "config": {
+        "message": "Hi {{firstName}}! Your DIY Credit Builder dashboard is ready: {{dashboardLink}} Reply STOP to opt out.",
+        "includeLink": true
+      }
+    },
+    {
+      "id": "step_7",
+      "name": "Create Welcome Task",
+      "type": "task_create",
+      "description": "Task for Laurie to check in after 3 days",
+      "config": {
+        "title": "Check in with DIY client: {{firstName}} {{lastName}}",
+        "description": "See if they've logged in and downloaded templates. Offer help if needed.",
+        "assignTo": "laurie",
+        "priority": "low",
+        "dueDate": "+3 days"
+      }
+    },
+    {
+      "id": "step_8",
+      "name": "Wait 24 Hours",
+      "type": "wait",
+      "config": {
+        "duration": 24,
+        "unit": "hours"
+      }
+    },
+    {
+      "id": "step_9",
+      "name": "Send First Action Plan",
+      "type": "email_send",
+      "description": "Month 1 action plan with specific tasks",
+      "config": {
+        "template": "diy_month1_action_plan",
+        "subject": "Your Month 1 Action Plan - Let's Get Started! 📋",
+        "body": "Hi {{firstName}},\n\nHere's your personalized action plan for Month 1:\n\n**Week 1: Get Your Credit Reports**\n☐ Order free reports from annualcreditreport.com\n☐ Review each report for errors\n☐ Highlight items to dispute\n☐ Watch: \"How to Read Your Credit Report\" video\n\n**Week 2: First Round of Disputes**\n☐ Download Dispute Letter Template #1\n☐ Customize letters for each bureau\n☐ Mail disputes via certified mail\n☐ Save tracking numbers\n\n**Week 3: Budget Review**\n☐ Complete budget worksheet\n☐ Identify debts to pay down\n☐ Set up automatic payments\n☐ Calculate debt-to-income ratio\n\n**Week 4: Monitor & Plan**\n☐ Check for bureau responses\n☐ Document all communications\n☐ Plan Month 2 actions\n☐ Schedule next month payment\n\n**Pro Tips:**\n• Disputes can take 30-45 days for response\n• Keep copies of everything you mail\n• Check your dashboard weekly for new resources\n• Don't dispute too many items at once (max 3-5 per bureau)\n\n**Need help?** Reply with questions anytime!\n\nYou're on your way to better credit!",
+        "cta": {
+          "text": "Download This Month's Templates",
+          "url": "{{templatesLink}}"
+        }
+      }
+    },
+    {
+      "id": "step_10",
+      "name": "Wait 7 Days",
+      "type": "wait",
+      "config": {
+        "duration": 7,
+        "unit": "days"
+      }
+    },
+    {
+      "id": "step_11",
+      "name": "Check Login Activity",
+      "type": "conditional_branch",
+      "description": "Has contact logged into dashboard?",
+      "config": {
+        "condition": "contact.lastLoginAt !== null",
+        "truePath": "step_12",
+        "falsePath": "step_25"
+      }
+    },
+    {
+      "id": "step_12",
+      "name": "Send Motivation Email",
+      "type": "email_send",
+      "description": "Encourage progress and share success story",
+      "config": {
+        "template": "diy_motivation_week2",
+        "subject": "You're Making Great Progress, {{firstName}}! 💪",
+        "body": "Hey {{firstName}},\n\nI wanted to check in and see how your first week went!\n\n**Common Questions at This Stage:**\n\nQ: \"How long until I see results?\"\nA: Most people see their first improvements in 30-45 days after sending disputes.\n\nQ: \"Should I dispute everything at once?\"\nA: No - focus on 3-5 items per bureau for best results.\n\nQ: \"What if the bureau says my dispute is frivolous?\"\nA: Watch our video on handling bureau responses (in dashboard).\n\n**Success Story:**\n\nSarah started with a 520 credit score and 12 negative items. Using our DIY templates, she improved her score to 680 in 6 months. She said: \"I saved thousands by doing it myself, and learned so much about credit along the way!\"\n\n**Your Progress:**\n✓ Dashboard activated\n✓ Action plan downloaded\n✓ Templates available\n\nNext milestone: Send your first disputes! 🎯\n\nKeep going - you've got this!",
+        "cta": {
+          "text": "View Success Stories",
+          "url": "{{successStoriesLink}}"
+        }
+      }
+    },
+    {
+      "id": "step_13",
+      "name": "Wait 14 Days",
+      "type": "wait",
+      "config": {
+        "duration": 14,
+        "unit": "days"
+      }
+    },
+    {
+      "id": "step_14",
+      "name": "Send Month 2 Reminder",
+      "type": "email_send",
+      "description": "Remind about upcoming payment and Month 2 plan",
+      "config": {
+        "template": "diy_month2_reminder",
+        "subject": "Month 2 Payment Due + Your Next Action Plan 📅",
+        "body": "Hi {{firstName}},\n\n**Quick Reminder:** Your Month 2 payment ($49) is due in 3 days.\n\nTo ensure uninterrupted access to your dashboard and resources, please update your payment method or pay manually here: {{paymentLink}}\n\n**Month 2 Action Plan Preview:**\n\n**Week 5-6: Follow Up on Disputes**\n• Check mail for bureau responses\n• Document results in tracker\n• Send follow-up letters if needed\n\n**Week 7-8: Address New Issues**\n• Pay down high-utilization cards\n• Set up payment reminders\n• Check for new credit report errors\n\n**New This Month:**\n🆕 Advanced dispute templates now available\n🆕 Credit utilization calculator\n🆕 Debt avalanche vs snowball comparison tool\n\n**Your Stats So Far:**\n• Days active: 30\n• Templates downloaded: {{templatesDownloaded}}\n• Action items completed: {{completedTasks}}/16\n\nKeep up the excellent work!\n\nQuestions? Reply anytime.",
+        "cta": {
+          "text": "Pay Month 2 ($49)",
+          "url": "{{paymentLink}}"
+        }
+      }
+    },
+    {
+      "id": "step_15",
+      "name": "Send Payment Reminder SMS",
+      "type": "sms_send",
+      "config": {
+        "message": "{{firstName}}, Month 2 payment ($49) due in 3 days. Pay here: {{paymentLink}} Reply STOP to opt out."
+      }
+    },
+    {
+      "id": "step_16",
+      "name": "Wait 3 Days",
+      "type": "wait",
+      "config": {
+        "duration": 3,
+        "unit": "days"
+      }
+    },
+    {
+      "id": "step_17",
+      "name": "Check Month 2 Payment",
+      "type": "conditional_branch",
+      "description": "Did they pay for Month 2?",
+      "config": {
+        "condition": "contact.currentMonthPaid === true",
+        "truePath": "step_18",
+        "falsePath": "step_30"
+      }
+    },
+    {
+      "id": "step_18",
+      "name": "Send Thank You Email",
+      "type": "email_send",
+      "config": {
+        "subject": "Thank you! Your Month 2 is active 🎉",
+        "body": "Thanks {{firstName}}!\n\nYour Month 2 payment was received. Here's your updated action plan and new resources.\n\n[Month 2 detailed plan continues...]\n\nKeep up the great work!",
+        "cta": {
+          "text": "View Month 2 Plan",
+          "url": "{{dashboardLink}}"
+        }
+      }
+    },
+    {
+      "id": "step_19",
+      "name": "Workflow Complete",
+      "type": "workflow_complete",
+      "description": "DIY onboarding complete - enter monthly cadence",
+      "config": {
+        "nextWorkflow": "diy-monthly-checkin",
+        "updateContactStatus": "client"
+      }
+    },
+    {
+      "id": "step_20",
+      "name": "Send Payment Reminder (No Payment)",
+      "type": "email_send",
+      "description": "They haven't paid yet after 4 hours",
+      "config": {
+        "subject": "Complete Your DIY Credit Builder Signup, {{firstName}}",
+        "body": "Hi {{firstName}},\n\nI noticed you started signing up for DIY Credit Builder but haven't completed payment yet.\n\n**Quick reminder:** DIY tier requires prepayment ($49/month) to activate your account and access all tools.\n\n**What you're missing out on:**\n• Dispute letter templates (worth $99)\n• 20+ video tutorials\n• Monthly action plans\n• Credit calculators and tools\n\n**Questions holding you back?**\n\n❓ \"Is this worth $49/month?\"\n✅ Yes - our templates alone cost $99 elsewhere, plus you get ongoing resources.\n\n❓ \"Can I really do this myself?\"\n✅ Absolutely! Our step-by-step guides make it easy, even with no credit experience.\n\n❓ \"What if I need help?\"\n✅ Email support included - we're here when you need us!\n\n**Ready to activate?**",
+        "cta": {
+          "text": "Complete Payment & Start",
+          "url": "{{paymentLink}}"
+        }
+      }
+    },
+    {
+      "id": "step_21",
+      "name": "Wait 24 Hours",
+      "type": "wait",
+      "config": {
+        "duration": 24,
+        "unit": "hours"
+      }
+    },
+    {
+      "id": "step_22",
+      "name": "Check Payment Again",
+      "type": "conditional_branch",
+      "config": {
+        "condition": "contact.paymentStatus === 'paid'",
+        "truePath": "step_5",
+        "falsePath": "step_23"
+      }
+    },
+    {
+      "id": "step_23",
+      "name": "Create Follow-up Task",
+      "type": "task_create",
+      "description": "Manual follow-up needed",
+      "config": {
+        "title": "DIY signup incomplete: {{firstName}} {{lastName}}",
+        "description": "Contact hasn't paid after 28 hours. Call to close sale or offer assistance.",
+        "assignTo": "christopher",
+        "priority": "high"
+      }
+    },
+    {
+      "id": "step_24",
+      "name": "End Workflow (No Payment)",
+      "type": "workflow_complete",
+      "config": {
+        "updateContactStatus": "lead",
+        "nextWorkflow": "lead-nurture-sequence"
+      }
+    },
+    {
+      "id": "step_25",
+      "name": "Send Dashboard Reminder (No Login)",
+      "type": "email_send",
+      "description": "They paid but haven't logged in",
+      "config": {
+        "subject": "{{firstName}}, don't forget to access your dashboard! 🔑",
+        "body": "Hi {{firstName}},\n\nI noticed you activated your DIY Credit Builder account, but you haven't logged into your dashboard yet.\n\n**You're missing out on:**\n• Your personalized action plan\n• Dispute letter templates\n• Video tutorials\n• Progress tracking tools\n\n**Login now:** {{dashboardLink}}\n\nNeed help logging in? Reply to this email or call (555) 123-4567.\n\nDon't let your investment go to waste - your credit won't fix itself!\n\nLet's get you started today.",
+        "cta": {
+          "text": "Login to Dashboard",
+          "url": "{{dashboardLink}}"
+        }
+      }
+    },
+    {
+      "id": "step_26",
+      "name": "Wait 3 Days",
+      "type": "wait",
+      "config": {
+        "duration": 3,
+        "unit": "days"
+      }
+    },
+    {
+      "id": "step_27",
+      "name": "Check Login Again",
+      "type": "conditional_branch",
+      "config": {
+        "condition": "contact.lastLoginAt !== null",
+        "truePath": "step_12",
+        "falsePath": "step_28"
+      }
+    },
+    {
+      "id": "step_28",
+      "name": "Create Inactive User Task",
+      "type": "task_create",
+      "config": {
+        "title": "DIY user inactive: {{firstName}} {{lastName}}",
+        "description": "Paid but never logged in. Call to offer onboarding help or consider upsell to Standard tier.",
+        "assignTo": "laurie",
+        "priority": "medium"
+      }
+    },
+    {
+      "id": "step_29",
+      "name": "Continue to Step 12",
+      "type": "go_to_step",
+      "config": {
+        "targetStep": "step_12"
+      }
+    },
+    {
+      "id": "step_30",
+      "name": "Send Final Payment Reminder",
+      "type": "email_send",
+      "description": "Last chance before suspension",
+      "config": {
+        "subject": "⚠️ Your DIY Account Will Be Suspended Tomorrow",
+        "body": "Hi {{firstName}},\n\n**Important:** Your Month 2 payment is overdue.\n\nYour dashboard access will be suspended in 24 hours if payment isn't received.\n\n**To avoid interruption:**\nPay Month 2 ($49) now: {{paymentLink}}\n\n**Prefer to cancel?**\nReply to this email and I'll process your cancellation.\n\n**Need financial assistance?**\nLet's talk - I may have options for you.\n\nCall me: (555) 123-4567\n\nThanks,\nChristopher",
+        "cta": {
+          "text": "Pay Now to Keep Access",
+          "url": "{{paymentLink}}"
+        }
+      }
+    },
+    {
+      "id": "step_31",
+      "name": "Wait 24 Hours",
+      "type": "wait",
+      "config": {
+        "duration": 24,
+        "unit": "hours"
+      }
+    },
+    {
+      "id": "step_32",
+      "name": "Final Payment Check",
+      "type": "conditional_branch",
+      "config": {
+        "condition": "contact.currentMonthPaid === true",
+        "truePath": "step_18",
+        "falsePath": "step_33"
+      }
+    },
+    {
+      "id": "step_33",
+      "name": "Suspend Dashboard Access",
+      "type": "update_contact",
+      "config": {
+        "updates": {
+          "dashboardAccess": false,
+          "status": "suspended",
+          "suspensionReason": "non_payment"
+        }
+      }
+    },
+    {
+      "id": "step_34",
+      "name": "Create Collection Task",
+      "type": "task_create",
+      "config": {
+        "title": "DIY payment collection: {{firstName}} {{lastName}}",
+        "description": "Dashboard suspended for non-payment. Attempt collection or cancel account.",
+        "assignTo": "christopher",
+        "priority": "high"
+      }
+    },
+    {
+      "id": "step_35",
+      "name": "End Workflow (Suspended)",
+      "type": "workflow_complete",
+      "config": {
+        "updateContactStatus": "suspended",
+        "nextWorkflow": null
+      }
+    }
+  ],
+  "metadata": {
+    "createdBy": "system",
+    "createdAt": "2025-12-05",
+    "estimatedDuration": "45 days",
+    "tags": ["onboarding", "diy", "self-service", "prepaid"],
+    "notes": "DIY tier is unique - requires prepayment and focuses on education/self-service"
+  }
+}
