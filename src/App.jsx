@@ -281,6 +281,10 @@ const CreditEmergencyResponseHub = lazy(() => import('@/pages/hubs/CreditEmergen
 const AttorneyNetworkHub = lazy(() => import('@/pages/hubs/AttorneyNetworkHub'));
 const CertificationAcademyHub = lazy(() => import('@/pages/hubs/CertificationAcademyHub'));
 const WhiteLabelCRMHub = lazy(() => import('@/pages/hubs/WhiteLabelCRMHub'));
+const FinancialPlanningHub = lazy(() => import('@/pages/hubs/FinancialPlanningHub'));
+
+// ===== TIER 3 AI COMPONENTS (December 2025) =====
+const Tier3Dashboard = lazy(() => import('@/components/Tier3Dashboard'));
 
 // ============================================================================
 // PROTECTED ROUTE WRAPPER
@@ -992,6 +996,30 @@ const AppContent = () => {
     <ProtectedRoute requiredRoles={[3,4,5,6,7,8]}>
       <Suspense fallback={<LoadingFallback />}>
         <AttorneyNetworkHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Financial Planning Hub - Comprehensive financial planning with debt payoff calculator */}
+<Route
+  path="financial-planning-hub"
+  element={
+    <ProtectedRoute requiredRoles={[3,4,5,6,7,8]}>
+      <Suspense fallback={<LoadingFallback />}>
+        <FinancialPlanningHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Tier 3 AI Dashboard - Advanced AI analytics (Competitor Analysis, Success Predictor, Workflow Repair, ROI) */}
+<Route
+  path="tier3-ai-dashboard"
+  element={
+    <ProtectedRoute requiredRoles={[5,6,7,8]}>
+      <Suspense fallback={<LoadingFallback />}>
+        <Tier3Dashboard />
       </Suspense>
     </ProtectedRoute>
   }
