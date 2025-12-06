@@ -162,6 +162,7 @@ import { db, storage } from '@/lib/firebase';
 import RealPipelineAIService from '@/services/RealPipelineAIService';
 import Pipeline from '@/pages/Pipeline';
 import { useAuth } from '@/contexts/AuthContext';
+import UltimateContactForm from '@/components/UltimateContactForm';
 import {
   BarChart as RechartsBarChart,
   Bar,
@@ -327,6 +328,8 @@ const ClientsHub = () => {
   
   // Client Management State
   const [selectedClient, setSelectedClient] = useState(null);
+  const [showContactForm, setShowContactForm] = useState(false);
+  const [editingContact, setEditingContact] = useState(null);
   const [clientForm, setClientForm] = useState({
     firstName: '',
     lastName: '',
@@ -1089,23 +1092,9 @@ const ClientsHub = () => {
   };
   
   const handleEditClient = (client) => {
-    console.log('✏️ Editing client:', client.id);
-    setClientForm({
-      firstName: client.firstName || '',
-      lastName: client.lastName || '',
-      email: client.email || '',
-      phone: client.phone || '',
-      status: client.status || 'lead',
-      source: client.source || '',
-      leadScore: client.leadScore || 5,
-      engagementScore: client.engagementScore || 50,
-      journeyStage: client.journeyStage || 'awareness',
-      tags: client.tags || [],
-      notes: client.notes || '',
-      customFields: client.customFields || {},
-    });
-    setSelectedClient(client);
-    setActiveTab(1);
+    console.log('✏️ Editing contact:', client.id);
+    setEditingContact(client);
+    setShowContactForm(true);
   };
   
   const handleSaveClient = async () => {
@@ -2603,148 +2592,67 @@ const ClientsHub = () => {
     </Card>
   );
 
-  const renderAddEditClient = () => (
-    <Card>
-      <CardContent>
-        <Typography variant="h6" gutterBottom>
-          {selectedClient ? 'Edit Contact' : 'Add New Contact'}
-        </Typography>
-        
-        <Grid container spacing={3}>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label="First Name"
-              value={clientForm.firstName}
-              onChange={(e) => setClientForm({ ...clientForm, firstName: e.target.value })}
-              required
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label="Last Name"
-              value={clientForm.lastName}
-              onChange={(e) => setClientForm({ ...clientForm, lastName: e.target.value })}
-              required
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label="Email"
-              type="email"
-              value={clientForm.email}
-              onChange={(e) => setClientForm({ ...clientForm, email: e.target.value })}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label="Phone"
-              value={clientForm.phone}
-              onChange={(e) => setClientForm({ ...clientForm, phone: e.target.value })}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <FormControl fullWidth>
-              <InputLabel>Status</InputLabel>
-              <Select
-                value={clientForm.status}
-                label="Status"
-                onChange={(e) => setClientForm({ ...clientForm, status: e.target.value })}
-              >
-                {CLIENT_STATUSES.map(status => (
-                  <MenuItem key={status.value} value={status.value}>{status.label}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <FormControl fullWidth>
-              <InputLabel>Lead Source</InputLabel>
-              <Select
-                value={clientForm.source}
-                label="Lead Source"
-                onChange={(e) => setClientForm({ ...clientForm, source: e.target.value })}
-              >
-                {LEAD_SOURCES.map(source => (
-                  <MenuItem key={source} value={source}>{source}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <FormControl fullWidth>
-              <InputLabel>Journey Stage</InputLabel>
-              <Select
-                value={clientForm.journeyStage}
-                label="Journey Stage"
-                onChange={(e) => setClientForm({ ...clientForm, journeyStage: e.target.value })}
-              >
-                {JOURNEY_STAGES.map(stage => (
-                  <MenuItem key={stage.value} value={stage.value}>{stage.label}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <Typography gutterBottom>Lead Score: {clientForm.leadScore}</Typography>
-            <Slider
-              value={clientForm.leadScore}
-              onChange={(e, newValue) => setClientForm({ ...clientForm, leadScore: newValue })}
-              min={0}
-              max={10}
-              marks
-              valueLabelDisplay="auto"
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Notes"
-              value={clientForm.notes}
-              onChange={(e) => setClientForm({ ...clientForm, notes: e.target.value })}
-              multiline
-              rows={4}
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <Autocomplete
-              multiple
-              freeSolo
-              options={['VIP', 'Hot Lead', 'Priority', 'Follow-up', 'Referral']}
-              value={clientForm.tags}
-              onChange={(e, newValue) => setClientForm({ ...clientForm, tags: newValue })}
-              renderInput={(params) => (
-                <TextField {...params} label="Tags" placeholder="Add tags" />
-              )}
-            />
-          </Grid>
-        </Grid>
-        
-        <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
-          <Button
-            variant="contained"
-            startIcon={<Save size={18} />}
-            onClick={handleSaveClient}
-            disabled={saving}
-          >
-            {saving ? 'Saving...' : 'Save Client'}
-          </Button>
-          <Button
-            variant="outlined"
-            onClick={() => {
-              setSelectedClient(null);
-              setActiveTab(0);
+  const renderAddEditClient = () => {
+    // Open the UltimateContactForm when this tab is active
+    const isFormOpen = activeTab === 1;
+
+    return (
+      <Card>
+        <CardContent>
+          <Box sx={{ textAlign: 'center', py: 4 }}>
+            <Typography variant="h6" gutterBottom>
+              Contact Management
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              {editingContact ? 'Use the form below to edit the contact' : 'Click the button below to add a new contact'}
+            </Typography>
+            <Button
+              variant="contained"
+              startIcon={<UserPlus size={18} />}
+              onClick={() => {
+                setEditingContact(null);
+                setShowContactForm(true);
+              }}
+            >
+              Add New Contact
+            </Button>
+          </Box>
+
+          {/* UltimateContactForm Dialog */}
+          <Dialog
+            open={showContactForm}
+            onClose={() => {
+              setShowContactForm(false);
+              setEditingContact(null);
             }}
+            maxWidth="lg"
+            fullWidth
           >
-            Cancel
-          </Button>
-        </Box>
-      </CardContent>
-    </Card>
-  );
+            <DialogContent sx={{ p: 0 }}>
+              <UltimateContactForm
+                contactId={editingContact?.id || null}
+                initialData={editingContact || {}}
+                onSave={(savedContact) => {
+                  setShowContactForm(false);
+                  setEditingContact(null);
+                  setActiveTab(0);
+                  setSnackbar({
+                    open: true,
+                    message: editingContact ? 'Contact updated successfully!' : 'Contact added successfully!',
+                    severity: 'success'
+                  });
+                }}
+                onCancel={() => {
+                  setShowContactForm(false);
+                  setEditingContact(null);
+                }}
+              />
+            </DialogContent>
+          </Dialog>
+        </CardContent>
+      </Card>
+    );
+  };
   
   const renderClientProfile = () => {
     if (!selectedClient) {
@@ -4032,7 +3940,7 @@ const ClientsHub = () => {
           scrollButtons="auto"
         >
           <Tab label="Client List" icon={<Users size={18} />} iconPosition="start" />
-          <Tab label="Add/Edit Client" icon={<UserPlus size={18} />} iconPosition="start" />
+          <Tab label="Add/Edit Contact" icon={<UserPlus size={18} />} iconPosition="start" />
           <Tab label="Client Profile" icon={<UserCheck size={18} />} iconPosition="start" />
           <Tab label="Communications" icon={<MessageSquare size={18} />} iconPosition="start" />
           <Tab label="Documents" icon={<FileText size={18} />} iconPosition="start" />
