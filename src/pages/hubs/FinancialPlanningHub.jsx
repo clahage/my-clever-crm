@@ -187,7 +187,7 @@ import {
 } from 'firebase/firestore';
 import { format, addMonths, differenceInMonths, parseISO } from 'date-fns';
 import { DebtPayoffCalculator } from '@/lib/financialPlanningEngine';
-import DebtPayoffComponent from '@/components/DebtPayoffCalculator';
+import DebtPayoffCalculatorComponent from '@/components/DebtPayoffCalculator';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // CONSTANTS & CONFIGURATION

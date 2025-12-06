@@ -185,7 +185,7 @@ const STRATEGY_INFO = {
 // ===== MAIN COMPONENT =====
 // ============================================================================
 
-function DebtPayoffCalculatorComponent() {
+function DebtPayoffCalculatorComponent(props) {
   // ===== STATE MANAGEMENT =====
   const [debts, setDebts] = useState([]);
   const [extraMonthlyPayment, setExtraMonthlyPayment] = useState(0);
@@ -1597,3 +1597,5 @@ function DebtPayoffCalculatorComponent() {
 // Firebase-ready: Yes
 // Dark mode: Supported
 // Mobile responsive: Yes
+
+export default DebtPayoffCalculatorComponent;

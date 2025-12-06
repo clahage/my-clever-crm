@@ -175,6 +175,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
   Legend, ResponsiveContainer, RadialBarChart, RadialBar,
 } from 'recharts';
+import QuickContactConverter from '@/components/QuickContactConverter';
 
 // ============================================================================
 // CONSTANTS AND CONFIGURATION
@@ -191,6 +192,7 @@ const TABS = [
   { id: 'automation', label: 'Automation', icon: <BoltIcon />, aiPowered: true },
   { id: 'training', label: 'Model Training', icon: <SchoolIcon />, aiPowered: true },
   { id: 'analytics', label: 'AI Analytics', icon: <ChartIcon />, aiPowered: true },
+  { id: 'quick-contact-converter', label: 'Quick Contact Converter', icon: <PersonIcon />, aiPowered: false },
 ];
 
 const AI_MODELS = [
@@ -1379,7 +1381,8 @@ Return JSON:
         {activeTab === 'scoring' && renderLeadScoringTab()}
         {activeTab === 'content' && renderContentGeneratorTab()}
         {activeTab === 'predictions' && renderPredictionsTab()}
-        {!['command', 'assistant', 'scoring', 'content', 'predictions'].includes(activeTab) && (
+        {activeTab === 'quick-contact-converter' && <QuickContactConverter />}
+        {!['command', 'assistant', 'scoring', 'content', 'predictions', 'quick-contact-converter'].includes(activeTab) && (
           <Alert severity="info">
             <AlertTitle>{TABS.find(t => t.id === activeTab)?.label} - Full Implementation</AlertTitle>
             This tab includes advanced AI capabilities with ML models and automation.

@@ -77,6 +77,13 @@ const coreHubs = [
     icon: <FaRobot />,
     to: "/ai-hub",
     description: "AI-powered tools"
+    , tabs: [
+      {
+        label: "Quick Contact Converter",
+        to: "/quick-contact-converter",
+        description: "Convert AI receptionist calls to contacts"
+      }
+    ]
   },
   {
     label: "Documents Hub",
@@ -164,29 +171,46 @@ export default function Navigation() {
               (hub.to !== '/smart-dashboard' && location.pathname.startsWith(hub.to.replace('-hub', '')));
 
             return (
-              <Link
-                key={hub.label}
-                to={hub.to}
-                className={`flex items-center px-3 py-2.5 rounded-lg transition-all duration-200 group ${
-                  isActive
-                    ? 'bg-blue-700 text-white shadow-lg'
-                    : 'text-blue-100 hover:bg-blue-800 hover:text-white'
-                }`}
-                onClick={() => setMobileOpen(false)}
-              >
-                <span className={`text-lg mr-3 ${isActive ? 'text-white' : 'text-blue-300 group-hover:text-white'}`}>
-                  {hub.icon}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-sm truncate">{hub.label}</div>
-                  <div className={`text-xs truncate ${isActive ? 'text-blue-200' : 'text-blue-400 group-hover:text-blue-200'}`}>
-                    {hub.description}
+              <div key={hub.label}>
+                <Link
+                  to={hub.to}
+                  className={`flex items-center px-3 py-2.5 rounded-lg transition-all duration-200 group ${
+                    isActive
+                      ? 'bg-blue-700 text-white shadow-lg'
+                      : 'text-blue-100 hover:bg-blue-800 hover:text-white'
+                  }`}
+                  onClick={() => setMobileOpen(false)}
+                >
+                  <span className={`text-lg mr-3 ${isActive ? 'text-white' : 'text-blue-300 group-hover:text-white'}`}>
+                    {hub.icon}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-sm truncate">{hub.label}</div>
+                    <div className={`text-xs truncate ${isActive ? 'text-blue-200' : 'text-blue-400 group-hover:text-blue-200'}`}>
+                      {hub.description}
+                    </div>
                   </div>
-                </div>
-                {isActive && (
-                  <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full ml-2"></div>
+                  {isActive && (
+                    <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full ml-2"></div>
+                  )}
+                </Link>
+                {/* Render tabs if present */}
+                {hub.tabs && isActive && (
+                  <div className="ml-8 mt-1 space-y-1">
+                    {hub.tabs.map(tab => (
+                      <Link
+                        key={tab.label}
+                        to={tab.to}
+                        className={`block px-3 py-2 rounded-lg text-blue-200 hover:bg-blue-700 hover:text-white text-sm transition-all duration-200`}
+                        onClick={() => setMobileOpen(false)}
+                      >
+                        {tab.label}
+                        <span className="ml-2 text-xs text-blue-300">{tab.description}</span>
+                      </Link>
+                    ))}
+                  </div>
                 )}
-              </Link>
+              </div>
             );
           })}
         </div>
