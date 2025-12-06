@@ -8,7 +8,8 @@
 // LAST UPDATED: November 2025
 // ============================================
 
-const functions = require('firebase-functions');
+const { onRequest, onCall } = require('firebase-functions/v2/https');
+const functions = require('firebase-functions'); // Keep for config/env if needed
 const admin = require('firebase-admin');
 const axios = require('axios');
 const crypto = require('crypto');
@@ -549,7 +550,7 @@ const handleStatusChange = async (payload) => {
 /**
  * Callable function: Enroll member
  */
-exports.idiqEnroll = functions.https.onCall(async (data, context) => {
+exports.idiqEnroll = onCall(async (data, context) => {
   // Security: Require authentication
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated');
@@ -578,7 +579,7 @@ exports.idiqEnroll = functions.https.onCall(async (data, context) => {
 /**
  * Callable function: Get member status
  */
-exports.idiqMemberStatus = functions.https.onCall(async (data, context) => {
+exports.idiqMemberStatus = onCall(async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated');
   }
@@ -594,7 +595,7 @@ exports.idiqMemberStatus = functions.https.onCall(async (data, context) => {
 /**
  * HTTP function: Webhook endpoint
  */
-exports.idiqWebhook = functions.https.onRequest(handleWebhook);
+exports.idiqWebhook = onRequest(handleWebhook);
 
 /**
  * Export helper functions for other modules

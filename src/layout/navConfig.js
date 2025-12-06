@@ -1,4 +1,5 @@
 // src/layout/navConfig.js
+import { BugReport } from '@mui/icons-material';
 // ============================================================================
 
 
@@ -108,19 +109,24 @@ export const ROLES = {
 };
 
 export function hasPermission(userRole, requiredRole) {
-  const userLevel = ROLE_HIERARCHY[userRole] || 0;
-  const requiredLevel = ROLE_HIERARCHY[requiredRole] || 0;
+  const userKey = typeof userRole === 'string' ? userRole.toLowerCase() : userRole;
+  const requiredKey = typeof requiredRole === 'string' ? requiredRole.toLowerCase() : requiredRole;
+  const userLevel = ROLE_HIERARCHY[userKey] || 0;
+  const requiredLevel = ROLE_HIERARCHY[requiredKey] || 0;
   return userLevel >= requiredLevel;
 }
 
 export function isVisible(item, userRole, isMobile = false) {
-  if (userRole === 'masterAdmin') return true;
+  // Master admin sees everything
+  const normalizedRole = typeof userRole === 'string' ? userRole.toLowerCase() : userRole;
+  if (normalizedRole === 'masteradmin') return true;
+  // Check mobile visibility
   if (isMobile && item.mobileHidden) return false;
   if (item.visibleTo) {
     if (Array.isArray(item.visibleTo)) {
-      return item.visibleTo.includes(userRole);
+      return item.visibleTo.map(r => typeof r === 'string' ? r.toLowerCase() : r).includes(normalizedRole);
     }
-    return item.visibleTo === userRole;
+    return (typeof item.visibleTo === 'string' ? item.visibleTo.toLowerCase() : item.visibleTo) === normalizedRole;
   }
   if (item.permission) {
     return hasPermission(userRole, item.permission);
@@ -129,19 +135,6 @@ export function isVisible(item, userRole, isMobile = false) {
 }
 
 export const navigationItems = [
-  // 🎯 SMART DASHBOARD - PRIMARY LANDING
-  {
-    id: 'smart-dashboard',
-    title: 'Smart Dashboard',
-    path: '/smart-dashboard',
-    icon: Sparkles,
-    permission: 'prospect',
-    mobileHidden: false,
-    badge: 'AI',
-    description: 'Intelligent role-adaptive dashboard with AI insights',
-    category: 'core'
-  },
-  // 🧑‍🤝‍🧑 CLIENTS & PIPELINE GROUP
   {
     id: 'clients-pipeline-hub',
     title: 'Clients & Pipeline',
@@ -150,62 +143,8 @@ export const navigationItems = [
     permission: 'user',
     badge: 'AI',
     description: 'Complete client lifecycle: contacts, pipeline, intake, segments',
-    category: 'clients'
+    consolidated: ['ClientsHub', 'Contacts', 'Pipeline', 'ContactDetailPage', 'ClientIntake', 'Segments']
   },
-  // 🛡️ CREDIT REPORTS & ANALYSIS
-  {
-    id: 'credit-reports-hub',
-    title: 'Credit Reports & Analysis',
-    path: '/credit-hub',
-    icon: Shield,
-    permission: 'user',
-    badge: 'AI',
-    description: 'IDIQ integration, credit analysis, simulator, bureau communication',
-    category: 'credit'
-  },
-  // ⚡ DISPUTE MANAGEMENT
-  {
-    id: 'dispute-management-hub',
-    title: 'Dispute Management',
-    path: '/dispute-hub',
-    icon: AlertCircle,
-    permission: 'user',
-    badge: 'AI',
-    description: 'Dispute tracking, letter generation, admin panel, status monitoring',
-    category: 'disputes'
-  },
-  // 📊 ANALYTICS & REPORTING
-  {
-    id: 'analytics-reporting-hub',
-    title: 'Analytics & Reports',
-    path: '/analytics-reporting-hub',
-    icon: BarChart,
-    permission: 'user',
-    badge: 'AI',
-    description: 'Business intelligence & reports',
-    category: 'analytics'
-  },
-  // 📁 DOCUMENTS & CONTRACTS
-  {
-    id: 'documents-hub',
-    title: 'Documents & Contracts',
-    path: '/documents-hub',
-    icon: FolderOpen,
-    permission: 'user',
-    description: 'Document management, forms, templates, e-contracts, agreements',
-    category: 'docs'
-  },
-  // 📅 SCHEDULING & TASKS
-  {
-    id: 'tasks-hub',
-    title: 'Tasks & Scheduling',
-    path: '/tasks-hub',
-    icon: Calendar,
-    permission: 'user',
-    description: 'Calendar, tasks, scheduling, reminders, goals, team management',
-    category: 'tasks'
-  },
-  // 💰 BILLING & REVENUE
   {
     id: 'billing-hub',
     title: 'Billing & Revenue',
@@ -216,7 +155,6 @@ export const navigationItems = [
     description: 'Billing, payments, collections, invoicing, payment integrations',
     category: 'billing'
   },
-  // 🏆 CLIENT SUCCESS
   {
     id: 'client-success-hub',
     title: 'Client Success',
@@ -227,7 +165,6 @@ export const navigationItems = [
     description: 'Client retention & success tracking',
     category: 'success'
   },
-  // 🧠 AI SUPER HUB
   {
     id: 'ai-hub',
     title: 'AI Super Hub',
@@ -238,7 +175,6 @@ export const navigationItems = [
     description: 'AI-powered tools & insights',
     category: 'ai'
   },
-  // 📣 COMMUNICATIONS
   {
     id: 'communications-hub',
     title: 'Communications',
@@ -248,7 +184,6 @@ export const navigationItems = [
     description: 'Email, SMS, campaigns',
     category: 'comms'
   },
-  // 🎓 LEARNING & RESOURCES
   {
     id: 'learning-hub',
     title: 'Learning & Resources',
@@ -258,29 +193,24 @@ export const navigationItems = [
     description: 'Courses, guides, knowledge base',
     category: 'learning'
   },
-  // 🏠 CLIENT PORTAL
   {
     id: 'client-portal',
     title: 'Client Portal',
     path: '/client-portal',
     icon: User,
     permission: 'client',
-    mobileHidden: false,
     description: 'Client self-service dashboard',
     category: 'client'
   },
-  // 🛡️ ADMIN PORTAL
   {
     id: 'admin-portal',
     title: 'Admin Portal',
     path: '/portal',
     icon: Shield,
     permission: 'admin',
-    mobileHidden: true,
     badge: 'ADMIN',
     description: '6-tab command center for complete system control',
     category: 'admin'
   }
-];
         
         

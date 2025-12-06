@@ -20,6 +20,7 @@ import ProtectedLayout from '@/layout/ProtectedLayout';
 // Existing imports...
 import Products from '@/pages/Products';
 import IDIQEnrollmentWizard from './components/IDIQEnrollmentWizard';
+import WorkflowTestingSimulatorPage from './pages/WorkflowTestingSimulator';
 
 // ============================================================================
 // LOADING COMPONENT
@@ -461,6 +462,18 @@ const AppContent = () => {
       <Route path="/register" element={<PublicRoute><Suspense fallback={<LoadingFallback />}><Register /></Suspense></PublicRoute>} />
       <Route path="/forgot-password" element={<PublicRoute><Suspense fallback={<LoadingFallback />}><ForgotPassword /></Suspense></PublicRoute>} />
 
+      {/* Workflow Testing Simulator Route (standalone, not nested) */}
+      <Route
+        path="/workflow-testing-simulator"
+        element={
+          <ProtectedRoute requiredRole="user">
+            <Suspense fallback={<LoadingFallback />}>
+              <WorkflowTestingSimulatorPage />
+            </Suspense>
+          </ProtectedRoute>
+        }
+      />
+
       {/* PROTECTED ROUTES */}
       <Route path="/" element={<ProtectedRoute><ProtectedLayout /></ProtectedRoute>}>
         <Route index element={<SmartRedirect />} />
@@ -667,6 +680,7 @@ const AppContent = () => {
     </ProtectedRoute>
   }
 />
+
 
 {/* Affiliates Hub - Complete affiliate management */}
 <Route

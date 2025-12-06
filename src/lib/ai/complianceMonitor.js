@@ -21,7 +21,7 @@
 // ============================================================================
 
 import { collection, getDocs, query, where } from 'firebase/firestore';
-import { db } from '../../firebase';
+import { db } from '../../lib/firebase.js';
 
 // ============================================================================
 // COMPLIANCE RULES
@@ -407,63 +407,62 @@ export async function checkWorkflowCompliance(workflow, options = {}) {
 
     // Check rule against workflow
     try {
-      const result = rule.checkFunction(workflow);
-
-      if (result.violation) {
-        const issue = {
-          ruleId: rule.id,
-          law: rule.law,
-          severity: result.severity || rule.severity,
-          title: rule.title,
-          description: rule.description,
-          details: result.details,
-          penalty: rule.penalty,
-          fix: result.fix,
-          autoFix: result.autoFix || false,
-          affectedSteps: result.affectedSteps || []
-        };
-
-        if (issue.severity === 'critical' || issue.severity === 'high') {
-          violations.push(issue);
-        } else {
-          warnings.push(issue);
-        }
-      } else {
-        passed.push({
-          ruleId: rule.id,
-          title: rule.title,
-          law: rule.law
-        });
-      }
-
-      // Also check each step individually
-      for (let i = 0; i < workflow.steps.length; i++) {
-        const step = workflow.steps[i];
-        const stepResult = rule.checkFunction(workflow, step);
-
-        if (stepResult.violation) {
+      // If checkFunction expects only one argument, call with workflow only
+      if (rule.checkFunction.length === 1) {
+        const result = rule.checkFunction(workflow);
+        if (result.violation) {
           const issue = {
             ruleId: rule.id,
             law: rule.law,
-            severity: stepResult.severity || rule.severity,
+            severity: result.severity || rule.severity,
             title: rule.title,
             description: rule.description,
-            details: stepResult.details,
+            details: result.details,
             penalty: rule.penalty,
-            fix: stepResult.fix,
-            autoFix: stepResult.autoFix || false,
-            affectedSteps: [i],
-            stepName: step.name
+            fix: result.fix,
+            autoFix: result.autoFix || false,
+            affectedSteps: result.affectedSteps || []
           };
-
           if (issue.severity === 'critical' || issue.severity === 'high') {
             violations.push(issue);
           } else {
             warnings.push(issue);
           }
+        } else {
+          passed.push({
+            ruleId: rule.id,
+            title: rule.title,
+            law: rule.law
+          });
         }
       }
-
+      // If checkFunction expects two arguments, check each step
+      if (rule.checkFunction.length === 2 && Array.isArray(workflow.steps)) {
+        for (let i = 0; i < workflow.steps.length; i++) {
+          const step = workflow.steps[i];
+          const stepResult = rule.checkFunction(workflow, step);
+          if (stepResult.violation) {
+            const issue = {
+              ruleId: rule.id,
+              law: rule.law,
+              severity: stepResult.severity || rule.severity,
+              title: rule.title,
+              description: rule.description,
+              details: stepResult.details,
+              penalty: rule.penalty,
+              fix: stepResult.fix,
+              autoFix: stepResult.autoFix || false,
+              affectedSteps: [i],
+              stepName: step.name
+            };
+            if (issue.severity === 'critical' || issue.severity === 'high') {
+              violations.push(issue);
+            } else {
+              warnings.push(issue);
+            }
+          }
+        }
+      }
     } catch (error) {
       console.error(`[ComplianceMonitor] Rule check failed: ${ruleKey}`, error);
     }

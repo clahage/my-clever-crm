@@ -68,7 +68,7 @@ import {
   BugReport
 } from '@mui/icons-material';
 import { httpsCallable } from 'firebase/functions';
-import { functions } from '../firebase';
+import { functions } from '../lib/firebase.js';
 
 // ============================================================================
 // MAIN COMPONENT
@@ -153,19 +153,21 @@ export default function AIWorkflowConsultant({
     try {
       console.log('[AIConsultant] Analyzing step:', currentStep);
 
-      // Call Firebase Cloud Function for AI analysis
-      const analyzeStep = httpsCallable(functions, 'aiAnalyzeWorkflowStep');
-
-      const result = await analyzeStep({
-        workflowId: workflow.id,
-        stepIndex: currentStep,
-        contactData: contact,
-        executionData: execution,
-        previousSteps: workflow.steps.slice(0, currentStep),
-        currentStepConfig: workflow.steps[currentStep]
+      // Call HTTP Cloud Function for AI analysis
+      const response = await fetch('https://us-central1-my-clever-crm.cloudfunctions.net/aiAnalyzeWorkflowStep', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workflowId: workflow.id,
+          stepIndex: currentStep,
+          contactData: contact,
+          executionData: execution,
+          previousSteps: workflow.steps.slice(0, currentStep),
+          currentStepConfig: workflow.steps[currentStep]
+        })
       });
-
-      const analysisData = result.data;
+      const result = await response.json();
+      const analysisData = result.analysis;
 
       setAnalysis(analysisData);
 

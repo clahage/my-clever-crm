@@ -4,15 +4,21 @@
  */
 
 const functions = require('firebase-functions');
-const { Configuration, OpenAIApi } = require('openai');
+const { OpenAI } = require('openai');
+const openai = new OpenAI({ apiKey: functions.config().openai.key });
 
-const configuration = new Configuration({
-  apiKey: functions.config().openai.key
-});
-const openai = new OpenAIApi(configuration);
+// Export a plain handler for gen 2 onRequest
+const aiAnalyzeWorkflowStep = async (req, res) => {
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
 
-exports.aiAnalyzeWorkflowStep = functions.https.onCall(async (data, context) => {
-  const { workflowId, stepIndex, contactData, executionData } = data;
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  const { workflowId, stepIndex, contactData, executionData } = req.body;
 
   try {
     const prompt = `Analyze this workflow step and provide guidance:
@@ -55,14 +61,14 @@ Provide:
       missingFeatures: []
     };
 
-    return {
+    res.status(200).json({
       success: true,
       analysis
-    };
+    });
 
   } catch (error) {
     console.error('[aiAnalyzeWorkflowStep] Error:', error);
-    return {
+    res.status(500).json({
       success: false,
       analysis: {
         working: [],
@@ -70,6 +76,8 @@ Provide:
         suggestions: [],
         missingFeatures: []
       }
-    };
+    });
   }
-});
+};
+
+module.exports = { aiAnalyzeWorkflowStep };

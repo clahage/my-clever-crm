@@ -2602,14 +2602,11 @@ exports.openaiProxy = onRequest(async (req, res) => {
   if (apiKey !== WEBHOOK_API_KEY) {
     return res.status(403).json({ error: 'Unauthorized' });
   }
-  
   // Extract OpenAI request data
   const { model, messages, temperature, max_tokens } = req.body;
-  
   if (!model || !messages || messages.length === 0) {
     return res.status(400).json({ error: 'Invalid request data' });
   }
-  
   try {
     // Call OpenAI API
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -2625,9 +2622,7 @@ exports.openaiProxy = onRequest(async (req, res) => {
         max_tokens: max_tokens || 150
       })
     });
-    
     const data = await response.json();
-    
     if (response.ok) {
       return res.status(200).json(data);
     } else {
@@ -2639,3 +2634,10 @@ exports.openaiProxy = onRequest(async (req, res) => {
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+// ============================================
+// AI ANALYZE WORKFLOW STEP FUNCTION
+// ============================================
+// Gen 2 HTTP function for AI workflow step analysis
+const { aiAnalyzeWorkflowStep } = require('./src/aiAnalyzeWorkflowStep');
+exports.aiAnalyzeWorkflowStep = onRequest(aiAnalyzeWorkflowStep);

@@ -90,7 +90,8 @@ import {
   ListItem,
   ListItemText,
   ListItemIcon,
-  Badge
+  Badge,
+  Popover
 } from '@mui/material';
 
 // Icons
@@ -120,10 +121,10 @@ import {
 } from '@mui/icons-material';
 
 // Import our AI and workflow modules
-import { executeWorkflow, executeStep, TEST_SPEED } from '../lib/workflowEngine';
-import AIWorkflowConsultant from './AIWorkflowConsultant';
-import { globalContextMemory } from '../lib/ai/contextMemory';
-import { checkWorkflowCompliance } from '../lib/ai/complianceMonitor';
+import { executeWorkflow, executeStep, TEST_SPEED } from '../lib/workflowEngine.js';
+import AIWorkflowConsultant from './AIWorkflowConsultant.jsx';
+import { globalContextMemory } from '../lib/ai/contextMemory.js';
+import { checkWorkflowCompliance } from '../lib/ai/complianceMonitor.js';
 
 // ============================================================================
 // MAIN COMPONENT
@@ -136,6 +137,9 @@ export default function WorkflowTestingSimulator({
   onSave,
   resumeSession = null
 }) {
+  // Onboarding state
+  const [showOnboarding, setShowOnboarding] = useState(true);
+  const [anchorEl, setAnchorEl] = useState(null);
   // --------------------------------------------------------------------------
   // STATE MANAGEMENT
   // --------------------------------------------------------------------------
@@ -147,6 +151,7 @@ export default function WorkflowTestingSimulator({
   const [isPaused, setIsPaused] = useState(false);
   const [speed, setSpeed] = useState(TEST_SPEED.FAST);
   const [logs, setLogs] = useState([]);
+  const [initError, setInitError] = useState(null);
 
   // Contact state (simulated)
   const [contactState, setContactState] = useState({
@@ -210,6 +215,7 @@ export default function WorkflowTestingSimulator({
     } catch (error) {
       console.error('[Simulator] Initialization error:', error);
       addLog('error', `Failed to initialize: ${error.message}`);
+      setInitError(error.message || 'Unknown error');
     }
   };
 
@@ -406,7 +412,12 @@ export default function WorkflowTestingSimulator({
           body: result.body,
           sentAt: new Date(),
           opened: false,
-          clicked: false
+          clicked: false,
+          blocks: [
+            { type: 'subject', content: result.subject },
+            { type: 'body', content: result.body },
+            { type: 'cta', content: 'Get My Free Credit Report' }
+          ]
         });
         break;
 
@@ -738,6 +749,18 @@ export default function WorkflowTestingSimulator({
   // --------------------------------------------------------------------------
 
   if (!execution) {
+    if (initError) {
+      return (
+        <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" minHeight="400px">
+          <Typography color="error" variant="h6" gutterBottom>
+            Initialization Error
+          </Typography>
+          <Typography color="error" variant="body1" gutterBottom>
+            {initError}
+          </Typography>
+        </Box>
+      );
+    }
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
         <CircularProgress />
@@ -1007,6 +1030,7 @@ function ContactView({ contactState, onEmailOpen, onEmailClick, onSmsReply }) {
                 index={index}
                 onOpen={() => onEmailOpen(index)}
                 onClick={() => onEmailClick(index)}
+                editable={true}
               />
             ))}
           </Stack>
@@ -1134,6 +1158,9 @@ function CRMView({ workflow, execution, currentStep, contactState, logs, onEditS
           <AccordionSummary expandIcon={<ExpandIcon />}>
             <Typography variant="subtitle1" fontWeight="bold">
               Contact State
+              <Tooltip title="Shows the simulated contact's current status, engagement, and lead score. Click to expand for details.">
+                <InfoIcon sx={{ ml: 1, fontSize: 18 }} />
+              </Tooltip>
             </Typography>
           </AccordionSummary>
           <AccordionDetails>
@@ -1146,6 +1173,9 @@ function CRMView({ workflow, execution, currentStep, contactState, logs, onEditS
       <Box>
         <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
           Execution Logs
+          <Tooltip title="Shows all actions, errors, and AI suggestions during workflow testing.">
+            <InfoIcon sx={{ ml: 1, fontSize: 18 }} />
+          </Tooltip>
         </Typography>
 
         <Paper
@@ -1179,8 +1209,87 @@ function CRMView({ workflow, execution, currentStep, contactState, logs, onEditS
 // HELPER COMPONENTS
 // ============================================================================
 
-function EmailPreview({ email, index, onOpen, onClick }) {
+// Drag-and-drop email editor block
+import { DndProvider, useDrag, useDrop } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+
+function EmailBlock({ block, index, moveBlock, updateBlock }) {
+  const [, drag] = useDrag({
+    type: 'EMAIL_BLOCK',
+    item: { index },
+  });
+  const [, drop] = useDrop({
+    accept: 'EMAIL_BLOCK',
+    hover: (item) => {
+      if (item.index !== index) {
+        moveBlock(item.index, index);
+        item.index = index;
+      }
+    },
+  });
+  return (
+    <Box ref={(node) => drag(drop(node))} sx={{ mb: 2, p: 2, border: '1px dashed #ccc', borderRadius: 2, bgcolor: '#fafafa' }}>
+      {block.type === 'subject' && (
+        <TextField
+          label="Subject"
+          fullWidth
+          value={block.content}
+          onChange={(e) => updateBlock(index, { ...block, content: e.target.value })}
+        />
+      )}
+      {block.type === 'body' && (
+        <TextField
+          label="Body"
+          fullWidth
+          multiline
+          rows={4}
+          value={block.content}
+          onChange={(e) => updateBlock(index, { ...block, content: e.target.value })}
+        />
+      )}
+      {block.type === 'image' && (
+        <Box>
+          <TextField
+            label="Image URL"
+            fullWidth
+            value={block.content}
+            onChange={(e) => updateBlock(index, { ...block, content: e.target.value })}
+          />
+          {block.content && <img src={block.content} alt="email-img" style={{ maxWidth: '100%', marginTop: 8 }} />}
+        </Box>
+      )}
+      {block.type === 'cta' && (
+        <Button variant="contained" fullWidth sx={{ mt: 1 }}>
+          {block.content || 'Call to Action'}
+        </Button>
+      )}
+    </Box>
+  );
+}
+
+function EmailPreview({ email, index, onOpen, onClick, editable = true }) {
   const [isOpen, setIsOpen] = useState(email.opened);
+  const [blocks, setBlocks] = useState(email.blocks || [
+    { type: 'subject', content: email.subject },
+    { type: 'body', content: email.body },
+    { type: 'cta', content: 'Get My Free Credit Report' },
+  ]);
+
+  useEffect(() => {
+    if (email.blocks) setBlocks(email.blocks);
+  }, [email.blocks]);
+
+  const moveBlock = (from, to) => {
+    const updated = [...blocks];
+    const [moved] = updated.splice(from, 1);
+    updated.splice(to, 0, moved);
+    setBlocks(updated);
+  };
+  const updateBlock = (idx, block) => {
+    const updated = [...blocks];
+    updated[idx] = block;
+    setBlocks(updated);
+  };
 
   const handleOpen = () => {
     setIsOpen(true);
@@ -1188,55 +1297,60 @@ function EmailPreview({ email, index, onOpen, onClick }) {
   };
 
   return (
-    <Card variant="outlined" sx={{ bgcolor: isOpen ? 'white' : '#f9f9f9' }}>
-      <CardContent>
-        <Box display="flex" justifyContent="space-between" alignItems="start" mb={1}>
-          <Box>
-            <Typography variant="caption" color="text.secondary">
-              From: Christopher @ Speedy Credit Repair
-            </Typography>
-            <Typography variant="subtitle1" fontWeight="bold">
-              {email.subject}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {email.sentAt.toLocaleString()}
-            </Typography>
-          </Box>
-
-          <Chip
-            label={isOpen ? 'Opened' : 'Unread'}
-            size="small"
-            color={isOpen ? 'success' : 'default'}
-          />
-        </Box>
-
-        {isOpen && (
-          <>
-            <Divider sx={{ my: 1 }} />
-            <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
-              {email.body}
-            </Typography>
-
-            <Box mt={2}>
-              <Button
-                variant="contained"
-                fullWidth
-                onClick={onClick}
-                disabled={email.clicked}
-              >
-                {email.clicked ? '✓ Clicked' : 'Get My Free Credit Report'}
-              </Button>
+    <DndProvider backend={HTML5Backend}>
+      <Card variant="outlined" sx={{ bgcolor: isOpen ? 'white' : '#f9f9f9' }}>
+        <CardContent>
+          <Box display="flex" justifyContent="space-between" alignItems="start" mb={1}>
+            <Box>
+              <Typography variant="caption" color="text.secondary">
+                From: Christopher @ Speedy Credit Repair
+              </Typography>
+              <Typography variant="subtitle1" fontWeight="bold">
+                {blocks.find(b => b.type === 'subject')?.content}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {email.sentAt.toLocaleString()}
+              </Typography>
             </Box>
-          </>
-        )}
-
-        {!isOpen && (
-          <Button size="small" onClick={handleOpen} sx={{ mt: 1 }}>
-            Open Email
-          </Button>
-        )}
-      </CardContent>
-    </Card>
+            <Chip
+              label={isOpen ? 'Opened' : 'Unread'}
+              size="small"
+              color={isOpen ? 'success' : 'default'}
+            />
+          </Box>
+          {isOpen && (
+            <>
+              <Divider sx={{ my: 1 }} />
+              {blocks.map((block, idx) => (
+                <EmailBlock key={idx} block={block} index={idx} moveBlock={moveBlock} updateBlock={updateBlock} />
+              ))}
+              <Box mt={2}>
+                <Button
+                  variant="contained"
+                  fullWidth
+                  onClick={onClick}
+                  disabled={email.clicked}
+                >
+                  {blocks.find(b => b.type === 'cta')?.content || 'Get My Free Credit Report'}
+                </Button>
+              </Box>
+              {editable && (
+                <Box mt={2} display="flex" gap={1}>
+                  <Button size="small" onClick={() => setBlocks([...blocks, { type: 'image', content: '' }])}>Add Image</Button>
+                  <Button size="small" onClick={() => setBlocks([...blocks, { type: 'body', content: '' }])}>Add Text Block</Button>
+                  <Button size="small" onClick={() => setBlocks([...blocks, { type: 'cta', content: 'Call to Action' }])}>Add CTA</Button>
+                </Box>
+              )}
+            </>
+          )}
+          {!isOpen && (
+            <Button size="small" onClick={handleOpen} sx={{ mt: 1 }}>
+              Open Email
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+    </DndProvider>
   );
 }
 
@@ -1489,14 +1603,29 @@ function EventInjectionDialog({ open, onClose, contactState, onEmailOpen, onEmai
   );
 }
 
+// Real-time AI assistant for step editing
+// Removed duplicate import of useRef
 function StepEditDialog({ open, step, stepIndex, onClose, onSave }) {
   const [editedStep, setEditedStep] = useState(step);
+  const [aiSuggestion, setAiSuggestion] = useState('');
+  const [loading, setLoading] = useState(false);
+  const configRef = useRef();
 
   useEffect(() => {
     setEditedStep(step);
+    setAiSuggestion('');
   }, [step]);
 
   if (!step) return null;
+
+  const handleAISuggest = async () => {
+    setLoading(true);
+    // Simulate AI suggestion (replace with real API call)
+    setTimeout(() => {
+      setAiSuggestion('AI Suggestion: Consider adding a delay step before sending the email for better engagement.');
+      setLoading(false);
+    }, 1200);
+  };
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -1510,7 +1639,6 @@ function StepEditDialog({ open, step, stepIndex, onClose, onSave }) {
             onChange={(e) => setEditedStep({ ...editedStep, name: e.target.value })}
             margin="normal"
           />
-
           <TextField
             fullWidth
             label="Step Type"
@@ -1518,7 +1646,6 @@ function StepEditDialog({ open, step, stepIndex, onClose, onSave }) {
             disabled
             margin="normal"
           />
-
           <Typography variant="subtitle2" sx={{ mt: 2, mb: 1 }}>
             Configuration (JSON)
           </Typography>
@@ -1526,6 +1653,7 @@ function StepEditDialog({ open, step, stepIndex, onClose, onSave }) {
             fullWidth
             multiline
             rows={10}
+            inputRef={configRef}
             value={JSON.stringify(editedStep?.config || {}, null, 2)}
             onChange={(e) => {
               try {
@@ -1537,6 +1665,14 @@ function StepEditDialog({ open, step, stepIndex, onClose, onSave }) {
             }}
             sx={{ fontFamily: 'monospace' }}
           />
+          <Box mt={2} display="flex" gap={1} alignItems="center">
+            <Button variant="outlined" onClick={handleAISuggest} disabled={loading}>
+              {loading ? 'Thinking...' : 'Get AI Suggestion'}
+            </Button>
+            {aiSuggestion && (
+              <Alert severity="info" sx={{ ml: 2 }}>{aiSuggestion}</Alert>
+            )}
+          </Box>
         </Box>
       </DialogContent>
       <DialogActions>

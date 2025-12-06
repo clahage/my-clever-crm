@@ -35,7 +35,7 @@ import {
   serverTimestamp
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
-import { db, functions } from '../firebase';
+import { db, functions } from '../lib/firebase.js';
 import { SERVICE_PLANS, IDIQ_CONFIG } from '../config/servicePlans';
 
 // ============================================================================
