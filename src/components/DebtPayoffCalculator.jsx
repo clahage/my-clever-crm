@@ -185,7 +185,7 @@ const STRATEGY_INFO = {
 // ===== MAIN COMPONENT =====
 // ============================================================================
 
-export default function DebtPayoffCalculator() {
+function DebtPayoffCalculatorComponent() {
   // ===== STATE MANAGEMENT =====
   const [debts, setDebts] = useState([]);
   const [extraMonthlyPayment, setExtraMonthlyPayment] = useState(0);
