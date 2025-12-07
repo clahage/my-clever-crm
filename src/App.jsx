@@ -252,13 +252,10 @@ const CreditReportsHub = lazy(() => import('@/pages/hubs/CreditReportsHub'));
 const DisputeAdminPanel = lazy(() => import('@/pages/hubs/DisputeAdminPanel'));
 const DisputeHub = lazy(() => import('@/pages/hubs/DisputeHub'));
 const DocumentsHub = lazy(() => import('@/pages/hubs/DocumentsHub'));
-<<<<<<< HEAD
 // DripCampaignsHub - CONSOLIDATED INTO CommunicationsHub (Drip Campaigns tab)
 const FinancialPlanningHub = lazy(() => import('@/pages/hubs/FinancialPlanningHub'));
 const TradelineHub = lazy(() => import('@/pages/hubs/TradelineHub'));
-=======
 const DripCampaignsHub = lazy(() => import('@/pages/hubs/DripCampaignsHub'));
-
 const LearningHub = lazy(() => import('@/pages/hubs/LearningHub'));
 const MarketingHub = lazy(() => import('@/pages/hubs/MarketingHub'));
 const MobileAppHub = lazy(() => import('@/pages/hubs/MobileAppHub'));
@@ -277,7 +274,6 @@ const SupportHub = lazy(() => import('@/pages/hubs/SupportHub'));
 const TasksSchedulingHub = lazy(() => import('@/pages/hubs/TasksSchedulingHub'));
 const TaxServicesHub = lazy(() => import('@/pages/hubs/TaxServicesHub'));
 const TrainingHub = lazy(() => import('@/pages/hubs/TrainingHub'));
-<<<<<<< HEAD
 // WebsiteLandingPagesHub - CONSOLIDATED INTO MarketingHub (Website & Landing Pages tab)
 
 // ===== NEW ENTERPRISE AI HUBS (November 2025) =====
