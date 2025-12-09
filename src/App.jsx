@@ -467,7 +467,13 @@ const AppContent = () => {
         <Route path="payment-success" element={<Suspense fallback={<LoadingFallback />}><PaymentSuccess /></Suspense>} />
         <Route path="affiliates" element={<Navigate to="/affiliates-hub" replace />} />
         <Route path="billing" element={<Navigate to="/billing-hub" replace />} />
-        <Route path="products" element={<Navigate to="/billing-hub" replace />} />
+        <Route path="products" element={
+          <ProtectedRoute requiredRole="user">
+            <Suspense fallback={<LoadingFallback />}>
+              <Products />
+            </Suspense>
+          </ProtectedRoute>
+        } />
 
         {/* Tasks/Calendar Hub redirects */}
         <Route path="calendar" element={<Navigate to="/calendar-hub" replace />} />

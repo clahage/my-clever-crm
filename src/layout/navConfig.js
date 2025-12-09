@@ -310,6 +310,14 @@ export const navigationItems = [
         badge: 'ADMIN',
         description: 'System configuration'
       },
+        {
+          id: 'products-hub',
+          title: 'Products & Services',
+          path: '/products',
+          icon: Package,
+          permission: 'user',
+          description: 'Manage products and services'
+        },
 
       // BUSINESS GROWTH (9 hubs)
       {
