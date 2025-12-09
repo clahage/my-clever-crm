@@ -240,6 +240,15 @@ export const navigationItems = [
     consolidated: ['ClientsHub', 'Contacts', 'Pipeline', 'ContactDetailPage', 'ClientIntake', 'Segments']
   },
   {
+    id: 'products',
+    title: 'Products',
+    path: '/products',
+    icon: Package,
+    permission: 'user',
+    description: 'Product catalog and inventory management',
+    category: 'business-tools'
+  },
+  {
     id: 'billing-hub',
     title: 'Billing & Revenue',
     path: '/billing-hub',

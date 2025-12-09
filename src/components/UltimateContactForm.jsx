@@ -778,102 +778,29 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
   };
 
   const handleSave = async () => {
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
-    // Check for duplicates before creating
-    const checkDuplicate = async (email, phone) => {
-      const contactsRef = collection(db, 'contacts');
-      
-      // Check email
-      if (email) {
-        const emailQuery = query(contactsRef, where('email', '==', email.toLowerCase()));
-        const emailSnap = await getDocs(emailQuery);
-        if (!emailSnap.empty) {
-          const existing = emailSnap.docs[0];
-          // Update contact frequency instead of creating new
-          await updateDoc(existing.ref, {
-            contactFrequency: (existing.data().contactFrequency || 1) + 1,
-            lastContact: serverTimestamp(),
-            tags: [...new Set([...(existing.data().tags || []), 'repeat-contact'])],
-          });
-          console.log('âœ… Duplicate detected! Updated contact frequency.');
-          return existing.id; // Return existing ID
-        }
-      }
-      
-      // Check phone
-      if (phone) {
-        const cleanPhone = phone.replace(/\D/g, '');
-        const phoneQuery = query(contactsRef, where('phone', '==', cleanPhone));
-        const phoneSnap = await getDocs(phoneQuery);
-        if (!phoneSnap.empty) {
-          const existing = phoneSnap.docs[0];
-          await updateDoc(existing.ref, {
-            contactFrequency: (existing.data().contactFrequency || 1) + 1,
-            lastContact: serverTimestamp(),
-          });
-          console.log('âœ… Duplicate detected! Updated contact frequency.');
-          return existing.id;
-        }
-      }
-      
-      return null; // No duplicate found
-    };
-
-    const engagementScore = calculateEngagementScore();
-    const finalData = {
-      ...formData,
-      aiTracking: {
-        ...formData.aiTracking,
-        engagementScore
-      },
-      dataQualityScore: dataQuality.score,
-      lastSavedAt: new Date().toISOString(),
-      lastSavedBy: 'manual'
-    };
-    
-    // If creating a new contact, check for duplicates first
-    if (!contactId) {
-      const duplicateId = await checkDuplicate(formData.emails[0]?.address, formData.phones[0]?.number);
-      if (duplicateId) {
-        // Handle duplicate case (e.g., show message, redirect, etc.)
-        console.log('Duplicate contact found:', duplicateId);
-        return;
-      }
-    }
-    
-    addTimelineEvent('form_saved', 'Contact information saved manually');
-    onSave(finalData);
-<<<<<<< HEAD
-=======
-=======
     console.log('🔍 handleSave called');
     console.log('📋 meetsMinimumRequirements:', meetsMinimumRequirements());
     console.log('👤 Name:', formData.firstName, formData.lastName);
     console.log('📧 Email:', formData.emails[0]?.address);
     console.log('📱 Phone:', formData.phones[0]?.number);
-    
->>>>>>> ddb2398 (Add comprehensive debugging and error handling to save function)
+
     // Validate minimum requirements
     if (!meetsMinimumRequirements()) {
       const hasName = formData.firstName || formData.lastName;
-      const hasContact = (formData.emails.length > 0 && formData.emails[0].address) || 
+      const hasContact = (formData.emails.length > 0 && formData.emails[0].address) ||
                         (formData.phones.length > 0 && formData.phones[0].number);
-      
+
       const missing = [];
       if (!hasName) missing.push('name (first OR last)');
       if (!hasContact) missing.push('contact method (email OR phone)');
-      
+
       const errorMsg = `Missing required: ${missing.join(' and ')}`;
       console.error('❌ Validation failed:', errorMsg);
       setSaveError(errorMsg);
       setTimeout(() => setSaveError(null), 5000);
       return;
     }
-    
+
     try {
       console.log('💾 Attempting to save...');
       const engagementScore = calculateEngagementScore();
@@ -888,17 +815,17 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
         lastSavedBy: 'manual',
         createdAt: new Date().toISOString()
       };
-      
+
       console.log('📦 Final data prepared:', finalData);
       addTimelineEvent('form_saved', 'Contact information saved manually');
-      
+
       if (!onSave) {
         throw new Error('No onSave handler provided to component');
       }
-      
+
       await onSave(finalData);
       console.log('✅ Save successful!');
-      
+
       // Show success confirmation
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
@@ -908,9 +835,6 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
       setSaveError(`Failed to save: ${error.message || 'Unknown error'}`);
       setTimeout(() => setSaveError(null), 5000);
     }
->>>>>>> 1dc4825 (CRITICAL FIX: Save button now works with proper validation + confirmation)
-=======
->>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
   };
 
   const SectionHeader = ({ title, icon: Icon, section, badge, aiActive, completeness }) => (
@@ -3081,14 +3005,8 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
             disabled={dataQuality.score < 30}
             className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 font-medium flex items-center gap-2 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-<<<<<<< HEAD
             Save Contact
             {!meetsMinimumRequirements() && (
-=======
-            <Brain className="w-5 h-5" />
-            Save Contact Profile
-            {dataQuality.score < 30 && (
->>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
               <span className="text-xs bg-white/20 px-2 py-0.5 rounded">
                 {30 - dataQuality.score}% needed
               </span>

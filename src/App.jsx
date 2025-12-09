@@ -1,6 +1,6 @@
 import EmailWorkflowDashboard from './components/EmailWorkflowDashboard';
-import React, { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React, { lazy, Suspense, useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
@@ -9,6 +9,7 @@ import ProtectedLayout from '@/layout/ProtectedLayout';
 
 // Existing imports...
 import Products from '@/pages/Products';
+import UltimateContactForm from '@/components/UltimateContactForm';
 import IDIQEnrollmentWizard from './components/IDIQEnrollmentWizard';
 import WorkflowTestingSimulatorPage from './pages/WorkflowTestingSimulator';
 
@@ -258,7 +259,8 @@ const OnboardingWelcomeHub = lazy(() => import('@/pages/hubs/OnboardingWelcomeHu
 const ProgressPortalHub = lazy(() => import('@/pages/hubs/ProgressPortalHub'));
 const ReferralEngineHub = lazy(() => import('@/pages/hubs/ReferralEngineHub'));
 const ReferralPartnerHub = lazy(() => import('@/pages/hubs/ReferralPartnerHub'));
-const ReportsHub = lazy(() => import('@/pages/hubs/ReportsHub'));
+const AnalyticsReportingHub = lazy(() => import('@/pages/hubs/AnalyticsReportingHub'));
+const ReportsHub = AnalyticsReportingHub; // Alias for backwards compatibility
 const ResourceLibraryHub = lazy(() => import('@/pages/hubs/ResourceLibraryHub'));
 const RevenueHub = lazy(() => import('@/pages/hubs/RevenueHub'));
 const RevenuePartnershipsHub = lazy(() => import('@/pages/hubs/RevenuePartnershipsHub'));
@@ -490,25 +492,27 @@ const AppContent = () => {
         <Route path="new-client" element={<Navigate to="/clients-hub" replace />} />
 
         {/* Pipeline - Standalone AND ClientsHub Tab 12 */}
-        <Route 
-          path="pipeline" 
+        <Route
+          path="pipeline"
           element={
             <ProtectedRoute requiredRole="user">
               <Suspense fallback={<LoadingFallback />}>
                 <Pipeline />
+              </Suspense>
             </ProtectedRoute>
-          } 
+          }
         />
 
         {/* ===== DUPLICATE MANAGER - AI-POWERED CONTACT DEDUPLICATION ===== */}
-        <Route 
-          path="duplicate-manager" 
+        <Route
+          path="duplicate-manager"
           element={
             <ProtectedRoute requiredRole="admin">
               <Suspense fallback={<LoadingFallback />}>
                 <DuplicateManager />
+              </Suspense>
             </ProtectedRoute>
-          } 
+          }
         />
 
         {/* Disputes Hub redirects */}
@@ -563,41 +567,33 @@ const AppContent = () => {
         {/* Billing Hub redirects */}
         <Route path="invoices" element={<Navigate to="/billing-hub" replace />} />
         <Route path="payment-success" element={<Suspense fallback={<LoadingFallback />}><PaymentSuccess /></Suspense>} />
-  <Route path="affiliates" element={<Navigate to="/affiliates-hub" replace />} />
-  <Route path="billing" element={<Navigate to="/billing-hub" replace />} />
-  <Route path="products" element={<Navigate to="/billing-hub" replace />} />
 
-  {/* Tasks/Calendar Hub redirects */}
-  <Route path="calendar" element={<Navigate to="/calendar-hub" replace />} />
-  <Route path="appointments" element={<Navigate to="/calendar-hub" replace />} />
-  <Route path="tasks" element={<Navigate to="/tasks-hub" replace />} />
-  <Route path="reminders" element={<Navigate to="/tasks-hub" replace />} />
+        {/* Business Tools - Standalone Pages */}
+        <Route path="affiliates" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><Affiliates /></Suspense></ProtectedRoute>} />
+        <Route path="billing" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><Billing /></Suspense></ProtectedRoute>} />
+        <Route path="products" element={<ProtectedRoute requiredRole="user"><Suspense fallback={<LoadingFallback />}><Products /></Suspense></ProtectedRoute>} />
 
-  {/* Analytics & Reporting Hub redirects - CONSOLIDATED */}
-  <Route path="analytics" element={<Navigate to="/analytics-reporting-hub" replace />} />
-  <Route path="reports" element={<Navigate to="/analytics-reporting-hub" replace />} />
-  <Route path="analytics-hub" element={<Navigate to="/analytics-reporting-hub" replace />} />
-  <Route path="reports-hub" element={<Navigate to="/analytics-reporting-hub" replace />} />
-  <Route path="goals" element={<Navigate to="/analytics-reporting-hub" replace />} />
-  <Route path="affiliates" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><Affiliates /></Suspense></ProtectedRoute>} />
-  <Route path="billing" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><Billing /></Suspense></ProtectedRoute>} />
-  <Route path="products" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><Products /></Suspense></ProtectedRoute>} />
+        {/* Payment Management System Routes */}
+        <Route path="payments" element={<ProtectedRoute requiredRoles={["admin", "masterAdmin"]}><Suspense fallback={<LoadingFallback />}><PaymentsDashboard /></Suspense></ProtectedRoute>} />
+        <Route path="payments/setup" element={<ProtectedRoute requiredRoles={["admin", "masterAdmin", "client"]}><Suspense fallback={<LoadingFallback />}><ClientPaymentSetup /></Suspense></ProtectedRoute>} />
+        <Route path="payments/tracking" element={<ProtectedRoute requiredRoles={["admin", "masterAdmin", "client"]}><Suspense fallback={<LoadingFallback />}><PaymentTracking /></Suspense></ProtectedRoute>} />
+        <Route path="payments/recurring" element={<ProtectedRoute requiredRoles={["admin", "masterAdmin"]}><Suspense fallback={<LoadingFallback />}><RecurringPayments /></Suspense></ProtectedRoute>} />
+        <Route path="payments/history" element={<ProtectedRoute requiredRoles={["admin", "masterAdmin", "client"]}><Suspense fallback={<LoadingFallback />}><PaymentHistory /></Suspense></ProtectedRoute>} />
+        <Route path="payments/collections" element={<ProtectedRoute requiredRoles={["admin", "masterAdmin"]}><Suspense fallback={<LoadingFallback />}><CollectionList /></Suspense></ProtectedRoute>} />
+        <Route path="payments/reconciliation" element={<ProtectedRoute requiredRoles={["admin", "masterAdmin"]}><Suspense fallback={<LoadingFallback />}><PaymentReconciliation /></Suspense></ProtectedRoute>} />
 
-  {/* Payment Management System Routes */}
-  <Route path="payments" element={<ProtectedRoute requiredRoles={["admin", "masterAdmin"]}><Suspense fallback={<LoadingFallback />}><PaymentsDashboard /></Suspense></ProtectedRoute>} />
-  <Route path="payments/setup" element={<ProtectedRoute requiredRoles={["admin", "masterAdmin", "client"]}><Suspense fallback={<LoadingFallback />}><ClientPaymentSetup /></Suspense></ProtectedRoute>} />
-  <Route path="payments/tracking" element={<ProtectedRoute requiredRoles={["admin", "masterAdmin", "client"]}><Suspense fallback={<LoadingFallback />}><PaymentTracking /></Suspense></ProtectedRoute>} />
-  <Route path="payments/recurring" element={<ProtectedRoute requiredRoles={["admin", "masterAdmin"]}><Suspense fallback={<LoadingFallback />}><RecurringPayments /></Suspense></ProtectedRoute>} />
-  <Route path="payments/history" element={<ProtectedRoute requiredRoles={["admin", "masterAdmin", "client"]}><Suspense fallback={<LoadingFallback />}><PaymentHistory /></Suspense></ProtectedRoute>} />
-  <Route path="payments/collections" element={<ProtectedRoute requiredRoles={["admin", "masterAdmin"]}><Suspense fallback={<LoadingFallback />}><CollectionList /></Suspense></ProtectedRoute>} />
-  <Route path="payments/reconciliation" element={<ProtectedRoute requiredRoles={["admin", "masterAdmin"]}><Suspense fallback={<LoadingFallback />}><PaymentReconciliation /></Suspense></ProtectedRoute>} />
-  <Route path="calendar" element={<Suspense fallback={<LoadingFallback />}><Calendar /></Suspense>} />
-  <Route path="appointments" element={<Suspense fallback={<LoadingFallback />}><Appointments /></Suspense>} />
-  <Route path="tasks" element={<Suspense fallback={<LoadingFallback />}><Tasks /></Suspense>} />
-  <Route path="reminders" element={<Suspense fallback={<LoadingFallback />}><Reminders /></Suspense>} />
-  <Route path="analytics" element={<Navigate to="/analytics-hub" replace />} />
-  <Route path="reports" element={<Navigate to="/reports-hub" replace />} />
-  <Route path="goals" element={<Navigate to="/analytics-hub" replace />} />
+        {/* Tasks/Calendar Hub redirects */}
+        <Route path="calendar" element={<Navigate to="/calendar-hub" replace />} />
+        <Route path="appointments" element={<Navigate to="/calendar-hub" replace />} />
+        <Route path="tasks" element={<Navigate to="/tasks-hub" replace />} />
+        <Route path="reminders" element={<Navigate to="/tasks-hub" replace />} />
+
+        {/* Analytics & Reporting Hub redirects - CONSOLIDATED */}
+        <Route path="analytics" element={<Navigate to="/analytics-reporting-hub" replace />} />
+        <Route path="reports" element={<Navigate to="/analytics-reporting-hub" replace />} />
+        <Route path="analytics-hub" element={<Navigate to="/analytics-reporting-hub" replace />} />
+        <Route path="reports-hub" element={<Navigate to="/analytics-reporting-hub" replace />} />
+        <Route path="goals" element={<Navigate to="/analytics-reporting-hub" replace />} />
         {/* Resources & Support redirects */}
         <Route path="resources/articles" element={<Navigate to="/resources-hub" replace />} />
         <Route path="resources/faq" element={<Navigate to="/support-hub" replace />} />
@@ -625,6 +621,7 @@ const AppContent = () => {
       <ProtectedRoute requiredRoles={[5,6,7,8]}>
         <Suspense fallback={<LoadingFallback />}>
           <IDIQEnrollmentWizard />
+        </Suspense>
       </ProtectedRoute>
     }
   />
@@ -635,6 +632,7 @@ const AppContent = () => {
       <ProtectedRoute requiredRoles={[5,6,7,8]}>
         <Suspense fallback={<LoadingFallback />}>
           <IDIQEnrollmentWizard />
+        </Suspense>
       </ProtectedRoute>
     }
   />
@@ -650,6 +648,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRoles={[3,4,5,6,7,8]}>
       <Suspense fallback={<LoadingFallback />}>
         <CreditReportsHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -662,6 +661,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
         <AffiliatesHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -674,17 +674,19 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
         <AutomationHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
+
 {/* AI Hub - AI-powered features and analytics */}
 <Route
   path="ai-hub"
-
   element={
     <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
         <AIHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -696,6 +698,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
         <AnalyticsHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -707,6 +710,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="admin">
       <Suspense fallback={<LoadingFallback />}>
         <BillingHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -718,23 +722,10 @@ const AppContent = () => {
 <Route
   path="payment-integration-hub"
   element={
-    <ProtectedRoute requiredRoles={['client', 'admin', 'masterAdmin', 'user', 'manager']}>
-      <Suspense fallback={<LoadingFallback />}>
-        <FinancialPlanningHub />
-    </ProtectedRoute>
-  }
-/>
-
-{/* Tradeline Hub - Tradeline rental services */}
-<Route
-  path="tradeline-hub"
-  element={
-    <ProtectedRoute requiredRoles={['manager', 'admin', 'masterAdmin']}>
-      <Suspense fallback={<LoadingFallback />}>
-        <TradelineHub />
     <ProtectedRoute requiredRole="admin">
       <Suspense fallback={<LoadingFallback />}>
         <PaymentIntegrationHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -746,6 +737,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
         <ClientsHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -757,6 +749,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
         <CommunicationsHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -768,6 +761,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="admin">
       <Suspense fallback={<LoadingFallback />}>
         <ComplianceHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -782,6 +776,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="admin">
       <Suspense fallback={<LoadingFallback />}>
         <DisputeHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -793,6 +788,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
         <DocumentsHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -804,6 +800,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
         <LearningHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -815,6 +812,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
         <MarketingHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -826,6 +824,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="admin">
       <Suspense fallback={<LoadingFallback />}>
         <PaymentIntegrationHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -837,6 +836,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRoles={["user", "manager", "admin", "masterAdmin"]}>
       <Suspense fallback={<LoadingFallback />}>
         <ReportsHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -848,6 +848,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="admin">
       <Suspense fallback={<LoadingFallback />}>
         <RevenueHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -859,6 +860,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="admin">
       <Suspense fallback={<LoadingFallback />}>
         <SettingsHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -870,6 +872,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
         <SupportHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -881,6 +884,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
         <TasksSchedulingHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -892,6 +896,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="user">
       <Suspense fallback={<LoadingFallback />}>
         <TaxServicesHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -907,6 +912,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="user">
       <Suspense fallback={<LoadingFallback />}>
         <BureauCommunicationHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -918,6 +924,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="user">
       <Suspense fallback={<LoadingFallback />}>
         <CalendarSchedulingHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -929,6 +936,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="user">
       <Suspense fallback={<LoadingFallback />}>
         <CertificationSystem />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -940,6 +948,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="manager">
       <Suspense fallback={<LoadingFallback />}>
         <ClientSuccessRetentionHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -951,6 +960,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="admin">
       <Suspense fallback={<LoadingFallback />}>
         <CollectionsARHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -962,6 +972,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="user">
       <Suspense fallback={<LoadingFallback />}>
         <ContentCreatorSEOHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -973,6 +984,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="user">
       <Suspense fallback={<LoadingFallback />}>
         <ContractManagementHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -984,6 +996,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="user">
       <Suspense fallback={<LoadingFallback />}>
         <DripCampaignsHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -995,6 +1008,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="admin">
       <Suspense fallback={<LoadingFallback />}>
         <MobileAppHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -1010,6 +1024,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRoles={[3,4,5,6,7,8]}>
       <Suspense fallback={<LoadingFallback />}>
         <RentalApplicationBoostHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -1021,6 +1036,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRoles={[3,4,5,6,7,8]}>
       <Suspense fallback={<LoadingFallback />}>
         <MortgageReadinessHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -1032,6 +1048,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRoles={[3,4,5,6,7,8]}>
       <Suspense fallback={<LoadingFallback />}>
         <AutoLoanConciergeHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -1043,6 +1060,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRoles={[3,4,5,6,7,8]}>
       <Suspense fallback={<LoadingFallback />}>
         <CreditEmergencyResponseHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -1054,6 +1072,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRoles={[3,4,5,6,7,8]}>
       <Suspense fallback={<LoadingFallback />}>
         <AttorneyNetworkHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -1065,6 +1084,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRoles={['client', 'admin', 'masterAdmin']}>
       <Suspense fallback={<LoadingFallback />}>
         <FinancialPlanningHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -1076,6 +1096,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRoles={[3,4,5,6,7,8]}>
       <Suspense fallback={<LoadingFallback />}>
         <CertificationAcademyHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -1099,6 +1120,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="user">
       <Suspense fallback={<LoadingFallback />}>
         <OnboardingWelcomeHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -1110,6 +1132,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="client">
       <Suspense fallback={<LoadingFallback />}>
         <ProgressPortalHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -1121,6 +1144,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="user">
       <Suspense fallback={<LoadingFallback />}>
         <ReferralEngineHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -1132,6 +1156,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="user">
       <Suspense fallback={<LoadingFallback />}>
         <ReferralPartnerHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -1143,6 +1168,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="user">
       <Suspense fallback={<LoadingFallback />}>
         <ResourceLibraryHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -1154,6 +1180,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="admin">
       <Suspense fallback={<LoadingFallback />}>
         <RevenuePartnershipsHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -1165,6 +1192,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="user">
       <Suspense fallback={<LoadingFallback />}>
         <ReviewsReputationHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -1176,6 +1204,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="user">
       <Suspense fallback={<LoadingFallback />}>
         <SocialMediaHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -1187,6 +1216,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="user">
       <Suspense fallback={<LoadingFallback />}>
         <TrainingHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -1198,6 +1228,7 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="admin">
       <Suspense fallback={<LoadingFallback />}>
         <WebsiteLandingPagesHub />
+      </Suspense>
     </ProtectedRoute>
   }
 />
