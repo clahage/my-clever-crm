@@ -1,70 +1,113 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+// src/contexts/NotificationContext.jsx
+import React, { createContext, useContext, useState, useCallback } from 'react';
+import { toast } from 'react-hot-toast';
 
-const NotificationContext = createContext();
+const NotificationContext = createContext({});
 
-export const useNotification = () => useContext(NotificationContext);
+export const useNotifications = () => {
+  const context = useContext(NotificationContext);
+  if (!context) {
+    throw new Error('useNotifications must be used within a NotificationProvider');
+  }
+  return context;
+};
 
 export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
-  const [urgentCount, setUrgentCount] = useState(0);
-  const [permission, setPermission] = useState('default');
 
-  useEffect(() => {
-    if ('Notification' in window) {
-      setPermission(Notification.permission);
-      if (Notification.permission === 'default') {
-        Notification.requestPermission().then(setPermission);
-      }
+  // Add notification to state and trigger toast
+  const addNotification = useCallback((notification) => {
+    const id = Date.now().toString();
+    const newNotification = {
+      id,
+      timestamp: new Date(),
+      read: false,
+      ...notification
+    };
+
+    setNotifications(prev => [newNotification, ...prev]);
+
+    // Show toast based on type
+    switch (notification.type) {
+      case 'success':
+        toast.success(notification.message, { id });
+        break;
+      case 'error':
+        toast.error(notification.message, { id });
+        break;
+      case 'warning':
+        toast(notification.message, { 
+          id,
+          icon: '⚠️',
+          style: { background: '#fbbf24', color: '#000' }
+        });
+        break;
+      case 'info':
+      default:
+        toast(notification.message, { 
+          id,
+          icon: 'ℹ️',
+          style: { background: '#3b82f6', color: '#fff' }
+        });
+        break;
     }
+
+    return id;
   }, []);
 
-  // Real-time urgent contact monitoring
-  useEffect(() => {
-    let unsub = null;
-    async function subscribeUrgentContacts() {
-  const { collection, query, where, onSnapshot } = await import('firebase/firestore');
-  const { db } = await import('../lib/firebase');
-      const now = new Date();
-      const q = query(
-        collection(db, 'contacts'),
-        where('responseRequiredBy', '<=', now.toISOString())
-      );
-      unsub = onSnapshot(q, (snap) => {
-        const urgentContacts = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setNotifications(urgentContacts);
-        setUrgentCount(urgentContacts.length);
-        // Send browser notifications for new urgent contacts
-        urgentContacts.forEach(contact => {
-          if (permission === 'granted' && contact.responseRequiredBy) {
-            const timeLeft = Math.floor((new Date(contact.responseRequiredBy) - new Date()) / 60000);
-            if (timeLeft < 5) {
-              const title = `Urgent: ${contact.firstName} ${contact.lastName}`;
-              const body = `${contact.source} needs response in ${timeLeft} min.`;
-              const notif = new Notification(title, { body });
-              notif.onclick = () => window.location.href = `/contacts/${contact.id}`;
-            }
-          }
-        });
-      });
-    }
-    subscribeUrgentContacts();
-    const interval = setInterval(() => subscribeUrgentContacts(), 30000);
-    return () => { if (unsub) unsub(); clearInterval(interval); };
-  }, [permission]);
+  // Remove notification
+  const removeNotification = useCallback((id) => {
+    setNotifications(prev => prev.filter(notif => notif.id !== id));
+    toast.dismiss(id);
+  }, []);
 
-  // Send browser notification (manual)
-  const sendNotification = (title, body, onClick) => {
-    if (permission === 'granted' && 'Notification' in window) {
-      const notif = new Notification(title, { body });
-      if (onClick) {
-        notif.onclick = onClick;
-      }
-    }
+  // Mark notification as read
+  const markAsRead = useCallback((id) => {
+    setNotifications(prev => 
+      prev.map(notif => 
+        notif.id === id ? { ...notif, read: true } : notif
+      )
+    );
+  }, []);
+
+  // Clear all notifications
+  const clearAll = useCallback(() => {
+    setNotifications([]);
+    toast.dismiss();
+  }, []);
+
+  // Convenience methods
+  const notify = {
+    success: (message, options = {}) => 
+      addNotification({ type: 'success', message, ...options }),
+    
+    error: (message, options = {}) => 
+      addNotification({ type: 'error', message, ...options }),
+    
+    warning: (message, options = {}) => 
+      addNotification({ type: 'warning', message, ...options }),
+    
+    info: (message, options = {}) => 
+      addNotification({ type: 'info', message, ...options }),
+  };
+
+  const value = {
+    notifications,
+    addNotification,
+    removeNotification,
+    markAsRead,
+    clearAll,
+    notify,
+    // Stats
+    unreadCount: notifications.filter(n => !n.read).length,
+    totalCount: notifications.length
   };
 
   return (
-    <NotificationContext.Provider value={{ notifications, urgentCount, sendNotification }}>
+    <NotificationContext.Provider value={value}>
       {children}
     </NotificationContext.Provider>
   );
 };
+
+export default NotificationContext;

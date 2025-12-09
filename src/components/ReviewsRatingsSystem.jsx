@@ -100,11 +100,7 @@ import {
   AlertTriangle, AlertCircle as AlertCircleIcon,
   CheckCircle as CheckCircleIcon, XCircle as XCircleIcon,
   Circle, MinusCircle, PlusCircle, Slash, Divide,
-<<<<<<< HEAD
-  Equals, Percent as PercentIcon
-=======
   Percent as PercentIcon
->>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
 } from 'lucide-react';
 import { 
   collection, addDoc, updateDoc, deleteDoc, doc, query, 

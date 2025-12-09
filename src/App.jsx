@@ -1,5 +1,3 @@
-
-
 import EmailWorkflowDashboard from './components/EmailWorkflowDashboard';
 import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
@@ -271,7 +269,6 @@ const SupportHub = lazy(() => import('@/pages/hubs/SupportHub'));
 const TasksSchedulingHub = lazy(() => import('@/pages/hubs/TasksSchedulingHub'));
 const TaxServicesHub = lazy(() => import('@/pages/hubs/TaxServicesHub'));
 const TrainingHub = lazy(() => import('@/pages/hubs/TrainingHub'));
-const TrainingHub = lazy(() => import('@/pages/hubs/TrainingHub'));
 // WebsiteLandingPagesHub - CONSOLIDATED INTO MarketingHub (Website & Landing Pages tab)
 
 // ===== NEW ENTERPRISE AI HUBS (November 2025) =====
@@ -340,9 +337,7 @@ const ContactEditor = () => {
     />
   );
 };
-=======
 const WebsiteLandingPagesHub = lazy(() => import('@/pages/hubs/WebsiteLandingPagesHub'));
->>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
 
 // ============================================================================
 // PROTECTED ROUTE WRAPPER
@@ -501,7 +496,6 @@ const AppContent = () => {
             <ProtectedRoute requiredRole="user">
               <Suspense fallback={<LoadingFallback />}>
                 <Pipeline />
-              </Suspense>
             </ProtectedRoute>
           } 
         />
@@ -513,7 +507,6 @@ const AppContent = () => {
             <ProtectedRoute requiredRole="admin">
               <Suspense fallback={<LoadingFallback />}>
                 <DuplicateManager />
-              </Suspense>
             </ProtectedRoute>
           } 
         />
@@ -570,7 +563,6 @@ const AppContent = () => {
         {/* Billing Hub redirects */}
         <Route path="invoices" element={<Navigate to="/billing-hub" replace />} />
         <Route path="payment-success" element={<Suspense fallback={<LoadingFallback />}><PaymentSuccess /></Suspense>} />
-<<<<<<< HEAD
   <Route path="affiliates" element={<Navigate to="/affiliates-hub" replace />} />
   <Route path="billing" element={<Navigate to="/billing-hub" replace />} />
   <Route path="products" element={<Navigate to="/billing-hub" replace />} />
@@ -587,11 +579,9 @@ const AppContent = () => {
   <Route path="analytics-hub" element={<Navigate to="/analytics-reporting-hub" replace />} />
   <Route path="reports-hub" element={<Navigate to="/analytics-reporting-hub" replace />} />
   <Route path="goals" element={<Navigate to="/analytics-reporting-hub" replace />} />
-=======
   <Route path="affiliates" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><Affiliates /></Suspense></ProtectedRoute>} />
   <Route path="billing" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><Billing /></Suspense></ProtectedRoute>} />
   <Route path="products" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><Products /></Suspense></ProtectedRoute>} />
->>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
 
   {/* Payment Management System Routes */}
   <Route path="payments" element={<ProtectedRoute requiredRoles={["admin", "masterAdmin"]}><Suspense fallback={<LoadingFallback />}><PaymentsDashboard /></Suspense></ProtectedRoute>} />
@@ -635,7 +625,6 @@ const AppContent = () => {
       <ProtectedRoute requiredRoles={[5,6,7,8]}>
         <Suspense fallback={<LoadingFallback />}>
           <IDIQEnrollmentWizard />
-        </Suspense>
       </ProtectedRoute>
     }
   />
@@ -646,7 +635,6 @@ const AppContent = () => {
       <ProtectedRoute requiredRoles={[5,6,7,8]}>
         <Suspense fallback={<LoadingFallback />}>
           <IDIQEnrollmentWizard />
-        </Suspense>
       </ProtectedRoute>
     }
   />
@@ -662,7 +650,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRoles={[3,4,5,6,7,8]}>
       <Suspense fallback={<LoadingFallback />}>
         <CreditReportsHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -675,7 +662,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
         <AffiliatesHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -688,7 +674,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
         <AutomationHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -700,7 +685,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
         <AIHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -712,7 +696,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
         <AnalyticsHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -724,7 +707,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="admin">
       <Suspense fallback={<LoadingFallback />}>
         <BillingHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -736,11 +718,9 @@ const AppContent = () => {
 <Route
   path="payment-integration-hub"
   element={
-<<<<<<< HEAD
     <ProtectedRoute requiredRoles={['client', 'admin', 'masterAdmin', 'user', 'manager']}>
       <Suspense fallback={<LoadingFallback />}>
         <FinancialPlanningHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -752,12 +732,9 @@ const AppContent = () => {
     <ProtectedRoute requiredRoles={['manager', 'admin', 'masterAdmin']}>
       <Suspense fallback={<LoadingFallback />}>
         <TradelineHub />
-=======
     <ProtectedRoute requiredRole="admin">
       <Suspense fallback={<LoadingFallback />}>
         <PaymentIntegrationHub />
->>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -769,7 +746,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
         <ClientsHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -781,7 +757,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
         <CommunicationsHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -793,7 +768,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="admin">
       <Suspense fallback={<LoadingFallback />}>
         <ComplianceHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -808,7 +782,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="admin">
       <Suspense fallback={<LoadingFallback />}>
         <DisputeHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -820,7 +793,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
         <DocumentsHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -832,7 +804,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
         <LearningHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -844,7 +815,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
         <MarketingHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -856,7 +826,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="admin">
       <Suspense fallback={<LoadingFallback />}>
         <PaymentIntegrationHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -868,7 +837,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRoles={["user", "manager", "admin", "masterAdmin"]}>
       <Suspense fallback={<LoadingFallback />}>
         <ReportsHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -880,7 +848,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="admin">
       <Suspense fallback={<LoadingFallback />}>
         <RevenueHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -892,7 +859,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="admin">
       <Suspense fallback={<LoadingFallback />}>
         <SettingsHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -904,7 +870,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
         <SupportHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -916,7 +881,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
         <TasksSchedulingHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -928,7 +892,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="user">
       <Suspense fallback={<LoadingFallback />}>
         <TaxServicesHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -944,7 +907,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="user">
       <Suspense fallback={<LoadingFallback />}>
         <BureauCommunicationHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -956,7 +918,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="user">
       <Suspense fallback={<LoadingFallback />}>
         <CalendarSchedulingHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -968,7 +929,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="user">
       <Suspense fallback={<LoadingFallback />}>
         <CertificationSystem />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -980,7 +940,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="manager">
       <Suspense fallback={<LoadingFallback />}>
         <ClientSuccessRetentionHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -992,7 +951,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="admin">
       <Suspense fallback={<LoadingFallback />}>
         <CollectionsARHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -1004,7 +962,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="user">
       <Suspense fallback={<LoadingFallback />}>
         <ContentCreatorSEOHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -1016,7 +973,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="user">
       <Suspense fallback={<LoadingFallback />}>
         <ContractManagementHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -1028,7 +984,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="user">
       <Suspense fallback={<LoadingFallback />}>
         <DripCampaignsHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -1040,7 +995,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="admin">
       <Suspense fallback={<LoadingFallback />}>
         <MobileAppHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -1056,7 +1010,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRoles={[3,4,5,6,7,8]}>
       <Suspense fallback={<LoadingFallback />}>
         <RentalApplicationBoostHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -1068,7 +1021,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRoles={[3,4,5,6,7,8]}>
       <Suspense fallback={<LoadingFallback />}>
         <MortgageReadinessHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -1080,7 +1032,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRoles={[3,4,5,6,7,8]}>
       <Suspense fallback={<LoadingFallback />}>
         <AutoLoanConciergeHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -1092,7 +1043,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRoles={[3,4,5,6,7,8]}>
       <Suspense fallback={<LoadingFallback />}>
         <CreditEmergencyResponseHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -1104,7 +1054,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRoles={[3,4,5,6,7,8]}>
       <Suspense fallback={<LoadingFallback />}>
         <AttorneyNetworkHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -1116,7 +1065,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRoles={['client', 'admin', 'masterAdmin']}>
       <Suspense fallback={<LoadingFallback />}>
         <FinancialPlanningHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -1128,7 +1076,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRoles={[3,4,5,6,7,8]}>
       <Suspense fallback={<LoadingFallback />}>
         <CertificationAcademyHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -1152,7 +1099,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="user">
       <Suspense fallback={<LoadingFallback />}>
         <OnboardingWelcomeHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -1164,7 +1110,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="client">
       <Suspense fallback={<LoadingFallback />}>
         <ProgressPortalHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -1176,7 +1121,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="user">
       <Suspense fallback={<LoadingFallback />}>
         <ReferralEngineHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -1188,7 +1132,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="user">
       <Suspense fallback={<LoadingFallback />}>
         <ReferralPartnerHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -1200,7 +1143,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="user">
       <Suspense fallback={<LoadingFallback />}>
         <ResourceLibraryHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -1212,7 +1154,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="admin">
       <Suspense fallback={<LoadingFallback />}>
         <RevenuePartnershipsHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -1224,7 +1165,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="user">
       <Suspense fallback={<LoadingFallback />}>
         <ReviewsReputationHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -1236,7 +1176,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="user">
       <Suspense fallback={<LoadingFallback />}>
         <SocialMediaHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -1248,7 +1187,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="user">
       <Suspense fallback={<LoadingFallback />}>
         <TrainingHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -1260,7 +1198,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="admin">
       <Suspense fallback={<LoadingFallback />}>
         <WebsiteLandingPagesHub />
-      </Suspense>
     </ProtectedRoute>
   }
 />
@@ -1296,7 +1233,7 @@ const AppContent = () => {
               </button>
             </div>
           </div>
-        } />
+  } />
       </Route>
     </Routes>
   );

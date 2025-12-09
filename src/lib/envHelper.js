@@ -1,22 +1,26 @@
+// src/lib/envHelper.js
+// Universal environment variable loader for Node.js and browser (Vite)
+
 /**
- * Universal Environment Variable Loader
- * Works in both Vite (Browser) and Node.js (Test Scripts/Server)
- * * @param {string} key - The name of the environment variable (e.g., 'VITE_OPENAI_API_KEY')
- * @returns {string} - The value of the variable or an empty string if not found
+ * Universal environment variable getter
+ * Works in both Node.js (for testing) and browser (Vite) environments
+ * @param {string} key - Environment variable key
+ * @returns {string} - Environment variable value
  */
-export const getEnv = (key) => {
-  // 1. Try Vite (Browser)
-  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key]) {
+export function getEnv(key) {
+  // In browser with Vite
+  if (typeof window !== 'undefined' && import.meta.env) {
     return import.meta.env[key];
   }
-
-  // 2. Try Node.js (Server/Test Script)
-  // We check for 'process' safely to avoid reference errors in browsers
-  if (typeof process !== 'undefined' && process.env && process.env[key]) {
+  
+  // In Node.js environment
+  if (typeof process !== 'undefined' && process.env) {
     return process.env[key];
   }
-
-  // 3. Fallback
-  console.warn(`[EnvHelper] Warning: Environment variable ${key} is missing.`);
+  
+  // Fallback - warn if not found
+  console.warn(`Environment variable ${key} not found`);
   return '';
-};
+}
+
+export default getEnv;
