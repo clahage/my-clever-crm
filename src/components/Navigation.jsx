@@ -105,7 +105,7 @@ const coreHubs = [
   },
 ];
 
-import { useNotification } from '../contexts/NotificationContext';
+import { useNotifications } from '../contexts/NotificationContext';
 import NotificationPanel from './NotificationPanel';
 
 export default function Navigation() {

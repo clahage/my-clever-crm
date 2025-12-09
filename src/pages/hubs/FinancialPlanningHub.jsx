@@ -127,11 +127,7 @@ import {
   ChevronRight,
   ChevronDown,
   Home,
-<<<<<<< HEAD
-  CreditCard,
-=======
   CreditCard as LucideCreditCard,
->>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
   ShoppingCart,
   Car,
   Briefcase,
@@ -191,7 +187,7 @@ import {
 } from 'firebase/firestore';
 import { format, addMonths, differenceInMonths, parseISO } from 'date-fns';
 import { DebtPayoffCalculator } from '@/lib/financialPlanningEngine';
-import DebtPayoffCalculatorComponent from '@/components/DebtPayoffCalculator';
+import DebtPayoffComponent from '@/components/DebtPayoffCalculator';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // CONSTANTS & CONFIGURATION
@@ -211,11 +207,7 @@ const CHART_COLORS = {
 };
 
 const DEBT_TYPES = [
-<<<<<<< HEAD
-  { value: 'credit_card', label: 'Credit Card', icon: CreditCard, color: CHART_COLORS.error },
-=======
   { value: 'credit_card', label: 'Credit Card', icon: LucideCreditCard, color: CHART_COLORS.error },
->>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
   { value: 'auto_loan', label: 'Auto Loan', icon: Car, color: CHART_COLORS.info },
   { value: 'student_loan', label: 'Student Loan', icon: GraduationCap, color: CHART_COLORS.warning },
   { value: 'personal_loan', label: 'Personal Loan', icon: DollarSign, color: CHART_COLORS.purple },
@@ -651,18 +643,8 @@ export default function FinancialPlanningHub() {
         </Box>
 
         {/* ===== KEY METRICS ROW ===== */}
-<<<<<<< HEAD
-<<<<<<< HEAD
         <Grid container columns={12} columnSpacing={2}>
           <Grid item xs={12} columns={6}>
-=======
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={6} md={3}>
->>>>>>> f130397 (feat: Add FinancialPlanningHub and TradelineHub with complete integration)
-=======
-        <Grid container columns={12} columnSpacing={2}>
-          <Grid item xs={12} columns={6}>
->>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
@@ -678,15 +660,7 @@ export default function FinancialPlanningHub() {
             </Card>
           </Grid>
 
-<<<<<<< HEAD
-<<<<<<< HEAD
           <Grid item xs={12} columns={6}>
-=======
-          <Grid item xs={12} sm={6} md={3}>
->>>>>>> f130397 (feat: Add FinancialPlanningHub and TradelineHub with complete integration)
-=======
-          <Grid item xs={12} columns={6}>
->>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
@@ -702,15 +676,7 @@ export default function FinancialPlanningHub() {
             </Card>
           </Grid>
 
-<<<<<<< HEAD
-<<<<<<< HEAD
           <Grid item xs={12} columns={6}>
-=======
-          <Grid item xs={12} sm={6} md={3}>
->>>>>>> f130397 (feat: Add FinancialPlanningHub and TradelineHub with complete integration)
-=======
-          <Grid item xs={12} columns={6}>
->>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
@@ -730,25 +696,11 @@ export default function FinancialPlanningHub() {
             </Card>
           </Grid>
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
           <Grid item xs={12} columns={6}>
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                   <LucideCreditCard size={20} color={CHART_COLORS.purple} />
-<<<<<<< HEAD
-=======
-          <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                  <CreditCard size={20} color={CHART_COLORS.purple} />
->>>>>>> f130397 (feat: Add FinancialPlanningHub and TradelineHub with complete integration)
-=======
->>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
                   <Typography variant="caption" color="text.secondary">
                     Total Debt
                   </Typography>
@@ -1165,15 +1117,7 @@ function DebtReductionPlannerTab({ debts, extraMonthly, onAddDebt, onUpdateDebt,
 
               {debts.length === 0 ? (
                 <Box sx={{ textAlign: 'center', py: 8 }}>
-<<<<<<< HEAD
-<<<<<<< HEAD
                   <LucideCreditCard size={48} style={{ opacity: 0.3, marginBottom: 16 }} />
-=======
-                  <CreditCard size={48} style={{ opacity: 0.3, marginBottom: 16 }} />
->>>>>>> f130397 (feat: Add FinancialPlanningHub and TradelineHub with complete integration)
-=======
-                  <LucideCreditCard size={48} style={{ opacity: 0.3, marginBottom: 16 }} />
->>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
                   <Typography variant="body1" color="text.secondary" gutterBottom>
                     No debts tracked yet
                   </Typography>
@@ -2147,15 +2091,7 @@ function EducationTab() {
     {
       title: '💳 Understanding Credit Scores',
       description: 'How credit scores work and what impacts them',
-<<<<<<< HEAD
-<<<<<<< HEAD
       icon: LucideCreditCard,
-=======
-      icon: CreditCard,
->>>>>>> f130397 (feat: Add FinancialPlanningHub and TradelineHub with complete integration)
-=======
-      icon: LucideCreditCard,
->>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
       color: CHART_COLORS.success,
     },
     {

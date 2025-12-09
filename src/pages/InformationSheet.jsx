@@ -234,7 +234,7 @@ import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db, storage } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNotification } from '@/contexts/NotificationContext';
+import { useNotifications } from '@/contexts/NotificationContext';
 import { format, formatDistanceToNow, parseISO, isBefore, isAfter, addMonths, differenceInMonths, differenceInYears } from 'date-fns';
 
 // Section definitions with icons and descriptions

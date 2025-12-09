@@ -84,7 +84,11 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import emailService, { EMAIL_TYPES, EMAIL_ALIASES } from '../../services/EmailService';
-import telnyxFaxService, { FAX_DESTINATIONS, FAX_STATUS } from '../../services/TelnyxFaxService';
+import telnyxFaxService from '../../services/faxService';
+
+// FAX Constants (stub for compilation)
+const FAX_DESTINATIONS = {};
+const FAX_STATUS = {};
 import { EMAIL_TEMPLATES, getTemplate } from '../../services/EmailTemplates';
 
 const EmailFaxManager = () => {

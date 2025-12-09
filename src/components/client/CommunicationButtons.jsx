@@ -65,7 +65,7 @@ import {
 
 import communicationService from '@/services/communicationService';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNotification } from '@/contexts/NotificationContext';
+import { useNotifications } from '@/contexts/NotificationContext';
 
 /**
  * Button configurations

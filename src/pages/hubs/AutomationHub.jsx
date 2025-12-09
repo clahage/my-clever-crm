@@ -32,15 +32,14 @@ import {
   Link as LinkIcon, Unlink, Code, Terminal, Cpu, Brain,
   Sparkles, Bell, Share2, ExternalLink, PieChart,
   LineChart as LineChartIcon, Workflow, Repeat, Timer, Send,
-<<<<<<< HEAD
-  Phone, Smartphone, Globe, Cloud, Lock, Unlock, Key, LayoutDashboard, BarChart,
-=======
   Phone, Smartphone, Globe, Cloud, Lock, Unlock, Key,
-  LayoutDashboard, BarChart,
->>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
 } from 'lucide-react';
-import { LineChart, Line, Bar, Cell, AreaChart, Area, XAxis, YAxis, CartesianGrid, Legend, ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
-import { BarChart as RechartsBarChart, PieChart as RechartsPie, Pie, Tooltip as RechartsTooltip } from 'recharts';
+import {
+  LineChart, Line, BarChart, Bar, PieChart as RechartsPie, Pie, Cell,
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
+  Legend, ResponsiveContainer, RadarChart, Radar, PolarGrid,
+  PolarAngleAxis, PolarRadiusAxis,
+} from 'recharts';
 import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/lib/firebase';
 import {
@@ -48,8 +47,6 @@ import {
   getDocs, query, where, orderBy, limit, serverTimestamp,
   onSnapshot,
 } from 'firebase/firestore';
-import LeadLifecycleEngine from '@/components/automation/LeadLifecycleEngine';
-import WorkflowTestingSimulator from '../../components/WorkflowTestingSimulator.jsx';
 
 // ============================================================================
 // CONSTANTS & CONFIGURATION
@@ -1995,7 +1992,7 @@ const AutomationHub = () => {
               Execution by Workflow Type
             </Typography>
             <ResponsiveContainer width="100%" height={300}>
-              <RechartsBarChart data={[
+              <BarChart data={[
                 { type: 'Client Management', count: 89 },
                 { type: 'Communication', count: 67 },
                 { type: 'Billing', count: 45 },
@@ -2007,7 +2004,7 @@ const AutomationHub = () => {
                 <YAxis />
                 <RechartsTooltip />
                 <Bar dataKey="count" fill={COLORS.primary} />
-              </RechartsBarChart>
+              </BarChart>
             </ResponsiveContainer>
           </Paper>
         </Grid>
@@ -2099,8 +2096,6 @@ const AutomationHub = () => {
           <Tab icon={<LinkIcon size={20} />} label="Integrations" iconPosition="start" />
           <Tab icon={<Activity size={20} />} label="Monitoring" iconPosition="start" />
           <Tab icon={<BarChart size={20} />} label="Analytics" iconPosition="start" />
-          <Tab icon={<Repeat size={20} />} label="Lead Lifecycle AI" iconPosition="start" />
-          <Tab icon={<Sparkles size={20} />} label="Workflow Testing Simulator" iconPosition="start" />
         </Tabs>
       </Paper>
 
@@ -2113,119 +2108,6 @@ const AutomationHub = () => {
       {activeTab === 5 && renderIntegrationsTab()}
       {activeTab === 6 && renderMonitoringTab()}
       {activeTab === 7 && renderAnalyticsTab()}
-      {activeTab === 8 && <LeadLifecycleEngine />}
-      {activeTab === 9 && (
-        <Box sx={{ display: 'flex', height: 'calc(100vh - 120px)' }}>
-          {/* Sidebar for workflow selection */}
-          <Box sx={{ width: 280, bgcolor: '#f8f9fa', borderRight: '1px solid #e0e0e0', p: 2 }}>
-            <Typography variant="h6" sx={{ mb: 2 }}>Workflows</Typography>
-            <Button variant="contained" startIcon={<Plus />} fullWidth sx={{ mb: 2 }} onClick={() => setWorkflowDialog(true)}>
-              New Workflow
-            </Button>
-            <List>
-              {workflows.length === 0 && (
-                <ListItem><ListItemText primary="No workflows yet. Create one!" /></ListItem>
-              )}
-              {workflows.map((wf) => (
-                <ListItem key={wf.id} disablePadding>
-                  <ListItemButton selected={selectedWorkflow?.id === wf.id} onClick={() => setSelectedWorkflow(wf)}>
-                    <ListItemText primary={wf.name} secondary={wf.description} />
-                  </ListItemButton>
-                </ListItem>
-              ))}
-            </List>
-          </Box>
-
-          {/* Main simulator area */}
-          <Box sx={{ flex: 1, p: 0 }}>
-            <WorkflowTestingSimulator
-              workflow={selectedWorkflow || {
-                id: 'demo',
-                name: 'Demo Workflow',
-                steps: [
-                  {
-                    type: 'email_send',
-                    name: 'Send Welcome Email',
-                    subject: 'Welcome to SpeedyCRM!',
-                    body: 'Hi {{contact.name}},<br><br>Welcome to SpeedyCRM. We are excited to have you on board!<br><br>Best regards,<br>SpeedyCRM Team',
-                    from: 'support@speedycrm.com',
-                    to: '{{contact.email}}',
-                    button: { text: 'Get Started', url: 'https://speedycrm.com/start' }
-                  }
-                ],
-                trigger: {},
-                actions: [],
-                conditions: []
-              }}
-              testContact={{
-                id: 'demo-contact',
-                name: 'Demo Contact',
-                email: 'demo@example.com'
-              }}
-              emailPreviewStyle={{
-                showHeader: true,
-                showButton: true,
-                showPersonalization: true
-              }}
-            />
-          </Box>
-
-          {/* Modal for workflow creation (basic, with AI guidance placeholder) */}
-          <Dialog open={workflowDialog} onClose={() => setWorkflowDialog(false)} maxWidth="md" fullWidth>
-            <DialogTitle>Create New Workflow</DialogTitle>
-            <DialogContent>
-              <Typography variant="body2" sx={{ mb: 2 }}>
-                Let AI help you build a workflow! Describe what you want to automate, and get step-by-step suggestions.
-              </Typography>
-              <TextField
-                fullWidth
-                label="Workflow Name"
-                sx={{ mb: 2 }}
-                value={selectedWorkflow?.name || ''}
-                onChange={e => setSelectedWorkflow({ ...selectedWorkflow, name: e.target.value })}
-              />
-              <TextField
-                fullWidth
-                multiline
-                rows={3}
-                label="Describe your workflow (plain English)"
-                sx={{ mb: 2 }}
-                value={selectedWorkflow?.description || ''}
-                onChange={e => setSelectedWorkflow({ ...selectedWorkflow, description: e.target.value })}
-              />
-              {/* AI Assistant Panel */}
-              <Paper elevation={2} sx={{ p: 2, mb: 2, bgcolor: '#f5faff' }}>
-                <Typography variant="subtitle1" sx={{ mb: 1 }}>
-                  AI Workflow Assistant
-                </Typography>
-                <Typography variant="body2" sx={{ mb: 1 }}>
-                  <strong>Suggestions:</strong> {selectedWorkflow?.description ? 'Based on your description, try adding a trigger (e.g., "When a new client signs up") and actions (e.g., "Send welcome email").' : 'Describe your workflow to get AI suggestions.'}
-                </Typography>
-                <Button variant="outlined" sx={{ mr: 1 }} onClick={() => alert('AI: Suggest triggers and actions (demo)')}>Suggest Steps</Button>
-                <Button variant="outlined" onClick={() => alert('AI: Validate workflow (demo)')}>Validate Workflow</Button>
-                <Alert severity="info" sx={{ mt: 2 }}>
-                  AI will soon provide live tips, error detection, and improvements as you build.
-                </Alert>
-              </Paper>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={() => setWorkflowDialog(false)}>Cancel</Button>
-              <Button variant="contained" onClick={() => {
-                // Save new workflow to list (local for now)
-                setWorkflows([...workflows, {
-                  ...selectedWorkflow,
-                  id: Date.now().toString(),
-                  steps: [],
-                  trigger: {},
-                  actions: [],
-                  conditions: []
-                }]);
-                setWorkflowDialog(false);
-              }}>Create</Button>
-            </DialogActions>
-          </Dialog>
-        </Box>
-      )}
 
       {/* Snackbar */}
       <Snackbar

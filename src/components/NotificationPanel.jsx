@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNotification } from '../contexts/NotificationContext';
+import { useNotifications } from '../contexts/NotificationContext';
 
 const NotificationPanel = ({ isOpen, onClose }) => {
   const { notifications, sendNotification } = useNotification();

@@ -293,7 +293,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db, storage } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNotification } from '@/contexts/NotificationContext';
+import { useNotifications } from '@/contexts/NotificationContext';
 import { format, formatDistanceToNow, addMonths, addDays, differenceInDays, differenceInMonths, isBefore, isAfter } from 'date-fns';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';

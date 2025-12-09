@@ -1,12 +1,9 @@
-// ============================================================================
-// 🚀 ULTIMATE SMARTDASHBOARD - MEGA ENTERPRISE VERSION
-// ============================================================================
-// The Crown Jewel of SpeedyCRM
+// =====================================================================// 🚀 ULTIMATE SMARTDASHBOARD - MEGA ENTERPRISE VERSION
+// =====================================================================// The Crown Jewel of SpeedyCRM
 // Production-ready, AI-powered, customizable dashboard
 // Version: 1.0.0
 // Lines: 3,500-4,000+
-// ============================================================================
-
+// =====================================================================
 import React, { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
 import {
   Box,
@@ -190,10 +187,8 @@ import { useNavigate } from 'react-router-dom';
 // Contact Form
 import UltimateContactForm from '@/components/UltimateContactForm';
 
-// ============================================================================
-// 🎨 COLOR PALETTE & THEME
-// ============================================================================
-
+// =====================================================================// 🎨 COLOR PALETTE & THEME
+// =====================================================================
 const COLORS = {
   primary: ['#667eea', '#764ba2'],
   success: '#10b981',
@@ -213,10 +208,8 @@ const COLORS = {
   }
 };
 
-// ============================================================================
-// 🎯 DEFAULT WIDGET LAYOUTS
-// ============================================================================
-
+// =====================================================================// 🎯 DEFAULT WIDGET LAYOUTS
+// =====================================================================
 const DEFAULT_LAYOUTS = {
   masterAdmin: [
     { i: 'revenue-overview', x: 0, y: 0, w: 6, h: 4 },
@@ -257,10 +250,8 @@ const DEFAULT_LAYOUTS = {
   ],
 };
 
-// ============================================================================
-// 🤖 AI UTILITY FUNCTIONS
-// ============================================================================
-
+// =====================================================================// 🤖 AI UTILITY FUNCTIONS
+// =====================================================================
 // Generate AI-powered revenue forecast
 const generateRevenueForecast = (historicalData, days = 30) => {
   if (!historicalData || historicalData.length < 7) return [];
@@ -333,7 +324,6 @@ const detectAnomalies = (data, field = 'amount') => {
 const generateAIInsights = (dashboardData) => {
   const insights = [];
   // Revenue insights
-<<<<<<< HEAD
   if (dashboardData.revenue && Array.isArray(dashboardData.revenue.revenue)) {
     const recentRevenue = dashboardData.revenue.revenue.slice(-7);
     if (recentRevenue.length > 0) {
@@ -348,9 +338,6 @@ const generateAIInsights = (dashboardData) => {
       });
     }
   } else if (dashboardData.revenue) {
-=======
-  if (dashboardData.revenue) {
->>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
     const revenueArr = Array.isArray(dashboardData.revenue)
       ? dashboardData.revenue
       : [dashboardData.revenue];
@@ -385,7 +372,6 @@ const generateAIInsights = (dashboardData) => {
       ? dashboardData.clients
       : [];
     const atRiskClients = clientsArr.filter(c => calculateClientHealthScore(c) < 50);
-<<<<<<< HEAD
     if (atRiskClients.length > 0) {
       insights.push({
         type: 'warning',
@@ -446,74 +432,6 @@ const generateAIInsights = (dashboardData) => {
     return priorityOrder[a.priority] - priorityOrder[b.priority];
   });
 };
-=======
->>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
-    if (atRiskClients.length > 0) {
-      insights.push({
-        type: 'warning',
-        icon: AlertCircle,
-        title: `${atRiskClients.length} clients at risk`,
-        description: 'Review these accounts to prevent churn',
-        action: 'View Clients',
-        priority: 'high'
-      });
-    }
-  }
-  
-  // Dispute insights
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
-  if (Array.isArray(dashboardData.disputes)) {
-    const totalDisputes = dashboardData.disputes.length;
-    const resolvedDisputes = dashboardData.disputes.filter(d => d.status === 'resolved').length;
-    const successRate = totalDisputes > 0 ? ((resolvedDisputes / totalDisputes) * 100).toFixed(0) : 0;
-<<<<<<< HEAD
-=======
-  if (dashboardData.disputes && Array.isArray(dashboardData.disputes)) {
-    const successRate = (dashboardData.disputes.filter(d => d.status === 'resolved').length / dashboardData.disputes.length * 100).toFixed(0);
->>>>>>> 9bb51df (Complete hub architecture consolidation - Pipeline integrated into Clients Hub)
-=======
->>>>>>> 7035987 (Cherrypicked 162 files from claude/speedycrm-contact-lifecycle-01Nn2nFiLRe5htmGUXvSJ93d into main)
-    insights.push({
-      type: successRate > 70 ? 'success' : 'info',
-      icon: Award,
-      title: `${successRate}% dispute success rate`,
-      description: successRate > 70 ? 'Excellent performance!' : 'Room for improvement',
-      priority: 'medium'
-    });
-  }
-  
-  // Task insights
-    if (Array.isArray(dashboardData.tasks)) {
-      const overdueTasks = dashboardData.tasks.filter(t => new Date(t.dueDate) < new Date() && t.status !== 'completed');
-      if (overdueTasks.length > 0) {
-        insights.push({
-          type: 'error',
-          icon: Clock,
-          title: `${overdueTasks.length} overdue tasks`,
-          description: 'Complete these tasks to stay on track',
-          priority: 'high'
-        });
-      }
-    }
-  
-  // Opportunity insights
-  insights.push({
-    type: 'info',
-    icon: Lightbulb,
-    title: 'Revenue opportunity detected',
-    description: '15 clients ready for upsell to premium package',
-    action: 'View Opportunities',
-    priority: 'medium'
-  });
-  
-  return insights.sort((a, b) => {
-    const priorityOrder = { high: 0, medium: 1, low: 2 };
-    return priorityOrder[a.priority] - priorityOrder[b.priority];
-  });
-};
 
 // Predict churn probability
 const predictChurnProbability = (client) => {
@@ -559,10 +477,8 @@ const calculateLeadScore = (lead) => {
   return Math.min(100, score);
 };
 
-// ============================================================================
-// 🎯 MASTER ADMIN VIEW SWITCHER (PRESERVED FROM ORIGINAL)
-// ============================================================================
-
+// =====================================================================// 🎯 MASTER ADMIN VIEW SWITCHER (PRESERVED FROM ORIGINAL)
+// =====================================================================
 const MasterAdminViewSwitcher = ({ currentView, onViewChange, userRole }) => {
   // FIXED: Support both naming conventions (masterAdmin and master-admin)
   const adminRoles = ['masterAdmin', 'master-admin', 'admin'];
@@ -629,10 +545,8 @@ const MasterAdminViewSwitcher = ({ currentView, onViewChange, userRole }) => {
   );
 };
 
-// ============================================================================
-// 📊 KPI CARD COMPONENT
-// ============================================================================
-
+// =====================================================================// 📊 KPI CARD COMPONENT
+// =====================================================================
 const KPICard = ({ title, value, change, icon: Icon, color, trend, loading, onClick }) => {
   if (loading) {
     return (
@@ -710,10 +624,8 @@ const KPICard = ({ title, value, change, icon: Icon, color, trend, loading, onCl
   );
 };
 
-// ============================================================================
-// 🎨 AI INSIGHTS BANNER
-// ============================================================================
-
+// =====================================================================// 🎨 AI INSIGHTS BANNER
+// =====================================================================
 const AIInsightsBanner = ({ insights, loading }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -825,10 +737,8 @@ const AIInsightsBanner = ({ insights, loading }) => {
   );
 };
 
-// ============================================================================
-// 📈 REVENUE OVERVIEW WIDGET
-// ============================================================================
-
+// =====================================================================// 📈 REVENUE OVERVIEW WIDGET
+// =====================================================================
 const RevenueOverviewWidget = ({ dateRange = 30, onExport }) => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1007,10 +917,8 @@ const RevenueOverviewWidget = ({ dateRange = 30, onExport }) => {
   );
 };
 
-// ============================================================================
-// 👥 CLIENT OVERVIEW WIDGET
-// ============================================================================
-
+// =====================================================================// 👥 CLIENT OVERVIEW WIDGET
+// =====================================================================
 const ClientOverviewWidget = () => {
   const [data, setData] = useState({
     total: 0,
@@ -1162,10 +1070,8 @@ const ClientOverviewWidget = () => {
   );
 };
 
-// ============================================================================
-// 📋 DISPUTE OVERVIEW WIDGET
-// ============================================================================
-
+// =====================================================================// 📋 DISPUTE OVERVIEW WIDGET
+// =====================================================================
 const DisputeOverviewWidget = () => {
   const [data, setData] = useState({
     total: 0,
@@ -1323,10 +1229,8 @@ const DisputeOverviewWidget = () => {
   );
 };
 
-// ============================================================================
-// 📧 EMAIL CAMPAIGN PERFORMANCE WIDGET
-// ============================================================================
-
+// =====================================================================// 📧 EMAIL CAMPAIGN PERFORMANCE WIDGET
+// =====================================================================
 const EmailPerformanceWidget = () => {
   const [data, setData] = useState([]);
   const [stats, setStats] = useState({
@@ -1494,10 +1398,8 @@ const EmailPerformanceWidget = () => {
   );
 };
 
-// ============================================================================
-// ✅ TASK OVERVIEW WIDGET
-// ============================================================================
-
+// =====================================================================// ✅ TASK OVERVIEW WIDGET
+// =====================================================================
 const TaskOverviewWidget = () => {
   const [data, setData] = useState({
     total: 0,
@@ -1696,10 +1598,8 @@ const TaskOverviewWidget = () => {
   );
 };
 
-// ============================================================================
-// 🤖 AI INSIGHTS WIDGET
-// ============================================================================
-
+// =====================================================================// 🤖 AI INSIGHTS WIDGET
+// =====================================================================
 const AIInsightsWidget = () => {
   const [insights, setInsights] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1914,10 +1814,8 @@ const AIInsightsWidget = () => {
   );
 };
 
-// ============================================================================
-// 🔧 SYSTEM HEALTH WIDGET
-// ============================================================================
-
+// =====================================================================// 🔧 SYSTEM HEALTH WIDGET
+// =====================================================================
 const SystemHealthWidget = () => {
   const [systems, setSystems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -2147,10 +2045,8 @@ const SystemHealthWidget = () => {
   );
 };
 
-// ============================================================================
-// 📊 CREDIT SCORE IMPROVEMENT WIDGET
-// ============================================================================
-
+// =====================================================================// 📊 CREDIT SCORE IMPROVEMENT WIDGET
+// =====================================================================
 const CreditScoreImprovementWidget = () => {
   const [data, setData] = useState([]);
   const [stats, setStats] = useState({
@@ -2336,10 +2232,8 @@ const CreditScoreImprovementWidget = () => {
   );
 };
 
-// ============================================================================
-// 👥 TEAM PRODUCTIVITY WIDGET
-// ============================================================================
-
+// =====================================================================// 👥 TEAM PRODUCTIVITY WIDGET
+// =====================================================================
 const TeamProductivityWidget = () => {
   const [teamData, setTeamData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -2528,10 +2422,8 @@ const TeamProductivityWidget = () => {
   );
 };
 
-// ============================================================================
-// 🎯 LEAD SCORING WIDGET
-// ============================================================================
-
+// =====================================================================// 🎯 LEAD SCORING WIDGET
+// =====================================================================
 const LeadScoringWidget = () => {
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -2761,10 +2653,8 @@ const LeadScoringWidget = () => {
   );
 };
 
-// ============================================================================
-// 🔔 RECENT ACTIVITY WIDGET
-// ============================================================================
-
+// =====================================================================// 🔔 RECENT ACTIVITY WIDGET
+// =====================================================================
 const RecentActivityWidget = () => {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -2884,10 +2774,8 @@ const RecentActivityWidget = () => {
   );
 };
 
-// ============================================================================
-// 💚 CLIENT HEALTH SCORE WIDGET
-// ============================================================================
-
+// =====================================================================// 💚 CLIENT HEALTH SCORE WIDGET
+// =====================================================================
 const ClientHealthScoreWidget = () => {
   const [distribution, setDistribution] = useState([]);
   const [stats, setStats] = useState({ healthy: 0, warning: 0, critical: 0 });
@@ -3023,10 +2911,8 @@ const ClientHealthScoreWidget = () => {
   );
 };
 
-// ============================================================================
-// 💰 REVENUE BREAKDOWN WIDGET
-// ============================================================================
-
+// =====================================================================// 💰 REVENUE BREAKDOWN WIDGET
+// =====================================================================
 const RevenueBreakdownWidget = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -3176,10 +3062,8 @@ const RevenueBreakdownWidget = () => {
   );
 };
 
-// ============================================================================
-// 💬 COMMUNICATION VOLUME WIDGET
-// ============================================================================
-
+// =====================================================================// 💬 COMMUNICATION VOLUME WIDGET
+// =====================================================================
 const CommunicationVolumeWidget = () => {
   const [data, setData] = useState([]);
   const [stats, setStats] = useState({ email: 0, sms: 0, calls: 0 });
@@ -3366,10 +3250,8 @@ const CommunicationVolumeWidget = () => {
   );
 };
 
-// ============================================================================
-// ✅ MY TASKS WIDGET (For Staff View)
-// ============================================================================
-
+// =====================================================================// ✅ MY TASKS WIDGET (For Staff View)
+// =====================================================================
 const MyTasksWidget = () => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -3522,10 +3404,8 @@ const MyTasksWidget = () => {
   );
 };
 
-// ============================================================================
-// 📊 DISPUTE SUCCESS RATE BY STRATEGY WIDGET
-// ============================================================================
-
+// =====================================================================// 📊 DISPUTE SUCCESS RATE BY STRATEGY WIDGET
+// =====================================================================
 const DisputeSuccessRateWidget = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -3621,10 +3501,8 @@ const DisputeSuccessRateWidget = () => {
   );
 };
 
-// ============================================================================
-// 💵 MONTHLY RECURRING REVENUE (MRR) WIDGET
-// ============================================================================
-
+// =====================================================================// 💵 MONTHLY RECURRING REVENUE (MRR) WIDGET
+// =====================================================================
 const MRRWidget = () => {
   const [data, setData] = useState([]);
   const [stats, setStats] = useState({ current: 0, growth: 0, churnRate: 0 });
@@ -3779,10 +3657,8 @@ const MRRWidget = () => {
   );
 };
 
-// ============================================================================
-// 📈 CLIENT RETENTION WIDGET
-// ============================================================================
-
+// =====================================================================// 📈 CLIENT RETENTION WIDGET
+// =====================================================================
 const ClientRetentionWidget = () => {
   const [data, setData] = useState([]);
   const [stats, setStats] = useState({ retention: 0, cohorts: 0 });
@@ -3953,10 +3829,8 @@ const ClientRetentionWidget = () => {
   );
 };
 
-// ============================================================================
-// ⚠️ CHURN PREDICTION WIDGET
-// ============================================================================
-
+// =====================================================================// ⚠️ CHURN PREDICTION WIDGET
+// =====================================================================
 const ChurnPredictionWidget = () => {
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -4120,10 +3994,8 @@ const ChurnPredictionWidget = () => {
   );
 };
 
-// ============================================================================
-// 🎯 QUICK ACCESS PANEL (SIDEBAR)
-// ============================================================================
-
+// =====================================================================// 🎯 QUICK ACCESS PANEL (SIDEBAR)
+// =====================================================================
 const QuickAccessPanel = ({ onAddClient, onNewDispute, onSendEmail, onScheduleCall, onCreateTask, onNewInvoice }) => {
   const [notifications, setNotifications] = useState([]);
   const [upcomingTasks, setUpcomingTasks] = useState([]);
@@ -4354,10 +4226,8 @@ const QuickAccessPanel = ({ onAddClient, onNewDispute, onSendEmail, onScheduleCa
   );
 };
 
-// ============================================================================
-// 📊 WIDGET GRID SYSTEM WITH DRAG & DROP
-// ============================================================================
-
+// =====================================================================// 📊 WIDGET GRID SYSTEM WITH DRAG & DROP
+// =====================================================================
 const WidgetGrid = ({ widgets, layout, onLayoutChange, userRole }) => {
   const [isCustomizing, setIsCustomizing] = useState(false);
 
@@ -4473,10 +4343,8 @@ const WidgetGrid = ({ widgets, layout, onLayoutChange, userRole }) => {
   );
 };
 
-// ============================================================================
-// 💾 LAYOUT MANAGER
-// ============================================================================
-
+// =====================================================================// 💾 LAYOUT MANAGER
+// =====================================================================
 const LayoutManager = ({ currentLayout, userRole, onLayoutChange }) => {
   const [savedLayouts, setSavedLayouts] = useState([]);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
@@ -4587,10 +4455,8 @@ const LayoutManager = ({ currentLayout, userRole, onLayoutChange }) => {
   );
 };
 
-// ============================================================================
-// 📥 EXPORT FUNCTIONS
-// ============================================================================
-
+// =====================================================================// 📥 EXPORT FUNCTIONS
+// =====================================================================
 const ExportManager = ({ dashboardData, userRole }) => {
   const [anchorEl, setAnchorEl] = useState(null);
 
@@ -4719,10 +4585,8 @@ const ExportManager = ({ dashboardData, userRole }) => {
   );
 };
 
-// ============================================================================
-// 🎯 MAIN SMART DASHBOARD COMPONENT
-// ============================================================================
-
+// =====================================================================// 🎯 MAIN SMART DASHBOARD COMPONENT
+// =====================================================================
 const SmartDashboard = () => {
   const { currentUser, userProfile } = useAuth();
   const navigate = useNavigate();
@@ -5365,10 +5229,8 @@ const SmartDashboard = () => {
 
 export default SmartDashboard;
 
-// ============================================================================
-// 🎉 END OF ULTIMATE SMARTDASHBOARD.JSX
-// ============================================================================
-// Total Lines: ~3,900+
+// =====================================================================// 🎉 END OF ULTIMATE SMARTDASHBOARD.JSX
+// =====================================================================// Total Lines: ~3,900+
 // Production-Ready: ✅
 // AI-Powered: ✅ (30+ AI features)
 // Customizable: ✅ (Drag & drop, save layouts)

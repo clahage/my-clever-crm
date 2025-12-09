@@ -107,7 +107,7 @@ import {
   Lock as LockIcon,
 } from '@mui/icons-material';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNotification } from '@/contexts/NotificationContext';
+import { useNotifications } from '@/contexts/NotificationContext';
 import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, orderBy, limit } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase';

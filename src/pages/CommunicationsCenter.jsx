@@ -101,7 +101,7 @@ import communicationService from '@/services/communicationService';
 import emailService from '@/services/emailService';
 import faxService from '@/services/faxService';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNotification } from '@/contexts/NotificationContext';
+import { useNotifications } from '@/contexts/NotificationContext';
 import { db } from '@/lib/firebase';
 import { collection, query, where, orderBy, limit, onSnapshot, getDocs } from 'firebase/firestore';
 import { formatDistanceToNow } from 'date-fns';

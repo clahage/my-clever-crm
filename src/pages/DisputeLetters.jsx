@@ -321,7 +321,7 @@ import {
   sendBatchFaxes,
   cancelFax,
   listReceivedFaxes
-} from '../services/telnyxFaxService';
+} from '../services/faxService';
 
 // Bureau fax numbers
 const BUREAU_FAX_NUMBERS = {
