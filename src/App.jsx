@@ -271,12 +271,6 @@ const SupportHub = lazy(() => import('@/pages/hubs/SupportHub'));
 const TasksSchedulingHub = lazy(() => import('@/pages/hubs/TasksSchedulingHub'));
 const TaxServicesHub = lazy(() => import('@/pages/hubs/TaxServicesHub'));
 const TrainingHub = lazy(() => import('@/pages/hubs/TrainingHub'));
-const ReviewsReputationHub = lazy(() => import('@/pages/hubs/ReviewsReputationHub'));
-const SettingsHub = lazy(() => import('@/pages/hubs/SettingsHub'));
-const SocialMediaHub = lazy(() => import('@/pages/hubs/SocialMediaHub'));
-const SupportHub = lazy(() => import('@/pages/hubs/SupportHub'));
-const TasksSchedulingHub = lazy(() => import('@/pages/hubs/TasksSchedulingHub'));
-const TaxServicesHub = lazy(() => import('@/pages/hubs/TaxServicesHub'));
 const TrainingHub = lazy(() => import('@/pages/hubs/TrainingHub'));
 // WebsiteLandingPagesHub - CONSOLIDATED INTO MarketingHub (Website & Landing Pages tab)
 
