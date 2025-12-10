@@ -673,6 +673,19 @@ const UltimateCommunicationsHub = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedConversation, setSelectedConversation] = useState(null);
 
+  // Settings state
+  const [settings, setSettings] = useState({
+    emailFromName: 'Speedy Credit Repair Support',
+    emailFromAddress: 'support@speedycreditrepair.com',
+    emailReplyTo: 'reply@speedycreditrepair.com',
+    emailSignature: 'Best regards,\nThe Speedy Credit Repair Team\n\nSpeedy Credit Repair - Est. 1995\nA+ BBB Rating | 4.9★ Google Rating\nPhone: +1 (888) 724-7344',
+    smsSenderId: 'Speedy Credit Repair',
+    smsPhoneNumber: '+1 (888) 724-7344',
+    enableTwoWaySMS: true,
+    smsSignature: '\n- Speedy Credit Repair',
+  });
+  const [savingSettings, setSavingSettings] = useState(false);
+
   // Rich text editor
   const quillRef = useRef(null);
 
@@ -870,6 +883,53 @@ const UltimateCommunicationsHub = () => {
         topCampaigns: [],
       });
     }
+  };
+
+  // ===== SETTINGS FUNCTIONS =====
+  const handleSaveSettings = async () => {
+    if (!currentUser) return;
+
+    setSavingSettings(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      // Save settings to Firestore
+      const settingsRef = doc(db, 'communicationSettings', currentUser.uid);
+      await updateDoc(settingsRef, {
+        ...settings,
+        updatedAt: serverTimestamp(),
+        updatedBy: currentUser.uid,
+      }).catch(async (error) => {
+        // If document doesn't exist, create it
+        if (error.code === 'not-found') {
+          await addDoc(collection(db, 'communicationSettings'), {
+            userId: currentUser.uid,
+            ...settings,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          });
+        } else {
+          throw error;
+        }
+      });
+
+      setSuccess('✅ Settings saved successfully!');
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      setError('❌ Failed to save settings. Please try again.');
+      setTimeout(() => setError(null), 5000);
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
+  const handleSettingsChange = (field, value) => {
+    setSettings(prev => ({
+      ...prev,
+      [field]: value,
+    }));
   };
 
   // Note: Mock data generators removed - now using Firebase data
@@ -2091,6 +2151,18 @@ const UltimateCommunicationsHub = () => {
     <div className="space-y-6">
       <Typography variant="h5" className="font-bold">Communications Settings</Typography>
 
+      {/* Success/Error Messages */}
+      {success && (
+        <Alert severity="success" onClose={() => setSuccess(null)}>
+          {success}
+        </Alert>
+      )}
+      {error && (
+        <Alert severity="error" onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
+
       <Grid container spacing={3}>
         {/* Email Settings */}
         <Grid item xs={12} md={6}>
@@ -2102,28 +2174,36 @@ const UltimateCommunicationsHub = () => {
               <TextField
                 fullWidth
                 label="From Name"
-                defaultValue="SpeedyCRM Support"
+                value={settings.emailFromName}
+                onChange={(e) => handleSettingsChange('emailFromName', e.target.value)}
                 size="small"
+                helperText="Your business name shown in sent emails"
               />
               <TextField
                 fullWidth
                 label="From Email"
-                defaultValue="support@speedycrm.com"
+                value={settings.emailFromAddress}
+                onChange={(e) => handleSettingsChange('emailFromAddress', e.target.value)}
                 size="small"
+                helperText="Primary email address for sending"
               />
               <TextField
                 fullWidth
                 label="Reply-To Email"
-                defaultValue="reply@speedycrm.com"
+                value={settings.emailReplyTo}
+                onChange={(e) => handleSettingsChange('emailReplyTo', e.target.value)}
                 size="small"
+                helperText="Where replies will be sent"
               />
               <TextField
                 fullWidth
                 label="Email Signature"
                 multiline
                 rows={4}
-                defaultValue="Best regards,\nThe SpeedyCRM Team"
+                value={settings.emailSignature}
+                onChange={(e) => handleSettingsChange('emailSignature', e.target.value)}
                 size="small"
+                helperText="Signature appended to all emails"
               />
             </div>
           </Paper>
@@ -2139,14 +2219,18 @@ const UltimateCommunicationsHub = () => {
               <TextField
                 fullWidth
                 label="SMS Sender ID"
-                defaultValue="SpeedyCRM"
+                value={settings.smsSenderId}
+                onChange={(e) => handleSettingsChange('smsSenderId', e.target.value)}
                 size="small"
+                helperText="Business name shown in SMS messages"
               />
               <TextField
                 fullWidth
                 label="SMS Phone Number"
-                defaultValue="+1 (555) 123-4567"
+                value={settings.smsPhoneNumber}
+                onChange={(e) => handleSettingsChange('smsPhoneNumber', e.target.value)}
                 size="small"
+                helperText="Your business phone number"
               />
               <FormControlLabel
                 control={<Switch defaultChecked />}
@@ -2197,8 +2281,19 @@ const UltimateCommunicationsHub = () => {
       </Grid>
 
       <div className="flex justify-end">
-        <Button variant="contained" startIcon={<Save />}>
-          Save Settings
+        <Button
+          variant="contained"
+          startIcon={savingSettings ? <CircularProgress size={20} color="inherit" /> : <Save />}
+          onClick={handleSaveSettings}
+          disabled={savingSettings}
+          sx={{
+            background: 'linear-gradient(to right, #10B981, #059669)',
+            '&:hover': {
+              background: 'linear-gradient(to right, #059669, #047857)',
+            },
+          }}
+        >
+          {savingSettings ? 'Saving...' : 'Save Settings'}
         </Button>
       </div>
     </div>
