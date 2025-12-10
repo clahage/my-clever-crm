@@ -32,11 +32,10 @@ import {
   UserPlus,
   Users as UsersIcon
 } from 'lucide-react';
-import { 
-  navigationItems, 
-  filterNavigationByRole, 
-  getMobileNavigation,
-  ROLES 
+import {
+  navigationItems,
+  filterNavigationByRole,
+  ROLES
 } from './navConfig';
 
 // ============================================================================
