@@ -156,26 +156,30 @@ export function isVisible(item, userRole, isMobile = false) {
 }
 
 // ============================================================================
-// NAVIGATION ITEMS - ORGANIZED BY BUSINESS FUNCTION
+// NAVIGATION ITEMS - CONSOLIDATED 8-HUB ARCHITECTURE
+// ============================================================================
+// VERSION: 4.0 - CONSOLIDATED NAVIGATION (Phase 1 Complete)
+// LAST UPDATED: 2025-12-10
+// CONSOLIDATION: 65 hub files → 8 primary hubs
 // ============================================================================
 
 export const navigationItems = [
   // ==========================================================================
-  // 🏠 DASHBOARD - ANALYTICS & METRICS (SmartDashboard)
+  // 🏠 DASHBOARD HUB - Analytics & Metrics Overview
   // ==========================================================================
   {
     id: 'dashboard',
     title: 'Dashboard',
     path: '/smart-dashboard',
     icon: LayoutDashboard,
-    permission: 'prospect', // Everyone sees dashboard
+    permission: 'prospect',
     mobileHidden: false,
-    description: 'Analytics, metrics, and role-based widgets',
+    description: 'Role-based analytics, metrics, and quick actions',
     category: 'core'
   },
 
   // ==========================================================================
-  // 🏡 HOME - WELCOME HUB / LANDING PAGE
+  // 🏡 WELCOME HUB - Landing Page & Getting Started
   // ==========================================================================
   {
     id: 'home',
@@ -189,29 +193,29 @@ export const navigationItems = [
   },
 
   // ==========================================================================
-  // 🎯 ADMIN COMMAND CENTER
+  // 🎯 ADMIN COMMAND CENTER - Quick Admin Access
   // ==========================================================================
   {
     id: 'admin-portal',
-    title: '🎯 Admin Portal',
+    title: 'Admin Portal',
     path: '/portal',
-    icon: LayoutDashboard,
+    icon: Crown,
     permission: 'admin',
-    mobileHidden: true, // Too complex for mobile
+    mobileHidden: true,
     badge: 'ADMIN',
-    description: '6-tab command center for complete system control',
+    description: '6-tab command center for system control',
     category: 'admin'
   },
 
   // ==========================================================================
-  // 👤 CLIENT PORTAL
+  // 👤 CLIENT PORTAL - Client-Facing Dashboard
   // ==========================================================================
   {
     id: 'client-portal',
-    title: '👤 Client Portal',
+    title: 'Client Portal',
     path: '/client-portal',
     icon: User,
-    permission: 'client', // Clients and prospects
+    permission: 'client',
     mobileHidden: false,
     badge: 'NEW',
     description: 'Client progress dashboard with scores, disputes, payments',
@@ -219,1137 +223,199 @@ export const navigationItems = [
   },
 
   // ==========================================================================
-  // 🎯 HYBRID HUBS - ALL 41 BUSINESS HUBS ORGANIZED
-  // ==========================================================================
-  // NOTE: Credit Reports Hub removed from root level - now only in Business Hubs
-  // to eliminate duplicate /credit-hub URLs (was line 226)
-  {
-    id: 'hubs-group',
-    title: '🎯 Business Hubs',
-    icon: LayoutDashboard,
-    isGroup: true,
-    permission: 'user',
-    mobileHidden: false,
-    category: 'hubs',
-    defaultExpanded: false,
-    items: [
-      // CORE OPERATIONS (9 hubs - Dashboard Hub consolidated into SmartDashboard)
-      {
-        id: 'clients-hub',
-        title: 'Clients Hub',
-        path: '/clients-hub',
-        icon: Users,
-        permission: 'user',
-        badge: 'AI',
-        description: 'Complete client management'
-      },
-      {
-        id: 'credit-hub',
-        title: 'Credit Intelligence Hub',
-        path: '/credit-hub',
-        icon: Shield,
-        permission: 'user',
-        badge: 'AI',
-        description: 'Complete IDIQ + AI credit analysis'
-      },
-      {
-        id: 'comms-hub',
-        title: 'Communications Hub',
-        path: '/comms-hub',
-        icon: MessageSquare,
-        permission: 'user',
-        badge: 'AI',
-        description: 'Email, SMS, campaigns, automation'
-      },
-      {
-        id: 'dispute-hub',
-        title: 'Dispute Management',
-        path: '/dispute-hub',
-        icon: AlertCircle,
-        permission: 'user',
-        description: 'Dispute tracking and management'
-      },
-      {
-        id: 'tasks-hub',
-        title: 'Tasks & Scheduling',
-        path: '/tasks-hub',
-        icon: Calendar,
-        permission: 'user',
-        description: 'Task and calendar management'
-      },
-      {
-        id: 'documents-hub',
-        title: 'Documents Hub',
-        path: '/documents-hub',
-        icon: FolderOpen,
-        permission: 'user',
-        description: 'Document management system'
-      },
-      {
-        id: 'calendar-hub',
-        title: 'Calendar Hub',
-        path: '/calendar-hub',
-        icon: Calendar,
-        permission: 'user',
-        description: 'Advanced calendar features'
-      },
-      {
-        id: 'support-hub',
-        title: 'Support Hub',
-        path: '/support-hub',
-        icon: HelpCircle,
-        permission: 'user',
-        description: 'Help desk and support'
-      },
-      {
-        id: 'settings-hub',
-        title: 'Settings Hub',
-        path: '/settings-hub',
-        icon: Settings,
-        permission: 'admin',
-        badge: 'ADMIN',
-        description: 'System configuration'
-      },
-        {
-          id: 'products-hub',
-          title: 'Products & Services',
-          path: '/products',
-          icon: Package,
-          permission: 'user',
-          description: 'Manage products and services'
-        },
-
-      // BUSINESS GROWTH (9 hubs)
-      {
-        id: 'marketing-hub',
-        title: 'Marketing Hub',
-        path: '/marketing-hub',
-        icon: Zap,
-        permission: 'user',
-        badge: 'AI',
-        description: 'Campaigns and marketing tools'
-      },
-      {
-        id: 'affiliates-hub',
-        title: 'Affiliates Hub',
-        path: '/affiliates-hub',
-        icon: Handshake,
-        permission: 'user',
-        description: 'Affiliate management'
-      },
-      {
-        id: 'referral-engine-hub',
-        title: 'Referral Engine',
-        path: '/referral-engine-hub',
-        icon: Users,
-        permission: 'user',
-        badge: 'PRO',
-        description: 'Referral tracking and rewards'
-      },
-      {
-        id: 'referral-partner-hub',
-        title: 'Referral Partners',
-        path: '/referral-partner-hub',
-        icon: Handshake,
-        permission: 'user',
-        description: 'Partner relationship management'
-      },
-      {
-        id: 'social-media-hub',
-        title: 'Social Media Hub',
-        path: '/social-media-hub',
-        icon: Globe,
-        permission: 'user',
-        description: 'Social media management'
-      },
-      {
-        id: 'content-seo-hub',
-        title: 'Content & SEO',
-        path: '/content-seo-hub',
-        icon: FileText,
-        permission: 'user',
-        badge: 'AI',
-        description: 'Content creation and SEO'
-      },
-      {
-        id: 'website-hub',
-        title: 'Website Builder',
-        path: '/website-hub',
-        icon: Globe,
-        permission: 'admin',
-        badge: 'PRO',
-        description: 'Website and landing pages'
-      },
-      {
-        id: 'reviews-hub',
-        title: 'Reviews & Reputation',
-        path: '/reviews-hub',
-        icon: Star,
-        permission: 'user',
-        description: 'Reputation management'
-      },
-      {
-        id: 'revenue-partnerships-hub',
-        title: 'Revenue Partnerships',
-        path: '/revenue-partnerships-hub',
-        icon: DollarSign,
-        permission: 'admin',
-        badge: 'ADMIN',
-        description: 'Partnership revenue tracking'
-      },
-
-      // FINANCIAL (6 hubs)
-      {
-        id: 'revenue-hub',
-        title: 'Revenue Hub',
-        path: '/revenue-hub',
-        icon: DollarSign,
-        permission: 'admin',
-        badge: 'ADMIN',
-        description: 'Revenue tracking and forecasting'
-      },
-      {
-        id: 'billing-hub',
-        title: 'Billing Hub',
-        path: '/billing-hub',
-        icon: Receipt,
-        permission: 'admin',
-        badge: 'ADMIN',
-        description: 'Invoices, payments, subscriptions & revenue'
-      },
-     {
-       id: 'payment-integration-hub',
-       title: 'Payment Integrations',
-       path: '/payment-integration-hub',
-       icon: 'CreditCard',
-       requiredRole: 'admin',
-       badge: 'PRO',
-       description: 'Stripe & PayPal integration'
-  },
-      {
-        id: 'payment-hub',
-        title: 'Payment Integration',
-        path: '/payment-hub',
-        icon: CreditCard,
-        permission: 'admin',
-        badge: 'ADMIN',
-        description: 'Payment processing'
-      },
-      {
-        id: 'collections-hub',
-        title: 'Collections & AR',
-        path: '/collections-hub',
-        icon: DollarSign,
-        permission: 'admin',
-        badge: 'ADMIN',
-        description: 'Collections management'
-      },
-      {
-        id: 'contracts-hub',
-        title: 'Contract Management',
-        path: '/contracts-hub',
-        icon: FileText,
-        permission: 'user',
-        description: 'Contract lifecycle management'
-      },
-      {
-        id: 'compliance-hub',
-        title: 'Compliance Hub',
-        path: '/compliance-hub',
-        icon: Shield,
-        permission: 'admin',
-        badge: 'ADMIN',
-        description: 'Regulatory compliance'
-      },
-
-      // ADVANCED (10 hubs)
-      {
-        id: 'ai-hub',
-        title: 'AI Hub',
-        path: '/ai-hub',
-        icon: Brain,
-        permission: 'user',
-        badge: 'AI',
-        description: 'AI-powered tools and insights'
-      },
-      {
-        id: 'analytics-hub',
-        title: 'Analytics Hub',
-        path: '/analytics-hub',
-        icon: BarChart,
-        permission: 'user',
-        badge: 'AI',
-        description: 'Business intelligence'
-      },
-      {
-        id: 'reports-hub',
-        title: 'Reports Hub',
-        path: '/reports-hub',
-        icon: FileText,
-        permission: 'user',
-        description: 'Comprehensive reports'
-      },
-      {
-        id: 'automation-hub',
-        title: 'Automation Hub',
-        path: '/automation-hub',
-        icon: Zap,
-        permission: 'user',
-        badge: 'PRO',
-        description: 'Workflow automation'
-      },
-      {
-        id: 'bureau-hub',
-        title: 'Bureau Communication',
-        path: '/bureau-hub',
-        icon: Send,
-        permission: 'user',
-        description: 'Credit bureau integration'
-      },
-      {
-        id: 'mobile-app-hub',
-        title: 'Mobile App Hub',
-        path: '/mobile-app-hub',
-        icon: Smartphone,
-        permission: 'admin',
-        badge: 'ADMIN',
-        description: 'Mobile app management'
-      },
-      {
-        id: 'learning-hub',
-        title: 'Learning Hub',
-        path: '/learning-hub',
-        icon: GraduationCap,
-        permission: 'user',
-        description: 'Training and education'
-      },
-      {
-        id: 'training-hub',
-        title: 'Training Hub',
-        path: '/training-hub',
-        icon: BookOpen,
-        permission: 'user',
-        description: 'Team training programs'
-      },
-      {
-        id: 'resources-hub',
-        title: 'Resource Library',
-        path: '/resources-hub',
-        icon: Archive,
-        permission: 'user',
-        description: 'Knowledge base and resources'
-      },
-      {
-        id: 'drip-campaigns-hub',
-        title: 'Drip Campaigns',
-        path: '/drip-campaigns-hub',
-        icon: Send,
-        permission: 'user',
-        badge: 'AI',
-        description: 'Automated email sequences'
-      },
-
-      // CLIENT-FACING (3 hubs)
-      {
-        id: 'onboarding-hub',
-        title: 'Onboarding Hub',
-        path: '/onboarding-hub',
-        icon: UserPlus,
-        permission: 'user',
-        description: 'Client onboarding workflows'
-      },
-      {
-        id: 'progress-portal-hub',
-        title: 'Progress Portal',
-        path: '/progress-portal-hub',
-        icon: TrendingUp,
-        permission: 'client',
-        description: 'Client progress tracking'
-      },
-      {
-        id: 'client-success-hub',
-        title: 'Client Success',
-        path: '/client-success-hub',
-        icon: Award,
-        permission: 'manager',
-        description: 'Client retention and success'
-      },
-
-      // ADMIN ONLY (2 hubs)
-      {
-        id: 'dispute-admin',
-        title: 'Dispute Admin Panel',
-        path: '/dispute-admin',
-        icon: Shield,
-        permission: 'admin',
-        badge: 'ADMIN',
-        description: 'Admin dispute management'
-      },
-      {
-        id: 'certification-hub',
-        title: 'Certification System',
-        path: '/certification-hub',
-        icon: Award,
-        permission: 'user',
-        description: 'Certification and accreditation'
-      }
-    ]
-  },
-
-  // ==========================================================================
-  // 📊 CREDIT REPORT WORKFLOW (Admin Only)
-  // ==========================================================================
-  
-  {
-    id: 'credit-workflow',
-    title: 'Credit Report Workflow',
-    path: '/credit-report-workflow',
-    icon: Upload,
-    permission: 'user', // Employees and up
-    mobileHidden: true,
-    badge: 'AI',
-    description: 'IDIQ API, Manual Entry, PDF Upload',
-    category: 'credit'
-  },
-
-  // ==========================================================================
-  // 🤖 AI REVIEW SYSTEM (Admin Only)
+  // 👥 HUB 1: CLIENTS HUB - Complete Client Management
   // ==========================================================================
   {
-    id: 'ai-reviews',
-    title: 'AI Review Dashboard',
-    path: '/admin/ai-reviews',
-    icon: Brain,
-    permission: 'admin',
-    mobileHidden: true,
-    badge: 'AI',
-    description: 'Review, approve, and send AI-generated credit analysis',
-    category: 'ai'
-  },
-  
-  {
-    id: 'ai-credit-analysis',
-    title: 'AI Credit Engine',
-    path: '/credit-analysis',
-    icon: Brain,
-    permission: 'user',
-    mobileHidden: true,
-    badge: 'AI',
-    description: 'Intelligent credit report analysis',
-    category: 'ai'
-  },
-  
-  {
-    id: 'predictive-analytics',
-    title: 'Predictive Analytics',
-    path: '/predictive-analytics',
-    icon: Activity,
-    permission: 'admin',
-    mobileHidden: true,
-    badge: 'AI',
-    description: 'AI-powered predictions',
-    category: 'ai'
-  },
-
-  // ==========================================================================
-  // 👥 CONTACT MANAGEMENT
-  // ==========================================================================
-  {
-    id: 'contacts-group',
-    title: 'Contact Management',
+    id: 'clients-hub',
+    title: 'Clients Hub',
+    path: '/clients-hub',
     icon: Users,
     isGroup: true,
     permission: 'user',
     mobileHidden: false,
-    category: 'contacts',
+    badge: 'AI',
+    description: 'Complete client management, onboarding, progress tracking',
+    category: 'hubs',
     items: [
-      { 
-        id: 'contacts', 
-        title: 'All Contacts', 
-        path: '/contacts', 
-        icon: Users, 
-        permission: 'user',
-        mobileHidden: false,
-        description: 'View and manage all contacts'
-      },
-      { 
-        id: 'client-intake', 
-        title: 'Client Intake', 
-        path: '/client-intake', 
-        icon: UserPlus, 
-        permission: 'user',
-        mobileHidden: true,
-        description: 'Add new client'
-      },
-      { 
-        id: 'pipeline', 
-        title: 'Sales Pipeline', 
-        path: '/pipeline', 
-        icon: GitBranch, 
-        permission: 'user',
-        mobileHidden: true,
-        description: 'Sales funnel'
-      },
-      { 
-        id: 'import-contacts', 
-        title: 'Import Contacts', 
-        path: '/import-contacts', 
-        icon: Upload, 
-        permission: 'user',
-        mobileHidden: true,
-        description: 'Bulk import'
-      },
-      { 
-        id: 'export-contacts', 
-        title: 'Export Contacts', 
-        path: '/export-contacts', 
-        icon: Download, 
-        permission: 'user',
-        mobileHidden: true,
-        description: 'Bulk export'
-      },
-      { 
-        id: 'contact-reports', 
-        title: 'Contact Reports', 
-        path: '/contact-reports', 
-        icon: FileText, 
-        permission: 'user',
-        mobileHidden: true,
-        description: 'Contact analytics'
-      },
-      { 
-        id: 'segments', 
-        title: 'Segments', 
-        path: '/segments', 
-        icon: Target, 
-        permission: 'user',
-        mobileHidden: true,
-        description: 'Contact segmentation'
-      }
+      { id: 'clients-overview', title: 'Overview', path: '/clients-hub', icon: LayoutDashboard, permission: 'user', description: 'Client dashboard and quick actions' },
+      { id: 'clients-list', title: 'Client List', path: '/clients-hub/list', icon: Users, permission: 'user', description: 'All clients with search and filters' },
+      { id: 'clients-onboarding', title: 'Onboarding', path: '/clients-hub/onboarding', icon: UserPlus, permission: 'user', description: 'Client intake and welcome wizard' },
+      { id: 'clients-progress', title: 'Progress Tracking', path: '/clients-hub/progress', icon: TrendingUp, permission: 'user', description: 'Milestones and success metrics' },
+      { id: 'clients-documents', title: 'Documents', path: '/clients-hub/documents', icon: FileText, permission: 'user', description: 'Client document management' },
+      { id: 'clients-appointments', title: 'Appointments', path: '/clients-hub/appointments', icon: Calendar, permission: 'user', description: 'Scheduling and calendar' },
+      { id: 'clients-tasks', title: 'Tasks', path: '/clients-hub/tasks', icon: CheckSquare, permission: 'user', description: 'Task management per client' },
+      { id: 'clients-success', title: 'Client Success', path: '/clients-hub/success', icon: Award, permission: 'manager', description: 'Retention and success analytics' }
     ]
   },
 
   // ==========================================================================
-  // 💳 CREDIT MANAGEMENT
+  // 📧 HUB 2: COMMUNICATIONS HUB - Email, SMS, Marketing & Social
   // ==========================================================================
   {
-    id: 'credit-group',
-    title: 'Credit Management',
-    icon: CreditCard,
-    isGroup: true,
-    permission: 'client',
-    mobileHidden: false,
-    category: 'credit',
-    items: [
-      { 
-        id: 'credit-simulator', 
-        title: 'Credit Simulator', 
-        path: '/credit-simulator', 
-        icon: Calculator, 
-        permission: 'client',
-        mobileHidden: false,
-        badge: 'AI',
-        description: 'What-if score predictions'
-      },
-      { 
-        id: 'business-credit', 
-        title: 'Business Credit', 
-        path: '/business-credit', 
-        icon: Building, 
-        permission: 'user',
-        mobileHidden: true,
-        badge: 'PRO',
-        description: 'Business credit building'
-      },
-      { 
-        id: 'credit-scores', 
-        title: 'My Credit Scores', 
-        path: '/credit-scores', 
-        icon: TrendingUp, 
-        permission: 'client',
-        mobileHidden: false,
-        description: 'View credit scores'
-      },
-      { 
-        id: 'dispute-center', 
-        title: 'Dispute Center', 
-        path: '/dispute-letters', 
-        icon: FileText, 
-        permission: 'client',
-        mobileHidden: false,
-        badge: 'FAX',
-        description: 'Manage disputes'
-      },
-      { 
-        id: 'dispute-status', 
-        title: 'Dispute Status', 
-        path: '/dispute-status', 
-        icon: Activity, 
-        permission: 'client',
-        mobileHidden: false,
-        description: 'Track dispute progress'
-      },
-      { 
-        id: 'admin-disputes', 
-        title: 'Admin Dispute Panel', 
-        path: '/admin/disputes', 
-        icon: Shield, 
-        permission: 'admin',
-        mobileHidden: true,
-        description: 'Manage all disputes'
-      },
-      { 
-        id: 'credit-monitoring', 
-        title: 'Credit Monitoring', 
-        path: '/credit-monitoring', 
-        icon: Eye, 
-        permission: 'client',
-        mobileHidden: false,
-        badge: 'SOON',
-        description: 'Monitor credit changes'
-      },
-      { 
-        id: 'my-reports', 
-        title: 'My Reports', 
-        path: '/credit-reports', 
-        icon: FileText, 
-        permission: 'client',
-        mobileHidden: false,
-        description: 'View credit reports'
-      }
-    ]
-  },
-
-  // ==========================================================================
-  // 📨 COMMUNICATIONS
-  // ==========================================================================
-  {
-    id: 'comms-group',
-    title: 'Communications',
+    id: 'communications-hub',
+    title: 'Communications Hub',
+    path: '/comms-hub',
     icon: MessageSquare,
     isGroup: true,
     permission: 'user',
-    mobileHidden: true,
-    category: 'comms',
+    mobileHidden: false,
+    badge: 'AI',
+    description: 'Email, SMS, campaigns, automation, social media, content & SEO',
+    category: 'hubs',
     items: [
-      { 
-        id: 'comms-center', 
-        title: 'Communications Center', 
-        path: '/communications', 
-        icon: Inbox, 
-        permission: 'user',
-        mobileHidden: true,
-        badge: 'NEW',
-        description: 'Unified inbox'
-      },
-      { 
-        id: 'letters', 
-        title: 'Letters', 
-        path: '/letters', 
-        icon: FileText, 
-        permission: 'user',
-        mobileHidden: true,
-        description: 'Document generation'
-      },
-      { 
-        id: 'emails', 
-        title: 'Emails', 
-        path: '/emails', 
-        icon: Mail, 
-        permission: 'user',
-        mobileHidden: true,
-        description: 'Email campaigns'
-      },
-      { 
-        id: 'sms', 
-        title: 'SMS', 
-        path: '/sms', 
-        icon: MessageSquare, 
-        permission: 'user',
-        mobileHidden: true,
-        description: 'Text messaging'
-      },
-      { 
-        id: 'drip-campaigns', 
-        title: 'Drip Campaigns', 
-        path: '/drip-campaigns', 
-        icon: Zap, 
-        permission: 'user',
-        mobileHidden: true,
-        description: 'Automated sequences'
-      },
-      { 
-        id: 'templates', 
-        title: 'Templates', 
-        path: '/templates', 
-        icon: FileText, 
-        permission: 'user',
-        mobileHidden: true,
-        description: 'Communication templates'
-      },
-      { 
-        id: 'call-logs', 
-        title: 'Call Logs', 
-        path: '/call-logs', 
-        icon: Phone, 
-        permission: 'user',
-        mobileHidden: true,
-        description: 'Phone call tracking'
-      },
-      { 
-        id: 'notifications', 
-        title: 'Notifications', 
-        path: '/notifications', 
-        icon: Bell, 
-        permission: 'user',
-        mobileHidden: false,
-        description: 'Alerts and reminders'
-      }
+      { id: 'comms-email', title: 'Email Manager', path: '/comms-hub', icon: Mail, permission: 'user', description: 'Send and manage emails' },
+      { id: 'comms-sms', title: 'SMS Manager', path: '/comms-hub/sms', icon: MessageSquare, permission: 'user', description: 'SMS messaging and automation' },
+      { id: 'comms-templates', title: 'Templates', path: '/comms-hub/templates', icon: FileText, permission: 'user', description: 'Email and SMS templates' },
+      { id: 'comms-campaigns', title: 'Marketing Campaigns', path: '/comms-hub/campaigns', icon: Target, permission: 'user', badge: 'AI', description: 'Multi-step email campaigns' },
+      { id: 'comms-automation', title: 'Automation', path: '/comms-hub/automation', icon: Zap, permission: 'user', badge: 'PRO', description: 'Trigger-based automation' },
+      { id: 'comms-social', title: 'Social Media', path: '/comms-hub/social', icon: Globe, permission: 'user', description: 'Social media management' },
+      { id: 'comms-content', title: 'Content & SEO', path: '/comms-hub/content', icon: FileText, permission: 'user', badge: 'AI', description: 'Content creation and SEO' },
+      { id: 'comms-landing', title: 'Landing Pages', path: '/comms-hub/landing', icon: Globe, permission: 'admin', badge: 'PRO', description: 'Website and landing pages' },
+      { id: 'comms-reviews', title: 'Reviews & Reputation', path: '/comms-hub/reviews', icon: Star, permission: 'user', description: 'Reputation management' },
+      { id: 'comms-push', title: 'Push Notifications', path: '/comms-hub/push', icon: Bell, permission: 'user', description: 'Mobile push notifications' },
+      { id: 'comms-inbox', title: 'Inbox', path: '/comms-hub/inbox', icon: Inbox, permission: 'user', description: 'Unified communications inbox' },
+      { id: 'comms-analytics', title: 'Analytics', path: '/comms-hub/analytics', icon: BarChart, permission: 'user', description: 'Communication metrics' }
     ]
   },
 
   // ==========================================================================
-  // 🎓 LEARNING & RESOURCES
+  // 🛡️ HUB 3: CREDIT HUB - Credit Reports, Monitoring & Disputes
   // ==========================================================================
   {
-    id: 'learning-group',
-    title: 'Learning & Resources',
+    id: 'credit-hub',
+    title: 'Credit Hub',
+    path: '/credit-hub',
+    icon: Shield,
+    isGroup: true,
+    permission: 'client',
+    mobileHidden: false,
+    badge: 'AI',
+    description: 'IDIQ integration, credit monitoring, disputes, bureau communication',
+    category: 'hubs',
+    items: [
+      { id: 'credit-enrollment', title: 'IDIQ Enrollment', path: '/credit-hub', icon: UserPlus, permission: 'user', description: 'Enroll clients in IDIQ system' },
+      { id: 'credit-reports', title: 'Credit Reports', path: '/credit-hub/reports', icon: FileText, permission: 'client', description: 'View credit reports' },
+      { id: 'credit-monitoring', title: 'Credit Monitoring', path: '/credit-hub/monitoring', icon: Eye, permission: 'client', description: 'Real-time credit monitoring' },
+      { id: 'credit-disputes', title: 'Dispute Management', path: '/credit-hub/disputes', icon: AlertCircle, permission: 'client', description: 'Create and track disputes' },
+      { id: 'credit-disputes-admin', title: 'Dispute Admin', path: '/credit-hub/disputes-admin', icon: Shield, permission: 'admin', badge: 'ADMIN', description: 'Admin dispute panel' },
+      { id: 'credit-bureau', title: 'Bureau Communication', path: '/credit-hub/bureau', icon: Send, permission: 'user', description: 'Bureau correspondence' },
+      { id: 'credit-analysis', title: 'AI Analysis', path: '/credit-hub/analysis', icon: Brain, permission: 'client', badge: 'AI', description: 'AI-powered credit analysis' },
+      { id: 'credit-workflow', title: 'Workflows', path: '/credit-hub/workflow', icon: GitBranch, permission: 'user', description: 'Credit report workflows' },
+      { id: 'credit-control', title: 'Control Center', path: '/credit-hub/control', icon: LayoutDashboard, permission: 'admin', badge: 'ADMIN', description: 'IDIQ control center' }
+    ]
+  },
+
+  // ==========================================================================
+  // 💰 HUB 4: REVENUE HUB - Billing, Payments, Affiliates & Contracts
+  // ==========================================================================
+  {
+    id: 'revenue-hub',
+    title: 'Revenue Hub',
+    path: '/revenue-hub',
+    icon: DollarSign,
+    isGroup: true,
+    permission: 'admin',
+    mobileHidden: true,
+    badge: 'ADMIN',
+    description: 'Revenue analytics, billing, payments, affiliates, contracts',
+    category: 'hubs',
+    items: [
+      { id: 'revenue-dashboard', title: 'Revenue Dashboard', path: '/revenue-hub', icon: LayoutDashboard, permission: 'admin', description: 'Revenue metrics and forecasting' },
+      { id: 'revenue-billing', title: 'Billing & Invoices', path: '/revenue-hub/billing', icon: Receipt, permission: 'admin', description: 'Invoicing and billing' },
+      { id: 'revenue-payments', title: 'Payment Processing', path: '/revenue-hub/payments', icon: CreditCard, permission: 'admin', description: 'Payment integration and processing' },
+      { id: 'revenue-collections', title: 'Collections & AR', path: '/revenue-hub/collections', icon: DollarSign, permission: 'admin', description: 'Collections management' },
+      { id: 'revenue-contracts', title: 'Contract Management', path: '/revenue-hub/contracts', icon: FileText, permission: 'user', description: 'Contract lifecycle management' },
+      { id: 'revenue-affiliates', title: 'Affiliates Program', path: '/revenue-hub/affiliates', icon: Handshake, permission: 'user', description: 'Affiliate partner management' },
+      { id: 'revenue-referrals', title: 'Referral Engine', path: '/revenue-hub/referrals', icon: Users, permission: 'user', badge: 'PRO', description: 'Referral tracking and rewards' },
+      { id: 'revenue-partnerships', title: 'Revenue Partnerships', path: '/revenue-hub/partnerships', icon: Handshake, permission: 'admin', description: 'Partnership revenue tracking' },
+      { id: 'revenue-forecasting', title: 'Forecasting', path: '/revenue-hub/forecasting', icon: TrendingUp, permission: 'admin', badge: 'AI', description: 'AI revenue predictions' }
+    ]
+  },
+
+  // ==========================================================================
+  // 📊 HUB 5: ANALYTICS HUB - Business Intelligence & Predictive Analytics
+  // ==========================================================================
+  {
+    id: 'analytics-hub',
+    title: 'Analytics Hub',
+    path: '/analytics-hub',
+    icon: BarChart,
+    isGroup: true,
+    permission: 'user',
+    mobileHidden: false,
+    badge: 'AI',
+    description: 'Executive dashboard, reports, AI insights, predictive analytics',
+    category: 'hubs',
+    items: [
+      { id: 'analytics-executive', title: 'Executive Dashboard', path: '/analytics-hub', icon: LayoutDashboard, permission: 'manager', badge: 'AI', description: 'High-level business metrics' },
+      { id: 'analytics-revenue', title: 'Revenue Analytics', path: '/analytics-hub/revenue', icon: DollarSign, permission: 'admin', description: 'Revenue performance analysis' },
+      { id: 'analytics-clients', title: 'Client Analytics', path: '/analytics-hub/clients', icon: Users, permission: 'user', description: 'Client behavior and metrics' },
+      { id: 'analytics-funnel', title: 'Conversion Funnel', path: '/analytics-hub/funnel', icon: GitBranch, permission: 'manager', badge: 'AI', description: 'Sales funnel optimization' },
+      { id: 'analytics-performance', title: 'Performance KPIs', path: '/analytics-hub/performance', icon: Target, permission: 'manager', description: 'Key performance indicators' },
+      { id: 'analytics-predictive', title: 'Predictive Analytics', path: '/analytics-hub/predictive', icon: Brain, permission: 'admin', badge: 'AI', description: 'AI predictions and forecasts' },
+      { id: 'analytics-reports', title: 'Custom Reports', path: '/analytics-hub/reports', icon: FileText, permission: 'user', description: 'Build custom reports' },
+      { id: 'analytics-mobile', title: 'Mobile Analytics', path: '/analytics-hub/mobile', icon: Smartphone, permission: 'admin', description: 'Mobile app analytics' },
+      { id: 'analytics-engagement', title: 'Engagement', path: '/analytics-hub/engagement', icon: Activity, permission: 'user', description: 'User engagement metrics' },
+      { id: 'analytics-ai', title: 'AI Insights', path: '/analytics-hub/ai', icon: Sparkles, permission: 'manager', badge: 'AI', description: 'AI-generated insights' },
+      { id: 'analytics-goals', title: 'Goal Tracking', path: '/analytics-hub/goals', icon: Trophy, permission: 'manager', description: 'Business goals and targets' }
+    ]
+  },
+
+  // ==========================================================================
+  // ⚙️ HUB 6: ADMINISTRATION HUB - Settings, Users, Security & System
+  // ==========================================================================
+  {
+    id: 'admin-hub',
+    title: 'Administration Hub',
+    path: '/settings-hub',
+    icon: Settings,
+    isGroup: true,
+    permission: 'admin',
+    mobileHidden: true,
+    badge: 'ADMIN',
+    description: 'Settings, user management, security, integrations, mobile apps',
+    category: 'hubs',
+    items: [
+      { id: 'admin-general', title: 'General Settings', path: '/settings-hub', icon: Settings, permission: 'admin', description: 'System configuration' },
+      { id: 'admin-users', title: 'User Management', path: '/settings-hub/users', icon: Users, permission: 'admin', description: 'Manage users and teams' },
+      { id: 'admin-roles', title: 'Roles & Permissions', path: '/settings-hub/roles', icon: Shield, permission: 'admin', description: '8-level role hierarchy' },
+      { id: 'admin-billing', title: 'Billing Settings', path: '/settings-hub/billing', icon: CreditCard, permission: 'admin', description: 'Subscription and billing' },
+      { id: 'admin-integrations', title: 'Integrations', path: '/settings-hub/integrations', icon: Zap, permission: 'admin', description: 'Third-party integrations' },
+      { id: 'admin-api', title: 'API Keys & Webhooks', path: '/settings-hub/api', icon: Key, permission: 'admin', description: 'API management' },
+      { id: 'admin-security', title: 'Security & Compliance', path: '/settings-hub/security', icon: Lock, permission: 'admin', description: 'Security settings and compliance' },
+      { id: 'admin-support', title: 'Support & Help Desk', path: '/settings-hub/support', icon: HelpCircle, permission: 'user', description: 'Support ticket management' },
+      { id: 'admin-mobile', title: 'Mobile App Management', path: '/settings-hub/mobile', icon: Smartphone, permission: 'admin', badge: 'ADMIN', description: 'Mobile app configuration' },
+      { id: 'admin-actions', title: 'Action Library', path: '/settings-hub/actions', icon: Zap, permission: 'admin', description: 'Automation action library' },
+      { id: 'admin-system', title: 'System Configuration', path: '/settings-hub/system', icon: Database, permission: 'masterAdmin', description: 'Advanced system settings' },
+      { id: 'admin-audit', title: 'Audit Logs', path: '/settings-hub/audit', icon: FileText, permission: 'admin', description: 'Security and activity logs' }
+    ]
+  },
+
+  // ==========================================================================
+  // 🎓 HUB 7: LEARNING HUB - Training, Courses, Certifications & Resources
+  // ==========================================================================
+  {
+    id: 'learning-hub',
+    title: 'Learning Hub',
+    path: '/learning-hub',
     icon: GraduationCap,
     isGroup: true,
     permission: 'prospect',
     mobileHidden: false,
-    category: 'learning',
+    badge: 'AI',
+    description: 'Training courses, certifications, knowledge base, AI tutor',
+    category: 'hubs',
     items: [
-      { 
-        id: 'learning-center', 
-        title: 'Learning Center', 
-        path: '/learning-center', 
-        icon: BookOpen, 
-        permission: 'prospect',
-        mobileHidden: false,
-        description: 'Educational content'
-      },
-      { 
-        id: 'achievements', 
-        title: 'Achievements', 
-        path: '/achievements', 
-        icon: Trophy, 
-        permission: 'client',
-        mobileHidden: false,
-        description: 'Your progress'
-      },
-      { 
-        id: 'certificates', 
-        title: 'Certificates', 
-        path: '/certificates', 
-        icon: Award, 
-        permission: 'client',
-        mobileHidden: false,
-        description: 'Earned certificates'
-      }
-    ]
-  },
-
-  // ==========================================================================
-  // 📄 DOCUMENTS & FORMS
-  // ==========================================================================
-  {
-    id: 'docs-group',
-    title: 'Documents & Forms',
-    icon: FileText,
-    isGroup: true,
-    permission: 'user',
-    mobileHidden: true,
-    category: 'docs',
-    items: [
-      { 
-        id: 'document-center', 
-        title: 'Document Center', 
-        path: '/document-center', 
-        icon: FolderOpen, 
-        permission: 'user',
-        mobileHidden: true,
-        badge: 'NEW',
-        description: 'All documents'
-      },
-      { 
-        id: 'documents', 
-        title: 'My Documents', 
-        path: '/documents', 
-        icon: FileText, 
-        permission: 'client',
-        mobileHidden: false,
-        description: 'Your documents'
-      },
-      { 
-        id: 'e-contracts', 
-        title: 'E-Contracts', 
-        path: '/e-contracts', 
-        icon: FileSpreadsheet, 
-        permission: 'user',
-        mobileHidden: true,
-        description: 'Electronic contracts'
-      },
-      { 
-        id: 'forms', 
-        title: 'Forms Library', 
-        path: '/forms', 
-        icon: FilePlus, 
-        permission: 'user',
-        mobileHidden: true,
-        description: 'Form templates'
-      },
-      { 
-        id: 'full-agreement', 
-        title: 'Full Agreement', 
-        path: '/full-agreement', 
-        icon: FileText, 
-        permission: 'user',
-        mobileHidden: true,
-        description: 'Service agreement'
-      },
-      { 
-        id: 'information-sheet', 
-        title: 'Information Sheet', 
-        path: '/information-sheet', 
-        icon: File, 
-        permission: 'user',
-        mobileHidden: true,
-        description: 'Client info form'
-      },
-      { 
-        id: 'poa', 
-        title: 'Power of Attorney', 
-        path: '/power-of-attorney', 
-        icon: FileText, 
-        permission: 'user',
-        mobileHidden: true,
-        description: 'POA document'
-      },
-      { 
-        id: 'ach-auth', 
-        title: 'ACH Authorization', 
-        path: '/ach-authorization', 
-        icon: CreditCard, 
-        permission: 'user',
-        mobileHidden: true,
-        description: 'Payment authorization'
-      },
-      { 
-        id: 'addendums', 
-        title: 'Addendums', 
-        path: '/addendums', 
-        icon: FilePlus, 
-        permission: 'user',
-        mobileHidden: true,
-        description: 'Contract addendums'
-      },
-      { 
-        id: 'document-storage', 
-        title: 'Document Storage', 
-        path: '/document-storage', 
-        icon: Archive, 
-        permission: 'user',
-        mobileHidden: true,
-        description: 'File storage'
-      }
-    ]
-  },
-
-  // ==========================================================================
-  // 🏢 BUSINESS MANAGEMENT
-  // ==========================================================================
-  {
-    id: 'business-group',
-    title: 'Business Management',
-    icon: Building,
-    isGroup: true,
-    permission: 'user',
-    mobileHidden: true,
-    category: 'business',
-    items: [
-      { 
-        id: 'companies', 
-        title: 'Companies', 
-        path: '/companies', 
-        icon: Building2, 
-        permission: 'user',
-        mobileHidden: true,
-        description: 'Manage companies'
-      },
-      { 
-        id: 'locations', 
-        title: 'Locations', 
-        path: '/locations', 
-        icon: MapPin, 
-        permission: 'user',
-        mobileHidden: true,
-        description: 'Office locations'
-      },
-      {
-        id: 'affiliates',
-        title: 'Affiliates',
-        path: '/affiliates',
-        icon: Handshake,
-        permission: 'user',
-        mobileHidden: true,
-        description: 'Partner program'
-      }
-    ]
-  },
-
-  // ==========================================================================
-  // 📅 SCHEDULING & TASKS
-  // ==========================================================================
-  {
-    id: 'schedule-group',
-    title: 'Scheduling & Tasks',
-    icon: Calendar,
-    isGroup: true,
-    permission: 'user',
-    mobileHidden: false,
-    category: 'schedule',
-    items: [
-      { 
-        id: 'calendar', 
-        title: 'Calendar', 
-        path: '/calendar', 
-        icon: Calendar, 
-        permission: 'user',
-        mobileHidden: false,
-        description: 'Schedule management'
-      },
-      { 
-        id: 'appointments', 
-        title: 'Appointments', 
-        path: '/appointments', 
-        icon: Calendar, 
-        permission: 'user',
-        mobileHidden: false,
-        description: 'Book appointments'
-      },
-      { 
-        id: 'tasks', 
-        title: 'Tasks', 
-        path: '/tasks', 
-        icon: CheckSquare, 
-        permission: 'user',
-        mobileHidden: false,
-        description: 'Task management'
-      },
-      { 
-        id: 'reminders', 
-        title: 'Reminders', 
-        path: '/reminders', 
-        icon: Bell, 
-        permission: 'user',
-        mobileHidden: false,
-        description: 'Set reminders'
-      }
-    ]
-  },
-
-  // ==========================================================================
-  // 📊 ANALYTICS & REPORTS
-  // ==========================================================================
-  {
-    id: 'analytics-group',
-    title: 'Analytics & Reports',
-    icon: BarChart,
-    isGroup: true,
-    permission: 'user',
-    mobileHidden: true,
-    category: 'analytics',
-    items: [
-      { 
-        id: 'analytics', 
-        title: 'Analytics', 
-        path: '/analytics', 
-        icon: LineChart, 
-        permission: 'user',
-        mobileHidden: true,
-        description: 'Business analytics'
-      },
-      { 
-        id: 'reports', 
-        title: 'Reports', 
-        path: '/reports', 
-        icon: FileText, 
-        permission: 'user',
-        mobileHidden: true,
-        description: 'Generate reports'
-      },
-      { 
-        id: 'goals', 
-        title: 'Goals', 
-        path: '/goals', 
-        icon: Target, 
-        permission: 'user',
-        mobileHidden: true,
-        description: 'Track goals'
-      }
-    ]
-  },
-
-  // ==========================================================================
-  // 📱 RESOURCES
-  // ==========================================================================
-  {
-    id: 'resources-group',
-    title: 'Resources',
-    icon: BookOpen,
-    isGroup: true,
-    permission: 'prospect',
-    mobileHidden: false,
-    category: 'resources',
-    items: [
-      { 
-        id: 'articles', 
-        title: 'Articles', 
-        path: '/resources/articles', 
-        icon: FileText, 
-        permission: 'prospect',
-        mobileHidden: false,
-        description: 'Knowledge base'
-      },
-      { 
-        id: 'faq', 
-        title: 'FAQ', 
-        path: '/resources/faq', 
-        icon: HelpCircle, 
-        permission: 'prospect',
-        mobileHidden: false,
-        description: 'Common questions'
-      }
-    ]
-  },
-
-  // ==========================================================================
-  // 📱 MOBILE APPS
-  // ==========================================================================
-  {
-    id: 'apps-group',
-    title: 'Mobile Apps',
-    icon: Smartphone,
-    isGroup: true,
-    permission: 'admin',
-    mobileHidden: true,
-    category: 'apps',
-    items: [
-      { 
-        id: 'apps-overview', 
-        title: 'Apps Overview', 
-        path: '/apps/overview', 
-        icon: Info, 
-        permission: 'admin',
-        mobileHidden: true,
-        description: 'Mobile app info'
-      },
-      { 
-        id: 'apps-employee', 
-        title: 'Employee App', 
-        path: '/apps/employee', 
-        icon: User, 
-        permission: 'admin',
-        mobileHidden: true,
-        description: 'Staff app'
-      },
-      { 
-        id: 'apps-client', 
-        title: 'Client App', 
-        path: '/apps/client', 
-        icon: Users, 
-        permission: 'admin',
-        mobileHidden: true,
-        description: 'Client-facing app'
-      },
-      { 
-        id: 'apps-affiliate', 
-        title: 'Affiliate App', 
-        path: '/apps/affiliate', 
-        icon: Handshake, 
-        permission: 'admin',
-        mobileHidden: true,
-        description: 'Affiliate partner app'
-      }
-    ]
-  },
-
-  // ==========================================================================
-  // ⚙️ ADMINISTRATION
-  // ==========================================================================
-  {
-    id: 'admin-group',
-    title: 'Administration',
-    icon: Settings,
-    isGroup: true,
-    permission: 'user',
-    mobileHidden: true,
-    category: 'admin',
-    items: [
-      { 
-        id: 'settings', 
-        title: 'Settings', 
-        path: '/settings', 
-        icon: Settings, 
-        permission: 'prospect',
-        mobileHidden: false,
-        description: 'User settings'
-      },
-      { 
-        id: 'team', 
-        title: 'Team Management', 
-        path: '/team', 
-        icon: Users, 
-        permission: 'admin',
-        mobileHidden: true,
-        description: 'Manage team members'
-      },
-      { 
-        id: 'roles', 
-        title: 'Roles & Permissions', 
-        path: '/roles', 
-        icon: Shield, 
-        permission: 'admin',
-        mobileHidden: true,
-        description: 'Role management'
-      },
-      { 
-        id: 'user-roles', 
-        title: 'User Role Manager', 
-        path: '/user-roles', 
-        icon: UserCheck, 
-        permission: 'admin',
-        mobileHidden: true,
-        description: 'Assign user roles'
-      },
-      { 
-        id: 'integrations', 
-        title: 'Integrations', 
-        path: '/integrations', 
-        icon: Zap, 
-        permission: 'admin',
-        mobileHidden: true,
-        description: 'Third-party integrations'
-      },
-      { 
-        id: 'support', 
-        title: 'Support', 
-        path: '/support', 
-        icon: HelpCircle, 
-        permission: 'prospect',
-        mobileHidden: false,
-        description: 'Get help'
-      },
-      { 
-        id: 'system-map', 
-        title: 'System Map', 
-        path: '/system-map', 
-        icon: Database, 
-        permission: 'admin',
-        mobileHidden: true,
-        description: 'View system architecture'
-      }
+      { id: 'learning-dashboard', title: 'Learning Dashboard', path: '/learning-hub', icon: LayoutDashboard, permission: 'prospect', description: 'Your learning progress' },
+      { id: 'learning-courses', title: 'Course Library', path: '/learning-hub/courses', icon: BookOpen, permission: 'prospect', description: 'Training courses and lessons' },
+      { id: 'learning-live', title: 'Live Training', path: '/learning-hub/live', icon: Users, permission: 'user', description: 'Live training sessions' },
+      { id: 'learning-quizzes', title: 'Quizzes & Assessments', path: '/learning-hub/quizzes', icon: CheckSquare, permission: 'prospect', description: 'Test your knowledge' },
+      { id: 'learning-kb', title: 'Knowledge Base', path: '/learning-hub/kb', icon: BookOpen, permission: 'prospect', description: 'Help articles and guides' },
+      { id: 'learning-resources', title: 'Resource Library', path: '/learning-hub/resources', icon: Archive, permission: 'prospect', description: 'Downloadable resources' },
+      { id: 'learning-certs', title: 'Certifications', path: '/learning-hub/certifications', icon: Award, permission: 'user', description: 'Certification tracking' },
+      { id: 'learning-paths', title: 'Learning Paths', path: '/learning-hub/paths', icon: GitBranch, permission: 'prospect', description: 'Role-based learning paths' },
+      { id: 'learning-ai', title: 'AI Tutor', path: '/learning-hub/ai-tutor', icon: Brain, permission: 'prospect', badge: 'AI', description: 'Interactive AI chatbot tutor' },
+      { id: 'learning-progress', title: 'Progress & Analytics', path: '/learning-hub/progress', icon: TrendingUp, permission: 'prospect', description: 'Track your learning' }
     ]
   },
 
@@ -1365,64 +431,12 @@ export const navigationItems = [
     mobileHidden: true,
     category: 'whitelabel',
     items: [
-      { 
-        id: 'wl-branding', 
-        title: 'Branding', 
-        path: '/whitelabel/branding', 
-        icon: Brush, 
-        permission: 'masterAdmin',
-        mobileHidden: true,
-        description: 'Customize branding'
-      },
-      { 
-        id: 'wl-domains', 
-        title: 'Domains', 
-        path: '/whitelabel/domains', 
-        icon: Globe, 
-        permission: 'masterAdmin',
-        mobileHidden: true,
-        description: 'Manage domains'
-      },
-      { 
-        id: 'wl-plans', 
-        title: 'Plans & Billing', 
-        path: '/whitelabel/plans', 
-        icon: CreditCard, 
-        permission: 'masterAdmin',
-        mobileHidden: true,
-        description: 'Subscription plans'
-      },
-      { 
-        id: 'wl-tenants', 
-        title: 'Tenants', 
-        path: '/whitelabel/tenants', 
-        icon: Building2, 
-        permission: 'masterAdmin',
-        mobileHidden: true,
-        description: 'Multi-tenant management'
-      }
+      { id: 'wl-branding', title: 'Branding', path: '/whitelabel/branding', icon: Brush, permission: 'masterAdmin', mobileHidden: true, description: 'Customize branding' },
+      { id: 'wl-domains', title: 'Domains', path: '/whitelabel/domains', icon: Globe, permission: 'masterAdmin', mobileHidden: true, description: 'Manage domains' },
+      { id: 'wl-plans', title: 'Plans & Billing', path: '/whitelabel/plans', icon: CreditCard, permission: 'masterAdmin', mobileHidden: true, description: 'Subscription plans' },
+      { id: 'wl-tenants', title: 'Tenants', path: '/whitelabel/tenants', icon: Building2, permission: 'masterAdmin', mobileHidden: true, description: 'Multi-tenant management' }
     ]
   }
-];
-
-// ============================================================================
-// MOBILE-SPECIFIC NAVIGATION
-// ============================================================================
-
-/**
- * Get mobile-optimized navigation for specific role
- * Returns simplified menu with only essential items
- */
-export function getMobileNavigation(userRole) {
-  const baseItems = [
-    { id: 'dashboard', title: 'Dashboard', path: '/smart-dashboard', icon: LayoutDashboard },
-  ];
-
-  const roleSpecificItems = {
-    masterAdmin: [
-      { id: 'portal', title: 'Admin', path: '/portal', icon: LayoutDashboard },
-      { id: 'contacts', title: 'Contacts', path: '/clients-hub', icon: Users },
-      { id: 'credit-hub', title: 'Credit Hub', path: '/credit-hub', icon: Shield },
       { id: 'analytics', title: 'Analytics', path: '/analytics-hub', icon: BarChart },
       { id: 'settings', title: 'Settings', path: '/settings', icon: Settings },
     ],
