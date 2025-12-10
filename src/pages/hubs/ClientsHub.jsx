@@ -159,6 +159,7 @@ import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, where, o
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
+import UltimateContactForm from '@/components/UltimateContactForm';
 import {
   BarChart as RechartsBarChart,
   Bar,
@@ -2659,142 +2660,31 @@ const ClientsHub = () => {
   const renderAddEditClient = () => (
     <Card>
       <CardContent>
-        <Typography variant="h6" gutterBottom>
-          {selectedClient ? 'Edit Contact' : 'Add New Contact'}
+        <Typography variant="h6" gutterBottom sx={{ mb: 3 }}>
+          {selectedClient ? 'Edit Client' : 'Add New Contact'}
         </Typography>
-        
-        <Grid container spacing={3}>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label="First Name"
-              value={clientForm.firstName}
-              onChange={(e) => setClientForm({ ...clientForm, firstName: e.target.value })}
-              required
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label="Last Name"
-              value={clientForm.lastName}
-              onChange={(e) => setClientForm({ ...clientForm, lastName: e.target.value })}
-              required
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label="Email"
-              type="email"
-              value={clientForm.email}
-              onChange={(e) => setClientForm({ ...clientForm, email: e.target.value })}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label="Phone"
-              value={clientForm.phone}
-              onChange={(e) => setClientForm({ ...clientForm, phone: e.target.value })}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <FormControl fullWidth>
-              <InputLabel>Status</InputLabel>
-              <Select
-                value={clientForm.status}
-                label="Status"
-                onChange={(e) => setClientForm({ ...clientForm, status: e.target.value })}
-              >
-                {CLIENT_STATUSES.map(status => (
-                  <MenuItem key={status.value} value={status.value}>{status.label}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <FormControl fullWidth>
-              <InputLabel>Lead Source</InputLabel>
-              <Select
-                value={clientForm.source}
-                label="Lead Source"
-                onChange={(e) => setClientForm({ ...clientForm, source: e.target.value })}
-              >
-                {LEAD_SOURCES.map(source => (
-                  <MenuItem key={source} value={source}>{source}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <FormControl fullWidth>
-              <InputLabel>Journey Stage</InputLabel>
-              <Select
-                value={clientForm.journeyStage}
-                label="Journey Stage"
-                onChange={(e) => setClientForm({ ...clientForm, journeyStage: e.target.value })}
-              >
-                {JOURNEY_STAGES.map(stage => (
-                  <MenuItem key={stage.value} value={stage.value}>{stage.label}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <Typography gutterBottom>Lead Score: {clientForm.leadScore}</Typography>
-            <Slider
-              value={clientForm.leadScore}
-              onChange={(e, newValue) => setClientForm({ ...clientForm, leadScore: newValue })}
-              min={0}
-              max={10}
-              marks
-              valueLabelDisplay="auto"
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Notes"
-              value={clientForm.notes}
-              onChange={(e) => setClientForm({ ...clientForm, notes: e.target.value })}
-              multiline
-              rows={4}
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <Autocomplete
-              multiple
-              freeSolo
-              options={['VIP', 'Hot Lead', 'Priority', 'Follow-up', 'Referral']}
-              value={clientForm.tags}
-              onChange={(e, newValue) => setClientForm({ ...clientForm, tags: newValue })}
-              renderInput={(params) => (
-                <TextField {...params} label="Tags" placeholder="Add tags" />
-              )}
-            />
-          </Grid>
-        </Grid>
-        
-        <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
-          <Button
-            variant="contained"
-            startIcon={<Save size={18} />}
-            onClick={handleSaveClient}
-            disabled={saving}
-          >
-            {saving ? 'Saving...' : 'Save Client'}
-          </Button>
-          <Button
-            variant="outlined"
-            onClick={() => {
-              setSelectedClient(null);
-              setActiveTab(0);
-            }}
-          >
-            Cancel
-          </Button>
-        </Box>
+
+        <UltimateContactForm
+          initialData={selectedClient || {}}
+          onSave={handleSaveClient}
+          onCancel={() => {
+            setSelectedClient(null);
+            setClientForm({
+              firstName: '',
+              lastName: '',
+              email: '',
+              phone: '',
+              status: 'active',
+              source: '',
+              journeyStage: 'awareness',
+              leadScore: 5,
+              notes: '',
+              tags: []
+            });
+            setActiveTab(0);
+          }}
+          contactId={selectedClient?.id || null}
+        />
       </CardContent>
     </Card>
   );
@@ -4085,7 +3975,7 @@ const ClientsHub = () => {
           scrollButtons="auto"
         >
           <Tab label="Client List" icon={<Users size={18} />} iconPosition="start" />
-          <Tab label="Add/Edit Client" icon={<UserPlus size={18} />} iconPosition="start" />
+          <Tab label={selectedClient ? "Edit Client" : "Add Contact"} icon={<UserPlus size={18} />} iconPosition="start" />
           <Tab label="Client Profile" icon={<UserCheck size={18} />} iconPosition="start" />
           <Tab label="Communications" icon={<MessageSquare size={18} />} iconPosition="start" />
           <Tab label="Documents" icon={<FileText size={18} />} iconPosition="start" />

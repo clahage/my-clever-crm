@@ -2304,23 +2304,7 @@ const Products = () => {
               variant="outlined"
               startIcon={<Sparkles />}
               onClick={async () => {
-                if (!confirm('Load 12 sample credit repair products into Firestore?\n\nThis will add them to your database.')) return;
-                
-                setSaving(true);
-                try {
-                  const { seedCreditRepairProducts } = await import('@/utils/seedProducts');
-                  const results = await seedCreditRepairProducts(user.uid);
-                  
-                  showNotification(
-                    `✅ Loaded ${results.success.length} products! ${results.errors.length} errors.`, 
-                    'success'
-                  );
-                } catch (error) {
-                  console.error('Seed error:', error);
-                  showNotification('Error loading sample data', 'error');
-                } finally {
-                  setSaving(false);
-                }
+                showNotification('Sample product seeding has been removed. Products already seeded during initial setup.', 'info');
               }}
               disabled={saving}
               sx={{ 
