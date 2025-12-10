@@ -238,7 +238,7 @@ const CommunicationsHub = lazy(() => import('@/pages/hubs/CommunicationsHub'));
 const ComplianceHub = lazy(() => import('@/pages/hubs/ComplianceHub'));
 const ContentCreatorSEOHub = lazy(() => import('@/pages/hubs/ContentCreatorSEOHub'));
 const ContractManagementHub = lazy(() => import('@/pages/hubs/ContractManagementHub'));
-const CreditReportsHub = lazy(() => import('@/pages/hubs/CreditReportsHub'));
+const CreditHub = lazy(() => import('@/pages/hubs/CreditHub'));
 // DashboardHub removed - consolidated into SmartDashboard
 const DisputeAdminPanel = lazy(() => import('@/pages/hubs/DisputeAdminPanel'));
 const DisputeHub = lazy(() => import('@/pages/hubs/DisputeHub'));
@@ -533,13 +533,13 @@ const AppContent = () => {
 {/* ===== 🎯 HYBRID HUB ROUTES (41 Hubs - ALL HUBS) ===== */}
 {/* ============================================================================ */}
 
-{/* Credit Reports Hub - Consolidated IDIQ System */}
+{/* Credit Hub - Consolidated IDIQ System */}
 <Route
   path="credit-hub"
   element={
     <ProtectedRoute requiredRoles={[3,4,5,6,7,8]}>
       <Suspense fallback={<LoadingFallback />}>
-        <CreditReportsHub />
+        <CreditHub />
       </Suspense>
     </ProtectedRoute>
   }
