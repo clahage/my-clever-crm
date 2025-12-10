@@ -437,58 +437,7 @@ export const navigationItems = [
       { id: 'wl-tenants', title: 'Tenants', path: '/whitelabel/tenants', icon: Building2, permission: 'masterAdmin', mobileHidden: true, description: 'Multi-tenant management' }
     ]
   }
-      { id: 'analytics', title: 'Analytics', path: '/analytics-hub', icon: BarChart },
-      { id: 'settings', title: 'Settings', path: '/settings', icon: Settings },
-    ],
-    admin: [
-      { id: 'portal', title: 'Admin', path: '/portal', icon: LayoutDashboard },
-      { id: 'contacts', title: 'Contacts', path: '/clients-hub', icon: Users },
-      { id: 'credit-hub', title: 'Credit Hub', path: '/credit-hub', icon: Shield },
-      { id: 'reports', title: 'Reports', path: '/reports-hub', icon: FileText },
-      { id: 'settings', title: 'Settings', path: '/settings', icon: Settings },
-    ],
-    manager: [
-      { id: 'contacts', title: 'Contacts', path: '/clients-hub', icon: Users },
-      { id: 'credit-hub', title: 'Credit Hub', path: '/credit-hub', icon: Shield },
-      { id: 'pipeline', title: 'Pipeline', path: '/clients-hub', icon: GitBranch },
-      { id: 'reports', title: 'Reports', path: '/reports-hub', icon: FileText },
-      { id: 'settings', title: 'Settings', path: '/settings', icon: Settings },
-    ],
-    user: [
-      { id: 'contacts', title: 'Contacts', path: '/clients-hub', icon: Users },
-      { id: 'credit-hub', title: 'Credit Hub', path: '/credit-hub', icon: Shield },
-      { id: 'tasks', title: 'Tasks', path: '/tasks-hub', icon: CheckSquare },
-      { id: 'calendar', title: 'Calendar', path: '/calendar-hub', icon: Calendar },
-      { id: 'settings', title: 'Settings', path: '/settings', icon: Settings },
-    ],
-    client: [
-      { id: 'portal', title: 'My Portal', path: '/client-portal', icon: User },
-      { id: 'credit-hub', title: 'My Credit', path: '/credit-hub', icon: Shield },
-      { id: 'scores', title: 'Scores', path: '/dispute-hub', icon: TrendingUp },
-      { id: 'disputes', title: 'Disputes', path: '/dispute-hub', icon: FileText },
-      { id: 'documents', title: 'Documents', path: '/documents-hub', icon: FileText },
-      { id: 'support', title: 'Support', path: '/support-hub', icon: HelpCircle },
-    ],
-    prospect: [
-      { id: 'portal', title: 'Portal', path: '/client-portal', icon: User },
-      { id: 'learning', title: 'Learn', path: '/learning-hub', icon: BookOpen },
-      { id: 'resources', title: 'Resources', path: '/resources-hub', icon: FileText },
-      { id: 'support', title: 'Support', path: '/support-hub', icon: HelpCircle },
-    ],
-    affiliate: [
-      { id: 'dashboard', title: 'Dashboard', path: '/affiliates', icon: Handshake },
-      { id: 'referrals', title: 'Referrals', path: '/affiliates', icon: Users },
-      { id: 'commissions', title: 'Earnings', path: '/affiliates', icon: DollarSign },
-      { id: 'settings', title: 'Settings', path: '/settings', icon: Settings },
-    ],
-    viewer: [
-      { id: 'reports', title: 'Reports', path: '/reports-hub', icon: FileText },
-      { id: 'analytics', title: 'Analytics', path: '/analytics-hub', icon: BarChart },
-    ]
-  };
-
-  return [...baseItems, ...(roleSpecificItems[userRole] || roleSpecificItems.client)];
-}
+];
 
 // ============================================================================
 // ROLE-BASED NAVIGATION FILTER
