@@ -1,3 +1,7 @@
+// Minimal export to resolve build error for getMobileNavigation
+export function getMobileNavigation(userRole) {
+  return [];
+}
 // src/layout/navConfig.js
 // ============================================================================
 // OPTIMIZED NAVIGATION CONFIGURATION - VERSION 4.0

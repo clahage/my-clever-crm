@@ -36,7 +36,7 @@ import {
   LayoutDashboard, BarChart,
 } from 'lucide-react';
 import {
-  LineChart, Line, BarChart, Bar, PieChart as RechartsPie, Pie, Cell,
+  LineChart, Line, Bar, PieChart as RechartsPie, Pie, Cell,
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
   Legend, ResponsiveContainer, RadarChart, Radar, PolarGrid,
   PolarAngleAxis, PolarRadiusAxis,
