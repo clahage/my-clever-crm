@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { useAuth } from "../authContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 const FileUpload = ({ contactId, onUpload }) => {
   const { app } = useAuth();

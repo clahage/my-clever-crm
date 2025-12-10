@@ -198,6 +198,10 @@ const Reminders = lazy(() => import('@/pages/Reminders'));
 
 // ===== ANALYTICS & REPORTING =====
 // Reports.jsx archived - use ReportsHub at /reports-hub
+
+// ===== ERROR PAGES =====
+const NotFound = lazy(() => import('@/pages/NotFound'));
+const Unauthorized = lazy(() => import('@/pages/Unauthorized'));
 const Goals = lazy(() => import('@/pages/Goals'));
 const ResourcesArticles = lazy(() => import('@/pages/resources/Articles'));
 const ResourcesFAQ = lazy(() => import('@/pages/resources/FAQ'));
@@ -1024,26 +1028,25 @@ const AppContent = () => {
   }
 />
 
-  {/* 404 - NOT FOUND */}
-        <Route path="*" element={
-          <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 dark:from-gray-900 dark:to-purple-900">
-            <div className="text-center max-w-md p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl">
-              <div className="text-8xl mb-4">🔍</div>
-              <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-                404 - Page Not Found
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
-                The page you're looking for doesn't exist or has been moved.
-              </p>
-              <button
-                onClick={() => window.location.href = '/'}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-lg hover:shadow-xl transform hover:scale-105"
-              >
-                🏠 Go to Dashboard
-              </button>
-            </div>
-          </div>
-        } />
+  {/* Unauthorized - Access Denied (401/403) */}
+        <Route
+          path="/unauthorized"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <Unauthorized />
+            </Suspense>
+          }
+        />
+
+        {/* 404 - NOT FOUND (Catch-all route - must be last) */}
+        <Route
+          path="*"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <NotFound />
+            </Suspense>
+          }
+        />
       </Route>
     </Routes>
   );
