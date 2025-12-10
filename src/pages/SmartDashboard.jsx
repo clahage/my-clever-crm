@@ -335,7 +335,7 @@ const generateAIInsights = (dashboardData) => {
   const insights = [];
   
   // Revenue insights
-  if (dashboardData.revenue) {
+  if (Array.isArray(dashboardData.revenue)) {
     const recentRevenue = dashboardData.revenue.slice(-7);
     const avgRevenue = recentRevenue.reduce((sum, r) => sum + r.amount, 0) / recentRevenue.length;
     const trend = recentRevenue[recentRevenue.length - 1].amount > avgRevenue ? 'up' : 'down';
@@ -347,6 +347,8 @@ const generateAIInsights = (dashboardData) => {
       description: `${trend === 'up' ? '+' : ''}${((recentRevenue[recentRevenue.length - 1].amount - avgRevenue) / avgRevenue * 100).toFixed(1)}% vs 7-day average`,
       priority: 'high'
     });
+  } else {
+    console.error('dashboardData.revenue is not an array:', dashboardData.revenue);
   }
   
   // Client insights
