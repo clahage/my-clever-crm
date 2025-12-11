@@ -1,17 +1,19 @@
-// src/App.jsx - SpeedyCRM Complete Application Router
-// VERSION: 3.0 - HYBRID HUB ARCHITECTURE INTEGRATION
-// LAST UPDATED: 2025-11-06 - All 18 Hubs Integrated
-import EmailWorkflowDashboard from './components/EmailWorkflowDashboard';
 import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import EmailWorkflowDashboard from './components/EmailWorkflowDashboard';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import ProtectedLayout from '@/layout/ProtectedLayout';
-
-// Existing imports...
 import Products from '@/pages/Products';
+import ServicePlanSelector from '@/components/client/ServicePlanSelector';
+const ServicePlanRecommenderPage = lazy(() => import('@/pages/ServicePlanRecommender'));
+// src/App.jsx - SpeedyCRM Complete Application Router
+// VERSION: 3.0 - HYBRID HUB ARCHITECTURE INTEGRATION
+// LAST UPDATED: 2025-11-06 - All 18 Hubs Integrated
+import ContractStatusTracker from '@/components/common/ContractStatusTracker';
+import PricingCalculatorCommon from '@/components/common/PricingCalculator';
 import IDIQEnrollmentWizard from './components/IDIQEnrollmentWizard';
 import FinancialPlanningHub from './pages/hubs/FinancialPlanningHub.jsx';
 
@@ -410,6 +412,12 @@ const AppContent = () => {
         {/* ============================================================================ */}
         {/* REDIRECTS: Standalone pages → Parent Hubs */}
         {/* ============================================================================ */}
+
+          {/* PRODUCTS & SERVICES HUB - NEW TOP LEVEL */}
+            <Route path="service-plan-recommender" element={<ProtectedRoute requiredRole="user"><Suspense fallback={<LoadingFallback />}><ServicePlanRecommenderPage /></Suspense></ProtectedRoute>} />
+          <Route path="products-services/service-plans" element={<ProtectedRoute requiredRole="user"><Suspense fallback={<LoadingFallback />}><ServicePlanSelector /></Suspense></ProtectedRoute>} />
+          <Route path="products-services/contracts" element={<ProtectedRoute requiredRole="user"><Suspense fallback={<LoadingFallback />}><ContractStatusTracker /></Suspense></ProtectedRoute>} />
+          <Route path="products-services/pricing-calculator" element={<ProtectedRoute requiredRole="user"><Suspense fallback={<LoadingFallback />}><PricingCalculatorCommon /></Suspense></ProtectedRoute>} />
 
         {/* ============================================================================ */}
         {/* CLIENTS & CONTACTS SECTION */}

@@ -1,0 +1,11 @@
+ExpandLess and ExpandMore are not valid Lucide icon exports. Use 'ChevronUp' and 'ChevronDown' instead for expand/collapse functionality.
+
+Reference: https://lucide.dev/icons/
+
+Replace:
+import { ExpandMore, ExpandLess } from 'lucide-react';
+
+With:
+import { ChevronDown, ChevronUp } from 'lucide-react';
+
+And update usages accordingly.

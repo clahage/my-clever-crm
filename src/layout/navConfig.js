@@ -170,6 +170,46 @@ export function isVisible(item, userRole, isMobile = false) {
 // ============================================================================
 
 export const navigationItems = [
+  // ========================================================================
+  // 🛒 PRODUCTS & SERVICES HUB - NEW TOP LEVEL
+  // ========================================================================
+  {
+    id: 'products-services-hub',
+    title: 'Products & Services',
+    icon: Package,
+    isGroup: true,
+    permission: 'user',
+    mobileHidden: false,
+    category: 'products',
+    defaultExpanded: true,
+    items: [
+      {
+        id: 'service-plans-tab',
+        title: 'Service Plans',
+        path: '/products-services/service-plans',
+        icon: Layers,
+        permission: 'user',
+        description: 'Browse and manage all service plans',
+      },
+      {
+        id: 'contracts-tab',
+        title: 'Contracts',
+        path: '/products-services/contracts',
+        icon: FileText,
+        permission: 'user',
+        description: 'Contract management and templates',
+      },
+      {
+        id: 'pricing-calculator-tab',
+        title: 'Pricing Calculator',
+        path: '/products-services/pricing-calculator',
+        icon: Calculator,
+        permission: 'user',
+        description: 'Interactive pricing and quote calculator',
+      }
+      // Add more sub-items as needed
+    ]
+  },
   // ==========================================================================
   // 🎯 SMART DASHBOARD - PRIMARY LANDING
   // ==========================================================================

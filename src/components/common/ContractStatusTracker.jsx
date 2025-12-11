@@ -91,8 +91,8 @@ import {
   XCircle,
   MoreVertical,
   ExternalLink,
-  ExpandMore,
-  ExpandLess,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 
 // Mock service plans for reference
@@ -707,7 +707,7 @@ const ContractStatusTracker = ({
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Typography variant="h6">Contract Timeline</Typography>
                   <IconButton size="small" onClick={() => toggleSection('timeline')}>
-                    {expandedSections.timeline ? <ExpandLess /> : <ExpandMore />}
+                    {expandedSections.timeline ? <ChevronUp /> : <ChevronDown />}
                   </IconButton>
                 </Box>
               }
@@ -758,7 +758,7 @@ const ContractStatusTracker = ({
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Typography variant="h6">Contract Details</Typography>
                   <IconButton size="small" onClick={() => toggleSection('details')}>
-                    {expandedSections.details ? <ExpandLess /> : <ExpandMore />}
+                    {expandedSections.details ? <ChevronUp /> : <ChevronDown />}
                   </IconButton>
                 </Box>
               }
@@ -819,7 +819,7 @@ const ContractStatusTracker = ({
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Typography variant="h6">Documents</Typography>
                   <IconButton size="small" onClick={() => toggleSection('documents')}>
-                    {expandedSections.documents ? <ExpandLess /> : <ExpandMore />}
+                    {expandedSections.documents ? <ChevronUp /> : <ChevronDown />}
                   </IconButton>
                 </Box>
               }
@@ -888,7 +888,7 @@ const ContractStatusTracker = ({
               title="AI Insights"
               action={
                 <IconButton size="small" onClick={() => setAiInsightsExpanded(!aiInsightsExpanded)}>
-                  {aiInsightsExpanded ? <ExpandLess /> : <ExpandMore />}
+                  {aiInsightsExpanded ? <ChevronUp /> : <ChevronDown />}
                 </IconButton>
               }
             />
@@ -1025,7 +1025,7 @@ const ContractStatusTracker = ({
               title="Activity Log"
               action={
                 <IconButton size="small" onClick={() => toggleSection('activity')}>
-                  {expandedSections.activity ? <ExpandLess /> : <ExpandMore />}
+                  {expandedSections.activity ? <ChevronUp /> : <ChevronDown />}
                 </IconButton>
               }
             />

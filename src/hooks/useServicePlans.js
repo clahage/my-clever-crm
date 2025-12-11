@@ -13,7 +13,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { collection, query, onSnapshot, orderBy, doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db } from '../lib/firebase';
 import { defaultServicePlans } from '../config/servicePlansConfig';
 import { getEnabledPlans } from '../lib/servicePlanHelpers';
 
