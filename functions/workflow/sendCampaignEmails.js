@@ -52,9 +52,9 @@ if (SENDGRID_API_KEY) {
 }
 
 // Email configuration
-const FROM_EMAIL = 'chris@speedycreditrepair.com';
+const FROM_EMAIL = 'Contact@speedycreditrepair.com';
 const FROM_NAME = 'Christopher | Speedy Credit Repair';
-const REPLY_TO = 'support@speedycreditrepair.com';
+const REPLY_TO = 'Contact@speedycreditrepair.com';
 const COMPANY_NAME = 'Speedy Credit Repair';
 
 // Processing limits

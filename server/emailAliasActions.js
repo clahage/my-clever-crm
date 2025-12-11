@@ -2,7 +2,7 @@
 // This module maps incoming email aliases to CRM workflow functions
 
 module.exports = {
-  'urgent@speedycreditrepair.com': {
+  'Contact@speedycreditrepair.com': {
     description: 'Flags a contact as urgent',
     handler: async (mail, crm) => {
       // Example: Find contact by email or phone in mail, flag as urgent
@@ -39,18 +39,18 @@ module.exports = {
       }
     }
   },
-  'notify-chris@speedycreditrepair.com': {
+  'notify-Contact@speedycreditrepair.com': {
     description: 'Notifies Chris',
     handler: async (mail, crm) => {
       // Example: Send notification to Chris
-      await crm.sendNotification('chris@speedycreditrepair.com', {
+      await crm.sendNotification('Contact@speedycreditrepair.com', {
         subject: 'Notification from Email Alias',
         body: `Message from ${mail.from.text}:\n${mail.subject}\n${mail.text}`
       });
     }
   },
   // --- Additional Email Alias Actions ---
-  'support@speedycreditrepair.com': {
+  'Contact@speedycreditrepair.com': {
     description: 'Creates a support ticket',
     handler: async (mail, crm) => {
       await crm.createSupportTicket({

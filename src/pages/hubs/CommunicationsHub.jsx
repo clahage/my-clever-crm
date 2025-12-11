@@ -2146,7 +2146,7 @@ const UltimateCommunicationsHub = () => {
               <TextField
                 fullWidth
                 label="SMS Phone Number"
-                defaultValue="+1 (555) 123-4567"
+                defaultValue="+1 888-724-7344"
                 size="small"
               />
               <FormControlLabel

@@ -18,16 +18,16 @@ import { db } from '@/lib/firebase';
 export const EMAIL_ALIASES = {
   // Primary
   CHRIS: {
-    email: 'chris@speedycreditrepair.com',
+    email: 'Contact@speedycreditrepair.com',
     name: 'Chris Lahage - Speedy Credit Repair',
     purpose: 'Personal communications, high-value clients',
-    replyTo: 'contact@speedycreditrepair.com',
+    replyTo: 'Contact@speedycreditrepair.com',
   },
   LAURIE: {
     email: 'laurie@speedycreditrepair.com',
     name: 'Laurie - Speedy Credit Repair',
     purpose: 'Operations, client management',
-    replyTo: 'support@speedycreditrepair.com',
+    replyTo: 'Contact@speedycreditrepair.com',
   },
 
   // Automated Systems
@@ -38,24 +38,24 @@ export const EMAIL_ALIASES = {
     replyTo: null,
   },
   URGENT: {
-    email: 'urgent@speedycreditrepair.com',
+    email: 'Contact@speedycreditrepair.com',
     name: 'Speedy Credit Repair - URGENT',
     purpose: 'Time-sensitive alerts, critical notifications',
-    replyTo: 'support@speedycreditrepair.com',
+    replyTo: 'Contact@speedycreditrepair.com',
   },
 
   // Customer Service
   SUPPORT: {
-    email: 'support@speedycreditrepair.com',
+    email: 'Contact@speedycreditrepair.com',
     name: 'Speedy Credit Repair Support',
     purpose: 'Customer support, help requests',
-    replyTo: 'support@speedycreditrepair.com',
+    replyTo: 'Contact@speedycreditrepair.com',
   },
   INFO: {
-    email: 'info@speedycreditrepair.com',
+    email: 'Contact@speedycreditrepair.com',
     name: 'Speedy Credit Repair',
     purpose: 'General information requests',
-    replyTo: 'info@speedycreditrepair.com',
+    replyTo: 'Contact@speedycreditrepair.com',
   },
 
   // Payment & Billing
@@ -63,19 +63,19 @@ export const EMAIL_ALIASES = {
     email: 'payment-success@speedycreditrepair.com',
     name: 'Speedy Credit Repair - Payment Confirmation',
     purpose: 'Payment confirmations, receipts',
-    replyTo: 'support@speedycreditrepair.com',
+    replyTo: 'Contact@speedycreditrepair.com',
   },
   PAYMENT_FAILED: {
     email: 'payment-failed@speedycreditrepair.com',
     name: 'Speedy Credit Repair - Payment Alert',
     purpose: 'Failed payment notifications',
-    replyTo: 'support@speedycreditrepair.com',
+    replyTo: 'Contact@speedycreditrepair.com',
   },
   PAYMENT_REMINDER: {
     email: 'payment-reminder@speedycreditrepair.com',
     name: 'Speedy Credit Repair - Payment Reminder',
     purpose: 'Upcoming payment reminders',
-    replyTo: 'support@speedycreditrepair.com',
+    replyTo: 'Contact@speedycreditrepair.com',
   },
 
   // Onboarding & Welcome
@@ -83,13 +83,13 @@ export const EMAIL_ALIASES = {
     email: 'welcome@speedycreditrepair.com',
     name: 'Speedy Credit Repair - Welcome!',
     purpose: 'Welcome emails for new clients',
-    replyTo: 'support@speedycreditrepair.com',
+    replyTo: 'Contact@speedycreditrepair.com',
   },
   ONBOARDING: {
     email: 'onboarding@speedycreditrepair.com',
     name: 'Speedy Credit Repair - Getting Started',
     purpose: 'Onboarding sequences, setup instructions',
-    replyTo: 'support@speedycreditrepair.com',
+    replyTo: 'Contact@speedycreditrepair.com',
   },
 
   // Credit & Disputes
@@ -97,19 +97,19 @@ export const EMAIL_ALIASES = {
     email: 'dispute-update@speedycreditrepair.com',
     name: 'Speedy Credit Repair - Dispute Update',
     purpose: 'Dispute status updates, results',
-    replyTo: 'support@speedycreditrepair.com',
+    replyTo: 'Contact@speedycreditrepair.com',
   },
   CREDIT_REPORT: {
     email: 'credit-report@speedycreditrepair.com',
     name: 'Speedy Credit Repair - Credit Report',
     purpose: 'Credit report delivery, analysis',
-    replyTo: 'support@speedycreditrepair.com',
+    replyTo: 'Contact@speedycreditrepair.com',
   },
   SCORE_UPDATE: {
     email: 'score-update@speedycreditrepair.com',
     name: 'Speedy Credit Repair - Score Update',
     purpose: 'Credit score change notifications',
-    replyTo: 'support@speedycreditrepair.com',
+    replyTo: 'Contact@speedycreditrepair.com',
   },
 
   // Appointments & Tasks
@@ -117,19 +117,19 @@ export const EMAIL_ALIASES = {
     email: 'appointment@speedycreditrepair.com',
     name: 'Speedy Credit Repair - Appointment',
     purpose: 'Appointment confirmations, reminders',
-    replyTo: 'support@speedycreditrepair.com',
+    replyTo: 'Contact@speedycreditrepair.com',
   },
   REMINDER: {
     email: 'reminder@speedycreditrepair.com',
     name: 'Speedy Credit Repair - Reminder',
     purpose: 'General reminders, follow-ups',
-    replyTo: 'support@speedycreditrepair.com',
+    replyTo: 'Contact@speedycreditrepair.com',
   },
   TASK_ASSIGNED: {
     email: 'task-assigned@speedycreditrepair.com',
     name: 'Speedy Credit Repair - New Task',
     purpose: 'Task assignments, workflow notifications',
-    replyTo: 'support@speedycreditrepair.com',
+    replyTo: 'Contact@speedycreditrepair.com',
   },
 
   // Documents & Signatures
@@ -137,13 +137,13 @@ export const EMAIL_ALIASES = {
     email: 'document-ready@speedycreditrepair.com',
     name: 'Speedy Credit Repair - Document Ready',
     purpose: 'Document delivery, download links',
-    replyTo: 'support@speedycreditrepair.com',
+    replyTo: 'Contact@speedycreditrepair.com',
   },
   SIGNATURE_REQUIRED: {
     email: 'signature-required@speedycreditrepair.com',
     name: 'Speedy Credit Repair - Signature Needed',
     purpose: 'E-signature requests, contract signing',
-    replyTo: 'support@speedycreditrepair.com',
+    replyTo: 'Contact@speedycreditrepair.com',
   },
 
   // Compliance & Admin
@@ -151,13 +151,13 @@ export const EMAIL_ALIASES = {
     email: 'compliance-alert@speedycreditrepair.com',
     name: 'Speedy Credit Repair - Compliance',
     purpose: 'Compliance notifications, regulatory alerts',
-    replyTo: 'admin@speedycreditrepair.com',
+    replyTo: 'Contact@speedycreditrepair.com',
   },
   ADMIN: {
-    email: 'admin@speedycreditrepair.com',
+    email: 'Contact@speedycreditrepair.com',
     name: 'Speedy Credit Repair Administration',
     purpose: 'Administrative communications',
-    replyTo: 'admin@speedycreditrepair.com',
+    replyTo: 'Contact@speedycreditrepair.com',
   },
 
   // Marketing & Engagement
@@ -165,25 +165,25 @@ export const EMAIL_ALIASES = {
     email: 'review-request@speedycreditrepair.com',
     name: 'Speedy Credit Repair - Review Request',
     purpose: 'Review requests, testimonials',
-    replyTo: 'support@speedycreditrepair.com',
+    replyTo: 'Contact@speedycreditrepair.com',
   },
   NEWSLETTER: {
     email: 'newsletter@speedycreditrepair.com',
     name: 'Speedy Credit Repair Newsletter',
     purpose: 'Monthly newsletters, updates',
-    replyTo: 'info@speedycreditrepair.com',
+    replyTo: 'Contact@speedycreditrepair.com',
   },
   PROMO: {
     email: 'promo@speedycreditrepair.com',
     name: 'Speedy Credit Repair - Special Offer',
     purpose: 'Promotional emails, special offers',
-    replyTo: 'info@speedycreditrepair.com',
+    replyTo: 'Contact@speedycreditrepair.com',
   },
   REFERRAL: {
     email: 'referral@speedycreditrepair.com',
     name: 'Speedy Credit Repair - Referral Program',
     purpose: 'Referral program communications',
-    replyTo: 'support@speedycreditrepair.com',
+    replyTo: 'Contact@speedycreditrepair.com',
   },
 };
 
@@ -535,7 +535,7 @@ await emailService.send({
 
 // Example 4: Urgent alert
 await emailService.send({
-  to: 'chris@speedycreditrepair.com',
+  to: 'Contact@speedycreditrepair.com',
   type: 'URGENT_ALERT',
   subject: 'URGENT: New Hot Lead - Score 95/100',
   html: hotLeadAlertTemplate,

@@ -15,6 +15,7 @@
 
 import React from 'react';
 import { Box, Typography, Link, useTheme } from '@mui/material';
+import { COMPANY_INFO, COPYRIGHT_TEXT, TRADEMARK_TEXT } from '@/config/constants';
 
 const GlobalFooter = ({ variant = 'default' }) => {
   const theme = useTheme();
@@ -62,14 +63,14 @@ const GlobalFooter = ({ variant = 'default' }) => {
         sx={{ mb: 0.5 }}
         className="dark:text-gray-400"
       >
-        © 1995-{currentYear} Speedy Credit Repair Inc. | Created By{' '}
+        © {COMPANY_INFO.founded}-{currentYear} {COMPANY_INFO.name} | Created By{' '}
         <Link
-          href="mailto:chris@speedycreditrepair.com"
+          href={`mailto:${COMPANY_INFO.email}`}
           color="primary"
           underline="hover"
           sx={{ fontWeight: 500 }}
         >
-          Chris Lahage
+          {COMPANY_INFO.creator}
         </Link>
         {' '}| All Rights Reserved
       </Typography>
@@ -81,7 +82,7 @@ const GlobalFooter = ({ variant = 'default' }) => {
         sx={{ display: 'block' }}
         className="dark:text-gray-500"
       >
-        Speedy Credit Repair® is a registered trademark of Speedy Credit Repair Inc.
+        {TRADEMARK_TEXT}
       </Typography>
 
       {/* Optional Additional Information */}
@@ -104,14 +105,14 @@ const GlobalFooter = ({ variant = 'default' }) => {
           >
             Serving all 50 states |{' '}
             <Link
-              href="https://myclevercrm.com"
+              href={COMPANY_INFO.website}
               target="_blank"
               rel="noopener noreferrer"
               color="primary"
               underline="hover"
               fontSize="inherit"
             >
-              myclevercrm.com
+              {COMPANY_INFO.websiteDisplay}
             </Link>
           </Typography>
         </>

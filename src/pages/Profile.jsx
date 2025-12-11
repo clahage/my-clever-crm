@@ -10,8 +10,8 @@ const Profile = () => {
   const [profile, setProfile] = useState({
     firstName: 'Chris',
     lastName: 'Lahage',
-    email: currentUser?.email || 'chris@speedycreditrepair.com',
-    phone: '+1 (555) 123-4567',
+    email: currentUser?.email || 'Contact@speedycreditrepair.com',
+    phone: '+1 888-724-7344',
     address: 'Huntington Beach, CA',
     role: 'Administrator',
     joinDate: 'January 2024',

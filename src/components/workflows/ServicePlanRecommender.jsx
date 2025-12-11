@@ -115,7 +115,7 @@ const ServicePlanRecommender = ({
         id: contactId,
         name: 'John Doe',
         email: 'john.doe@example.com',
-        phone: '555-123-4567'
+        phone: '888-724-7344'
       };
 
       const mockCreditData = {

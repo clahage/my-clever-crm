@@ -134,7 +134,7 @@ const generateMockContract = (id, status = 'sent') => {
     contactId: 'contact_123',
     contactName: 'John Anderson',
     contactEmail: 'john.anderson@example.com',
-    contactPhone: '(555) 123-4567',
+    contactPhone: '888-724-7344',
     planId: 'standard',
     status: status,
     createdAt: baseDate,

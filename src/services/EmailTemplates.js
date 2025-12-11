@@ -138,14 +138,16 @@ const emailWrapper = (content) => `
     </div>
     ${content}
     <div class="email-footer">
-      <p><strong>Speedy Credit Repair</strong></p>
-      <p>Phone: (800) 555-CREDIT | Email: support@speedycreditrepair.com</p>
+      <p><strong>Speedy Credit Repair Inc.</strong></p>
+      <p>117 Main Street Suite 202, Huntington Beach, California 92648</p>
+      <p>Phone: 888-724-7344 | Email: Contact@speedycreditrepair.com</p>
       <p>Website: <a href="https://speedycreditrepair.com">speedycreditrepair.com</a></p>
       <div class="social-links">
         <a href="#">Facebook</a> | <a href="#">Twitter</a> | <a href="#">LinkedIn</a>
       </div>
       <p style="font-size: 12px; color: #999; margin-top: 20px;">
-        © ${new Date().getFullYear()} Speedy Credit Repair. All rights reserved.<br>
+        © 1995-${new Date().getFullYear()} Speedy Credit Repair Inc. | Created by Chris Lahage | All Rights Reserved<br>
+        Speedy Credit Repair® is a registered trademark (USPTO). Violations prosecuted.<br>
         <a href="{{unsubscribeUrl}}">Unsubscribe</a> | <a href="{{preferencesUrl}}">Email Preferences</a>
       </p>
     </div>
@@ -183,8 +185,8 @@ export const WELCOME_NEW_CLIENT = {
 
       <p><strong>Need help?</strong> Our team is here for you:</p>
       <ul>
-        <li>📧 Email: support@speedycreditrepair.com</li>
-        <li>📞 Phone: (800) 555-CREDIT</li>
+        <li>📧 Email: Contact@speedycreditrepair.com</li>
+        <li>📞 Phone: 888-724-7344</li>
         <li>💬 Live Chat: Available in your dashboard</li>
       </ul>
 
@@ -287,7 +289,7 @@ export const PAYMENT_FAILED = {
 
       <p>Need assistance? Our billing team is here to help:<br>
       📧 payment-failed@speedycreditrepair.com<br>
-      📞 (800) 555-CREDIT</p>
+      📞 888-724-7344</p>
     </div>
   `),
   variables: ['firstName', 'amount', 'attemptDate', 'failureReason', 'updatePaymentUrl'],
@@ -634,7 +636,7 @@ export const SIGNATURE_REQUIRED = {
 
       <p>Questions? We're here to help:<br>
       📧 signature-required@speedycreditrepair.com<br>
-      📞 (800) 555-CREDIT</p>
+      📞 888-724-7344</p>
     </div>
   `),
   variables: ['firstName', 'documentName', 'daysRemaining', 'importance', 'signingUrl'],
@@ -817,7 +819,7 @@ export const URGENT_ACTION_REQUIRED = {
       <a href="${vars.actionUrl || '#'}" class="button" style="background-color: #f44336;">Take Action Now</a>
 
       <p><strong>This requires immediate attention.</strong></p>
-      <p>Contact us: urgent@speedycreditrepair.com | (800) 555-CREDIT</p>
+      <p>Contact us: Contact@speedycreditrepair.com | 888-724-7344</p>
     </div>
   `),
   variables: ['firstName', 'urgentMessage', 'detailMessage', 'actionUrl'],
@@ -876,7 +878,7 @@ export const SYSTEM_NOTIFICATION = {
         <a href="${vars.actionUrl}" class="button">View Details</a>
       ` : ''}
 
-      <p>Questions? Contact support@speedycreditrepair.com</p>
+      <p>Questions? Contact Contact@speedycreditrepair.com</p>
     </div>
   `),
   variables: ['notificationType', 'notificationMessage', 'actionUrl'],

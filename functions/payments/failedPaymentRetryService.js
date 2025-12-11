@@ -86,7 +86,7 @@ function getClientRetryEmail(clientName, amount, attemptNumber, nextRetryDate) {
 
             <p>If you need to update your payment information or have questions, please log in to your client portal or contact us immediately.</p>
 
-            <p><strong>Need help?</strong> Contact us at billing@speedycreditrepair.com or call (555) 123-4567</p>
+            <p><strong>Need help?</strong> Contact us at billing@speedycreditrepair.com or call 888-724-7344</p>
 
             <p>Best regards,<br>
             <strong>Speedy Credit Repair Team</strong></p>
@@ -153,7 +153,7 @@ function getFinalFailureEmail(clientName, amount) {
             <p><strong>Contact us now:</strong></p>
             <ul>
               <li>Email: billing@speedycreditrepair.com</li>
-              <li>Phone: (555) 123-4567</li>
+              <li>Phone: 888-724-7344</li>
               <li>Client Portal: Update payment method</li>
             </ul>
 
@@ -169,7 +169,7 @@ function getFinalFailureEmail(clientName, amount) {
       </body>
       </html>
     `,
-    text: `CRITICAL: Hi ${clientName},\n\nAll payment attempts for $${parseFloat(amount).toFixed(2)} have failed after ${MAX_RETRY_ATTEMPTS} attempts.\n\nImmediate action required:\n- Contact billing immediately\n- Update payment information\n- Make alternative arrangements\n\nContact: billing@speedycreditrepair.com or (555) 123-4567\n\nBest regards,\nSpeedy Credit Repair Team`
+    text: `CRITICAL: Hi ${clientName},\n\nAll payment attempts for $${parseFloat(amount).toFixed(2)} have failed after ${MAX_RETRY_ATTEMPTS} attempts.\n\nImmediate action required:\n- Contact billing immediately\n- Update payment information\n- Make alternative arrangements\n\nContact: billing@speedycreditrepair.com or 888-724-7344\n\nBest regards,\nSpeedy Credit Repair Team`
   };
 }
 

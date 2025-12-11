@@ -976,7 +976,7 @@ const IDIQEnrollmentWizard = ({ onComplete, partnerId = '11981' }) => {
                 onBlur={handleFieldBlur}
                 error={touched.phone && Boolean(errors.phone)}
                 helperText={touched.phone && errors.phone}
-                placeholder="(555) 123-4567"
+                placeholder="888-724-7344"
               />
             </Grid>
           </Grid>

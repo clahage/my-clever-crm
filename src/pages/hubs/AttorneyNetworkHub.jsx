@@ -203,7 +203,7 @@ const SAMPLE_ATTORNEYS = [
     name: 'Smith & Associates',
     contact: 'John Smith, Esq.',
     email: 'jsmith@smithlaw.com',
-    phone: '(555) 123-4567',
+    phone: '888-724-7344',
     location: 'New York, NY',
     practiceAreas: ['FCRA Litigation', 'FDCPA Defense', 'Consumer Protection'],
     rating: 4.9,

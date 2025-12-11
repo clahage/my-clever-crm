@@ -36,11 +36,11 @@ const { getEmailTemplate } = require('./emailTemplates');
 
 // Google Workspace SMTP (using nodemailer)
 const nodemailer = require('nodemailer');
-const gmailUser = functions.config().gmail?.user || 'chris@speedycreditrepair.com';
+const gmailUser = functions.config().gmail?.user || 'Contact@speedycreditrepair.com';
 const gmailAppPassword = functions.config().gmail?.app_password;
-const fromEmail = functions.config().gmail?.from_email || 'chris@speedycreditrepair.com';
+const fromEmail = functions.config().gmail?.from_email || 'Contact@speedycreditrepair.com';
 const fromName = functions.config().gmail?.from_name || 'Chris Lahage - Speedy Credit Repair';
-const replyTo = functions.config().gmail?.reply_to || 'contact@speedycreditrepair.com';
+const replyTo = functions.config().gmail?.reply_to || 'Contact@speedycreditrepair.com';
 
 let transporter = null;
 

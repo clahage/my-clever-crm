@@ -75,22 +75,24 @@ const EMAIL_BRANDING = {
   contact: {
     phone: '1-888-724-7344',
     phoneDisplay: '(888) 724-7344',
-    email: 'chris@speedycreditrepair.com',
-    supportEmail: 'support@speedycreditrepair.com',
+    email: 'Contact@speedycreditrepair.com',
+    supportEmail: 'Contact@speedycreditrepair.com',
     address: {
-      street: '',
-      city: '',
-      state: 'CA',
-      zip: '',
-      country: 'USA'
+      street: '117 Main Street Suite 202',
+      city: 'Huntington Beach',
+      state: 'California',
+      stateAbbr: 'CA',
+      zip: '92648',
+      country: 'USA',
+      full: '117 Main Street Suite 202, Huntington Beach, California 92648'
     }
   },
 
   // Email Settings with AI optimization
   email: {
-    fromName: 'Chris Lahage - Speedy Credit Repair',
-    fromEmail: 'chris@speedycreditrepair.com',
-    replyTo: 'chris@speedycreditrepair.com',
+    fromName: 'Chris Lahage - Speedy Credit Repair Inc.',
+    fromEmail: 'Contact@speedycreditrepair.com',
+    replyTo: 'Contact@speedycreditrepair.com',
     bccEmail: null,
     
     // AI-optimized send times

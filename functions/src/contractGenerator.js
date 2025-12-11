@@ -179,7 +179,7 @@ exports.generateContract = functions
         COMPANY_CITY: 'Los Angeles',
         COMPANY_STATE: 'CA',
         COMPANY_ZIP: '90001',
-        COMPANY_PHONE: '(800) 555-CREDIT',
+        COMPANY_PHONE: '888-724-7344',
         COMPANY_EMAIL: 'support@speedycredit.com',
 
         // Legal

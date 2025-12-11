@@ -528,7 +528,7 @@ const DisputeTemplateManager = () => {
       '{{city}}': 'Springfield',
       '{{state}}': 'IL',
       '{{zip}}': '62701',
-      '{{phone}}': '(555) 123-4567',
+      '{{phone}}': '888-724-7344',
       '{{email}}': 'john.doe@example.com',
       '{{ssn_last4}}': '1234',
       '{{creditor}}': 'ABC Credit Company',

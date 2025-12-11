@@ -46,8 +46,8 @@ const { format, addMonths, addDays, addYears, differenceInDays } = require('date
 // Contract configuration
 const COMPANY_NAME = 'Speedy Credit Repair, LLC';
 const COMPANY_ADDRESS = '16755 Von Karman Ave Suite 200, Irvine, CA 92606';
-const COMPANY_PHONE = '(800) 555-0199';
-const COMPANY_EMAIL = 'support@speedycreditrepair.com';
+const COMPANY_PHONE = '888-724-7344';
+const COMPANY_EMAIL = 'Contact@speedycreditrepair.com';
 const COMPANY_WEBSITE = 'https://speedycreditrepair.com';
 
 // Legal compliance

@@ -360,7 +360,7 @@ const mockPartners = [
     companyName: 'CreditPro Solutions',
     contactName: 'Michael Johnson',
     email: 'michael@creditpro.com',
-    phone: '(555) 123-4567',
+    phone: '888-724-7344',
     tier: 'enterprise',
     status: 'active',
     joinDate: '2024-06-15',

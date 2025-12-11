@@ -722,8 +722,8 @@ async function handleCriticalEmail(commId, clientData, emailData, aiAnalysis, pr
 
   // Send URGENT alert to multiple channels
   await sgMail.send({
-    to: ['chris@speedycreditrepair.com', 'urgent@speedycreditrepair.com'],
-    from: 'alerts@speedycreditrepair.com',
+    to: ['Contact@speedycreditrepair.com', 'Contact@speedycreditrepair.com'],
+    from: 'Contact@speedycreditrepair.com',
     subject: `🚨 CRITICAL CLIENT EMAIL - ${clientData.name}`,
     html: generateCriticalAlertHTML(clientData, emailData, aiAnalysis, predictions, ticketRef.id)
   });
@@ -757,8 +757,8 @@ async function handleChurnRisk(commId, clientData, emailData, aiAnalysis, predic
 
   // Alert retention team
   await sgMail.send({
-    to: 'chris@speedycreditrepair.com',
-    from: 'alerts@speedycreditrepair.com',
+    to: 'Contact@speedycreditrepair.com',
+    from: 'Contact@speedycreditrepair.com',
     subject: `⚠️ CHURN RISK ALERT: ${clientData.name}`,
     html: generateChurnAlertHTML(clientData, emailData, predictions)
   });
@@ -779,8 +779,8 @@ async function sendIntelligentAutoResponse(commId, emailData, clientData, aiAnal
 
   await sgMail.send({
     to: emailData.senderEmail,
-    from: 'chris@speedycreditrepair.com',
-    replyTo: 'support@speedycreditrepair.com',
+    from: 'Contact@speedycreditrepair.com',
+    replyTo: 'Contact@speedycreditrepair.com',
     subject: `Re: ${emailData.subject}`,
     html: generateAutoResponseHTML(clientData.name, personalizedResponse, aiAnalysis)
   });
@@ -1204,8 +1204,8 @@ async function sendAcknowledgmentWithInsights(toEmail, clientName, subject, aiAn
   
   await sgMail.send({
     to: toEmail,
-    from: 'chris@speedycreditrepair.com',
-    replyTo: 'support@speedycreditrepair.com',
+    from: 'Contact@speedycreditrepair.com',
+    replyTo: 'Contact@speedycreditrepair.com',
     subject: `Re: ${subject}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">

@@ -223,7 +223,7 @@ const IDIQEnrollmentAssistant = ({
     assistantName: config.assistantName || 'SpeedyCRM Assistant',
     companyName: config.companyName || 'Speedy Credit Repair',
     companyPhone: config.companyPhone || '1-888-724-7344',
-    companyEmail: config.companyEmail || 'chris@speedycreditrepair.com',
+    companyEmail: config.companyEmail || 'Contact@speedycreditrepair.com',
     enableVoice: config.enableVoice !== false,
     enableAnalytics: config.enableAnalytics !== false,
     enableKnowledgeBase: config.enableKnowledgeBase !== false,
