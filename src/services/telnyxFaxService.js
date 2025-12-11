@@ -17,7 +17,7 @@
  * @date 2025-12-04
  */
 
-import { db } from '../firebase/config';
+import { db } from '../lib/firebase';
 import {
   collection,
   addDoc,

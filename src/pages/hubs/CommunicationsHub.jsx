@@ -2242,6 +2242,7 @@ const UltimateCommunicationsHub = () => {
           <Tab value="inbox" label="Inbox" icon={<Inbox className="w-5 h-5" />} iconPosition="start" />
           <Tab value="analytics" label="Analytics" icon={<BarChart3 className="w-5 h-5" />} iconPosition="start" />
           <Tab value="settings" label="Settings" icon={<Settings className="w-5 h-5" />} iconPosition="start" />
+            <Tab value="quick-contact-converter" label="Quick Contact Converter" icon={<Users className="w-5 h-5" />} iconPosition="start" />
         </Tabs>
 
         <Box sx={{ p: { xs: 2, md: 3 } }}>
@@ -2254,6 +2255,7 @@ const UltimateCommunicationsHub = () => {
           {activeTab === 'inbox' && renderInboxTab()}
           {activeTab === 'analytics' && renderAnalyticsTab()}
           {activeTab === 'settings' && renderSettingsTab()}
+          {activeTab === 'quick-contact-converter' && <QuickContactConverter />}
         </Box>
       </Paper>
     </Box>

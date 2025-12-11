@@ -152,7 +152,7 @@ import {
   setDoc,
 } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '@/authContext';
 import { format } from 'date-fns';
 
 // ============================================================================

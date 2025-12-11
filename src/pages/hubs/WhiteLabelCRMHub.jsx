@@ -146,7 +146,6 @@ import {
   ChevronRight,
   ChevronDown,
   ChevronUp,
-  ExpandMore,
   MoreHorizontal,
   MoreVertical,
   Lock,
@@ -206,7 +205,6 @@ import {
   Megaphone,
   Gift,
   PartyPopper,
-  Confetti,
   Heart,
   ThumbsUp,
   ThumbsDown,
@@ -233,7 +231,6 @@ import {
   Bug,
   TestTube,
   Wrench,
-  Tool,
   Hammer,
   Cog,
   Settings2,
@@ -2227,7 +2224,20 @@ const WhiteLabelCRMHub = () => {
         {activeTab === 9 && <SettingsTab />}
       </Box>
     </Container>
-  );
+	);
 };
 
-export default WhiteLabelCRMHub;
+// Add Confetti globally to the hub for a celebratory effect
+// You can later control when it appears with state if needed
+import Confetti from 'react-confetti';
+
+function WhiteLabelCRMHubWithConfetti(props) {
+  return (
+    <>
+      <Confetti width={window.innerWidth} height={window.innerHeight} />
+      <WhiteLabelCRMHub {...props} />
+    </>
+  );
+}
+
+export default WhiteLabelCRMHubWithConfetti;

@@ -152,7 +152,7 @@ import {
   Repeat,
   ExternalLink,
 } from 'lucide-react';
-import { collection, doc, addDoc, updateDoc, getDoc, getDocs, query, where, orderBy, limit, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { collection, doc, addDoc, updateDoc, setDoc, getDoc, getDocs, query, where, orderBy, limit, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
 import { format, formatDistanceToNow } from 'date-fns';
@@ -568,7 +568,39 @@ const UltimateSettingsHub = () => {
         <Button
           variant="contained"
           startIcon={<Save />}
-          onClick={() => setSuccess('Settings saved successfully!')}
+          onClick={async () => {
+            try {
+              const settingsRef = doc(db, 'settings', 'system');
+              await updateDoc(settingsRef, {
+                companyName: generalSettings.companyName,
+                companyEmail: generalSettings.companyEmail,
+                companyPhone: generalSettings.companyPhone,
+                timezone: generalSettings.timezone,
+                dateFormat: generalSettings.dateFormat,
+                currency: generalSettings.currency,
+                // add other fields as needed
+              });
+              setSuccess('Settings saved successfully!');
+            } catch (err) {
+              // Always try to create the document if update fails
+              try {
+                const settingsRef = doc(db, 'settings', 'system');
+                await setDoc(settingsRef, {
+                  companyName: generalSettings.companyName,
+                  companyEmail: generalSettings.companyEmail,
+                  companyPhone: generalSettings.companyPhone,
+                  timezone: generalSettings.timezone,
+                  dateFormat: generalSettings.dateFormat,
+                  currency: generalSettings.currency,
+                  // add other fields as needed
+                });
+                setSuccess('Settings created and saved successfully!');
+              } catch (createErr) {
+                setSuccess('Error saving or creating settings: ' + createErr.message);
+                console.error('Error saving or creating settings:', createErr);
+              }
+            }
+          }}
         >
           Save Changes
         </Button>

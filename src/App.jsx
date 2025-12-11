@@ -13,6 +13,7 @@ import ProtectedLayout from '@/layout/ProtectedLayout';
 // Existing imports...
 import Products from '@/pages/Products';
 import IDIQEnrollmentWizard from './components/IDIQEnrollmentWizard';
+import FinancialPlanningHub from './pages/hubs/FinancialPlanningHub.jsx';
 
 // ============================================================================
 // LOADING COMPONENT
@@ -573,6 +574,7 @@ const AppContent = () => {
     </ProtectedRoute>
   }
 />
+
 
 {/* Affiliates Hub - Complete affiliate management */}
 <Route
@@ -1152,6 +1154,8 @@ const AppContent = () => {
     </ProtectedRoute>
   }
 />
+
+        <Route path="financial-planning-hub" element={<ProtectedRoute requiredRole="user"><Suspense fallback={<LoadingFallback />}><FinancialPlanningHub /></Suspense></ProtectedRoute>} />
 
   {/* 404 - NOT FOUND */}
         <Route path="*" element={
