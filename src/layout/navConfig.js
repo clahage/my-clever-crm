@@ -170,6 +170,20 @@ export function isVisible(item, userRole, isMobile = false) {
 // ============================================================================
 
 export const navigationItems = [
+  // ==========================================================================
+  // 🎯 SMART DASHBOARD - PRIMARY LANDING
+  // ==========================================================================
+  {
+    id: 'smart-dashboard',
+    title: 'Smart Dashboard',
+    path: '/smart-dashboard',
+    icon: Sparkles,
+    permission: 'prospect',
+    mobileHidden: false,
+    badge: 'AI',
+    description: 'Intelligent role-adaptive dashboard with AI insights',
+    category: 'core'
+  },
   // ========================================================================
   // 🛒 PRODUCTS & SERVICES HUB - NEW TOP LEVEL
   // ========================================================================
@@ -209,20 +223,6 @@ export const navigationItems = [
       }
       // Add more sub-items as needed
     ]
-  },
-  // ==========================================================================
-  // 🎯 SMART DASHBOARD - PRIMARY LANDING
-  // ==========================================================================
-  {
-    id: 'smart-dashboard',
-    title: 'Smart Dashboard',
-    path: '/smart-dashboard',
-    icon: Sparkles,
-    permission: 'prospect',
-    mobileHidden: false,
-    badge: 'AI',
-    description: 'Intelligent role-adaptive dashboard with AI insights',
-    category: 'core'
   },
 
   // ==========================================================================
