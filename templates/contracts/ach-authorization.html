@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ACH Automatic Payment Authorization</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .header { text-align: center; margin-bottom: 30px; border-bottom: 3px solid #4CAF50; padding-bottom: 20px; }
+        .section { margin-bottom: 25px; }
+        .section h2 { color: #4CAF50; border-bottom: 2px solid #e0e0e0; padding-bottom: 10px; }
+        .important-box { background-color: #fff9c4; border: 2px solid #fbc02d; padding: 15px; margin: 15px 0; }
+        .security-box { background-color: #e8f5e9; border-left: 4px solid #4CAF50; padding: 15px; margin: 15px 0; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        table td { padding: 10px; border: 1px solid #ddd; }
+        table td.label { font-weight: bold; width: 40%; background-color: #f5f5f5; }
+        .bank-info-form { background-color: #f9f9f9; padding: 20px; border: 2px solid #4CAF50; margin: 20px 0; }
+        .signature-block { margin-top: 40px; padding-top: 20px; border-top: 2px solid #333; }
+        .footer { margin-top: 50px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 11px; color: #666; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>ACH AUTOMATIC PAYMENT AUTHORIZATION</h1>
+        <h2>Recurring Payment Authorization Form</h2>
+        <p><strong>Speedy Credit Repair Inc.</strong></p>
+    </div>
+
+    <div class="section">
+        <h2>1. Authorization Information</h2>
+        <table>
+            <tr><td class="label">Authorization Date:</td><td>{{CONTRACT_DATE}}</td></tr>
+            <tr><td class="label">Associated Contract Number:</td><td>{{CONTRACT_NUMBER}}</td></tr>
+            <tr><td class="label">Service Plan:</td><td>{{PLAN_NAME}}</td></tr>
+            <tr><td class="label">Monthly Payment Amount:</td><td><strong>{{MONTHLY_FEE}}</strong></td></tr>
+            <tr><td class="label">First Payment Date:</td><td>{{FIRST_PAYMENT_DATE}}</td></tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>2. Account Holder Information</h2>
+        <table>
+            <tr><td class="label">Full Legal Name:</td><td>{{CLIENT_NAME}}</td></tr>
+            <tr><td class="label">Email Address:</td><td>{{CLIENT_EMAIL}}</td></tr>
+            <tr><td class="label">Phone Number:</td><td>{{CLIENT_PHONE}}</td></tr>
+            <tr><td class="label">Billing Address:</td><td>{{CLIENT_ADDRESS}}, {{CLIENT_CITY}}, {{CLIENT_STATE}} {{CLIENT_ZIP}}</td></tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>3. Bank Account Information</h2>
+        <div class="bank-info-form">
+            <p><strong>Please provide your banking information for automatic monthly payments:</strong></p>
+            <br>
+            <p><strong>Account Type:</strong></p>
+            <p>☐ Checking &nbsp;&nbsp;&nbsp; ☐ Savings</p>
+            <br>
+            <p><strong>Bank Name:</strong> _________________________________________________</p>
+            <br>
+            <p><strong>Routing Number (9 digits):</strong> ___ ___ ___  ___ ___ ___  ___ ___ ___</p>
+            <p><em>The routing number is the first set of numbers on the bottom left of your check.</em></p>
+            <br>
+            <p><strong>Account Number:</strong> ________________________________________________</p>
+            <p><em>The account number is the second set of numbers on the bottom of your check.</em></p>
+            <br>
+            <p><strong>Name(s) on Account:</strong> ___________________________________________</p>
+        </div>
+
+        <div class="security-box">
+            <h3 style="margin-top: 0;">🔒 Your Information is Secure</h3>
+            <p>Your banking information is encrypted and stored securely in compliance with PCI-DSS standards. We will never share your banking information with third parties except as necessary to process your payments.</p>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>4. Payment Authorization</h2>
+        <p>By signing this authorization form, I, <strong>{{CLIENT_NAME}}</strong>, authorize <strong>Speedy Credit Repair Inc.</strong> to electronically debit my bank account indicated above for the following:</p>
+
+        <h3>Authorized Charges:</h3>
+        <ul>
+            <li><strong>Monthly Service Fee:</strong> {{MONTHLY_FEE}} charged on or around the same day each month</li>
+            <li><strong>Per-Deletion Fees:</strong> Variable amounts based on successful deletions (if applicable to service plan)</li>
+            <li><strong>Setup Fee:</strong> {{SETUP_FEE}} (one-time charge, if applicable)</li>
+            <li><strong>Late Fees:</strong> As outlined in the Service Agreement (if applicable)</li>
+        </ul>
+
+        <h3>Payment Schedule:</h3>
+        <p><strong>First Payment Date:</strong> {{FIRST_PAYMENT_DATE}}</p>
+        <p><strong>Recurring Payment Date:</strong> Same day of each month thereafter</p>
+        <p><strong>Payment Method:</strong> ACH Electronic Debit</p>
+    </div>
+
+    <div class="section">
+        <h2>5. Terms and Conditions</h2>
+
+        <h3>A. Authorization Duration</h3>
+        <p>This authorization will remain in effect until:</p>
+        <ul>
+            <li>I cancel in writing (minimum 15 days notice required)</li>
+            <li>The Service Agreement is terminated</li>
+            <li>{{CONTRACT_END_DATE}} (or until all services are paid in full)</li>
+        </ul>
+
+        <h3>B. Cancellation Rights</h3>
+        <p>I may revoke this authorization at any time by:</p>
+        <ul>
+            <li>Providing written notice to Speedy Credit Repair Inc. at {{COMPANY_EMAIL}}</li>
+            <li>Calling {{COMPANY_PHONE}} and following up with written confirmation</li>
+            <li>Providing at least 15 business days notice before the next scheduled payment</li>
+        </ul>
+        <p><strong>Important:</strong> Cancelling automatic payments does not cancel your Service Agreement. You are still responsible for paying amounts due under the Service Agreement.</p>
+
+        <h3>C. NSF (Non-Sufficient Funds) Policy</h3>
+        <div class="important-box">
+            <p><strong>NSF Fee:</strong> If a payment is returned due to non-sufficient funds, I agree to pay an NSF fee of <strong>$25</strong> per occurrence.</p>
+            <p><strong>Re-attempt Policy:</strong> Speedy Credit Repair Inc. may re-attempt the debit up to 2 additional times. After 3 failed attempts, automatic payment authorization may be suspended.</p>
+            <p><strong>Collection:</strong> I understand that I am still responsible for the monthly service fee even if the automatic payment fails. Unpaid balances may be subject to collection activities.</p>
+        </div>
+
+        <h3>D. Payment Changes</h3>
+        <p><strong>Price Changes:</strong> If the monthly service fee changes, Speedy Credit Repair Inc. will provide at least 30 days advance written notice via email to {{CLIENT_EMAIL}}.</p>
+        <p><strong>Bank Account Changes:</strong> If my bank account information changes, I agree to provide updated information at least 15 days before the next scheduled payment.</p>
+
+        <h3>E. Payment Processing</h3>
+        <p>I understand that:</p>
+        <ul>
+            <li>Payments are typically processed 1-2 business days before the scheduled payment date</li>
+            <li>Funds should be available in my account on the scheduled payment date</li>
+            <li>If the payment date falls on a weekend or holiday, processing may occur on the previous business day</li>
+            <li>It may take 2-3 business days for the debit to appear on my bank statement</li>
+        </ul>
+
+        <h3>F. Dispute Resolution</h3>
+        <p>If I believe an incorrect amount has been debited from my account, I agree to:</p>
+        <ul>
+            <li>Contact Speedy Credit Repair Inc. within 5 business days at {{COMPANY_PHONE}}</li>
+            <li>Provide details of the disputed charge</li>
+            <li>Allow Speedy Credit Repair Inc. 10 business days to investigate and respond</li>
+        </ul>
+        <p>If the error is confirmed, any overpayment will be refunded or credited to my account within 10 business days.</p>
+
+        <h3>G. Bank Rights</h3>
+        <p>I understand that I have certain rights under NACHA (National Automated Clearing House Association) rules, including the right to stop payment on any ACH debit by notifying my bank at least 3 business days before the scheduled payment date.</p>
+    </div>
+
+    <div class="section">
+        <h2>6. Acknowledgments</h2>
+        <p>By signing below, I acknowledge and agree that:</p>
+        <ul>
+            <li>I am an authorized signer on the bank account listed above</li>
+            <li>I have sufficient authority to authorize these electronic debits</li>
+            <li>The information provided is accurate and complete</li>
+            <li>I have read and understand all terms and conditions of this authorization</li>
+            <li>I authorize Speedy Credit Repair Inc. to initiate electronic ACH debits to my account</li>
+            <li>I authorize my financial institution to accept and process these ACH debits</li>
+            <li>This authorization is in addition to, not in place of, the Service Agreement</li>
+            <li>I will maintain sufficient funds in my account for scheduled payments</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>7. NACHA Compliance</h2>
+        <p>This authorization complies with NACHA Operating Rules and Regulations. Speedy Credit Repair Inc. is committed to processing all ACH transactions in accordance with federal regulations and NACHA guidelines.</p>
+    </div>
+
+    <div class="signature-block">
+        <h2>8. Signatures</h2>
+        <p>By signing below, I authorize the recurring payments described in this document.</p>
+        <br><br>
+        <p><strong>ACCOUNT HOLDER SIGNATURE</strong></p>
+        <p>____________________________________________ Date: _______________</p>
+        <p>Print Name: {{CLIENT_NAME}}</p>
+        <br><br>
+        <p><strong>COMPANY REPRESENTATIVE</strong></p>
+        <p>____________________________________________ Date: _______________</p>
+        <p>{{OWNER_NAME}}, Owner</p>
+        <p>Speedy Credit Repair Inc.</p>
+        <br><br>
+    </div>
+
+    <div class="section" style="border: 2px solid #333; padding: 15px; background-color: #f5f5f5;">
+        <h2 style="margin-top: 0;">FOR COMPANY USE ONLY</h2>
+        <p>Authorization Received Date: _________________</p>
+        <p>Processed By: _________________</p>
+        <p>Entry in System: ☐ Yes &nbsp;&nbsp; Entry Date: _________________</p>
+        <p>First Payment Scheduled: _________________</p>
+        <p>Payment Processor ID: _________________</p>
+    </div>
+
+    <div class="footer">
+        © 1995-{{CURRENT_YEAR}} Speedy Credit Repair Inc. | Created By Chris Lahage | All Rights Reserved<br>
+        Speedy Credit Repair® is a registered trademark of Speedy Credit Repair Inc.<br>
+        Associated with Contract Number: {{CONTRACT_NUMBER}}
+    </div>
+</body>
+</html>

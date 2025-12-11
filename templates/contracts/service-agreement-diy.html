@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DIY Credit Repair Service Agreement</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #4CAF50;
+            padding-bottom: 20px;
+        }
+        .header h1 {
+            color: #4CAF50;
+            margin: 0;
+        }
+        .header .company-info {
+            font-size: 12px;
+            color: #666;
+            margin-top: 10px;
+        }
+        .section {
+            margin-bottom: 25px;
+        }
+        .section h2 {
+            color: #4CAF50;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        .section h3 {
+            color: #333;
+            margin-top: 15px;
+        }
+        .info-box {
+            background-color: #f9f9f9;
+            border-left: 4px solid #4CAF50;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        table td {
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+        table td.label {
+            font-weight: bold;
+            width: 40%;
+            background-color: #f5f5f5;
+        }
+        .signature-block {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #333;
+        }
+        .signature-line {
+            margin: 30px 0;
+        }
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            font-size: 11px;
+            color: #666;
+            text-align: center;
+        }
+        @media print {
+            body {
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- HEADER -->
+    <div class="header">
+        <h1>DIY CREDIT REPAIR SERVICE AGREEMENT</h1>
+        <div class="company-info">
+            <strong>Speedy Credit Repair Inc.</strong><br>
+            {{COMPANY_ADDRESS}}, {{COMPANY_CITY}}, {{COMPANY_STATE}} {{COMPANY_ZIP}}<br>
+            Phone: {{COMPANY_PHONE}} | Email: {{COMPANY_EMAIL}}<br>
+            Website: {{COMPANY_WEBSITE}}
+        </div>
+    </div>
+
+    <!-- CONTRACT INFORMATION -->
+    <div class="section">
+        <h2>1. Contract Information</h2>
+        <table>
+            <tr>
+                <td class="label">Contract Number:</td>
+                <td>{{CONTRACT_NUMBER}}</td>
+            </tr>
+            <tr>
+                <td class="label">Contract Date:</td>
+                <td>{{CONTRACT_DATE}}</td>
+            </tr>
+            <tr>
+                <td class="label">Service Start Date:</td>
+                <td>{{CONTRACT_START_DATE}}</td>
+            </tr>
+            <tr>
+                <td class="label">Service Plan:</td>
+                <td><strong>{{PLAN_NAME}}</strong></td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- CLIENT INFORMATION -->
+    <div class="section">
+        <h2>2. Client Information</h2>
+        <table>
+            <tr>
+                <td class="label">Client Name:</td>
+                <td>{{CLIENT_NAME}}</td>
+            </tr>
+            <tr>
+                <td class="label">Email:</td>
+                <td>{{CLIENT_EMAIL}}</td>
+            </tr>
+            <tr>
+                <td class="label">Phone:</td>
+                <td>{{CLIENT_PHONE}}</td>
+            </tr>
+            <tr>
+                <td class="label">Address:</td>
+                <td>{{CLIENT_ADDRESS}}, {{CLIENT_CITY}}, {{CLIENT_STATE}} {{CLIENT_ZIP}}</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- SERVICE DESCRIPTION -->
+    <div class="section">
+        <h2>3. Services Provided</h2>
+        <p>{{PLAN_DESCRIPTION}}</p>
+        <div class="info-box">
+            <h3>Included Features:</h3>
+            {{PLAN_FEATURES}}
+        </div>
+    </div>
+
+    <!-- PRICING AND PAYMENT -->
+    <div class="section">
+        <h2>4. Pricing and Payment Terms</h2>
+        <table>
+            <tr>
+                <td class="label">Monthly Fee:</td>
+                <td><strong>{{MONTHLY_FEE}}</strong></td>
+            </tr>
+            <tr>
+                <td class="label">Setup Fee:</td>
+                <td>{{SETUP_FEE}}</td>
+            </tr>
+            <tr>
+                <td class="label">Contract Length:</td>
+                <td>Month-to-month (no contract commitment)</td>
+            </tr>
+            <tr>
+                <td class="label">First Payment Date:</td>
+                <td>{{FIRST_PAYMENT_DATE}}</td>
+            </tr>
+            <tr>
+                <td class="label">Total First Payment:</td>
+                <td><strong>{{TOTAL_FIRST_PAYMENT}}</strong></td>
+            </tr>
+        </table>
+
+        <p><strong>Payment Terms:</strong> Monthly payments are due on the same day each month. Payments will be automatically charged to the payment method on file unless otherwise arranged.</p>
+    </div>
+
+    <!-- CANCELLATION POLICY -->
+    <div class="section">
+        <h2>5. Cancellation Policy</h2>
+        <div class="info-box">
+            <p><strong>Month-to-Month Service:</strong> This is a month-to-month service with no long-term contract commitment. You may cancel at any time with 30 days' written notice.</p>
+            <p><strong>How to Cancel:</strong> Send cancellation request via email to {{COMPANY_EMAIL}} or call {{COMPANY_PHONE}}.</p>
+            <p><strong>No Cancellation Fees:</strong> There are no cancellation fees or penalties for ending this service.</p>
+        </div>
+    </div>
+
+    <!-- CONSUMER RIGHTS -->
+    <div class="section">
+        <h2>6. Your Rights Under Federal Law</h2>
+        <p>Under the <strong>Credit Repair Organizations Act (CROA)</strong>, you have the following rights:</p>
+        <ul>
+            <li>You have the right to cancel this contract without penalty or obligation at any time before midnight of the 3rd business day after the date you signed this contract.</li>
+            <li>We cannot make any statement or representation that is false or misleading about our services.</li>
+            <li>We cannot charge or collect any fees until all promised services have been fully performed.</li>
+            <li>You have the right to sue us for violations of the CROA.</li>
+        </ul>
+
+        <h3>State-Specific Rights:</h3>
+        <p>{{STATE_COMPLIANCE}}</p>
+    </div>
+
+    <!-- CLIENT RESPONSIBILITIES -->
+    <div class="section">
+        <h2>7. Client Responsibilities</h2>
+        <p>As a DIY (Do-It-Yourself) plan member, you agree to:</p>
+        <ul>
+            <li>Use the provided tools, templates, and resources to manage your own credit repair process</li>
+            <li>Submit accurate information when using our platform</li>
+            <li>Maintain active access to your client portal account</li>
+            <li>Understand that this is a self-service plan with limited direct support</li>
+            <li>Follow all applicable federal and state laws when disputing credit report information</li>
+            <li>Not use our tools or resources for fraudulent or illegal purposes</li>
+        </ul>
+    </div>
+
+    <!-- COMPANY RESPONSIBILITIES -->
+    <div class="section">
+        <h2>8. Company Responsibilities</h2>
+        <p>Speedy Credit Repair Inc. agrees to:</p>
+        <ul>
+            <li>Provide access to AI-powered dispute letter templates and tools</li>
+            <li>Maintain your client portal and credit monitoring dashboard</li>
+            <li>Provide email support for technical and general questions</li>
+            <li>Protect your personal information in accordance with our Privacy Policy</li>
+            <li>Provide educational resources to support your credit repair journey</li>
+        </ul>
+    </div>
+
+    <!-- DISCLAIMERS -->
+    <div class="section">
+        <h2>9. Disclaimers and Limitations</h2>
+        <p><strong>No Guarantee of Results:</strong> While we provide tools and guidance, we cannot guarantee specific results or outcomes. Credit repair success depends on many factors, including the accuracy of disputed information and responses from credit bureaus.</p>
+
+        <p><strong>Self-Service Nature:</strong> This is a DIY plan. You are responsible for managing your own disputes and following up on results. We provide tools and templates, but you control the process.</p>
+
+        <p><strong>Limited Support:</strong> Support is provided via email only. Response times may vary (typically 24-48 business hours).</p>
+    </div>
+
+    <!-- MISCELLANEOUS -->
+    <div class="section">
+        <h2>10. Miscellaneous Provisions</h2>
+        <p><strong>Entire Agreement:</strong> This agreement constitutes the entire agreement between the parties and supersedes all prior discussions and agreements.</p>
+
+        <p><strong>Amendments:</strong> Any amendments to this agreement must be made in writing and signed by both parties.</p>
+
+        <p><strong>Governing Law:</strong> This agreement is governed by the laws of the State of {{STATE_NAME}} and federal law.</p>
+
+        <p><strong>Severability:</strong> If any provision of this agreement is found to be unenforceable, the remaining provisions shall remain in full effect.</p>
+    </div>
+
+    <!-- SIGNATURES -->
+    <div class="signature-block">
+        <h2>11. Signatures</h2>
+        <p>By signing below, both parties acknowledge that they have read, understood, and agree to all terms and conditions of this DIY Credit Repair Service Agreement.</p>
+
+        <div class="signature-line">
+            <p><strong>CLIENT SIGNATURE</strong></p>
+            <p>Signature: ___________________________________ Date: _______________</p>
+            <p>Print Name: {{CLIENT_NAME}}</p>
+        </div>
+
+        <div class="signature-line">
+            <p><strong>COMPANY REPRESENTATIVE</strong></p>
+            <p>Signature: ___________________________________ Date: _______________</p>
+            <p>Print Name: {{OWNER_NAME}}, Owner</p>
+            <p>Speedy Credit Repair Inc.</p>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+        © 1995-{{CURRENT_YEAR}} Speedy Credit Repair Inc. | Created By Chris Lahage | All Rights Reserved<br>
+        Speedy Credit Repair® is a registered trademark of Speedy Credit Repair Inc.<br>
+        Contract Number: {{CONTRACT_NUMBER}}
+    </div>
+</body>
+</html>

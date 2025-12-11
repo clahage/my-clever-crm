@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Limited Power of Attorney for Credit Repair</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .header { text-align: center; margin-bottom: 30px; border-bottom: 3px solid #333; padding-bottom: 20px; }
+        .section { margin-bottom: 25px; }
+        .section h2 { color: #333; border-bottom: 2px solid #e0e0e0; padding-bottom: 10px; }
+        .important-box { background-color: #fff9c4; border: 2px solid #fbc02d; padding: 15px; margin: 15px 0; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        table td { padding: 10px; border: 1px solid #ddd; }
+        table td.label { font-weight: bold; width: 40%; background-color: #f5f5f5; }
+        .signature-block { margin-top: 40px; padding-top: 20px; border-top: 2px solid #333; }
+        .notary-block { margin-top: 30px; padding: 20px; border: 2px dashed #333; background-color: #f5f5f5; }
+        .footer { margin-top: 50px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 11px; color: #666; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>LIMITED POWER OF ATTORNEY</h1>
+        <h2>For Credit Reporting and Credit Repair Purposes</h2>
+    </div>
+
+    <div class="section">
+        <h2>1. Principal (Client) Information</h2>
+        <table>
+            <tr><td class="label">Full Legal Name:</td><td>{{CLIENT_NAME}}</td></tr>
+            <tr><td class="label">Date of Birth:</td><td>{{CLIENT_DOB}}</td></tr>
+            <tr><td class="label">Last 4 Digits of SSN:</td><td>{{CLIENT_SSN_LAST4}}</td></tr>
+            <tr><td class="label">Current Address:</td><td>{{CLIENT_ADDRESS}}, {{CLIENT_CITY}}, {{CLIENT_STATE}} {{CLIENT_ZIP}}</td></tr>
+            <tr><td class="label">Email:</td><td>{{CLIENT_EMAIL}}</td></tr>
+            <tr><td class="label">Phone:</td><td>{{CLIENT_PHONE}}</td></tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>2. Agent (Attorney-in-Fact) Information</h2>
+        <table>
+            <tr><td class="label">Company Name:</td><td><strong>Speedy Credit Repair Inc.</strong></td></tr>
+            <tr><td class="label">Represented By:</td><td>{{OWNER_NAME}}, Owner</td></tr>
+            <tr><td class="label">Address:</td><td>{{COMPANY_ADDRESS}}, {{COMPANY_CITY}}, {{COMPANY_STATE}} {{COMPANY_ZIP}}</td></tr>
+            <tr><td class="label">Phone:</td><td>{{COMPANY_PHONE}}</td></tr>
+            <tr><td class="label">Email:</td><td>{{COMPANY_EMAIL}}</td></tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>3. Grant of Authority</h2>
+        <p>I, <strong>{{CLIENT_NAME}}</strong> ("Principal"), hereby grant to <strong>Speedy Credit Repair Inc.</strong> ("Agent") a <strong>LIMITED POWER OF ATTORNEY</strong> to act on my behalf for the following specific purposes only:</p>
+
+        <h3>Authorized Actions:</h3>
+        <ul>
+            <li>To obtain my credit reports from Equifax, Experian, TransUnion, and any other consumer reporting agencies</li>
+            <li>To review, analyze, and discuss my credit reports with credit bureaus</li>
+            <li>To submit disputes and letters on my behalf to credit bureaus regarding inaccurate, incomplete, unverifiable, or questionable information</li>
+            <li>To communicate with credit bureaus via mail, phone, fax, or electronic means regarding my credit reports</li>
+            <li>To receive responses and updates from credit bureaus regarding disputed items</li>
+            <li>To request investigations and re-investigations of disputed credit report information</li>
+            <li>To request verification and documentation from credit bureaus and creditors</li>
+            <li>To contact creditors, collection agencies, and data furnishers on my behalf regarding items appearing on my credit reports</li>
+            <li>To request goodwill adjustments and payment arrangements with creditors</li>
+            <li>To receive copies of investigation results and updated credit reports</li>
+        </ul>
+
+        <div class="important-box">
+            <h3 style="margin-top: 0;">⚠️ IMPORTANT LIMITATIONS:</h3>
+            <p>This Limited Power of Attorney is <strong>STRICTLY LIMITED</strong> to credit reporting and credit repair purposes as listed above. The Agent does NOT have authority to:</p>
+            <ul>
+                <li>Make financial transactions on my behalf</li>
+                <li>Open or close credit accounts</li>
+                <li>Apply for credit in my name</li>
+                <li>Access my bank accounts or financial assets</li>
+                <li>Sign contracts or agreements unrelated to credit repair</li>
+                <li>Make purchases or payments on my behalf (except for credit repair services)</li>
+                <li>Sell, transfer, or mortgage any of my property</li>
+                <li>Make healthcare or personal decisions on my behalf</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>4. Authorization Under FCRA</h2>
+        <p>Under the Fair Credit Reporting Act (FCRA), 15 U.S.C. § 1681 et seq., I hereby authorize Speedy Credit Repair Inc. to:</p>
+        <ul>
+            <li>Act as my authorized representative in all matters relating to my credit reports</li>
+            <li>Receive my credit reports and credit scores on my behalf</li>
+            <li>Dispute inaccurate, incomplete, or unverifiable information pursuant to FCRA § 1681i</li>
+            <li>Request reinvestigation of disputed items</li>
+            <li>Communicate with consumer reporting agencies as my representative</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>5. Effective Period</h2>
+        <p><strong>Effective Date:</strong> This Limited Power of Attorney is effective immediately upon signing and shall remain in effect until the earlier of:</p>
+        <ul>
+            <li>Completion of credit repair services as outlined in the Service Agreement dated {{CONTRACT_DATE}}</li>
+            <li>Termination of the Service Agreement between Principal and Agent</li>
+            <li>Written revocation by the Principal (see Section 6 below)</li>
+            <li>{{CONTRACT_END_DATE}} (unless extended by mutual written agreement)</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>6. Revocation Rights</h2>
+        <p>I understand that I have the right to revoke this Limited Power of Attorney at any time by:</p>
+        <ul>
+            <li>Providing written notice to Speedy Credit Repair Inc. via email to {{COMPANY_EMAIL}} or certified mail to {{COMPANY_ADDRESS}}</li>
+            <li>Providing a minimum of 15 days notice to allow the Agent to notify credit bureaus and creditors</li>
+            <li>Sending written revocation notice directly to any credit bureaus or creditors that have been contacted on my behalf</li>
+        </ul>
+        <p><strong>Effect of Revocation:</strong> Upon revocation, the Agent will immediately cease all activities on my behalf and will notify all relevant parties within 10 business days.</p>
+    </div>
+
+    <div class="section">
+        <h2>7. State-Specific Requirements</h2>
+        <p><strong>Governing Law:</strong> This Limited Power of Attorney is governed by the laws of the State of {{STATE_NAME}}.</p>
+        <p>{{STATE_COMPLIANCE}}</p>
+    </div>
+
+    <div class="section">
+        <h2>8. Acknowledgment and Consent</h2>
+        <p>By signing below, I acknowledge and confirm that:</p>
+        <ul>
+            <li>I have read and understand this Limited Power of Attorney in its entirety</li>
+            <li>I grant this authority voluntarily and of my own free will</li>
+            <li>I understand the Agent will use this authority only for credit repair purposes</li>
+            <li>I understand I can revoke this authority at any time with written notice</li>
+            <li>I authorize credit bureaus and creditors to communicate with the Agent regarding my credit reports</li>
+            <li>I understand that providing false information may result in criminal penalties</li>
+        </ul>
+    </div>
+
+    <div class="signature-block">
+        <h2>9. Principal's Signature</h2>
+        <p>I, {{CLIENT_NAME}}, being of sound mind and under no duress, do hereby grant this Limited Power of Attorney.</p>
+        <br>
+        <p>____________________________________________</p>
+        <p><strong>Signature of Principal (Client)</strong></p>
+        <br>
+        <p>Print Name: {{CLIENT_NAME}}</p>
+        <p>Date: {{CONTRACT_DATE}}</p>
+        <br><br>
+
+        <h2>10. Agent's Acceptance</h2>
+        <p>I, {{OWNER_NAME}}, on behalf of Speedy Credit Repair Inc., accept the appointment as Agent under this Limited Power of Attorney and agree to act in accordance with the authorities granted and limitations specified herein.</p>
+        <br>
+        <p>____________________________________________</p>
+        <p><strong>Signature of Agent</strong></p>
+        <br>
+        <p>Print Name: {{OWNER_NAME}}, Owner</p>
+        <p>Speedy Credit Repair Inc.</p>
+        <p>Date: {{CONTRACT_DATE}}</p>
+    </div>
+
+    <div class="notary-block">
+        <h2 style="text-align: center;">NOTARY ACKNOWLEDGMENT</h2>
+        <p style="text-align: center;"><em>(Required in some states - check state requirements)</em></p>
+        <br>
+        <p>State of ____________________</p>
+        <p>County of ____________________</p>
+        <br>
+        <p>On this _______ day of ______________, {{CURRENT_YEAR}}, before me, a Notary Public in and for said State, personally appeared {{CLIENT_NAME}}, known to me to be the person whose name is subscribed to the foregoing instrument, and acknowledged that they executed the same for the purposes therein contained.</p>
+        <br><br>
+        <p>____________________________________________</p>
+        <p>Notary Public Signature</p>
+        <br>
+        <p>My Commission Expires: ____________________</p>
+        <br>
+        <p>[NOTARY SEAL]</p>
+    </div>
+
+    <div class="footer">
+        © 1995-{{CURRENT_YEAR}} Speedy Credit Repair Inc. | Created By Chris Lahage | All Rights Reserved<br>
+        Speedy Credit Repair® is a registered trademark of Speedy Credit Repair Inc.<br>
+        Associated with Contract Number: {{CONTRACT_NUMBER}}
+    </div>
+</body>
+</html>

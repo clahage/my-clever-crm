@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Standard Plan Service Agreement</title>
+    <style>
+        body { font-family: 'Arial', sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .header { text-align: center; margin-bottom: 30px; border-bottom: 3px solid #2196F3; padding-bottom: 20px; }
+        .header h1 { color: #2196F3; margin: 0; }
+        .header .company-info { font-size: 12px; color: #666; margin-top: 10px; }
+        .section { margin-bottom: 25px; }
+        .section h2 { color: #2196F3; border-bottom: 2px solid #e0e0e0; padding-bottom: 10px; margin-bottom: 15px; }
+        .section h3 { color: #333; margin-top: 15px; }
+        .info-box { background-color: #f9f9f9; border-left: 4px solid #2196F3; padding: 15px; margin: 15px 0; }
+        .guarantee-box { background-color: #e3f2fd; border: 2px solid #2196F3; padding: 15px; margin: 15px 0; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        table td { padding: 10px; border: 1px solid #ddd; }
+        table td.label { font-weight: bold; width: 40%; background-color: #f5f5f5; }
+        .signature-block { margin-top: 40px; padding-top: 20px; border-top: 2px solid #333; }
+        .signature-line { margin: 30px 0; }
+        .footer { margin-top: 50px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 11px; color: #666; text-align: center; }
+        @media print { body { padding: 0; } }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>STANDARD PLAN SERVICE AGREEMENT</h1>
+        <div class="company-info">
+            <strong>Speedy Credit Repair Inc.</strong><br>
+            {{COMPANY_ADDRESS}}, {{COMPANY_CITY}}, {{COMPANY_STATE}} {{COMPANY_ZIP}}<br>
+            Phone: {{COMPANY_PHONE}} | Email: {{COMPANY_EMAIL}}<br>
+            Website: {{COMPANY_WEBSITE}}
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>1. Contract Information</h2>
+        <table>
+            <tr><td class="label">Contract Number:</td><td>{{CONTRACT_NUMBER}}</td></tr>
+            <tr><td class="label">Contract Date:</td><td>{{CONTRACT_DATE}}</td></tr>
+            <tr><td class="label">Service Start Date:</td><td>{{CONTRACT_START_DATE}}</td></tr>
+            <tr><td class="label">Contract End Date:</td><td>{{CONTRACT_END_DATE}}</td></tr>
+            <tr><td class="label">Service Plan:</td><td><strong>{{PLAN_NAME}}</strong></td></tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>2. Client Information</h2>
+        <table>
+            <tr><td class="label">Client Name:</td><td>{{CLIENT_NAME}}</td></tr>
+            <tr><td class="label">Email:</td><td>{{CLIENT_EMAIL}}</td></tr>
+            <tr><td class="label">Phone:</td><td>{{CLIENT_PHONE}}</td></tr>
+            <tr><td class="label">Address:</td><td>{{CLIENT_ADDRESS}}, {{CLIENT_CITY}}, {{CLIENT_STATE}} {{CLIENT_ZIP}}</td></tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>3. Services Provided</h2>
+        <p>{{PLAN_DESCRIPTION}}</p>
+        <div class="info-box">
+            <h3>Included Features:</h3>
+            {{PLAN_FEATURES}}
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>4. Pricing and Payment Terms</h2>
+        <table>
+            <tr><td class="label">Monthly Service Fee:</td><td><strong>{{MONTHLY_FEE}}</strong></td></tr>
+            <tr><td class="label">Setup Fee:</td><td>{{SETUP_FEE}}</td></tr>
+            <tr><td class="label">Per Deletion Fee:</td><td><strong>{{PER_DELETION_FEE}}</strong></td></tr>
+            <tr><td class="label">Contract Length:</td><td>{{CONTRACT_LENGTH}}</td></tr>
+            <tr><td class="label">First Payment Date:</td><td>{{FIRST_PAYMENT_DATE}}</td></tr>
+            <tr><td class="label">Total First Payment:</td><td><strong>{{TOTAL_FIRST_PAYMENT}}</strong></td></tr>
+        </table>
+
+        <h3>Per-Deletion Fee Structure:</h3>
+        <p>In addition to the monthly service fee, a success-based fee of <strong>{{PER_DELETION_FEE}}</strong> will be charged for each negative item successfully deleted from your credit reports. This fee is only charged upon confirmed deletion.</p>
+
+        <p><strong>Payment Terms:</strong> Monthly payments are due on the same day each month. Per-deletion fees are billed separately upon successful removal of items.</p>
+    </div>
+
+    <div class="section">
+        <h2>5. 30-Day Money-Back Guarantee</h2>
+        <div class="guarantee-box">
+            <h3>OUR GUARANTEE TO YOU:</h3>
+            <p>We stand behind our services with a <strong>30-Day Money-Back Guarantee</strong>. If you are not satisfied with our services within the first 30 days, you may cancel and receive a full refund of monthly fees paid (excluding per-deletion fees for items already successfully removed).</p>
+            <p><strong>To request a refund:</strong> Contact us at {{COMPANY_EMAIL}} or {{COMPANY_PHONE}} within 30 days of your contract start date.</p>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>6. Service Process and Timeline</h2>
+        <h3>Our Standard Process:</h3>
+        <ul>
+            <li><strong>Initial Analysis:</strong> Review of your credit reports to identify inaccurate or questionable items</li>
+            <li><strong>Dispute Strategy:</strong> Development of customized dispute strategy for your specific situation</li>
+            <li><strong>Monthly Disputes:</strong> Submission of professional disputes to credit bureaus on your behalf</li>
+            <li><strong>Bureau Communication:</strong> We handle all communication with credit bureaus (Equifax, Experian, TransUnion)</li>
+            <li><strong>Progress Reports:</strong> Monthly updates on dispute results and credit score changes</li>
+            <li><strong>Ongoing Support:</strong> Phone and email support throughout your contract period</li>
+        </ul>
+
+        <h3>Estimated Timeline:</h3>
+        <p>Most clients see initial results within 30-60 days, with significant improvements typically occurring over {{CONTRACT_MONTHS}} months. Results vary based on the complexity of your credit issues.</p>
+    </div>
+
+    <div class="section">
+        <h2>7. Client Responsibilities</h2>
+        <ul>
+            <li>Provide accurate and complete information about your credit history</li>
+            <li>Sign the Limited Power of Attorney authorizing us to communicate with credit bureaus on your behalf</li>
+            <li>Respond promptly to requests for additional information or documentation</li>
+            <li>Maintain timely monthly payments as outlined in this agreement</li>
+            <li>Review monthly progress reports and provide feedback</li>
+            <li>Not initiate your own disputes with credit bureaus during the contract period (this can interfere with our process)</li>
+            <li>Notify us immediately of any changes to your contact information</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>8. Company Responsibilities</h2>
+        <ul>
+            <li>Provide full-service professional dispute handling on your behalf</li>
+            <li>Monitor all three major credit bureaus monthly</li>
+            <li>Submit unlimited disputes per month as needed</li>
+            <li>Provide monthly progress reports detailing results</li>
+            <li>Offer phone and email support during business hours</li>
+            <li>Maintain confidentiality of your personal information</li>
+            <li>Comply with all federal and state credit repair regulations</li>
+            <li>Assign you a dedicated dispute specialist</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>9. Contract Term and Renewal</h2>
+        <p><strong>Initial Term:</strong> This agreement is for a period of {{CONTRACT_MONTHS}} months, beginning on {{CONTRACT_START_DATE}} and ending on {{CONTRACT_END_DATE}}.</p>
+
+        <p><strong>Automatic Renewal:</strong> This contract will automatically renew for successive one-month periods unless either party provides written notice of non-renewal at least 30 days before the end of the current term.</p>
+
+        <p><strong>Early Termination:</strong> You may terminate this agreement early with 30 days written notice. Early termination fees may apply if contract is terminated before the initial {{CONTRACT_MONTHS}}-month period ends.</p>
+    </div>
+
+    <div class="section">
+        <h2>10. Your Rights Under Federal Law</h2>
+        <p>Under the <strong>Credit Repair Organizations Act (CROA)</strong>, you have the following rights:</p>
+        <ul>
+            <li>You have the right to cancel this contract without penalty or obligation within 3 business days from the date you signed this contract.</li>
+            <li>We cannot make any false or misleading statements about our services.</li>
+            <li>We cannot charge or collect fees until promised services have been fully performed.</li>
+            <li>You have the right to sue us for violations of the CROA.</li>
+        </ul>
+
+        <h3>State-Specific Rights:</h3>
+        <p>{{STATE_COMPLIANCE}}</p>
+    </div>
+
+    <div class="section">
+        <h2>11. Disclaimers and Limitations</h2>
+        <p><strong>No Guarantee of Results:</strong> While we work diligently to remove inaccurate and questionable items from your credit reports, we cannot guarantee specific results. Credit bureaus make the final determination on disputed items.</p>
+
+        <p><strong>Accurate Information Cannot Be Removed:</strong> We can only dispute inaccurate, unverifiable, or questionable information. Accurate negative information that can be verified by creditors will remain on your credit report for the legally mandated time period.</p>
+
+        <p><strong>Limitation of Liability:</strong> Our liability is limited to the amount of fees you have paid for services. We are not liable for indirect, consequential, or punitive damages.</p>
+    </div>
+
+    <div class="signature-block">
+        <h2>12. Signatures</h2>
+        <p>By signing below, both parties acknowledge that they have read, understood, and agree to all terms and conditions of this Standard Plan Service Agreement.</p>
+
+        <div class="signature-line">
+            <p><strong>CLIENT SIGNATURE</strong></p>
+            <p>Signature: ___________________________________ Date: _______________</p>
+            <p>Print Name: {{CLIENT_NAME}}</p>
+        </div>
+
+        <div class="signature-line">
+            <p><strong>COMPANY REPRESENTATIVE</strong></p>
+            <p>Signature: ___________________________________ Date: _______________</p>
+            <p>Print Name: {{OWNER_NAME}}, Owner</p>
+            <p>Speedy Credit Repair Inc.</p>
+        </div>
+    </div>
+
+    <div class="footer">
+        © 1995-{{CURRENT_YEAR}} Speedy Credit Repair Inc. | Created By Chris Lahage | All Rights Reserved<br>
+        Speedy Credit Repair® is a registered trademark of Speedy Credit Repair Inc.<br>
+        Contract Number: {{CONTRACT_NUMBER}}
+    </div>
+</body>
+</html>
