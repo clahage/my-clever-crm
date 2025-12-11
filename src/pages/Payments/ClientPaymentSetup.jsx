@@ -437,7 +437,7 @@ const ClientPaymentSetup = () => {
                     type="tel"
                     value={zelleData.phone}
                     onChange={(e) => handleZelleChange('phone', e.target.value)}
-                    placeholder="(555) 123-4567"
+                    placeholder="888-724-7344"
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                   />
                 </div>

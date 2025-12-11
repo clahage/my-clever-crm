@@ -331,7 +331,7 @@ const UltimateSettingsHub = () => {
   const [generalSettings, setGeneralSettings] = useState({
     companyName: 'Speedy Credit Repair',
     companyEmail: 'support@speedycrm.com',
-    companyPhone: '+1 (555) 123-4567',
+    companyPhone: '+1 888-724-7344',
     timezone: 'America/New_York',
     dateFormat: 'MM/DD/YYYY',
     currency: 'USD',

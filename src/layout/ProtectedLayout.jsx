@@ -32,12 +32,13 @@ import {
   UserPlus,
   Users as UsersIcon
 } from 'lucide-react';
-import { 
-  navigationItems, 
-  filterNavigationByRole, 
+import {
+  navigationItems,
+  filterNavigationByRole,
   getMobileNavigation,
-  ROLES 
+  ROLES
 } from './navConfig';
+import GlobalFooter from '../components/common/GlobalFooter';
 
 // ============================================================================
 // PROTECTED LAYOUT COMPONENT
@@ -741,6 +742,9 @@ const ProtectedLayout = () => {
         {/* PAGE CONTENT */}
         <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 p-6">
           <Outlet />
+
+          {/* COPYRIGHT FOOTER */}
+          <GlobalFooter variant="default" />
         </main>
       </div>
 

@@ -1652,7 +1652,7 @@ const InformationSheet = ({
                             {...field}
                             fullWidth
                             label="Primary Phone"
-                            placeholder="(555) 123-4567"
+                            placeholder="888-724-7344"
                             error={Boolean(errors.primaryPhone || validationErrors.primaryPhone)}
                             helperText={errors.primaryPhone?.message || validationErrors.primaryPhone}
                             disabled={mode === 'view'}
@@ -1677,7 +1677,7 @@ const InformationSheet = ({
                             {...field}
                             fullWidth
                             label="Secondary Phone"
-                            placeholder="(555) 123-4567"
+                            placeholder="888-724-7344"
                             disabled={mode === 'view'}
                           />
                         )}
@@ -2799,7 +2799,7 @@ const InformationSheet = ({
                             {...field}
                             fullWidth
                             label="Employer Phone"
-                            placeholder="(555) 123-4567"
+                            placeholder="888-724-7344"
                             disabled={mode === 'view'}
                           />
                         )}

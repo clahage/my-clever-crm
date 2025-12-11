@@ -3221,8 +3221,8 @@ const FullAgreement = ({
                   Speedy Credit Repair LLC<br />
                   123 Main Street<br />
                   Los Angeles, CA 90001<br />
-                  Phone: (555) 123-4567<br />
-                  Email: support@speedycreditrepair.com
+                  Phone: 888-724-7344<br />
+                  Email: Contact@speedycreditrepair.com
                 </Typography>
               </Grid>
               

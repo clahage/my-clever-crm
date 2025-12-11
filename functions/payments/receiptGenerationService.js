@@ -35,7 +35,7 @@ function generateReceiptHTML(receiptData) {
     companyName = 'Speedy Credit Repair Inc.',
     companyAddress = '123 Business St, Suite 100',
     companyCity = 'Your City, ST 12345',
-    companyPhone = '(555) 123-4567',
+    companyPhone = '888-724-7344',
     companyEmail = 'billing@speedycreditrepair.com'
   } = receiptData;
 

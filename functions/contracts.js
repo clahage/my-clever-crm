@@ -72,7 +72,7 @@ const mergeTemplateData = (template, clientData, planData, additionalData = {}) 
     // Company info
     COMPANY_NAME: 'Speedy Credit Repair Inc.',
     COMPANY_PHONE: '(800) 555-0123',
-    COMPANY_EMAIL: 'chris@speedycreditrepair.com',
+    COMPANY_EMAIL: 'Contact@speedycreditrepair.com',
     COMPANY_WEBSITE: 'https://myclevercrm.com',
     OWNER_NAME: 'Chris Lahage',
     CURRENT_YEAR: new Date().getFullYear(),

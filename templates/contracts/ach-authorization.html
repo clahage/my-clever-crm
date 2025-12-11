@@ -186,10 +186,33 @@
         <p>Payment Processor ID: _________________</p>
     </div>
 
-    <div class="footer">
-        © 1995-{{CURRENT_YEAR}} Speedy Credit Repair Inc. | Created By Chris Lahage | All Rights Reserved<br>
-        Speedy Credit Repair® is a registered trademark of Speedy Credit Repair Inc.<br>
-        Associated with Contract Number: {{CONTRACT_NUMBER}}
+        <!-- ========================================================================
+         COPYRIGHT FOOTER
+         ======================================================================== -->
+    <div class="footer" style="text-align: center; margin-top: 50px; padding-top: 30px; border-top: 2px solid #333; font-size: 9pt; color: #333; page-break-inside: avoid;">
+        <p style="margin: 5px 0; font-weight: bold;">Speedy Credit Repair Inc.</p>
+        <p style="margin: 5px 0;">117 Main Street Suite 202, Huntington Beach, California 92648</p>
+        <p style="margin: 5px 0;">Phone: 888-724-7344 | Email: Contact@speedycreditrepair.com</p>
+        <p style="margin: 5px 0;">Website: https://speedycreditrepair.com</p>
+
+        <p style="margin: 15px 0 5px 0;">
+            © 1995-{{CURRENT_YEAR}} Speedy Credit Repair Inc. | Created by Chris Lahage | All Rights Reserved
+        </p>
+
+        <p style="margin: 5px 0; font-size: 8pt; line-height: 1.4;">
+            Speedy Credit Repair® is a registered trademark of Speedy Credit Repair Inc.,
+            registered with the United States Patent and Trademark Office (USPTO).
+            Unauthorized use of this trademark is a violation of federal law and will be
+            prosecuted to the fullest extent of the law.
+        </p>
+
+        <p style="margin: 10px 0 0 0; font-size: 7pt; color: #666;">
+            Document Version {{CONTRACT_VERSION}} | Contract: {{CONTRACT_NUMBER}} | Generated {{GENERATED_DATETIME}}
+        </p>
+
+        <p style="margin: 10px 0; font-size: 8pt;">
+            This document is a legally binding contract. Please retain a copy for your records.
+        </p>
     </div>
 </body>
 </html>

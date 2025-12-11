@@ -1147,11 +1147,11 @@ exports.testAiWebhook = functions.https.onRequest(async (req, res) => {
     // Create test call data
     const testCallData = {
       callId: 'test_' + Date.now(),
-      callerID: '(555) 123-4567',
+      callerID: '888-724-7344',
       callTimestamp: admin.firestore.FieldValue.serverTimestamp(),
       receivedAt: admin.firestore.FieldValue.serverTimestamp(),
       transcript: 'This is a test call transcript. The caller asked about credit repair services.',
-      phone: '(555) 123-4567',
+      phone: '888-724-7344',
       phoneConfirmed: true,
       email: 'test@example.com',
       firstName: 'John',

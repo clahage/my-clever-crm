@@ -2575,7 +2575,7 @@ const ContractSigningPortal = ({ contractId, onComplete }) => {
                   </ListItemIcon>
                   <ListItemText 
                     primary="Call Us"
-                    secondary="(555) 123-4567"
+                    secondary="888-724-7344"
                     primaryTypographyProps={{ variant: 'body2' }}
                     secondaryTypographyProps={{ variant: 'caption' }}
                   />
@@ -2586,7 +2586,7 @@ const ContractSigningPortal = ({ contractId, onComplete }) => {
                   </ListItemIcon>
                   <ListItemText 
                     primary="Email Support"
-                    secondary="support@speedycreditrepair.com"
+                    secondary="Contact@speedycreditrepair.com"
                     primaryTypographyProps={{ variant: 'body2' }}
                     secondaryTypographyProps={{ variant: 'caption' }}
                   />

@@ -16,7 +16,7 @@ export async function exampleLeadScoring() {
 
   const leadData = {
     caller: 'John Smith',
-    phone: '+1-555-123-4567',
+    phone: '+1-888-724-7344',
     email: 'john.smith@email.com',
     companyName: 'Self',
     jobTitle: 'Software Engineer',

@@ -64,8 +64,8 @@ const PowerOfAttorney = () => {
         state: 'CA',
         zip: '92648'
       },
-      phone: '(555) 123-4567',
-      email: 'support@speedycreditrepair.com'
+      phone: '888-724-7344',
+      email: 'Contact@speedycreditrepair.com'
     },
 
     // Granted Powers

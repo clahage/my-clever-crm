@@ -43,7 +43,7 @@ const { format, addDays, addMonths, startOfMonth } = require('date-fns');
 // ============================================================================
 
 const COMPANY_NAME = 'Speedy Credit Repair';
-const SUPPORT_EMAIL = 'support@speedycreditrepair.com';
+const SUPPORT_EMAIL = 'Contact@speedycreditrepair.com';
 const TEAM_NOTIFICATION_EMAIL = 'team@speedycreditrepair.com';
 
 // Firestore references

@@ -1671,13 +1671,13 @@ const ClientPlanSelection = ({ contactId, onComplete }) => {
                 <ListItemIcon>
                   <Phone size={16} />
                 </ListItemIcon>
-                <ListItemText primary="Call us at (555) 123-4567" />
+                <ListItemText primary="Call us at 888-724-7344" />
               </ListItem>
               <ListItem>
                 <ListItemIcon>
                   <Mail size={16} />
                 </ListItemIcon>
-                <ListItemText primary="Email support@speedycreditrepair.com" />
+                <ListItemText primary="Email Contact@speedycreditrepair.com" />
               </ListItem>
               <ListItem>
                 <ListItemIcon>

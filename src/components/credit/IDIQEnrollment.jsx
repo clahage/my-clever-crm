@@ -867,7 +867,7 @@ const IDIQEnrollment = () => {
                     label="Phone"
                     value={clientInfo.phone}
                     onChange={(e) => setClientInfo({ ...clientInfo, phone: e.target.value })}
-                    placeholder="(555) 123-4567"
+                    placeholder="888-724-7344"
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">

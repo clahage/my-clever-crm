@@ -4,7 +4,7 @@ import { collection, query, where, orderBy, onSnapshot, addDoc } from 'firebase/
 import { useAuth } from "@/contexts/AuthContext";
 import { PaperAirplaneIcon } from '@heroicons/react/24/outline';
 
-const MessageThread = ({ recipientEmail = 'admin@speedycreditrepair.com' }) => {
+const MessageThread = ({ recipientEmail = 'Contact@speedycreditrepair.com' }) => {
   const { user } = useAuth();
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');

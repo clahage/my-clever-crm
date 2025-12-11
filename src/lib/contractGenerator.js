@@ -91,7 +91,7 @@ export const mergeTemplateData = (template, clientData = {}, planData = {}, addi
       COMPANY_STATE: 'CA',
       COMPANY_ZIP: '12345',
       COMPANY_PHONE: '(800) 555-0123', // Update with actual phone
-      COMPANY_EMAIL: 'chris@speedycreditrepair.com',
+      COMPANY_EMAIL: 'Contact@speedycreditrepair.com',
       COMPANY_WEBSITE: 'https://myclevercrm.com',
       OWNER_NAME: 'Chris Lahage',
 

@@ -4,7 +4,7 @@ import { collection, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext.jsx';
 
 const ADMIN_EMAILS = [
-  'chris@speedycreditrepair.com',
+  'Contact@speedycreditrepair.com',
   'clahage@gmail.com'
 ];
 

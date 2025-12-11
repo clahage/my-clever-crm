@@ -421,7 +421,7 @@ const BASE_WRAPPER = (content, subject, contactData = {}) => {
         Speedy Credit Repair
       </p>
       <p style="margin: 0 0 8px 0;">
-        📞 (888) 724-7344 | ✉️ chris@speedycreditrepair.com
+        📞 (888) 724-7344 | ✉️ Contact@speedycreditrepair.com
       </p>
       <p style="margin: 0 0 20px 0;">
         🌐 <a href="https://speedycreditrepair.com" style="color: #1e40af;">www.speedycreditrepair.com</a>
@@ -646,7 +646,7 @@ const TEMPLATES = Object.freeze({
       <p style="margin: 20px 0 0 0;">
         <strong>Chris Lahage</strong><br>
         (888) 724-7344<br>
-        chris@speedycreditrepair.com
+        Contact@speedycreditrepair.com
       </p>
     `, `${data.firstName}, need help getting started?`)
   },
@@ -1128,7 +1128,7 @@ const TEMPLATES = Object.freeze({
         <strong>Chris Lahage</strong><br>
         Owner & Credit Expert<br>
         (888) 724-7344<br>
-        chris@speedycreditrepair.com
+        Contact@speedycreditrepair.com
       </p>
     `, `${data.firstName}, let's talk about your credit (no pressure)`)
   },
@@ -1334,7 +1334,7 @@ const TEMPLATES = Object.freeze({
         <strong>Chris Lahage</strong><br>
         Your Credit Repair Specialist<br>
         (888) 724-7344<br>
-        chris@speedycreditrepair.com
+        Contact@speedycreditrepair.com
       </p>
     `, `🎉 Welcome aboard, ${data.firstName}! Let's get to work`)
   },
@@ -1622,7 +1622,7 @@ const TEMPLATES = Object.freeze({
       <p style="margin: 20px 0 0 0;">
         <strong>Chris Lahage</strong><br>
         (888) 724-7344<br>
-        chris@speedycreditrepair.com
+        Contact@speedycreditrepair.com
       </p>
     `, `${data.firstName}, I'd hate to see you miss this opportunity`)
   },

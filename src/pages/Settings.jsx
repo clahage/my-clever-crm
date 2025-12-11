@@ -368,7 +368,7 @@ const Settings = () => {
                         <label className="block text-sm text-gray-600 mb-1">Email</label>
                         <input
                           type="email"
-                          placeholder="chris@speedycreditrepair.com"
+                          placeholder="Contact@speedycreditrepair.com"
                           className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
@@ -394,7 +394,7 @@ const Settings = () => {
                         <label className="block text-sm text-gray-600 mb-1">Fax Number</label>
                         <input
                           type="tel"
-                          placeholder="+1 (555) 123-4567"
+                          placeholder="+1 888-724-7344"
                           className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       </div>

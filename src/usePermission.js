@@ -6,7 +6,7 @@ export const usePermission = () => {
   const { user, userProfile, loading } = useAuth();
 
   // Admin email detection
-  const adminEmails = ["chris@speedycreditrepair.com", "clahage@gmail.com"];
+  const adminEmails = ["Contact@speedycreditrepair.com", "clahage@gmail.com"];
   const normalizedUserEmail = (user?.email || "").toLowerCase();
   const normalizedProfileEmail = (userProfile?.email || "").toLowerCase();
 
