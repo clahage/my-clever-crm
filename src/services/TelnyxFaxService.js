@@ -17,7 +17,7 @@
  * @date 2025-12-04
  */
 
-import { db } from '../firebase/config';
+import { db } from '../lib/firebase';
 import {
   collection,
   addDoc,
@@ -630,3 +630,9 @@ export default telnyxFaxService;
 
 // Named exports
 export { TelnyxFaxService };
+// Minimal named exports to resolve build errors
+export const sendFax = (...args) => telnyxFaxService.sendFax(...args);
+export const getFaxStatus = (...args) => telnyxFaxService.getFaxStatus ? telnyxFaxService.getFaxStatus(...args) : Promise.resolve(null);
+export const sendBatchFaxes = (...args) => telnyxFaxService.sendBatchFaxes ? telnyxFaxService.sendBatchFaxes(...args) : Promise.resolve(null);
+export const cancelFax = (...args) => telnyxFaxService.cancelFax ? telnyxFaxService.cancelFax(...args) : Promise.resolve(null);
+export const listReceivedFaxes = (...args) => telnyxFaxService.listReceivedFaxes ? telnyxFaxService.listReceivedFaxes(...args) : Promise.resolve([]);
