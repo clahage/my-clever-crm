@@ -475,7 +475,7 @@ const ServicePlanSelector = ({ contactId, onPlanSelected }) => {
         </DialogActions>
       </Dialog>
 
-      <GlobalFooter />
+      {/* Footer is rendered by ProtectedLayout; do not render here to avoid duplicates */}
     </Box>
   );
 };

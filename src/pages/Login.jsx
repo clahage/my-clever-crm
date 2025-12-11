@@ -2,11 +2,46 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { auth } from '../lib/firebase';
+import { fetchSignInMethodsForEmail } from 'firebase/auth';
 import { Mail, Lock, Eye, EyeOff, AlertCircle, Phone } from 'lucide-react';
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login, currentUser, loading } = useAuth();
+  const { login, loginWithGoogle, currentUser, loading } = useAuth();
+    // Google sign-in handler with account linking
+    const handleGoogleSignIn = async () => {
+      setError('');
+      setIsLoading(true);
+      try {
+        // Always use popup for localhost/dev to avoid browser security warnings
+        const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+        if (isLocal) {
+          await loginWithGoogle('popup');
+        } else {
+          await loginWithGoogle('redirect');
+        }
+        navigate('/smart-dashboard', { replace: true });
+      } catch (err) {
+        // Firebase error: account exists with different credential
+        if (err.code === 'auth/account-exists-with-different-credential' && err.customData?.email) {
+          try {
+            const methods = await fetchSignInMethodsForEmail(auth, err.customData.email);
+            if (methods.includes('password')) {
+              setError('An account already exists with this email using a password. Please sign in with email and password, then link your Google account from your profile settings.');
+            } else {
+              setError('An account already exists with this email using a different provider. Please use that provider to sign in.');
+            }
+          } catch (linkErr) {
+            setError('Account linking failed: ' + (linkErr.message || 'Unknown error'));
+          }
+        } else {
+          setError(err.message || 'Google sign-in failed');
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -160,6 +195,7 @@ const Login = () => {
               )}
             </button>
 
+
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-300"></div>
@@ -169,6 +205,26 @@ const Login = () => {
               </div>
             </div>
           </form>
+
+          <div className="mt-6">
+            <button
+              type="button"
+              onClick={handleGoogleSignIn}
+              disabled={isLoading}
+              className="w-full py-3 px-4 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 48 48">
+                <g>
+                  <path fill="#4285F4" d="M24 9.5c3.54 0 6.7 1.22 9.19 3.23l6.85-6.85C36.68 2.09 30.77 0 24 0 14.82 0 6.71 5.13 2.69 12.56l7.98 6.2C12.13 13.13 17.62 9.5 24 9.5z"/>
+                  <path fill="#34A853" d="M46.1 24.55c0-1.64-.15-3.22-.43-4.74H24v9.01h12.42c-.54 2.9-2.18 5.36-4.65 7.01l7.19 5.59C43.98 37.13 46.1 31.3 46.1 24.55z"/>
+                  <path fill="#FBBC05" d="M10.67 28.76c-1.13-3.36-1.13-6.99 0-10.35l-7.98-6.2C.89 16.09 0 19.91 0 24c0 4.09.89 7.91 2.69 11.79l7.98-6.2z"/>
+                  <path fill="#EA4335" d="M24 48c6.48 0 11.92-2.15 15.89-5.86l-7.19-5.59c-2.01 1.35-4.59 2.15-8.7 2.15-6.38 0-11.87-3.63-13.33-8.56l-7.98 6.2C6.71 42.87 14.82 48 24 48z"/>
+                  <path fill="none" d="M0 0h48v48H0z"/>
+                </g>
+              </svg>
+              {isLoading ? 'Signing in...' : 'Sign in with Google'}
+            </button>
+          </div>
 
           <div className="mt-6 text-center">
             <span className="text-sm text-gray-600">

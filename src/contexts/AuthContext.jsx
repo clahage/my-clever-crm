@@ -9,6 +9,7 @@ import {
   sendPasswordResetEmail,
   updateProfile
 } from 'firebase/auth';
+import { signInWithGoogle } from '../services/authService';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 
 const AuthContext = createContext({});
@@ -26,9 +27,15 @@ export const AuthProvider = ({ children }) => {
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
+
   // Login function
   const login = async (email, password) => {
     return signInWithEmailAndPassword(auth, email, password);
+  };
+
+  // Google login function
+  const loginWithGoogle = async () => {
+    return signInWithGoogle();
   };
 
   // Signup function
@@ -120,6 +127,7 @@ export const AuthProvider = ({ children }) => {
     userProfile,
     signup,
     login,
+    loginWithGoogle,
     logout,
     resetPassword,
     loading,

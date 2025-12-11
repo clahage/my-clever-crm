@@ -24,12 +24,12 @@
 import { db, storage } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp, updateDoc, doc, query, where, getDocs } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import axios from 'axios';
+import { auth } from '../lib/firebase';
 
 // Configuration
-const TELNYX_API_KEY = import.meta.env.VITE_TELNYX_API_KEY;
+
 const TELNYX_PHONE_NUMBER = import.meta.env.VITE_TELNYX_PHONE_NUMBER;
-const TELNYX_API_BASE = 'https://api.telnyx.com/v2';
+const FAX_CLOUD_FUNCTION_URL = 'https://us-central1-my-clever-crm.cloudfunctions.net/sendFaxOutbound';
 
 if (!TELNYX_API_KEY) {
   console.error('⚠️ TELNYX_API_KEY not found in environment variables');
@@ -84,28 +84,28 @@ export const sendFax = async ({
 
     console.log('📠 Sending fax to:', formattedTo);
 
-    // Send fax via Telnyx API
-    const response = await axios.post(
-      `${TELNYX_API_BASE}/faxes`,
-      {
-        connection_id: TELNYX_PHONE_NUMBER, // Your Telnyx connection ID
+    // Securely send fax via Cloud Function
+    const user = auth.currentUser;
+    if (!user) throw new Error('Must be authenticated');
+    const token = await user.getIdToken();
+
+    const response = await fetch(FAX_CLOUD_FUNCTION_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
         to: formattedTo,
         from: formattedFrom,
         media_url: documentUrl,
-        quality: 'high', // or 'normal'
-        store_media: true, // Keep a copy on Telnyx
-        webhook_url: `${window.location.origin}/api/webhooks/telnyx-fax`, // For status updates
-        webhook_failover_url: `${window.location.origin}/api/webhooks/telnyx-fax-failover`
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${TELNYX_API_KEY}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
+        connection_id: import.meta.env.VITE_TELNYX_CONNECTION_ID
+      })
+    });
 
-    const faxId = response.data.data.id;
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Fax send failed');
+    const faxId = data.data?.id || data.id;
 
     // Log to Firestore
     const logId = await logFaxToFirestore({

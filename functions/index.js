@@ -1,22 +1,133 @@
 ﻿// ============================================
-// functions/index.js - Firebase Cloud Functions for SpeedyCRM
-// VERSION: 3.0 - AUDIT REMEDIATION: Added secure AI service
-// Last Updated: 2025-10-20
+// IMPORTS (MUST BE AT THE TOP)
 // ============================================
-
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const cors = require('cors')({ origin: true });
 const fetch = require('node-fetch');
-
-// Webhook API Key for external services
-const WEBHOOK_API_KEY = 'scr-webhook-2025-secure-key-abc123';
-
-// ⚠️ REMOVED: OpenAI direct import (security risk)
-// OpenAI is now handled securely in aiService.js
-// const { OpenAI } = require('openai');
+const nodemailer = require('nodemailer');
 
 // ============================================
+// FAX SENDER (Secure Server-side)
+// ============================================
+exports.sendFaxOutbound = functions.https.onRequest(async (req, res) => {
+  setCors(req, res);
+  if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+
+  // Auth Check (same as email function)
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    res.status(401).json({ error: 'Unauthorized: Missing token' });
+    return;
+  }
+  const idToken = authHeader.split('Bearer ')[1];
+  try {
+    await admin.auth().verifyIdToken(idToken);
+  } catch (error) {
+    console.error('Auth verification failed:', error);
+    res.status(403).json({ error: 'Unauthorized: Invalid token' });
+    return;
+  }
+
+  try {
+    const { to, media_url, connection_id, from } = req.body;
+    // Call Telnyx from the SERVER side
+    const response = await fetch('https://api.telnyx.com/v2/faxes', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.TELNYX_API_KEY}`
+      },
+      body: JSON.stringify({
+        to,
+        from: from || process.env.TELNYX_PHONE_NUMBER,
+        connection_id: connection_id || process.env.TELNYX_CONNECTION_ID,
+        media_url,
+        quality: 'high'
+      })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.errors?.[0]?.detail || 'Telnyx Error');
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+// ============================================
+// RAW EMAIL SENDER (Add to functions/index.js)
+// ============================================
+
+exports.sendRawEmail = functions.https.onRequest((req, res) => {
+  // Wrap the entire logic in the cors middleware
+  cors(req, res, async () => {
+    // 1. Validate Authentication
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      res.status(401).json({ error: 'Unauthorized: Missing token' });
+      return;
+    }
+
+    const idToken = authHeader.split('Bearer ')[1];
+    try {
+      await admin.auth().verifyIdToken(idToken);
+    } catch (error) {
+      console.error('Auth verification failed:', error);
+      res.status(403).json({ error: 'Unauthorized: Invalid token' });
+      return;
+    }
+
+    // 2. Setup Nodemailer
+    // Try to get config from Firebase Config first, then process.env
+    const gmailUser = functions.config().gmail?.user || process.env.GMAIL_USER;
+    const gmailPass = functions.config().gmail?.pass || process.env.GMAIL_APP_PASSWORD;
+
+    if (!gmailUser || !gmailPass) {
+      console.error('Missing Gmail credentials in functions config');
+      res.status(500).json({ error: 'Server configuration error: Missing email credentials' });
+      return;
+    }
+
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: gmailUser,
+        pass: gmailPass,
+      },
+    });
+
+    try {
+      const { to, from, subject, html, text, replyTo, cc, bcc } = req.body;
+
+      const mailOptions = {
+        from: `"${from.name}" <${from.email}>`,
+        to: Array.isArray(to) ? to.join(',') : to,
+        subject: subject,
+        html: html,
+        text: text,
+        replyTo: replyTo,
+        cc: cc,
+        bcc: bcc
+      };
+
+      const info = await transporter.sendMail(mailOptions);
+      console.log('✅ Email sent successfully:', info.messageId);
+
+      res.status(200).json({ 
+        success: true, 
+        messageId: info.messageId,
+        message: 'Email sent successfully'
+      });
+
+    } catch (error) {
+      console.error('❌ Error sending email:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: error.message 
+      });
+    }
+  });
+});
+// ...existing code...
 // FIREBASE ADMIN INITIALIZATION
 // ============================================
 // ✅ BEST PRACTICE: Simple auto-authentication - No serviceAccountKey.json needed!

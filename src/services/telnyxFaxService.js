@@ -27,7 +27,8 @@ import {
   where,
   orderBy,
   getDocs,
-  serverTimestamp
+  serverTimestamp,
+  limit as fbLimit
 } from 'firebase/firestore';
 
 // Telnyx API Configuration
@@ -417,7 +418,7 @@ class TelnyxFaxService {
         faxesRef,
         where('clientId', '==', clientId),
         orderBy('createdAt', 'desc'),
-        limit(limit)
+        fbLimit(limit)
       );
 
       const snapshot = await getDocs(q);

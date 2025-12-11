@@ -9,7 +9,9 @@
 // ============================================================================
 
 import { collection, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db, functions } from '@/lib/firebase';
+import { auth } from '../lib/firebase';
+import { httpsCallable } from 'firebase/functions';
 
 // ============================================================================
 // EMAIL ALIAS CONFIGURATION
@@ -355,20 +357,35 @@ class EmailService {
    * Send via Firebase Cloud Function
    */
   async sendViaCloudFunction(emailData) {
-    // Call Firebase Cloud Function
-    const response = await fetch('/api/sendEmail', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(emailData),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Email send failed: ${response.statusText}`);
+    // --- START FIX ---
+    // 1. Ensure auth is imported at the top
+    // import { auth } from '../lib/firebase'; (already imported if needed)
+    try {
+      // 1. Check if user is logged in
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error('Must be authenticated');
+      }
+      // 2. Get the fresh ID token
+      const token = await user.getIdToken();
+      // 3. Attach the token to the request
+        const response = await fetch('https://us-central1-my-clever-crm.cloudfunctions.net/sendRawEmail', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(emailData)
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Server returned ' + response.status);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Email send error:', error);
+      throw error;
     }
-
-    return response.json();
   }
 
   /**

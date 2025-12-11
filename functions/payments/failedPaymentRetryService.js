@@ -13,6 +13,7 @@ const sgMail = require('@sendgrid/mail');
 const db = admin.firestore();
 
 // Initialize SendGrid
+// We use a safe fallback so it doesn't crash if config is missing
 const SENDGRID_API_KEY = functions.config().sendgrid?.apikey || process.env.SENDGRID_API_KEY;
 if (SENDGRID_API_KEY) {
   sgMail.setApiKey(SENDGRID_API_KEY);
@@ -320,17 +321,17 @@ async function processPaymentRetry(paymentId, paymentData) {
     const finalEmail = getFinalFailureEmail(paymentData.clientName, paymentData.amount);
     await sendEmail(clientEmail, finalEmail.subject, finalEmail.html, finalEmail.text);
 
-    // Notify admins
+    // Notify admins (FIXED: renaming variable to avoid shadowing)
     const adminEmails = await getAdminEmails();
-    const adminEmail = getAdminNotificationEmail(
+    const adminEmailContent = getAdminNotificationEmail(
       paymentData.clientName,
       paymentData.amount,
       currentAttempt,
       true
     );
 
-    for (const adminEmail of adminEmails) {
-      await sendEmail(adminEmail, adminEmail.subject, adminEmail.html, adminEmail.text);
+    for (const adminRecipient of adminEmails) {
+      await sendEmail(adminRecipient, adminEmailContent.subject, adminEmailContent.html, adminEmailContent.text);
     }
 
     // Update payment status to permanently failed
@@ -353,8 +354,8 @@ async function processPaymentRetry(paymentId, paymentData) {
     currentAttempt
   );
 
-  // Send retry notification to client
-  const clientEmail = getClientRetryEmail(
+  // Send retry notification to client (FIXED: Ensure variable name is unique)
+  const clientRetryEmail = getClientRetryEmail(
     paymentData.clientName,
     paymentData.amount,
     currentAttempt,
@@ -366,19 +367,19 @@ async function processPaymentRetry(paymentId, paymentData) {
     })
   );
 
-  await sendEmail(clientEmail, clientEmail.subject, clientEmail.html, clientEmail.text);
+  await sendEmail(clientEmail, clientRetryEmail.subject, clientRetryEmail.html, clientRetryEmail.text);
 
-  // Notify admins
-  const adminEmails = await getAdminEmails();
-  const adminEmail = getAdminNotificationEmail(
+  // Notify admins (FIXED: renaming variable to avoid shadowing)
+  const adminEmailsList = await getAdminEmails();
+  const adminNotificationContent = getAdminNotificationEmail(
     paymentData.clientName,
     paymentData.amount,
     currentAttempt,
     false
   );
 
-  for (const email of adminEmails) {
-    await sendEmail(email, adminEmail.subject, adminEmail.html, adminEmail.text);
+  for (const email of adminEmailsList) {
+    await sendEmail(email, adminNotificationContent.subject, adminNotificationContent.html, adminNotificationContent.text);
   }
 
   // Update payment record

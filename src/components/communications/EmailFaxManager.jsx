@@ -16,7 +16,10 @@
  * @date 2025-12-04
  */
 
+
 import React, { useState, useEffect } from 'react';
+import { auth } from '../../lib/firebase';
+import { signInWithGoogle } from '../../services/authService';
 import {
   Box,
   Paper,
@@ -83,11 +86,13 @@ import {
   Upload,
 } from 'lucide-react';
 import { format } from 'date-fns';
-import emailService, { EMAIL_TYPES, EMAIL_ALIASES } from '../../services/EmailService';
+import emailService, { EMAIL_TYPES, EMAIL_ALIASES } from '../../services/emailService';
 import telnyxFaxService, { FAX_DESTINATIONS, FAX_STATUS } from '../../services/TelnyxFaxService';
 import { EMAIL_TEMPLATES, getTemplate } from '../../services/EmailTemplates';
 
 const EmailFaxManager = () => {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [showLoginDialog, setShowLoginDialog] = useState(false);
   // ===== STATE MANAGEMENT =====
   const [activeTab, setActiveTab] = useState('email'); // 'email', 'fax', 'history', 'test'
   const [loading, setLoading] = useState(false);
@@ -125,6 +130,14 @@ const EmailFaxManager = () => {
   // Pagination
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  // Track auth state
+  useEffect(() => {
+    const unsub = auth.onAuthStateChanged((user) => {
+      setCurrentUser(user);
+    });
+    return () => unsub();
+  }, []);
 
   // ===== EFFECTS =====
   useEffect(() => {
@@ -169,9 +182,12 @@ const EmailFaxManager = () => {
 
   // ===== EMAIL FUNCTIONS =====
   const handleSendEmail = async () => {
+    if (!currentUser) {
+      setShowLoginDialog(true);
+      return;
+    }
     setLoading(true);
     setError(null);
-
     try {
       const result = await emailService.send({
         to: emailForm.to,
@@ -181,7 +197,6 @@ const EmailFaxManager = () => {
         trackOpens: true,
         trackClicks: true,
       });
-
       setSuccess(`Email sent successfully to ${emailForm.to}!`);
       setShowComposeEmail(false);
       resetEmailForm();
@@ -195,10 +210,13 @@ const EmailFaxManager = () => {
   };
 
   const handleSendTestEmail = async () => {
+    if (!currentUser) {
+      setShowLoginDialog(true);
+      return;
+    }
     setLoading(true);
     setTestResults(null);
     setError(null);
-
     try {
       const result = await emailService.send({
         to: testEmail,
@@ -208,7 +226,6 @@ const EmailFaxManager = () => {
         trackOpens: true,
         trackClicks: true,
       });
-
       setTestResults({
         status: 'success',
         message: `Test email sent successfully to ${testEmail}`,
@@ -223,6 +240,34 @@ const EmailFaxManager = () => {
         details: err,
       });
       setError('Failed to send test email');
+    } finally {
+      setLoading(false);
+    }
+  };
+  // ===== LOGIN DIALOG =====
+  // Use AuthContext for Google login
+  // (Assumes you have AuthProvider at a higher level)
+  // If not, fallback to signInWithGoogle directly
+  let loginWithGoogle;
+  try {
+    // Dynamically import useAuth to avoid circular deps if any
+    // eslint-disable-next-line global-require
+    loginWithGoogle = require('../../contexts/AuthContext').useAuth().loginWithGoogle;
+  } catch {
+    loginWithGoogle = null;
+  }
+
+  const handleLogin = async () => {
+    setLoading(true);
+    try {
+      if (loginWithGoogle) {
+        await loginWithGoogle();
+      } else {
+        await signInWithGoogle();
+      }
+      setShowLoginDialog(false);
+    } catch (err) {
+      setError('Login failed: ' + (err.message || 'Unknown error'));
     } finally {
       setLoading(false);
     }
@@ -1095,6 +1140,20 @@ const EmailFaxManager = () => {
       {/* Dialogs */}
       {renderComposeEmailDialog()}
       {renderSendFaxDialog()}
+
+      {/* Login Dialog */}
+      <Dialog open={showLoginDialog} onClose={() => setShowLoginDialog(false)}>
+        <DialogTitle>Sign In Required</DialogTitle>
+        <DialogContent>
+          <Typography>You must be signed in to send emails or faxes.</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowLoginDialog(false)}>Cancel</Button>
+          <Button onClick={handleLogin} variant="contained" disabled={loading}>
+            {loading ? <CircularProgress size={20} /> : 'Sign in with Google'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

@@ -223,7 +223,7 @@ import { format, formatDistanceToNow, subDays, subMonths, startOfMonth, endOfMon
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import * as XLSX from 'xlsx';
-import EmailFaxManager from '@/components/communications/EmailFaxManager';
+import EmailFaxManager from '../../components/communications/EmailFaxManager';
 
 // ============================================================================
 // 🎨 CONSTANTS & CONFIGURATION
@@ -600,7 +600,7 @@ Suggest the best day and time (with timezone) to maximize open rates.`,
 // 🎯 MAIN COMPONENT
 // ============================================================================
 
-const UltimateCommunicationsHub = () => {
+const CommunicationsHub = () => {
   console.log('🚀 UltimateCommunicationsHub rendering');
 
   // ===== AUTHENTICATION & USER =====
@@ -2262,7 +2262,7 @@ const UltimateCommunicationsHub = () => {
   );
 };
 
-export default UltimateCommunicationsHub;
+export default CommunicationsHub;
 
 
 // ============================================================================
