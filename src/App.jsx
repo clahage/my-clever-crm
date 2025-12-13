@@ -1,4 +1,5 @@
 import React, { lazy, Suspense } from 'react';
+const AdminDashboard = lazy(() => import('@/pages/AdminDashboard'));
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import EmailWorkflowDashboard from './components/EmailWorkflowDashboard';
 import { Toaster } from 'react-hot-toast';
@@ -399,6 +400,8 @@ const AppContent = () => {
 
 {/* Dashboard Routes */}
         <Route path="dashboard" element={<Navigate to="/smart-dashboard" replace />} />
+        {/* ADMIN DASHBOARD - NEW TAB */}
+        <Route path="admin-dashboard" element={<ProtectedRoute requiredRoles={["admin","masterAdmin"]}><Suspense fallback={<LoadingFallback />}><AdminDashboard /></Suspense></ProtectedRoute>} />
         {/* Home - Welcome Hub (separate from analytics dashboard) */}
         <Route path="home" element={<Suspense fallback={<LoadingFallback />}><Home /></Suspense>} />
         <Route path="client-portal" element={<Suspense fallback={<LoadingFallback />}><ClientPortal /></Suspense>} />

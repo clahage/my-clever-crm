@@ -113,7 +113,6 @@ import {
   ThumbsDown,
   Star,
   Award,
-  TrendingFlat,
   PlayCircle,
   PauseCircle,
   ArrowUp,
@@ -124,13 +123,14 @@ import {
   Activity,
   GitBranch,
   Layers,
-  ExpandMore,
   ChevronRight,
   Lock,
   Unlock,
   Globe,
   Shield,
 } from 'lucide-react';
+// If ExpandMore is needed, import from MUI
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import {
   collection,

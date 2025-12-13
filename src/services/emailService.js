@@ -326,7 +326,7 @@ class EmailService {
       await this.logEmail({
         ...emailData,
         status: 'sent',
-        messageId: result.messageId,
+        messageId: result.messageId ?? 'no-message-id',
         sentAt: serverTimestamp(),
       });
 

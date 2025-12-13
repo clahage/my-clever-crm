@@ -184,6 +184,20 @@ export const navigationItems = [
     description: 'Intelligent role-adaptive dashboard with AI insights',
     category: 'core'
   },
+  // ===========================================================================
+  // 🛡️ ADMIN DASHBOARD (NEW TAB FOR ADMIN/MASTERADMIN)
+  // ===========================================================================
+  {
+    id: 'admin-dashboard',
+    title: 'Admin Dashboard',
+    path: '/admin-dashboard',
+    icon: LayoutDashboard,
+    permission: 'admin', // admin and masterAdmin
+    badge: 'ADMIN',
+    description: 'Unified admin dashboard for Firestore, Storage, Auth, and Realtime DB management',
+    category: 'admin',
+    visibleTo: ['admin', 'masterAdmin']
+  },
   // ========================================================================
   // 🛒 PRODUCTS & SERVICES HUB - NEW TOP LEVEL
   // ========================================================================
