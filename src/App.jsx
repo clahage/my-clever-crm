@@ -141,7 +141,7 @@ const AIReviewDashboard = lazy(() => import('@/pages/AIReviewDashboard'));
 const AIReviewEditor = lazy(() => import('@/components/AIReviewEditor'));
 const CreditAnalysisEngine = lazy(() => import('@/pages/CreditAnalysisEngine'));
 const PredictiveAnalytics = lazy(() => import('@/pages/PredictiveAnalytics'));
-const WorkflowTestingDashboard = lazy(() => import('@/pages/WorkflowTestingDashboard_ULTIMATE'));
+const WorkflowTestingDashboard = lazy(() => import('@/pages/WorkflowTestingDashboard'));
 
 // ===== CONTACT & CRM PAGES =====
 const Contacts = lazy(() => import('@/pages/Contacts'));
