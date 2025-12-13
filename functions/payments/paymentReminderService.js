@@ -3,6 +3,7 @@
 // ============================================================================
 // Sends automated reminders: 3 days before, 1 day before, and day-of payment due
 // Integrates with SendGrid for reliable email delivery
+// FIXED: Added .runWith({ memory: '256MB' }) to all exports
 // ============================================================================
 
 const functions = require('firebase-functions');
@@ -47,7 +48,6 @@ const emailTemplates = {
           <div class="content">
             <p>Hi ${clientName},</p>
             <p>This is a friendly reminder that your payment is due in <strong>3 days</strong>.</p>
-
             <div class="details">
               <div class="detail-row">
                 <span>Amount Due:</span>
@@ -62,15 +62,10 @@ const emailTemplates = {
                 <span>${paymentMethod}</span>
               </div>
             </div>
-
             <p>Please ensure sufficient funds are available in your account to avoid any processing issues.</p>
-
             <p>If you have any questions or need to update your payment information, please log in to your client portal or contact us.</p>
-
             <p>Thank you for your prompt attention to this matter!</p>
-
-            <p>Best regards,<br>
-            <strong>Speedy Credit Repair Team</strong></p>
+            <p>Best regards,<br><strong>Speedy Credit Repair Team</strong></p>
           </div>
           <div class="footer">
             <p>This is an automated reminder from Speedy Credit Repair Inc.</p>
@@ -108,11 +103,9 @@ const emailTemplates = {
           </div>
           <div class="content">
             <p>Hi ${clientName},</p>
-
             <div class="urgent">
               <strong>⏰ Urgent:</strong> Your payment is due <strong>tomorrow</strong>!
             </div>
-
             <div class="details">
               <div class="detail-row">
                 <span>Amount Due:</span>
@@ -127,15 +120,10 @@ const emailTemplates = {
                 <span>${paymentMethod}</span>
               </div>
             </div>
-
             <p><strong>Action Required:</strong> Please verify that your payment method has sufficient funds.</p>
-
             <p>If you need to update your payment information or have any concerns, please contact us immediately.</p>
-
             <p>Thank you for your immediate attention!</p>
-
-            <p>Best regards,<br>
-            <strong>Speedy Credit Repair Team</strong></p>
+            <p>Best regards,<br><strong>Speedy Credit Repair Team</strong></p>
           </div>
           <div class="footer">
             <p>This is an automated reminder from Speedy Credit Repair Inc.</p>
@@ -172,11 +160,9 @@ const emailTemplates = {
           </div>
           <div class="content">
             <p>Hi ${clientName},</p>
-
             <div class="critical">
               ⚠️ CRITICAL: Your payment is due <strong>TODAY</strong> - ${dueDate}
             </div>
-
             <div class="details">
               <div class="detail-row">
                 <span>Amount Due:</span>
@@ -191,20 +177,15 @@ const emailTemplates = {
                 <span>${paymentMethod}</span>
               </div>
             </div>
-
             <p><strong>Immediate Action Required:</strong></p>
             <ul>
               <li>Verify sufficient funds in your account</li>
               <li>Contact us immediately if there are any issues</li>
               <li>Late payments may incur additional fees</li>
             </ul>
-
             <p>If you have already made this payment, please disregard this reminder and thank you!</p>
-
             <p>For immediate assistance, please call us or reply to this email.</p>
-
-            <p>Thank you,<br>
-            <strong>Speedy Credit Repair Team</strong></p>
+            <p>Thank you,<br><strong>Speedy Credit Repair Team</strong></p>
           </div>
           <div class="footer">
             <p>This is an automated reminder from Speedy Credit Repair Inc.</p>
@@ -235,10 +216,8 @@ async function sendEmail(to, subject, html, text) {
   try {
     if (!SENDGRID_API_KEY) {
       console.warn('⚠️ SendGrid API key not configured. Email would be sent to:', to);
-      console.log('Subject:', subject);
       return { success: false, reason: 'SendGrid not configured' };
     }
-
     await sgMail.send(msg);
     console.log('✅ Email sent successfully to:', to);
     return { success: true };
@@ -254,38 +233,15 @@ async function sendEmail(to, subject, html, text) {
 async function getClientEmail(clientId) {
   try {
     const contactDoc = await db.collection('contacts').doc(clientId).get();
-    if (contactDoc.exists) {
-      return contactDoc.data().email;
-    }
-
-    // Try users collection if not in contacts
+    if (contactDoc.exists) return contactDoc.data().email;
     const userDoc = await db.collection('users').doc(clientId).get();
-    if (userDoc.exists) {
-      return userDoc.data().email;
-    }
-
+    if (userDoc.exists) return userDoc.data().email;
     console.error('Client not found:', clientId);
     return null;
   } catch (error) {
     console.error('Error fetching client email:', error);
     return null;
   }
-}
-
-/**
- * Calculate days until due date
- */
-function daysUntilDue(dueDate) {
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-
-  const due = dueDate.toDate ? dueDate.toDate() : new Date(dueDate);
-  due.setHours(0, 0, 0, 0);
-
-  const diffTime = due - now;
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-  return diffDays;
 }
 
 /**
@@ -326,7 +282,6 @@ async function processPaymentReminders(daysBeforeDue, reminderType, templateFunc
   nextDay.setDate(nextDay.getDate() + 1);
 
   try {
-    // Query payments due on target date with pending/scheduled status
     const paymentsSnapshot = await db.collection('payments')
       .where('dueDate', '>=', targetDate)
       .where('dueDate', '<', nextDay)
@@ -335,25 +290,18 @@ async function processPaymentReminders(daysBeforeDue, reminderType, templateFunc
 
     console.log(`📧 Found ${paymentsSnapshot.size} payment(s) to process`);
 
-    const results = {
-      total: paymentsSnapshot.size,
-      sent: 0,
-      skipped: 0,
-      failed: 0
-    };
+    const results = { total: paymentsSnapshot.size, sent: 0, skipped: 0, failed: 0 };
 
     for (const paymentDoc of paymentsSnapshot.docs) {
       const payment = paymentDoc.data();
       const paymentId = paymentDoc.id;
 
-      // Skip if reminder already sent
       if (hasReminderBeenSent(payment, reminderType)) {
         console.log(`⏭️ Skipping ${paymentId} - ${reminderType} reminder already sent`);
         results.skipped++;
         continue;
       }
 
-      // Get client email
       const clientEmail = await getClientEmail(payment.clientId);
       if (!clientEmail) {
         console.error(`❌ No email found for client ${payment.clientId}`);
@@ -361,15 +309,10 @@ async function processPaymentReminders(daysBeforeDue, reminderType, templateFunc
         continue;
       }
 
-      // Format due date
       const dueDate = payment.dueDate.toDate().toLocaleDateString('en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
       });
 
-      // Generate email content
       const emailContent = templateFunction(
         payment.clientName,
         payment.amount,
@@ -377,7 +320,6 @@ async function processPaymentReminders(daysBeforeDue, reminderType, templateFunc
         payment.paymentMethod
       );
 
-      // Send email
       const result = await sendEmail(
         clientEmail,
         emailContent.subject,
@@ -392,13 +334,6 @@ async function processPaymentReminders(daysBeforeDue, reminderType, templateFunc
         results.failed++;
       }
     }
-
-    console.log(`\n📊 Reminder Results for ${reminderType}:`);
-    console.log(`   Total: ${results.total}`);
-    console.log(`   Sent: ${results.sent}`);
-    console.log(`   Skipped: ${results.skipped}`);
-    console.log(`   Failed: ${results.failed}`);
-
     return results;
   } catch (error) {
     console.error('Error processing payment reminders:', error);
@@ -408,44 +343,23 @@ async function processPaymentReminders(daysBeforeDue, reminderType, templateFunc
 
 /**
  * Cloud Function: Daily Payment Reminder Scheduler
- * Runs every day at 9 AM EST to send payment reminders
+ * FIXED: Added .runWith() for Gen 1 compliance
  */
-exports.dailyPaymentReminderScheduler = functions.pubsub
+exports.dailyPaymentReminderScheduler = functions.runWith({
+  memory: '256MB',
+  timeoutSeconds: 60
+}).pubsub
   .schedule('0 9 * * *')
   .timeZone('America/New_York')
   .onRun(async (context) => {
     console.log('🚀 Starting daily payment reminder scheduler...');
-
     try {
-      // Send 3-day reminders
-      const threeDayResults = await processPaymentReminders(
-        3,
-        'threeDayReminder',
-        emailTemplates.threeDayReminder
-      );
-
-      // Send 1-day reminders
-      const oneDayResults = await processPaymentReminders(
-        1,
-        'oneDayReminder',
-        emailTemplates.oneDayReminder
-      );
-
-      // Send day-of reminders
-      const dueTodayResults = await processPaymentReminders(
-        0,
-        'dueTodayReminder',
-        emailTemplates.dueTodayReminder
-      );
+      const threeDayResults = await processPaymentReminders(3, 'threeDayReminder', emailTemplates.threeDayReminder);
+      const oneDayResults = await processPaymentReminders(1, 'oneDayReminder', emailTemplates.oneDayReminder);
+      const dueTodayResults = await processPaymentReminders(0, 'dueTodayReminder', emailTemplates.dueTodayReminder);
 
       console.log('\n✅ Payment reminder scheduler completed successfully');
-
-      return {
-        success: true,
-        threeDayResults,
-        oneDayResults,
-        dueTodayResults
-      };
+      return { success: true, threeDayResults, oneDayResults, dueTodayResults };
     } catch (error) {
       console.error('❌ Payment reminder scheduler failed:', error);
       throw error;
@@ -454,10 +368,12 @@ exports.dailyPaymentReminderScheduler = functions.pubsub
 
 /**
  * Cloud Function: Manual trigger for testing payment reminders
- * Can be called via HTTP to test the reminder system
+ * FIXED: Added .runWith() for Gen 1 compliance
  */
-exports.testPaymentReminders = functions.https.onRequest(async (req, res) => {
-  // Simple authentication check
+exports.testPaymentReminders = functions.runWith({
+  memory: '256MB',
+  timeoutSeconds: 60
+}).https.onRequest(async (req, res) => {
   const apiKey = req.headers['x-api-key'];
   if (apiKey !== 'test-payment-reminders-key') {
     return res.status(403).json({ error: 'Unauthorized' });
@@ -465,33 +381,14 @@ exports.testPaymentReminders = functions.https.onRequest(async (req, res) => {
 
   try {
     console.log('🧪 Running payment reminder test...');
-
-    const threeDayResults = await processPaymentReminders(
-      3,
-      'threeDayReminder',
-      emailTemplates.threeDayReminder
-    );
-
-    const oneDayResults = await processPaymentReminders(
-      1,
-      'oneDayReminder',
-      emailTemplates.oneDayReminder
-    );
-
-    const dueTodayResults = await processPaymentReminders(
-      0,
-      'dueTodayReminder',
-      emailTemplates.dueTodayReminder
-    );
+    const threeDayResults = await processPaymentReminders(3, 'threeDayReminder', emailTemplates.threeDayReminder);
+    const oneDayResults = await processPaymentReminders(1, 'oneDayReminder', emailTemplates.oneDayReminder);
+    const dueTodayResults = await processPaymentReminders(0, 'dueTodayReminder', emailTemplates.dueTodayReminder);
 
     res.json({
       success: true,
       message: 'Payment reminder test completed',
-      results: {
-        threeDayResults,
-        oneDayResults,
-        dueTodayResults
-      }
+      results: { threeDayResults, oneDayResults, dueTodayResults }
     });
   } catch (error) {
     console.error('Error in payment reminder test:', error);
@@ -501,13 +398,13 @@ exports.testPaymentReminders = functions.https.onRequest(async (req, res) => {
 
 /**
  * Cloud Function: Send immediate payment reminder
- * Triggered by HTTP request for specific payment
+ * FIXED: Added .runWith() for Gen 1 compliance
  */
-exports.sendPaymentReminder = functions.https.onCall(async (data, context) => {
-  // Verify user is authenticated and is admin
-  if (!context.auth) {
-    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
-  }
+exports.sendPaymentReminder = functions.runWith({
+  memory: '256MB',
+  timeoutSeconds: 60
+}).https.onCall(async (data, context) => {
+  if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
 
   const userDoc = await db.collection('users').doc(context.auth.uid).get();
   const userRole = userDoc.data()?.role;
@@ -520,53 +417,27 @@ exports.sendPaymentReminder = functions.https.onCall(async (data, context) => {
 
   try {
     const paymentDoc = await db.collection('payments').doc(paymentId).get();
-    if (!paymentDoc.exists) {
-      throw new functions.https.HttpsError('not-found', 'Payment not found');
-    }
+    if (!paymentDoc.exists) throw new functions.https.HttpsError('not-found', 'Payment not found');
 
     const payment = paymentDoc.data();
     const clientEmail = await getClientEmail(payment.clientId);
 
-    if (!clientEmail) {
-      throw new functions.https.HttpsError('failed-precondition', 'Client email not found');
-    }
+    if (!clientEmail) throw new functions.https.HttpsError('failed-precondition', 'Client email not found');
 
     const dueDate = payment.dueDate.toDate().toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
     });
 
-    // Select template based on reminder type
     let templateFunction;
     switch (reminderType) {
-      case 'threeDayReminder':
-        templateFunction = emailTemplates.threeDayReminder;
-        break;
-      case 'oneDayReminder':
-        templateFunction = emailTemplates.oneDayReminder;
-        break;
-      case 'dueTodayReminder':
-        templateFunction = emailTemplates.dueTodayReminder;
-        break;
-      default:
-        throw new functions.https.HttpsError('invalid-argument', 'Invalid reminder type');
+      case 'threeDayReminder': templateFunction = emailTemplates.threeDayReminder; break;
+      case 'oneDayReminder': templateFunction = emailTemplates.oneDayReminder; break;
+      case 'dueTodayReminder': templateFunction = emailTemplates.dueTodayReminder; break;
+      default: throw new functions.https.HttpsError('invalid-argument', 'Invalid reminder type');
     }
 
-    const emailContent = templateFunction(
-      payment.clientName,
-      payment.amount,
-      dueDate,
-      payment.paymentMethod
-    );
-
-    const result = await sendEmail(
-      clientEmail,
-      emailContent.subject,
-      emailContent.html,
-      emailContent.text
-    );
+    const emailContent = templateFunction(payment.clientName, payment.amount, dueDate, payment.paymentMethod);
+    const result = await sendEmail(clientEmail, emailContent.subject, emailContent.html, emailContent.text);
 
     if (result.success) {
       await markReminderSent(paymentId, reminderType);
@@ -579,9 +450,3 @@ exports.sendPaymentReminder = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError('internal', error.message);
   }
 });
-
-module.exports = {
-  dailyPaymentReminderScheduler: exports.dailyPaymentReminderScheduler,
-  testPaymentReminders: exports.testPaymentReminders,
-  sendPaymentReminder: exports.sendPaymentReminder
-};

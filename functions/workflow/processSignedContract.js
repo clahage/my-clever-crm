@@ -62,7 +62,10 @@ const db = admin.firestore();
  * @trigger onUpdate - contracts/{contractId}
  * @returns {Promise<void>}
  */
-exports.processSignedContract = functions.firestore
+exports.processSignedContract = functions.runWith({
+  memory: '512MB',
+  timeoutSeconds: 120
+}).firestore
   .document('contracts/{contractId}')
   .onUpdate(async (change, context) => {
     const contractId = context.params.contractId;

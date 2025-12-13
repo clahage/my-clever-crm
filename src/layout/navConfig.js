@@ -517,6 +517,7 @@ export const navigationItems = [
         description: 'Help desk, knowledge base, support tickets'
       },
 
+
       // HUB 20: COMPLIANCE HUB (Keep as-is)
       {
         id: 'compliance-hub',
@@ -526,6 +527,17 @@ export const navigationItems = [
         permission: 'admin',
         badge: 'ADMIN',
         description: 'Regulatory compliance and audit management'
+      },
+
+      // WORKFLOW TESTING DASHBOARD (NEW)
+      {
+        id: 'workflow-testing-dashboard',
+        title: 'Workflow Testing',
+        path: '/workflow-testing',
+        icon: Wrench,
+        permission: 'admin',
+        badge: 'AI',
+        description: 'AI-powered workflow testing and debugging'
       },
 
       // WHITE LABEL CRM (Keep as-is)

@@ -357,19 +357,33 @@ class EmailService {
    * Send via Firebase Cloud Function
    */
   async sendViaCloudFunction(emailData) {
-    // --- START FIX ---
-    // 1. Ensure auth is imported at the top
-    // import { auth } from '../lib/firebase'; (already imported if needed)
     try {
-      // 1. Check if user is logged in
       const user = auth.currentUser;
       if (!user) {
-        throw new Error('Must be authenticated');
+        // Only throw if we are NOT in a strictly local/offline dev mode
+        // But usually, we need a token even locally.
+        console.warn("Attempting to send email without auth user...");
       }
-      // 2. Get the fresh ID token
-      const token = await user.getIdToken();
-      // 3. Attach the token to the request
-        const response = await fetch('https://us-central1-my-clever-crm.cloudfunctions.net/sendRawEmail', {
+      
+      let token = '';
+      if (user) {
+        token = await user.getIdToken();
+      }
+
+      // === SMART URL SWITCHING ===
+      // If we are on localhost, talk to the Emulator (Port 5001)
+      // If we are in production, talk to the Live Cloud
+      const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      
+      // PROJECT ID: my-clever-crm
+      // REGION: us-central1
+      const endpoint = isLocal 
+        ? 'http://127.0.0.1:5001/my-clever-crm/us-central1/sendRawEmail'
+        : 'https://us-central1-my-clever-crm.cloudfunctions.net/sendRawEmail';
+
+      console.log(`📧 Sending email via: ${endpoint}`);
+
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -377,10 +391,12 @@ class EmailService {
         },
         body: JSON.stringify(emailData)
       });
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Server returned ' + response.status);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || errorData.message || `Server Error: ${response.status}`);
       }
+
       return await response.json();
     } catch (error) {
       console.error('Email send error:', error);

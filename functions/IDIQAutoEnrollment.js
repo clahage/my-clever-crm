@@ -1067,7 +1067,10 @@ class IDIQAutoEnrollment {
 /**
  * Webhook endpoint for IDIQ callbacks
  */
-exports.idiqWebhook = functions.https.onRequest(async (req, res) => {
+exports.idiqWebhook = functions.runWith({
+  memory: '512MB',
+  timeoutSeconds: 60
+}).https.onRequest(async (req, res) => {
   try {
     // Verify webhook signature
     const signature = req.headers['x-idiq-signature'];
@@ -1115,7 +1118,10 @@ exports.idiqWebhook = functions.https.onRequest(async (req, res) => {
 /**
  * HTTP callable function for manual enrollment
  */
-exports.enrollInIDIQ = functions.https.onCall(async (data, context) => {
+exports.enrollInIDIQ = functions.runWith({
+  memory: '512MB',
+  timeoutSeconds: 60
+}).https.onCall(async (data, context) => {
   // Check authentication
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
@@ -1139,7 +1145,10 @@ exports.enrollInIDIQ = functions.https.onCall(async (data, context) => {
 /**
  * Scheduled function to check for pending enrollments
  */
-exports.processPendingEnrollments = functions.pubsub
+exports.processPendingEnrollments = functions.runWith({
+  memory: '512MB',
+  timeoutSeconds: 60
+}).pubsub
   .schedule('every 1 hours')
   .onRun(async () => {
     const pendingContacts = await db.collection('contacts')

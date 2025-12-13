@@ -73,7 +73,10 @@ if (!IDIQ_CONFIG.apiKey || !IDIQ_CONFIG.apiSecret) {
 // MAIN ENROLLMENT PROCESSOR - Triggers on queue entry
 // ═══════════════════════════════════════════════════════════════════════════
 
-exports.processIDIQEnrollment = functions.firestore
+exports.processIDIQEnrollment = functions.runWith({
+  memory: '512MB',
+  timeoutSeconds: 60
+}).firestore
   .document('idiqEnrollmentQueue/{enrollmentId}')
   .onCreate(async (snap, context) => {
     const enrollmentId = context.params.enrollmentId;
@@ -377,7 +380,10 @@ function generateAPISignature(data, timestamp) {
 // WEBHOOK HANDLER FOR CREDIT REPORTS
 // ═══════════════════════════════════════════════════════════════════════════
 
-exports.idiqWebhookHandler = functions.https.onRequest(async (req, res) => {
+exports.idiqWebhookHandler = functions.runWith({
+  memory: '512MB',
+  timeoutSeconds: 60
+}).https.onRequest(async (req, res) => {
   console.log('===== IDIQ WEBHOOK RECEIVED =====');
   
   // Verify webhook signature

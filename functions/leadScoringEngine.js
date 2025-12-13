@@ -922,7 +922,10 @@ Provide a JSON response with:
 /**
  * Trigger on contact creation
  */
-exports.onContactCreated = functions.firestore
+exports.onContactCreated = functions.runWith({
+  memory: '256MB',
+  timeoutSeconds: 60
+}).firestore
   .document('contacts/{contactId}')
   .onCreate(async (snap, context) => {
     const contactData = snap.data();
@@ -940,7 +943,10 @@ exports.onContactCreated = functions.firestore
 /**
  * Trigger on contact update (re-score if significant fields change)
  */
-exports.onContactUpdated = functions.firestore
+exports.onContactUpdated = functions.runWith({
+  memory: '256MB',
+  timeoutSeconds: 60
+}).firestore
   .document('contacts/{contactId}')
   .onUpdate(async (change, context) => {
     const before = change.before.data();
@@ -966,7 +972,10 @@ exports.onContactUpdated = functions.firestore
 /**
  * HTTP endpoint for manual scoring
  */
-exports.scoreLeadManually = functions.https.onCall(async (data, context) => {
+exports.scoreLeadManually = functions.runWith({
+  memory: '512MB',
+  timeoutSeconds: 60
+}).https.onCall(async (data, context) => {
   // Check authentication
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
@@ -990,7 +999,10 @@ exports.scoreLeadManually = functions.https.onCall(async (data, context) => {
 /**
  * Scheduled function to re-score old leads
  */
-exports.rescoreOldLeads = functions.pubsub
+exports.rescoreOldLeads = functions.runWith({
+  memory: '512MB',
+  timeoutSeconds: 60
+}).pubsub
   .schedule('every 7 days')
   .onRun(async () => {
     const thirtyDaysAgo = new Date();

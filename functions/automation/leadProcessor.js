@@ -8,7 +8,10 @@ const admin = require('firebase-admin');
  * Classify lead based on AI Receptionist call data
  * Returns contact object ready to save to Firestore
  */
-exports.classifyLead = async (callData) => {
+exports.classifyLead = functions.runWith({
+  memory: '512MB',
+  timeoutSeconds: 60
+}).https.onCall(async (callData, context) => {
   try {
     // Extract contact information
     const { firstName, lastName } = extractName(callData.transcript, callData.username);
@@ -101,7 +104,10 @@ exports.classifyLead = async (callData) => {
  * Detect spam/bot callers
  * Returns true if call should be blocked
  */
-exports.detectSpam = async (callData) => {
+exports.detectSpam = functions.runWith({
+  memory: '512MB',
+  timeoutSeconds: 60
+}).https.onCall(async (callData, context) => {
   try {
     const transcript = (callData.transcript || '').toLowerCase();
     const duration = parseInt(callData.duration) || 0;

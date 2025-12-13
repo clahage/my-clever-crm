@@ -445,12 +445,12 @@ const ProtectedLayout = () => {
             <div className="flex items-center space-x-2">
               <img
                 src="/brand/default/logo-brand-128.png"
-                alt="SpeedyCRM Logo"
+                alt="Speedy Credit Repair CRM Logo"
                 className="w-8 h-8 object-contain"
               />
               <div>
                 <h1 className="text-lg font-bold text-gray-800 dark:text-white leading-tight">
-                  SpeedyCRM
+                  Speedy Credit Repair CRM
                 </h1>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Credit Repair</p>
               </div>

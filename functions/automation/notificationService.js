@@ -175,7 +175,10 @@ async function sendEmailNotification({ to, subject, body, priority = 'normal' })
  * Send morning summary email to Laurie
  * Scheduled function that runs at 7:00am Mon-Thu, Sat
  */
-exports.sendMorningSummary = functions.pubsub
+exports.sendMorningSummary = functions.runWith({
+  memory: '512MB',
+  timeoutSeconds: 60
+}).pubsub
   .schedule('0 7 * * 1,2,3,4,6') // 7am Mon-Thu, Sat
   .timeZone('America/Los_Angeles')
   .onRun(async (context) => {

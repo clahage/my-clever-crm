@@ -66,7 +66,10 @@ const STANDARD_DEDUCTIONS_2024 = {
  * Process a tax return when it's updated
  * Triggered on document update in taxReturns collection
  */
-exports.onTaxReturnUpdate = functions.firestore
+exports.onTaxReturnUpdate = functions.runWith({
+  memory: '512MB',
+  timeoutSeconds: 60
+}).firestore
   .document('taxReturns/{returnId}')
   .onUpdate(async (change, context) => {
     const returnId = context.params.returnId;
@@ -265,7 +268,10 @@ function calculateFederalTax(taxReturn) {
  * Process uploaded tax document
  * Triggered when a new document is added to taxDocuments collection
  */
-exports.onTaxDocumentCreated = functions.firestore
+exports.onTaxDocumentCreated = functions.runWith({
+  memory: '512MB',
+  timeoutSeconds: 60
+}).firestore
   .document('taxDocuments/{documentId}')
   .onCreate(async (snap, context) => {
     const documentId = context.params.documentId;
@@ -508,7 +514,10 @@ function generateConfirmationNumber() {
  * Scheduled function to send tax deadline reminders
  * Runs daily at 9 AM
  */
-exports.sendTaxDeadlineReminders = functions.pubsub
+exports.sendTaxDeadlineReminders = functions.runWith({
+  memory: '512MB',
+  timeoutSeconds: 60
+}).pubsub
   .schedule('0 9 * * *')
   .timeZone('America/New_York')
   .onRun(async (context) => {
@@ -588,7 +597,10 @@ function getUpcomingDeadlines(now) {
  * HTTP function to recalculate all tax returns for a year
  * Requires admin authentication
  */
-exports.batchRecalculateTaxes = functions.https.onCall(async (data, context) => {
+exports.batchRecalculateTaxes = functions.runWith({
+  memory: '512MB',
+  timeoutSeconds: 120
+}).https.onCall(async (data, context) => {
   // Verify admin
   if (!context.auth || !context.auth.token.admin) {
     throw new functions.https.HttpsError('permission-denied', 'Admin access required');
@@ -646,7 +658,10 @@ exports.batchRecalculateTaxes = functions.https.onCall(async (data, context) => 
  * Aggregate tax analytics daily
  * Runs daily at midnight
  */
-exports.aggregateTaxAnalytics = functions.pubsub
+exports.aggregateTaxAnalytics = functions.runWith({
+  memory: '512MB',
+  timeoutSeconds: 60
+}).pubsub
   .schedule('0 0 * * *')
   .timeZone('America/New_York')
   .onRun(async (context) => {

@@ -77,7 +77,10 @@ const db = admin.firestore();
  * @trigger onUpdate - emailQueue/{emailId}
  * @returns {Promise<void>}
  */
-exports.sendProposalEmail = functions.firestore
+exports.sendProposalEmail = functions.runWith({
+  memory: '512MB',
+  timeoutSeconds: 120
+}).firestore
   .document('emailQueue/{emailId}')
   .onUpdate(async (change, context) => {
     const emailId = context.params.emailId;

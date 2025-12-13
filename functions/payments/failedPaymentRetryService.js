@@ -406,7 +406,10 @@ async function processPaymentRetry(paymentId, paymentData) {
  * Cloud Function: Daily scheduler to process payment retries
  * Runs every day at 10 AM EST
  */
-exports.dailyPaymentRetryScheduler = functions.pubsub
+exports.dailyPaymentRetryScheduler = functions.runWith({
+  memory: '512MB',
+  timeoutSeconds: 60
+}).pubsub
   .schedule('0 10 * * *')
   .timeZone('America/New_York')
   .onRun(async (context) => {
@@ -471,7 +474,10 @@ exports.dailyPaymentRetryScheduler = functions.pubsub
  * Cloud Function: Auto-schedule retry when payment fails
  * Triggered when payment status changes to failed
  */
-exports.autoScheduleRetry = functions.firestore
+exports.autoScheduleRetry = functions.runWith({
+  memory: '256MB',
+  timeoutSeconds: 60
+}).firestore
   .document('payments/{paymentId}')
   .onUpdate(async (change, context) => {
     const paymentId = context.params.paymentId;
@@ -511,7 +517,10 @@ exports.autoScheduleRetry = functions.firestore
 /**
  * Cloud Function: Manual retry trigger for admins
  */
-exports.retryFailedPayment = functions.https.onCall(async (data, context) => {
+exports.retryFailedPayment = functions.runWith({
+  memory: '256MB',
+  timeoutSeconds: 60
+}).https.onCall(async (data, context) => {
   // Verify authentication
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');

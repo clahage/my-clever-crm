@@ -84,7 +84,10 @@ const db = admin.firestore();
  * @schedule every 6 hours
  * @returns {Promise<void>}
  */
-exports.sendCampaignEmails = functions.pubsub
+exports.sendCampaignEmails = functions.runWith({
+  memory: '512MB',
+  timeoutSeconds: 120
+}).pubsub
   .schedule('every 6 hours')
   .timeZone('America/Los_Angeles')
   .onRun(async (context) => {

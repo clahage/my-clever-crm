@@ -138,7 +138,10 @@ const SERVICE_PLANS = {
 // MAIN ANALYSIS FUNCTION - Triggers on queue entry
 // ═══════════════════════════════════════════════════════════════════════════
 
-exports.analyzeCreditReport = functions.firestore
+exports.analyzeCreditReport = functions.runWith({
+  memory: '512MB',
+  timeoutSeconds: 60
+}).firestore
   .document('creditAnalysisQueue/{analysisId}')
   .onCreate(async (snap, context) => {
     const analysisId = context.params.analysisId;

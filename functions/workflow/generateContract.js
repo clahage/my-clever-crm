@@ -84,7 +84,10 @@ const db = admin.firestore();
  * @param {Object} context - Cloud Function context
  * @returns {Promise<Object>} - Contract data and URLs
  */
-exports.generateContract = functions.https.onCall(async (data, context) => {
+exports.generateContract = functions.runWith({
+  memory: '512MB',
+  timeoutSeconds: 120
+}).https.onCall(async (data, context) => {
   console.log('\n📄 ========================================');
   console.log('📄 CONTRACT GENERATION STARTED');
   console.log('📄 ========================================');

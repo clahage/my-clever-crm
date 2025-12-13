@@ -68,7 +68,10 @@ function getPlaidClient() {
  * Cloud Function: Create Link Token for Plaid Link
  * Used by frontend to initiate bank account linking
  */
-exports.createPlaidLinkToken = functions.https.onCall(async (data, context) => {
+exports.createPlaidLinkToken = functions.runWith({
+  memory: '512MB',
+  timeoutSeconds: 60
+}).https.onCall(async (data, context) => {
   // Verify authentication
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
@@ -137,7 +140,10 @@ exports.createPlaidLinkToken = functions.https.onCall(async (data, context) => {
  * Cloud Function: Exchange public token for access token
  * Called after user successfully links bank account via Plaid Link
  */
-exports.exchangePlaidPublicToken = functions.https.onCall(async (data, context) => {
+exports.exchangePlaidPublicToken = functions.runWith({
+  memory: '256MB',
+  timeoutSeconds: 60
+}).https.onCall(async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
   }
@@ -226,7 +232,10 @@ exports.exchangePlaidPublicToken = functions.https.onCall(async (data, context) 
 /**
  * Cloud Function: Get account balances
  */
-exports.getPlaidAccountBalance = functions.https.onCall(async (data, context) => {
+exports.getPlaidAccountBalance = functions.runWith({
+  memory: '256MB',
+  timeoutSeconds: 60
+}).https.onCall(async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
   }
@@ -288,7 +297,10 @@ exports.getPlaidAccountBalance = functions.https.onCall(async (data, context) =>
  * Cloud Function: Initiate ACH payment
  * Creates a payment using Plaid's Auth and Transfer products
  */
-exports.initiatePlaidPayment = functions.https.onCall(async (data, context) => {
+exports.initiatePlaidPayment = functions.runWith({
+  memory: '256MB',
+  timeoutSeconds: 60
+}).https.onCall(async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
   }
@@ -383,7 +395,10 @@ exports.initiatePlaidPayment = functions.https.onCall(async (data, context) => {
  * Cloud Function: Plaid Webhook Handler
  * Receives updates from Plaid about transactions, auth changes, etc.
  */
-exports.plaidWebhook = functions.https.onRequest(async (req, res) => {
+exports.plaidWebhook = functions.runWith({
+  memory: '256MB',
+  timeoutSeconds: 60
+}).https.onRequest(async (req, res) => {
   const webhookType = req.body.webhook_type;
   const webhookCode = req.body.webhook_code;
 
@@ -593,7 +608,10 @@ SUPPORT:
 /**
  * Cloud Function: Get Plaid setup instructions
  */
-exports.getPlaidSetupInstructions = functions.https.onRequest((req, res) => {
+exports.getPlaidSetupInstructions = functions.runWith({
+  memory: '256MB',
+  timeoutSeconds: 60
+}).https.onRequest((req, res) => {
   res.set('Content-Type', 'text/plain');
   res.send(SETUP_INSTRUCTIONS);
 });

@@ -71,7 +71,10 @@ const db = admin.firestore();
  * @schedule every 24 hours
  * @returns {Promise<void>}
  */
-exports.checkNonResponders = functions.pubsub
+exports.checkNonResponders = functions.runWith({
+  memory: '512MB',
+  timeoutSeconds: 120
+}).pubsub
   .schedule('every 24 hours')
   .timeZone('America/Los_Angeles')
   .onRun(async (context) => {

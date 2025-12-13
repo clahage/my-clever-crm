@@ -60,7 +60,10 @@ const GMAIL_REFRESH_TOKEN = functions.config().gmail?.refresh_token;
 /**
  * Email Monitor - Runs every 2 minutes with advanced AI processing
  */
-exports.monitorInbox = functions.pubsub
+exports.monitorInbox = functions.runWith({
+  memory: '512MB',
+  timeoutSeconds: 300
+}).pubsub
   .schedule('every 2 minutes')
   .timeZone('America/Los_Angeles')
   .onRun(async (context) => {
@@ -1222,7 +1225,10 @@ async function sendAcknowledgmentWithInsights(toEmail, clientName, subject, aiAn
 /**
  * Manual trigger endpoint (for testing)
  */
-exports.triggerEmailMonitor = functions.https.onRequest(async (req, res) => {
+exports.triggerEmailMonitor = functions.runWith({
+  memory: '512MB',
+  timeoutSeconds: 60
+}).https.onRequest(async (req, res) => {
   try {
     await exports.monitorInbox.run();
     res.status(200).json({ success: true, message: 'Email monitor triggered successfully' });
@@ -1235,7 +1241,10 @@ exports.triggerEmailMonitor = functions.https.onRequest(async (req, res) => {
 /**
  * Get AI analytics dashboard data
  */
-exports.getEmailMonitorAnalytics = functions.https.onRequest(async (req, res) => {
+exports.getEmailMonitorAnalytics = functions.runWith({
+  memory: '512MB',
+  timeoutSeconds: 60
+}).https.onRequest(async (req, res) => {
   try {
     const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
     

@@ -1028,9 +1028,12 @@ class LeadScoringEngine {
 const engine = new LeadScoringEngine();
 
 /**
- * Triggered when a new contact is created
+ * Triggered when a new contact is created - Scores the lead
  */
-exports.onContactCreated = functions.firestore
+exports.onContactCreatedScoreLead = functions.runWith({
+  memory: '256MB',
+  timeoutSeconds: 60
+}).firestore
   .document('contacts/{contactId}')
   .onCreate(async (snap, context) => {
     const contactData = snap.data();
@@ -1050,7 +1053,10 @@ exports.onContactCreated = functions.firestore
 /**
  * Manual scoring endpoint
  */
-exports.scoreLead = functions.https.onCall(async (data, context) => {
+exports.scoreLeadCallable = functions.runWith({
+  memory: '512MB',
+  timeoutSeconds: 60
+}).https.onCall(async (data, context) => {
   // Verify authentication
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
@@ -1071,7 +1077,10 @@ exports.scoreLead = functions.https.onCall(async (data, context) => {
 /**
  * Re-score all leads (admin function)
  */
-exports.rescoreAllLeads = functions.https.onCall(async (data, context) => {
+exports.rescoreAllLeads = functions.runWith({
+  memory: '512MB',
+  timeoutSeconds: 120
+}).https.onCall(async (data, context) => {
   // Check admin role
   if (!context.auth || context.auth.token.role < 7) {
     throw new functions.https.HttpsError('permission-denied', 'Admin only');

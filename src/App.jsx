@@ -9,7 +9,7 @@ import ProtectedLayout from '@/layout/ProtectedLayout';
 import Products from '@/pages/Products';
 import ServicePlanSelector from '@/components/client/ServicePlanSelector';
 const ServicePlanRecommenderPage = lazy(() => import('@/pages/ServicePlanRecommender'));
-// src/App.jsx - SpeedyCRM Complete Application Router
+// src/App.jsx - Speedy Credit Repair CRM Complete Application Router
 // VERSION: 3.0 - HYBRID HUB ARCHITECTURE INTEGRATION
 // LAST UPDATED: 2025-11-06 - All 18 Hubs Integrated
 import ContractStatusTracker from '@/components/common/ContractStatusTracker';
@@ -28,7 +28,7 @@ const LoadingFallback = () => (
         <div className="absolute inset-0 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
       </div>
       <p className="text-gray-600 dark:text-gray-400 text-lg font-medium animate-pulse">
-        Loading SpeedyCRM...
+        Loading Speedy Credit Repair CRM...
       </p>
     </div>
   </div>
@@ -92,7 +92,7 @@ class ErrorBoundary extends React.Component {
                 </button>
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-6">
-                If this persists, contact support at support@speedycrm.com
+                If this persists, contact support at support@speedycreditrepair.com
               </p>
             </div>
           </div>
@@ -141,6 +141,7 @@ const AIReviewDashboard = lazy(() => import('@/pages/AIReviewDashboard'));
 const AIReviewEditor = lazy(() => import('@/components/AIReviewEditor'));
 const CreditAnalysisEngine = lazy(() => import('@/pages/CreditAnalysisEngine'));
 const PredictiveAnalytics = lazy(() => import('@/pages/PredictiveAnalytics'));
+const WorkflowTestingDashboard = lazy(() => import('@/pages/WorkflowTestingDashboard_ULTIMATE'));
 
 // ===== CONTACT & CRM PAGES =====
 const Contacts = lazy(() => import('@/pages/Contacts'));
@@ -1158,6 +1159,19 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="admin">
       <Suspense fallback={<LoadingFallback />}>
         <DisputeAdminPanel />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+
+{/* Workflow Testing Dashboard */}
+<Route
+  path="workflow-testing"
+  element={
+    <ProtectedRoute requiredRole="admin">
+      <Suspense fallback={<LoadingFallback />}>
+        <WorkflowTestingDashboard />
       </Suspense>
     </ProtectedRoute>
   }

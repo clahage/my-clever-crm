@@ -90,7 +90,10 @@ const mergeTemplateData = (template, clientData, planData, additionalData = {}) 
 };
 
 // ===== FUNCTION 1: GENERATE CONTRACT =====
-exports.generateContract = functions.https.onCall(async (data, context) => {
+exports.generateContract = functions.runWith({
+  memory: '512MB',
+  timeoutSeconds: 60
+}).https.onCall(async (data, context) => {
   // Verify authentication
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
@@ -160,7 +163,10 @@ exports.generateContract = functions.https.onCall(async (data, context) => {
 });
 
 // ===== FUNCTION 2: SEND FOR SIGNATURE =====
-exports.sendForSignature = functions.https.onCall(async (data, context) => {
+exports.sendForSignature = functions.runWith({
+  memory: '512MB',
+  timeoutSeconds: 60
+}).https.onCall(async (data, context) => {
   // Verify authentication
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
@@ -204,7 +210,10 @@ exports.sendForSignature = functions.https.onCall(async (data, context) => {
 });
 
 // ===== FUNCTION 3: HANDLE SIGNATURE WEBHOOK =====
-exports.handleSignatureWebhook = functions.https.onRequest(async (req, res) => {
+exports.handleSignatureWebhook = functions.runWith({
+  memory: '512MB',
+  timeoutSeconds: 60
+}).https.onRequest(async (req, res) => {
   try {
     console.log('Signature webhook received:', req.body);
 
@@ -230,7 +239,10 @@ exports.handleSignatureWebhook = functions.https.onRequest(async (req, res) => {
 });
 
 // ===== FUNCTION 4: AI SERVICE PLAN RECOMMENDATION =====
-exports.getServicePlanRecommendation = functions.https.onCall(async (data, context) => {
+exports.getServicePlanRecommendation = functions.runWith({
+  memory: '512MB',
+  timeoutSeconds: 60
+}).https.onCall(async (data, context) => {
   // Verify authentication
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');

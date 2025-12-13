@@ -578,7 +578,10 @@ async function generateAndSendReceipt(paymentId, paymentData) {
  * Cloud Function: Auto-generate receipt when payment is completed
  * Triggered by Firestore payment document updates
  */
-exports.autoGenerateReceipt = functions.firestore
+exports.autoGenerateReceipt = functions.runWith({
+  memory: '512MB',
+  timeoutSeconds: 120
+}).firestore
   .document('payments/{paymentId}')
   .onUpdate(async (change, context) => {
     const paymentId = context.params.paymentId;
@@ -610,7 +613,10 @@ exports.autoGenerateReceipt = functions.firestore
  * Cloud Function: Manually generate receipt
  * Can be called by admins to regenerate or generate missing receipts
  */
-exports.generateReceipt = functions.https.onCall(async (data, context) => {
+exports.generateReceipt = functions.runWith({
+  memory: '512MB',
+  timeoutSeconds: 120
+}).https.onCall(async (data, context) => {
   // Verify authentication
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');

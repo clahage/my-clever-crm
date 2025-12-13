@@ -549,7 +549,10 @@ const handleStatusChange = async (payload) => {
 /**
  * Callable function: Enroll member
  */
-exports.idiqEnroll = functions.https.onCall(async (data, context) => {
+exports.idiqEnroll = functions.runWith({
+  memory: '512MB',
+  timeoutSeconds: 60
+}).https.onCall(async (data, context) => {
   // Security: Require authentication
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated');
@@ -578,7 +581,10 @@ exports.idiqEnroll = functions.https.onCall(async (data, context) => {
 /**
  * Callable function: Get member status
  */
-exports.idiqMemberStatus = functions.https.onCall(async (data, context) => {
+exports.idiqMemberStatus = functions.runWith({
+  memory: '256MB',
+  timeoutSeconds: 30
+}).https.onCall(async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated');
   }
@@ -594,7 +600,10 @@ exports.idiqMemberStatus = functions.https.onCall(async (data, context) => {
 /**
  * HTTP function: Webhook endpoint
  */
-exports.idiqWebhook = functions.https.onRequest(handleWebhook);
+exports.idiqWebhook = functions.runWith({
+  memory: '256MB',
+  timeoutSeconds: 30
+}).https.onRequest(handleWebhook);
 
 /**
  * Export helper functions for other modules
