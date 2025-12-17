@@ -58,7 +58,9 @@ const db = admin.firestore();
 // SECRETS CONFIGURATION
 // ============================================
 const openaiApiKey = defineSecret('OPENAI_API_KEY');
-const anthropicApiKey = defineSecret('ANTHROPIC_API_KEY');
+
+// NOTE: ANTHROPIC_API_KEY is optional - if you want to enable Anthropic support,
+// set it as an environment variable in .env.local or use Secret Manager
 
 // ============================================
 // OPENAI CLIENT (Lazy-loaded)
@@ -80,9 +82,12 @@ function getOpenAI() {
 }
 
 // ============================================
-// ANTHROPIC CONFIGURATION
+// ANTHROPIC CONFIGURATION (OPTIONAL)
 // ============================================
+// Anthropic is optional - functions will fallback to OpenAI if not configured
+// To enable Anthropic, set ANTHROPIC_API_KEY in .env.local
 const anthropicConfig = {
+  apiKey: process.env.ANTHROPIC_API_KEY, // Optional - from environment variable
   apiVersion: '2023-06-01',
   baseURL: 'https://api.anthropic.com/v1/messages'
 };
@@ -233,10 +238,10 @@ exports.aiComplete = onCall(
 
 /**
  * Anthropic Claude Completion Endpoint
+ * NOTE: This function requires ANTHROPIC_API_KEY to be set in .env.local
  */
 exports.anthropicComplete = onCall(
   {
-    secrets: [anthropicApiKey],
     memory: '512MiB',
     timeoutSeconds: 60
   },
@@ -255,9 +260,9 @@ exports.anthropicComplete = onCall(
         throw new HttpsError('invalid-argument', 'Prompt is required.');
       }
 
-      const apiKey = anthropicApiKey.value();
+      const apiKey = anthropicConfig.apiKey;
       if (!apiKey) {
-        throw new HttpsError('failed-precondition', 'Anthropic API key not configured.');
+        throw new HttpsError('failed-precondition', 'Anthropic API key not configured. Set ANTHROPIC_API_KEY in .env.local to enable Anthropic support.');
       }
 
       const model = data.model || 'claude-sonnet-4-20250514';
@@ -309,10 +314,11 @@ exports.anthropicComplete = onCall(
 
 /**
  * Generate AI Insights
+ * Uses Anthropic if configured, otherwise falls back to OpenAI
  */
 exports.generateInsights = onCall(
   {
-    secrets: [openaiApiKey, anthropicApiKey],
+    secrets: [openaiApiKey],
     memory: '512MiB',
     timeoutSeconds: 90
   },
@@ -335,10 +341,10 @@ exports.generateInsights = onCall(
       const systemPrompt = `You are an expert data analyst. Provide actionable insights for ${analysisType} analysis.`;
       const userPrompt = `Analyze this data and provide insights:\n${JSON.stringify(data.data, null, 2)}`;
 
-      // Try Anthropic first, fallback to OpenAI
+      // Try Anthropic first (if configured), fallback to OpenAI
       let response, tokensUsed, estimatedCost, provider;
 
-      const apiKey = anthropicApiKey.value();
+      const apiKey = anthropicConfig.apiKey;
       if (apiKey) {
         try {
           const anthropicResponse = await fetch(anthropicConfig.baseURL, {

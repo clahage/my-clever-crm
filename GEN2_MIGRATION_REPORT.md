@@ -88,13 +88,12 @@ const gmailFromEmail = process.env.GMAIL_FROM_EMAIL;
 
 ### 4. Secret Manager Configuration ✅
 
-All secrets migrated to Firebase Secret Manager using `defineSecret()`:
+All required secrets migrated to Firebase Secret Manager using `defineSecret()`:
 
-#### Secrets Defined (18 total):
+#### Required Secrets (18 total):
 
 **DocuSign:**
-- DOCUSIGN_ACCOUNT_ID
-- DOCUSIGN_INTEGRATION_KEY
+- DOCUSIGN_ACCOUNT_ID *(DOCUSIGN_INTEGRATION_KEY is optional - not required for deployment)*
 
 **IDIQ Integration:**
 - IDIQ_PARTNER_ID
@@ -111,8 +110,7 @@ All secrets migrated to Firebase Secret Manager using `defineSecret()`:
 - GMAIL_REPLY_TO
 
 **AI Services:**
-- OPENAI_API_KEY
-- ANTHROPIC_API_KEY
+- OPENAI_API_KEY *(ANTHROPIC_API_KEY is optional - functions fallback to OpenAI)*
 
 **SendGrid:**
 - SENDGRID_API_KEY
@@ -130,6 +128,10 @@ const openaiApiKey = defineSecret('OPENAI_API_KEY');
 // In function:
 const apiKey = openaiApiKey.value();
 ```
+
+**Optional Features:**
+- **Anthropic AI:** Set `ANTHROPIC_API_KEY` in `.env.local` to enable Anthropic Claude support. If not set, AI functions automatically fallback to OpenAI.
+- **DocuSign:** Only `DOCUSIGN_ACCOUNT_ID` is required. Additional credentials may be needed for full DocuSign integration.
 
 ---
 
@@ -514,27 +516,24 @@ node -c aiService.js
 
 ### Setting Secrets in Firebase
 
-Before deploying, run these commands to set secrets:
+Before deploying, run these commands to set the **18 required secrets**:
 
 ```bash
-# OpenAI
+# OpenAI (REQUIRED)
 firebase functions:secrets:set OPENAI_API_KEY
 
-# Anthropic (optional)
-firebase functions:secrets:set ANTHROPIC_API_KEY
-
-# Gmail
+# Gmail (4 secrets - REQUIRED)
 firebase functions:secrets:set GMAIL_USER
 firebase functions:secrets:set GMAIL_APP_PASSWORD
 firebase functions:secrets:set GMAIL_FROM_NAME
 firebase functions:secrets:set GMAIL_REPLY_TO
 
-# SendGrid
+# SendGrid (3 secrets - REQUIRED)
 firebase functions:secrets:set SENDGRID_API_KEY
 firebase functions:secrets:set SENDGRID_FROM_NAME
 firebase functions:secrets:set SENDGRID_REPLY_TO
 
-# IDIQ
+# IDIQ (6 secrets - REQUIRED)
 firebase functions:secrets:set IDIQ_PARTNER_ID
 firebase functions:secrets:set IDIQ_PARTNER_SECRET
 firebase functions:secrets:set IDIQ_API_KEY
@@ -542,17 +541,22 @@ firebase functions:secrets:set IDIQ_ENVIRONMENT
 firebase functions:secrets:set IDIQ_PLAN_CODE
 firebase functions:secrets:set IDIQ_OFFER_CODE
 
-# DocuSign
+# DocuSign (1 secret - REQUIRED)
 firebase functions:secrets:set DOCUSIGN_ACCOUNT_ID
-firebase functions:secrets:set DOCUSIGN_INTEGRATION_KEY
 
-# Telnyx
+# Telnyx (2 secrets - REQUIRED)
 firebase functions:secrets:set TELNYX_API_KEY
 firebase functions:secrets:set TELNYX_PHONE
 
-# Webhook
+# Webhook (1 secret - REQUIRED)
 firebase functions:secrets:set WEBHOOK_SECRET
 ```
+
+**Total: 18 required secrets** (1 + 4 + 3 + 6 + 1 + 2 + 1 = 18)
+
+**Optional Features (NOT required for deployment):**
+- **Anthropic AI:** If you want to enable Anthropic Claude, add `ANTHROPIC_API_KEY=your-key` to `/functions/.env.local`
+- **DocuSign Integration Key:** Already configured with account ID. Additional credentials can be added later if needed.
 
 ### Deployment Command
 

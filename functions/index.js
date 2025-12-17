@@ -37,7 +37,6 @@ if (!admin.apps.length) admin.initializeApp();
 // These secrets are already configured in Firebase Secret Manager
 // Access them in functions using secretName.value()
 const docusignAccountId = defineSecret('DOCUSIGN_ACCOUNT_ID');
-const docusignIntegrationKey = defineSecret('DOCUSIGN_INTEGRATION_KEY');
 const idiqPartnerId = defineSecret('IDIQ_PARTNER_ID');
 const idiqPartnerSecret = defineSecret('IDIQ_PARTNER_SECRET');
 const idiqApiKey = defineSecret('IDIQ_API_KEY');
@@ -297,34 +296,33 @@ exports.testIDIQAPI = onCall(
 exports.testDocuSign = onCall(
   {
     ...defaultConfig,
-    secrets: [docusignAccountId, docusignIntegrationKey]
+    secrets: [docusignAccountId]
   },
   async (request) => {
     try {
       console.log('🧪 Testing DocuSign integration...');
 
-      // Get DocuSign credentials from secrets
+      // Get DocuSign account ID from secret
       const accountId = docusignAccountId.value();
-      const integrationKey = docusignIntegrationKey.value();
 
-      if (!accountId || !integrationKey) {
+      if (!accountId) {
         return {
           status: 'not_configured',
           message: 'DocuSign not configured (optional)',
           details: {
             note: 'DocuSign is optional. Configure if you want e-signature capabilities.',
-            fix: 'Set DOCUSIGN_ACCOUNT_ID and DOCUSIGN_INTEGRATION_KEY in Firebase Secret Manager'
+            fix: 'Set DOCUSIGN_ACCOUNT_ID in Firebase Secret Manager'
           }
         };
       }
 
-      // DocuSign is configured
+      // DocuSign is configured (account ID present)
       return {
         status: 'success',
-        message: 'DocuSign credentials configured',
+        message: 'DocuSign account configured',
         details: {
           accountId: accountId,
-          note: 'DocuSign configured. Will be validated on first API call.',
+          note: 'DocuSign account ID configured. Additional credentials may be required for full integration.',
           timestamp: new Date().toISOString()
         }
       };
