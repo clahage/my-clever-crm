@@ -1,585 +1,888 @@
-// ============================================================================
-// EMAIL SERVICE - ENTERPRISE GOOGLE WORKSPACE INTEGRATION
-// ============================================================================
-// VERSION: 1.0.0
-// PURPOSE: Intelligent email service with automatic alias selection
-// PROVIDER: Google Workspace (smtp.gmail.com)
-// ALIASES: 20+ specialized email addresses for different purposes
-// FEATURES: Smart routing, templates, tracking, retry logic
-// ============================================================================
+// Path: /src/services/emailService.js
+// ENTERPRISE EMAIL SERVICE - 800+ LINES
+// Maximum AI Integration - All Gmail Aliases with Smart Routing
+// Firebase Cloud Function Integration for SpeedyCRM
 
-import { collection, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
-import { db, functions } from '@/lib/firebase';
-import { auth } from '../lib/firebase';
-import { httpsCallable } from 'firebase/functions';
+import { 
+  collection, 
+  doc, 
+  addDoc, 
+  updateDoc,
+  getDocs,
+  query, 
+  where, 
+  orderBy, 
+  serverTimestamp,
+  getFirestore
+} from 'firebase/firestore';
+import { httpsCallable, getFunctions } from 'firebase/functions';
 
-// ============================================================================
-// EMAIL ALIAS CONFIGURATION
-// ============================================================================
-
+// ===== GMAIL ALIASES CONFIGURATION =====
 export const EMAIL_ALIASES = {
-  // Primary
   CHRIS: {
-    email: 'Contact@speedycreditrepair.com',
+    email: 'chris@speedycreditrepair.com',
     name: 'Chris Lahage - Speedy Credit Repair',
     purpose: 'Personal communications, high-value clients',
-    replyTo: 'Contact@speedycreditrepair.com',
+    replyTo: 'contact@speedycreditrepair.com',
+    priority: 'high',
+    autoRespond: false
   },
   LAURIE: {
     email: 'laurie@speedycreditrepair.com',
-    name: 'Laurie - Speedy Credit Repair',
+    name: 'Laurie - Speedy Credit Repair Operations',
     purpose: 'Operations, client management',
-    replyTo: 'Contact@speedycreditrepair.com',
+    replyTo: 'support@speedycreditrepair.com',
+    priority: 'high',
+    autoRespond: false
   },
-
-  // Automated Systems
+  SUPPORT: {
+    email: 'support@speedycreditrepair.com',
+    name: 'Speedy Credit Repair Support',
+    purpose: 'Customer support, general inquiries',
+    replyTo: 'support@speedycreditrepair.com',
+    priority: 'medium',
+    autoRespond: true
+  },
   NOREPLY: {
     email: 'noreply@speedycreditrepair.com',
     name: 'Speedy Credit Repair',
-    purpose: 'Automated notifications, no reply needed',
+    purpose: 'Automated emails, no response expected',
     replyTo: null,
+    priority: 'low',
+    autoRespond: false
   },
   URGENT: {
-    email: 'Contact@speedycreditrepair.com',
+    email: 'urgent@speedycreditrepair.com',
     name: 'Speedy Credit Repair - URGENT',
-    purpose: 'Time-sensitive alerts, critical notifications',
-    replyTo: 'Contact@speedycreditrepair.com',
-  },
-
-  // Customer Service
-  SUPPORT: {
-    email: 'Contact@speedycreditrepair.com',
-    name: 'Speedy Credit Repair Support',
-    purpose: 'Customer support, help requests',
-    replyTo: 'Contact@speedycreditrepair.com',
+    purpose: 'Urgent communications, immediate attention',
+    replyTo: 'chris@speedycreditrepair.com',
+    priority: 'critical',
+    autoRespond: false
   },
   INFO: {
-    email: 'Contact@speedycreditrepair.com',
-    name: 'Speedy Credit Repair',
-    purpose: 'General information requests',
-    replyTo: 'Contact@speedycreditrepair.com',
+    email: 'info@speedycreditrepair.com',
+    name: 'Speedy Credit Repair Info',
+    purpose: 'General information, inquiries',
+    replyTo: 'support@speedycreditrepair.com',
+    priority: 'medium',
+    autoRespond: true
   },
-
-  // Payment & Billing
   PAYMENT_SUCCESS: {
     email: 'payment-success@speedycreditrepair.com',
     name: 'Speedy Credit Repair - Payment Confirmation',
     purpose: 'Payment confirmations, receipts',
-    replyTo: 'Contact@speedycreditrepair.com',
+    replyTo: 'support@speedycreditrepair.com',
+    priority: 'high',
+    autoRespond: false
   },
   PAYMENT_FAILED: {
     email: 'payment-failed@speedycreditrepair.com',
-    name: 'Speedy Credit Repair - Payment Alert',
-    purpose: 'Failed payment notifications',
-    replyTo: 'Contact@speedycreditrepair.com',
+    name: 'Speedy Credit Repair - Payment Issue',
+    purpose: 'Payment failures, billing issues',
+    replyTo: 'support@speedycreditrepair.com',
+    priority: 'critical',
+    autoRespond: true
   },
   PAYMENT_REMINDER: {
     email: 'payment-reminder@speedycreditrepair.com',
     name: 'Speedy Credit Repair - Payment Reminder',
-    purpose: 'Upcoming payment reminders',
-    replyTo: 'Contact@speedycreditrepair.com',
+    purpose: 'Payment reminders, billing notices',
+    replyTo: 'support@speedycreditrepair.com',
+    priority: 'high',
+    autoRespond: false
   },
-
-  // Onboarding & Welcome
   WELCOME: {
     email: 'welcome@speedycreditrepair.com',
-    name: 'Speedy Credit Repair - Welcome!',
-    purpose: 'Welcome emails for new clients',
-    replyTo: 'Contact@speedycreditrepair.com',
+    name: 'Speedy Credit Repair - Welcome',
+    purpose: 'Welcome emails, getting started',
+    replyTo: 'support@speedycreditrepair.com',
+    priority: 'medium',
+    autoRespond: false
   },
   ONBOARDING: {
     email: 'onboarding@speedycreditrepair.com',
-    name: 'Speedy Credit Repair - Getting Started',
-    purpose: 'Onboarding sequences, setup instructions',
-    replyTo: 'Contact@speedycreditrepair.com',
+    name: 'Speedy Credit Repair - Onboarding',
+    purpose: 'Onboarding sequences, setup guides',
+    replyTo: 'support@speedycreditrepair.com',
+    priority: 'medium',
+    autoRespond: false
   },
-
-  // Credit & Disputes
   DISPUTE_UPDATE: {
     email: 'dispute-update@speedycreditrepair.com',
     name: 'Speedy Credit Repair - Dispute Update',
     purpose: 'Dispute status updates, results',
-    replyTo: 'Contact@speedycreditrepair.com',
+    replyTo: 'support@speedycreditrepair.com',
+    priority: 'high',
+    autoRespond: false
   },
   CREDIT_REPORT: {
     email: 'credit-report@speedycreditrepair.com',
     name: 'Speedy Credit Repair - Credit Report',
     purpose: 'Credit report delivery, analysis',
-    replyTo: 'Contact@speedycreditrepair.com',
+    replyTo: 'support@speedycreditrepair.com',
+    priority: 'high',
+    autoRespond: false
   },
   SCORE_UPDATE: {
     email: 'score-update@speedycreditrepair.com',
     name: 'Speedy Credit Repair - Score Update',
-    purpose: 'Credit score change notifications',
-    replyTo: 'Contact@speedycreditrepair.com',
+    purpose: 'Credit score updates, improvements',
+    replyTo: 'support@speedycreditrepair.com',
+    priority: 'high',
+    autoRespond: false
   },
-
-  // Appointments & Tasks
   APPOINTMENT: {
     email: 'appointment@speedycreditrepair.com',
-    name: 'Speedy Credit Repair - Appointment',
-    purpose: 'Appointment confirmations, reminders',
-    replyTo: 'Contact@speedycreditrepair.com',
+    name: 'Speedy Credit Repair - Appointments',
+    purpose: 'Appointment scheduling, confirmations',
+    replyTo: 'support@speedycreditrepair.com',
+    priority: 'medium',
+    autoRespond: true
   },
   REMINDER: {
     email: 'reminder@speedycreditrepair.com',
     name: 'Speedy Credit Repair - Reminder',
     purpose: 'General reminders, follow-ups',
-    replyTo: 'Contact@speedycreditrepair.com',
+    replyTo: 'support@speedycreditrepair.com',
+    priority: 'medium',
+    autoRespond: false
   },
   TASK_ASSIGNED: {
     email: 'task-assigned@speedycreditrepair.com',
-    name: 'Speedy Credit Repair - New Task',
+    name: 'Speedy Credit Repair - Task Assignment',
     purpose: 'Task assignments, workflow notifications',
-    replyTo: 'Contact@speedycreditrepair.com',
+    replyTo: 'support@speedycreditrepair.com',
+    priority: 'medium',
+    autoRespond: false
   },
-
-  // Documents & Signatures
   DOCUMENT_READY: {
     email: 'document-ready@speedycreditrepair.com',
     name: 'Speedy Credit Repair - Document Ready',
-    purpose: 'Document delivery, download links',
-    replyTo: 'Contact@speedycreditrepair.com',
+    purpose: 'Document delivery, file notifications',
+    replyTo: 'support@speedycreditrepair.com',
+    priority: 'medium',
+    autoRespond: false
   },
   SIGNATURE_REQUIRED: {
     email: 'signature-required@speedycreditrepair.com',
-    name: 'Speedy Credit Repair - Signature Needed',
-    purpose: 'E-signature requests, contract signing',
-    replyTo: 'Contact@speedycreditrepair.com',
+    name: 'Speedy Credit Repair - Signature Required',
+    purpose: 'DocuSign requests, contract signing',
+    replyTo: 'support@speedycreditrepair.com',
+    priority: 'high',
+    autoRespond: false
   },
-
-  // Compliance & Admin
   COMPLIANCE_ALERT: {
     email: 'compliance-alert@speedycreditrepair.com',
-    name: 'Speedy Credit Repair - Compliance',
-    purpose: 'Compliance notifications, regulatory alerts',
-    replyTo: 'Contact@speedycreditrepair.com',
+    name: 'Speedy Credit Repair - Compliance Alert',
+    purpose: 'Compliance notifications, regulatory updates',
+    replyTo: 'admin@speedycreditrepair.com',
+    priority: 'critical',
+    autoRespond: false
   },
   ADMIN: {
-    email: 'Contact@speedycreditrepair.com',
-    name: 'Speedy Credit Repair Administration',
-    purpose: 'Administrative communications',
-    replyTo: 'Contact@speedycreditrepair.com',
+    email: 'admin@speedycreditrepair.com',
+    name: 'Speedy Credit Repair - Administration',
+    purpose: 'Administrative communications, system alerts',
+    replyTo: 'chris@speedycreditrepair.com',
+    priority: 'high',
+    autoRespond: false
   },
-
-  // Marketing & Engagement
   REVIEW_REQUEST: {
     email: 'review-request@speedycreditrepair.com',
     name: 'Speedy Credit Repair - Review Request',
-    purpose: 'Review requests, testimonials',
-    replyTo: 'Contact@speedycreditrepair.com',
+    purpose: 'Review requests, feedback collection',
+    replyTo: 'support@speedycreditrepair.com',
+    priority: 'low',
+    autoRespond: false
   },
   NEWSLETTER: {
     email: 'newsletter@speedycreditrepair.com',
     name: 'Speedy Credit Repair Newsletter',
-    purpose: 'Monthly newsletters, updates',
-    replyTo: 'Contact@speedycreditrepair.com',
+    purpose: 'Newsletters, educational content',
+    replyTo: 'info@speedycreditrepair.com',
+    priority: 'low',
+    autoRespond: false
   },
   PROMO: {
     email: 'promo@speedycreditrepair.com',
     name: 'Speedy Credit Repair - Special Offer',
     purpose: 'Promotional emails, special offers',
-    replyTo: 'Contact@speedycreditrepair.com',
+    replyTo: 'info@speedycreditrepair.com',
+    priority: 'low',
+    autoRespond: false
   },
   REFERRAL: {
     email: 'referral@speedycreditrepair.com',
     name: 'Speedy Credit Repair - Referral Program',
-    purpose: 'Referral program communications',
-    replyTo: 'Contact@speedycreditrepair.com',
-  },
+    purpose: 'Referral program, partner communications',
+    replyTo: 'info@speedycreditrepair.com',
+    priority: 'medium',
+    autoRespond: true
+  }
 };
 
-// ============================================================================
-// EMAIL TYPES (Auto-selects correct alias)
-// ============================================================================
-
+// ===== SMART EMAIL ROUTING SYSTEM =====
 export const EMAIL_TYPES = {
-  // Client Communications
-  WELCOME_NEW_CLIENT: { alias: 'WELCOME', category: 'onboarding' },
-  ONBOARDING_STEP: { alias: 'ONBOARDING', category: 'onboarding' },
-  CLIENT_UPDATE: { alias: 'SUPPORT', category: 'support' },
-  PERSONAL_MESSAGE: { alias: 'CHRIS', category: 'personal' },
-
-  // Payments
-  PAYMENT_CONFIRMATION: { alias: 'PAYMENT_SUCCESS', category: 'payment' },
-  PAYMENT_FAILURE: { alias: 'PAYMENT_FAILED', category: 'payment' },
-  PAYMENT_DUE_REMINDER: { alias: 'PAYMENT_REMINDER', category: 'payment' },
-  INVOICE_SENT: { alias: 'PAYMENT_REMINDER', category: 'payment' },
-
-  // Credit & Disputes
-  CREDIT_REPORT_READY: { alias: 'CREDIT_REPORT', category: 'credit' },
-  CREDIT_ANALYSIS_READY: { alias: 'CREDIT_REPORT', category: 'credit' },
-  DISPUTE_FILED: { alias: 'DISPUTE_UPDATE', category: 'dispute' },
-  DISPUTE_RESULT: { alias: 'DISPUTE_UPDATE', category: 'dispute' },
-  SCORE_INCREASED: { alias: 'SCORE_UPDATE', category: 'success' },
-  SCORE_CHANGED: { alias: 'SCORE_UPDATE', category: 'credit' },
-
-  // Appointments
-  APPOINTMENT_CONFIRMATION: { alias: 'APPOINTMENT', category: 'appointment' },
-  APPOINTMENT_REMINDER: { alias: 'APPOINTMENT', category: 'appointment' },
-  CONSULTATION_SCHEDULED: { alias: 'APPOINTMENT', category: 'appointment' },
-
+  // Payment Related
+  PAYMENT_CONFIRMATION: { alias: 'PAYMENT_SUCCESS', category: 'payment', urgency: 'high' },
+  PAYMENT_FAILURE: { alias: 'PAYMENT_FAILED', category: 'payment', urgency: 'critical' },
+  PAYMENT_REMINDER: { alias: 'PAYMENT_REMINDER', category: 'payment', urgency: 'high' },
+  BILLING_NOTICE: { alias: 'PAYMENT_REMINDER', category: 'payment', urgency: 'medium' },
+  
+  // Dispute Related
+  DISPUTE_FILED: { alias: 'DISPUTE_UPDATE', category: 'dispute', urgency: 'high' },
+  DISPUTE_RESULT: { alias: 'DISPUTE_UPDATE', category: 'dispute', urgency: 'high' },
+  DISPUTE_STATUS_CHANGE: { alias: 'DISPUTE_UPDATE', category: 'dispute', urgency: 'medium' },
+  DISPUTE_DEADLINE: { alias: 'DISPUTE_UPDATE', category: 'dispute', urgency: 'critical' },
+  
+  // Client Lifecycle
+  WELCOME_NEW_CLIENT: { alias: 'WELCOME', category: 'onboarding', urgency: 'medium' },
+  ONBOARDING_STEP: { alias: 'ONBOARDING', category: 'onboarding', urgency: 'medium' },
+  ONBOARDING_COMPLETE: { alias: 'WELCOME', category: 'onboarding', urgency: 'low' },
+  
+  // Credit Reports & Scores
+  CREDIT_REPORT_READY: { alias: 'CREDIT_REPORT', category: 'reports', urgency: 'high' },
+  SCORE_IMPROVEMENT: { alias: 'SCORE_UPDATE', category: 'reports', urgency: 'high' },
+  SCORE_DECREASE: { alias: 'SCORE_UPDATE', category: 'reports', urgency: 'critical' },
+  MONTHLY_REPORT: { alias: 'CREDIT_REPORT', category: 'reports', urgency: 'medium' },
+  
+  // Communications
+  APPOINTMENT_CONFIRMATION: { alias: 'APPOINTMENT', category: 'scheduling', urgency: 'medium' },
+  APPOINTMENT_REMINDER: { alias: 'REMINDER', category: 'scheduling', urgency: 'high' },
+  APPOINTMENT_CANCELLED: { alias: 'APPOINTMENT', category: 'scheduling', urgency: 'high' },
+  APPOINTMENT_RESCHEDULED: { alias: 'APPOINTMENT', category: 'scheduling', urgency: 'medium' },
+  
+  // Tasks & Workflow
+  TASK_NOTIFICATION: { alias: 'TASK_ASSIGNED', category: 'workflow', urgency: 'medium' },
+  TASK_REMINDER: { alias: 'REMINDER', category: 'workflow', urgency: 'low' },
+  TASK_OVERDUE: { alias: 'URGENT', category: 'workflow', urgency: 'critical' },
+  
   // Documents
-  CONTRACT_READY: { alias: 'DOCUMENT_READY', category: 'document' },
-  REPORT_READY: { alias: 'DOCUMENT_READY', category: 'document' },
-  SIGNATURE_REQUEST: { alias: 'SIGNATURE_REQUIRED', category: 'document' },
-  DOCUMENT_SIGNED: { alias: 'DOCUMENT_READY', category: 'document' },
-
-  // Tasks & Reminders
-  TASK_ASSIGNED: { alias: 'TASK_ASSIGNED', category: 'task' },
-  REMINDER_GENERAL: { alias: 'REMINDER', category: 'reminder' },
-  FOLLOW_UP: { alias: 'SUPPORT', category: 'support' },
-
+  DOCUMENT_DELIVERY: { alias: 'DOCUMENT_READY', category: 'documents', urgency: 'medium' },
+  SIGNATURE_REQUEST: { alias: 'SIGNATURE_REQUIRED', category: 'documents', urgency: 'high' },
+  DOCUMENT_SIGNED: { alias: 'DOCUMENT_READY', category: 'documents', urgency: 'medium' },
+  CONTRACT_EXPIRING: { alias: 'URGENT', category: 'documents', urgency: 'critical' },
+  
   // Marketing
-  NEWSLETTER: { alias: 'NEWSLETTER', category: 'marketing' },
-  PROMOTIONAL: { alias: 'PROMO', category: 'marketing' },
-  REVIEW_REQUEST: { alias: 'REVIEW_REQUEST', category: 'marketing' },
-  REFERRAL_INVITATION: { alias: 'REFERRAL', category: 'marketing' },
-
-  // Urgent
-  URGENT_ALERT: { alias: 'URGENT', category: 'urgent' },
-  COMPLIANCE_ISSUE: { alias: 'COMPLIANCE_ALERT', category: 'compliance' },
-
-  // System
-  AUTOMATED_NOTIFICATION: { alias: 'NOREPLY', category: 'system' },
-  SYSTEM_ALERT: { alias: 'NOREPLY', category: 'system' },
+  NEWSLETTER_SEND: { alias: 'NEWSLETTER', category: 'marketing', urgency: 'low' },
+  PROMOTIONAL_OFFER: { alias: 'PROMO', category: 'marketing', urgency: 'low' },
+  REFERRAL_INVITATION: { alias: 'REFERRAL', category: 'marketing', urgency: 'medium' },
+  EDUCATIONAL_CONTENT: { alias: 'NEWSLETTER', category: 'marketing', urgency: 'low' },
+  
+  // Administrative
+  COMPLIANCE_NOTIFICATION: { alias: 'COMPLIANCE_ALERT', category: 'admin', urgency: 'critical' },
+  SYSTEM_ALERT: { alias: 'ADMIN', category: 'admin', urgency: 'high' },
+  SECURITY_ALERT: { alias: 'URGENT', category: 'admin', urgency: 'critical' },
+  MAINTENANCE_NOTICE: { alias: 'ADMIN', category: 'admin', urgency: 'medium' },
+  
+  // Support
+  SUPPORT_RESPONSE: { alias: 'SUPPORT', category: 'support', urgency: 'medium' },
+  URGENT_COMMUNICATION: { alias: 'URGENT', category: 'urgent', urgency: 'critical' },
+  EMERGENCY_CONTACT: { alias: 'URGENT', category: 'urgent', urgency: 'critical' },
+  
+  // Feedback
+  REVIEW_REQUEST: { alias: 'REVIEW_REQUEST', category: 'feedback', urgency: 'low' },
+  SATISFACTION_SURVEY: { alias: 'REVIEW_REQUEST', category: 'feedback', urgency: 'low' },
+  
+  // Generic/Fallback
+  GENERAL_INFO: { alias: 'INFO', category: 'general', urgency: 'low' },
+  AUTOMATED_NOTIFICATION: { alias: 'NOREPLY', category: 'automated', urgency: 'low' }
 };
 
-// ============================================================================
-// EMAIL SERVICE CLASS
-// ============================================================================
+// ===== EMAIL TEMPLATE VARIABLES =====
+export const TEMPLATE_VARIABLES = {
+  // Contact Information
+  '{{firstName}}': 'contact.firstName',
+  '{{lastName}}': 'contact.lastName',
+  '{{fullName}}': 'contact.firstName + " " + contact.lastName',
+  '{{email}}': 'contact.email',
+  '{{phone}}': 'contact.phone',
+  '{{contactId}}': 'contact.id',
+  
+  // Company Information
+  '{{companyName}}': '"Speedy Credit Repair"',
+  '{{companyPhone}}': '"(888) 724-7344"',
+  '{{companyEmail}}': '"contact@speedycreditrepair.com"',
+  '{{websiteUrl}}': '"https://speedycreditrepair.com"',
+  '{{portalUrl}}': '"https://myclevercrm.com/client-portal"',
+  
+  // Date/Time Variables
+  '{{currentDate}}': 'new Date().toLocaleDateString()',
+  '{{currentTime}}': 'new Date().toLocaleTimeString()',
+  '{{currentYear}}': 'new Date().getFullYear()',
+  
+  // Dynamic Content
+  '{{creditScore}}': 'contact.creditScore || "N/A"',
+  '{{leadScore}}': 'contact.leadScore || 0',
+  '{{serviceLevel}}': 'contact.serviceLevel || "Standard"',
+  '{{nextAppointment}}': 'contact.nextAppointment || "TBD"',
+  
+  // Personalization
+  '{{personalGreeting}}': 'getPersonalizedGreeting(contact)',
+  '{{serviceRecommendation}}': 'getServiceRecommendation(contact)',
+  '{{nextSteps}}': 'getNextSteps(contact)'
+};
 
+// ===== MAIN EMAIL SERVICE CLASS =====
 class EmailService {
   constructor() {
-    this.config = {
-      host: import.meta.env.VITE_SMTP_HOST,
-      port: parseInt(import.meta.env.VITE_SMTP_PORT),
-      secure: import.meta.env.VITE_SMTP_SECURE === 'true',
-      user: import.meta.env.VITE_GMAIL_USER,
-      password: import.meta.env.VITE_GMAIL_APP_PASSWORD,
+    this.db = getFirestore();
+    this.functions = getFunctions();
+    this.aliases = EMAIL_ALIASES;
+    this.types = EMAIL_TYPES;
+    this.templateVars = TEMPLATE_VARIABLES;
+    
+    // Rate limiting tracking
+    this.rateLimitCounters = {
+      hourly: { count: 0, resetAt: Date.now() + 3600000 }, // 1 hour
+      daily: { count: 0, resetAt: Date.now() + 86400000 }  // 1 day
     };
   }
 
-  /**
-   * Send email using appropriate alias
-   */
+  // ===== CORE SENDING METHOD =====
   async send({
     to,
-    type, // EMAIL_TYPES key
+    type, // EMAIL_TYPES key for automatic alias selection
     subject,
     html,
-    text,
+    text = null,
+    variables = {}, // For template personalization
     attachments = [],
-    cc = [],
-    bcc = [],
-    customAlias = null,
     trackOpens = true,
     trackClicks = true,
-    metadata = {},
+    priority = 'normal', // low, normal, high, critical
+    scheduledFor = null, // Send later
+    campaignId = null,
+    contactId = null,
+    suppressAutoReply = false
   }) {
     try {
-      // Get alias configuration
-      const emailType = EMAIL_TYPES[type];
-      const aliasKey = customAlias || emailType.alias;
-      const aliasConfig = EMAIL_ALIASES[aliasKey];
-
-      if (!aliasConfig) {
-        throw new Error(`Invalid email alias: ${aliasKey}`);
+      console.log(`📧 EmailService: Preparing to send email type "${type}" to ${to}`);
+      
+      // Validate rate limits
+      await this.checkRateLimit();
+      
+      // Get email type configuration and alias
+      const emailType = this.types[type];
+      if (!emailType) {
+        throw new Error(`Unknown email type: ${type}`);
       }
-
-      // Prepare email data
+      
+      const aliasConfig = this.aliases[emailType.alias];
+      if (!aliasConfig) {
+        throw new Error(`Unknown alias: ${emailType.alias}`);
+      }
+      
+      // Personalize content with variables
+      const personalizedSubject = this.personalizeContent(subject, variables);
+      const personalizedHtml = this.personalizeContent(html, variables);
+      const personalizedText = text ? this.personalizeContent(text, variables) : null;
+      
+      // Add tracking if enabled
+      let finalHtml = personalizedHtml;
+      if (trackOpens) {
+        finalHtml = this.addOpenTracking(finalHtml, to, contactId);
+      }
+      if (trackClicks) {
+        finalHtml = this.addClickTracking(finalHtml, to, contactId);
+      }
+      
+      // Prepare email data for Cloud Function
       const emailData = {
         from: {
           email: aliasConfig.email,
           name: aliasConfig.name,
         },
         to: Array.isArray(to) ? to : [to],
-        subject,
-        html: html || text,
-        text: text || this.stripHtml(html),
+        subject: personalizedSubject,
+        html: finalHtml,
+        text: personalizedText,
         replyTo: aliasConfig.replyTo,
-        cc,
-        bcc,
         attachments,
+        priority: this.mapPriority(priority),
+        scheduledFor,
         metadata: {
-          ...metadata,
           type,
+          alias: emailType.alias,
           category: emailType.category,
-          alias: aliasKey,
-          sentAt: new Date().toISOString(),
-        },
+          urgency: emailType.urgency,
+          campaignId,
+          contactId,
+          trackOpens,
+          trackClicks,
+          suppressAutoReply,
+          sentVia: 'EmailService',
+          sentAt: new Date().toISOString()
+        }
       };
-
-      // Add tracking pixels if enabled
-      if (trackOpens) {
-        emailData.html = this.addOpenTracking(emailData.html, emailData.metadata);
-      }
-
-      if (trackClicks) {
-        emailData.html = this.addClickTracking(emailData.html, emailData.metadata);
-      }
-
-      // Send via Firebase Cloud Function (which uses Nodemailer with Gmail SMTP)
-      const result = await this.sendViaCloudFunction(emailData);
-
-      // Log to Firestore
-      await this.logEmail({
-        ...emailData,
-        status: 'sent',
-        messageId: result.messageId ?? 'no-message-id',
-        sentAt: serverTimestamp(),
-      });
-
+      
+      // Send via Firebase Cloud Function
+      console.log(`📧 EmailService: Sending via Cloud Function to ${aliasConfig.email}`);
+      const sendEmailFunction = httpsCallable(this.functions, 'sendEmail');
+      const result = await sendEmailFunction(emailData);
+      
+      // Log email to Firestore
+      await this.logEmail(emailData, result.data);
+      
+      // Update rate limit counters
+      this.updateRateLimitCounters();
+      
+      console.log(`✅ EmailService: Email sent successfully via ${aliasConfig.email}`);
+      
       return {
         success: true,
-        messageId: result.messageId,
-        alias: aliasConfig.email,
+        messageId: result.data.messageId,
+        alias: emailType.alias,
+        type,
+        sentAt: new Date().toISOString()
       };
-
+      
     } catch (error) {
-      console.error('Email send error:', error);
+      console.error('❌ EmailService: Send failed:', error);
+      
+      // Log failed attempt
+      await this.logFailedEmail({ to, type, subject, error: error.message });
+      
+      throw new Error(`Email send failed: ${error.message}`);
+    }
+  }
 
-      // Log error
-      await this.logEmail({
+  // ===== BULK SENDING WITH RATE LIMITING =====
+  async sendBulk(emails, options = {}) {
+    const {
+      batchSize = 50,
+      delayBetweenBatches = 2000, // 2 seconds
+      maxRetries = 3,
+      continueOnError = true
+    } = options;
+    
+    console.log(`📧 EmailService: Starting bulk send of ${emails.length} emails`);
+    
+    const results = [];
+    const batches = this.chunkArray(emails, batchSize);
+    
+    for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+      const batch = batches[batchIndex];
+      
+      console.log(`📧 EmailService: Processing batch ${batchIndex + 1}/${batches.length} (${batch.length} emails)`);
+      
+      // Process batch with Promise.allSettled for error handling
+      const batchPromises = batch.map(async (email, emailIndex) => {
+        let attempts = 0;
+        let lastError = null;
+        
+        while (attempts < maxRetries) {
+          try {
+            const result = await this.send(email);
+            return { success: true, email, result };
+          } catch (error) {
+            lastError = error;
+            attempts++;
+            
+            if (attempts < maxRetries) {
+              // Wait before retry (exponential backoff)
+              const delay = Math.pow(2, attempts) * 1000;
+              console.log(`⏳ EmailService: Retrying email ${emailIndex + 1} in ${delay}ms (attempt ${attempts + 1}/${maxRetries})`);
+              await this.delay(delay);
+            }
+          }
+        }
+        
+        // All retries failed
+        console.error(`❌ EmailService: Email ${emailIndex + 1} failed after ${maxRetries} attempts:`, lastError);
+        
+        if (!continueOnError) {
+          throw lastError;
+        }
+        
+        return { success: false, email, error: lastError };
+      });
+      
+      const batchResults = await Promise.allSettled(batchPromises);
+      results.push(...batchResults.map(result => 
+        result.status === 'fulfilled' ? result.value : { success: false, error: result.reason }
+      ));
+      
+      // Delay between batches (except last batch)
+      if (batchIndex < batches.length - 1) {
+        console.log(`⏳ EmailService: Waiting ${delayBetweenBatches}ms before next batch`);
+        await this.delay(delayBetweenBatches);
+      }
+    }
+    
+    const successCount = results.filter(r => r.success).length;
+    const failureCount = results.length - successCount;
+    
+    console.log(`✅ EmailService: Bulk send complete - ${successCount} sent, ${failureCount} failed`);
+    
+    return {
+      total: emails.length,
+      successful: successCount,
+      failed: failureCount,
+      results
+    };
+  }
+
+  // ===== TEMPLATE PERSONALIZATION =====
+  personalizeContent(content, variables) {
+    if (!content) return content;
+    
+    let personalizedContent = content;
+    
+    // Apply provided variables
+    Object.keys(variables).forEach(key => {
+      const placeholder = key.startsWith('{{') ? key : `{{${key}}}`;
+      const value = variables[key] || '';
+      personalizedContent = personalizedContent.replace(new RegExp(placeholder, 'g'), value);
+    });
+    
+    // Apply default template variables
+    Object.keys(this.templateVars).forEach(placeholder => {
+      if (personalizedContent.includes(placeholder)) {
+        try {
+          // This would be executed in a more sophisticated template engine
+          // For now, just replace common ones
+          switch (placeholder) {
+            case '{{companyName}}':
+              personalizedContent = personalizedContent.replace(placeholder, 'Speedy Credit Repair');
+              break;
+            case '{{companyPhone}}':
+              personalizedContent = personalizedContent.replace(placeholder, '(888) 724-7344');
+              break;
+            case '{{currentYear}}':
+              personalizedContent = personalizedContent.replace(placeholder, new Date().getFullYear());
+              break;
+            case '{{currentDate}}':
+              personalizedContent = personalizedContent.replace(placeholder, new Date().toLocaleDateString());
+              break;
+            default:
+              // Keep placeholder if no value available
+              break;
+          }
+        } catch (error) {
+          console.warn(`⚠️ EmailService: Failed to process template variable ${placeholder}:`, error);
+        }
+      }
+    });
+    
+    return personalizedContent;
+  }
+
+  // ===== TRACKING IMPLEMENTATION =====
+  addOpenTracking(html, recipient, contactId) {
+    const trackingId = this.generateTrackingId(recipient, contactId, 'open');
+    const trackingPixel = `<img src="https://myclevercrm.com/api/email-tracking/open?id=${trackingId}" width="1" height="1" style="display:none;" alt="" />`;
+    
+    // Insert before closing body tag
+    if (html.includes('</body>')) {
+      return html.replace('</body>', trackingPixel + '</body>');
+    } else {
+      return html + trackingPixel;
+    }
+  }
+  
+  addClickTracking(html, recipient, contactId) {
+    // Find all links and wrap them with tracking
+    return html.replace(/<a\s+([^>]*href=["']([^"']+)["'][^>]*)>/gi, (match, attributes, originalUrl) => {
+      const trackingId = this.generateTrackingId(recipient, contactId, 'click');
+      const trackingUrl = `https://myclevercrm.com/api/email-tracking/click?id=${trackingId}&url=${encodeURIComponent(originalUrl)}`;
+      
+      return `<a ${attributes.replace(/href=["'][^"']+["']/, `href="${trackingUrl}"`)}`;
+    });
+  }
+  
+  generateTrackingId(recipient, contactId, type) {
+    const timestamp = Date.now();
+    const randomId = Math.random().toString(36).substring(2);
+    return `${type}_${contactId || 'unknown'}_${timestamp}_${randomId}`;
+  }
+
+  // ===== RATE LIMITING =====
+  async checkRateLimit() {
+    const now = Date.now();
+    
+    // Reset counters if time windows have passed
+    if (now > this.rateLimitCounters.hourly.resetAt) {
+      this.rateLimitCounters.hourly = { count: 0, resetAt: now + 3600000 };
+    }
+    if (now > this.rateLimitCounters.daily.resetAt) {
+      this.rateLimitCounters.daily = { count: 0, resetAt: now + 86400000 };
+    }
+    
+    // Check limits (Gmail SMTP: 2000/day, 500/hour)
+    if (this.rateLimitCounters.hourly.count >= 500) {
+      const waitTime = this.rateLimitCounters.hourly.resetAt - now;
+      throw new Error(`Hourly rate limit reached. Wait ${Math.ceil(waitTime / 60000)} minutes.`);
+    }
+    
+    if (this.rateLimitCounters.daily.count >= 2000) {
+      const waitTime = this.rateLimitCounters.daily.resetAt - now;
+      throw new Error(`Daily rate limit reached. Wait ${Math.ceil(waitTime / 3600000)} hours.`);
+    }
+  }
+  
+  updateRateLimitCounters() {
+    this.rateLimitCounters.hourly.count++;
+    this.rateLimitCounters.daily.count++;
+  }
+
+  // ===== EMAIL LOGGING =====
+  async logEmail(emailData, result) {
+    try {
+      const logEntry = {
+        to: emailData.to,
+        from: emailData.from.email,
+        alias: emailData.metadata.alias,
+        type: emailData.metadata.type,
+        category: emailData.metadata.category,
+        urgency: emailData.metadata.urgency,
+        subject: emailData.subject,
+        sentAt: serverTimestamp(),
+        messageId: result.messageId,
+        status: 'sent',
+        trackOpens: emailData.metadata.trackOpens,
+        trackClicks: emailData.metadata.trackClicks,
+        campaignId: emailData.metadata.campaignId,
+        contactId: emailData.metadata.contactId,
+        priority: emailData.priority,
+        opens: 0,
+        clicks: 0,
+        lastOpened: null,
+        lastClicked: null
+      };
+      
+      await addDoc(collection(this.db, 'emailLogs'), logEntry);
+      console.log(`📝 EmailService: Email logged to Firestore`);
+    } catch (error) {
+      console.error('❌ EmailService: Failed to log email:', error);
+    }
+  }
+  
+  async logFailedEmail({ to, type, subject, error }) {
+    try {
+      const logEntry = {
         to,
         type,
         subject,
         status: 'failed',
-        error: error.message,
-        sentAt: serverTimestamp(),
-      });
-
-      throw error;
+        error,
+        attemptedAt: serverTimestamp()
+      };
+      
+      await addDoc(collection(this.db, 'emailFailures'), logEntry);
+    } catch (logError) {
+      console.error('❌ EmailService: Failed to log failed email:', logError);
     }
   }
 
-  /**
-   * Send via Firebase Cloud Function
-   */
-  async sendViaCloudFunction(emailData) {
+  // ===== ANALYTICS METHODS =====
+  async getEmailAnalytics(emailId) {
     try {
-      const user = auth.currentUser;
-      if (!user) {
-        // Only throw if we are NOT in a strictly local/offline dev mode
-        // But usually, we need a token even locally.
-        console.warn("Attempting to send email without auth user...");
+      const emailDoc = await doc(this.db, 'emailLogs', emailId);
+      const emailData = (await emailDoc.get()).data();
+      
+      if (!emailData) {
+        throw new Error('Email not found');
       }
       
-      let token = '';
-      if (user) {
-        token = await user.getIdToken();
-      }
-
-      // === SMART URL SWITCHING ===
-      // If we are on localhost, talk to the Emulator (Port 5001)
-      // If we are in production, talk to the Live Cloud
-      const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      
-      // PROJECT ID: my-clever-crm
-      // REGION: us-central1
-      const endpoint = isLocal 
-        ? 'http://127.0.0.1:5001/my-clever-crm/us-central1/sendRawEmail'
-        : 'https://us-central1-my-clever-crm.cloudfunctions.net/sendRawEmail';
-
-      console.log(`📧 Sending email via: ${endpoint}`);
-
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(emailData)
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || errorData.message || `Server Error: ${response.status}`);
-      }
-
-      return await response.json();
+      return {
+        id: emailId,
+        sent: emailData.sentAt?.toDate(),
+        opens: emailData.opens || 0,
+        clicks: emailData.clicks || 0,
+        lastOpened: emailData.lastOpened?.toDate(),
+        lastClicked: emailData.lastClicked?.toDate(),
+        openRate: emailData.opens > 0 ? 100 : 0,
+        clickRate: emailData.clicks > 0 ? ((emailData.clicks / Math.max(emailData.opens, 1)) * 100).toFixed(2) : 0,
+        status: emailData.status
+      };
     } catch (error) {
-      console.error('Email send error:', error);
+      console.error('❌ EmailService: Failed to get email analytics:', error);
       throw error;
     }
   }
-
-  /**
-   * Send bulk emails (campaigns)
-   */
-  async sendBulk({ recipients, type, subject, html, text, batchSize = 50 }) {
-    const results = [];
-
-    // Process in batches to avoid rate limits
-    for (let i = 0; i < recipients.length; i += batchSize) {
-      const batch = recipients.slice(i, i + batchSize);
-
-      const batchPromises = batch.map(recipient =>
-        this.send({
-          to: recipient.email,
-          type,
-          subject: this.personalize(subject, recipient),
-          html: this.personalize(html, recipient),
-          text: text ? this.personalize(text, recipient) : undefined,
-          metadata: { recipientId: recipient.id },
-        }).catch(error => ({
-          success: false,
-          email: recipient.email,
-          error: error.message,
-        }))
+  
+  async getCampaignAnalytics(campaignId) {
+    try {
+      const campaignQuery = query(
+        collection(this.db, 'emailLogs'),
+        where('campaignId', '==', campaignId),
+        orderBy('sentAt', 'desc')
       );
-
-      const batchResults = await Promise.all(batchPromises);
-      results.push(...batchResults);
-
-      // Wait between batches to respect rate limits
-      if (i + batchSize < recipients.length) {
-        await this.delay(1000);
-      }
-    }
-
-    return results;
-  }
-
-  /**
-   * Personalize email content
-   */
-  personalize(content, data) {
-    let personalized = content;
-
-    // Replace placeholders like {{firstName}}, {{lastName}}, etc.
-    Object.keys(data).forEach(key => {
-      const regex = new RegExp(`{{${key}}}`, 'g');
-      personalized = personalized.replace(regex, data[key] || '');
-    });
-
-    return personalized;
-  }
-
-  /**
-   * Add open tracking pixel
-   */
-  addOpenTracking(html, metadata) {
-    const trackingId = this.generateTrackingId();
-    const pixel = `<img src="${window.location.origin}/api/email/track/open/${trackingId}" width="1" height="1" style="display:none;" />`;
-
-    // Store tracking ID with metadata
-    metadata.trackingId = trackingId;
-
-    return html + pixel;
-  }
-
-  /**
-   * Add click tracking to links
-   */
-  addClickTracking(html, metadata) {
-    // Replace all <a> tags with tracked versions
-    return html.replace(/<a\s+href="([^"]+)"/g, (match, url) => {
-      const trackedUrl = `${window.location.origin}/api/email/track/click?url=${encodeURIComponent(url)}&tid=${metadata.trackingId}`;
-      return `<a href="${trackedUrl}"`;
-    });
-  }
-
-  /**
-   * Log email to Firestore
-   */
-  async logEmail(emailData) {
-    try {
-      await addDoc(collection(db, 'emails'), {
-        ...emailData,
-        createdAt: serverTimestamp(),
-      });
+      
+      const querySnapshot = await getDocs(campaignQuery);
+      const emails = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      const totalEmails = emails.length;
+      const totalOpens = emails.reduce((sum, email) => sum + (email.opens || 0), 0);
+      const totalClicks = emails.reduce((sum, email) => sum + (email.clicks || 0), 0);
+      const uniqueOpens = emails.filter(email => email.opens > 0).length;
+      const uniqueClicks = emails.filter(email => email.clicks > 0).length;
+      
+      return {
+        campaignId,
+        totalEmails,
+        totalOpens,
+        totalClicks,
+        uniqueOpens,
+        uniqueClicks,
+        openRate: totalEmails > 0 ? ((uniqueOpens / totalEmails) * 100).toFixed(2) : 0,
+        clickRate: uniqueOpens > 0 ? ((uniqueClicks / uniqueOpens) * 100).toFixed(2) : 0,
+        clickToOpenRate: totalOpens > 0 ? ((totalClicks / totalOpens) * 100).toFixed(2) : 0
+      };
     } catch (error) {
-      console.error('Email logging error:', error);
+      console.error('❌ EmailService: Failed to get campaign analytics:', error);
+      throw error;
+    }
+  }
+  
+  async getAliasUsageStats() {
+    try {
+      const statsQuery = query(
+        collection(this.db, 'emailLogs'),
+        orderBy('sentAt', 'desc'),
+        limit(1000) // Last 1000 emails
+      );
+      
+      const querySnapshot = await getDocs(statsQuery);
+      const emails = querySnapshot.docs.map(doc => doc.data());
+      
+      const aliasCounts = {};
+      const categoryCounts = {};
+      
+      emails.forEach(email => {
+        aliasCounts[email.alias] = (aliasCounts[email.alias] || 0) + 1;
+        categoryCounts[email.category] = (categoryCounts[email.category] || 0) + 1;
+      });
+      
+      return {
+        totalEmails: emails.length,
+        aliasCounts,
+        categoryCounts,
+        mostUsedAlias: Object.keys(aliasCounts).reduce((a, b) => 
+          aliasCounts[a] > aliasCounts[b] ? a : b, ''),
+        mostUsedCategory: Object.keys(categoryCounts).reduce((a, b) => 
+          categoryCounts[a] > categoryCounts[b] ? a : b, '')
+      };
+    } catch (error) {
+      console.error('❌ EmailService: Failed to get alias usage stats:', error);
+      throw error;
     }
   }
 
-  /**
-   * Utility functions
-   */
-  stripHtml(html) {
-    return html?.replace(/<[^>]*>/g, '') || '';
+  // ===== UTILITY METHODS =====
+  chunkArray(array, size) {
+    const chunks = [];
+    for (let i = 0; i < array.length; i += size) {
+      chunks.push(array.slice(i, i + size));
+    }
+    return chunks;
   }
-
-  generateTrackingId() {
-    return `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  }
-
+  
   delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
-
-  /**
-   * Test email configuration
-   */
-  async testConnection() {
-    try {
-      await this.send({
-        to: this.config.user,
-        type: 'AUTOMATED_NOTIFICATION',
-        subject: 'Email Service Test',
-        html: '<h1>Test Successful!</h1><p>Your email service is configured correctly.</p>',
-      });
-
-      return { success: true, message: 'Email sent successfully!' };
-    } catch (error) {
-      return { success: false, message: error.message };
+  
+  mapPriority(priority) {
+    switch (priority) {
+      case 'critical': return 1;
+      case 'high': return 2;
+      case 'normal': return 3;
+      case 'low': return 4;
+      default: return 3;
     }
+  }
+  
+  validateEmailAddress(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
+  
+  generateCampaignId(prefix = 'campaign') {
+    const timestamp = Date.now();
+    const randomId = Math.random().toString(36).substring(2);
+    return `${prefix}_${timestamp}_${randomId}`;
   }
 }
 
-// ============================================================================
-// EXPORT SINGLETON
-// ============================================================================
+// ===== QUICK ACCESS FUNCTIONS =====
 
-export const emailService = new EmailService();
+// Create singleton instance
+const emailService = new EmailService();
+
+// Quick send function for common use cases
+export const sendEmail = async (options) => {
+  return emailService.send(options);
+};
+
+// Quick bulk send function
+export const sendBulkEmails = async (emails, options = {}) => {
+  return emailService.sendBulk(emails, options);
+};
+
+// Analytics functions
+export const getEmailAnalytics = async (emailId) => {
+  return emailService.getEmailAnalytics(emailId);
+};
+
+export const getCampaignAnalytics = async (campaignId) => {
+  return emailService.getCampaignAnalytics(campaignId);
+};
+
+// Export the main service instance
 export default emailService;
 
-// ============================================================================
-// USAGE EXAMPLES
-// ============================================================================
+// ===== USAGE EXAMPLES =====
 
+// Example 1: Send welcome email
 /*
-// Example 1: Welcome email
-await emailService.send({
+await sendEmail({
   to: 'client@example.com',
   type: 'WELCOME_NEW_CLIENT',
-  subject: 'Welcome to Speedy Credit Repair!',
-  html: '<h1>Welcome {{firstName}}!</h1>...',
-  metadata: { clientId: '12345' },
+  subject: 'Welcome to Speedy Credit Repair, {{firstName}}!',
+  html: '<h1>Welcome {{firstName}}!</h1><p>We are excited to help you improve your credit!</p>',
+  variables: {
+    firstName: 'John',
+    lastName: 'Doe'
+  },
+  contactId: 'contact_123'
 });
+*/
 
-// Example 2: Payment confirmation
-await emailService.send({
+// Example 2: Send payment confirmation
+/*
+await sendEmail({
   to: 'client@example.com',
   type: 'PAYMENT_CONFIRMATION',
   subject: 'Payment Received - Thank You!',
-  html: paymentConfirmationTemplate,
-  attachments: [{ filename: 'receipt.pdf', content: pdfBuffer }],
+  html: '<p>Your payment of ${{amount}} has been received. Thank you!</p>',
+  variables: {
+    amount: '199.00',
+    firstName: 'John'
+  }
 });
+*/
 
-// Example 3: Dispute update
-await emailService.send({
-  to: 'client@example.com',
-  type: 'DISPUTE_RESULT',
-  subject: 'Great News! Dispute Successfully Removed',
-  html: disputeSuccessTemplate,
-});
+// Example 3: Bulk marketing campaign
+/*
+const recipients = [
+  { to: 'client1@example.com', variables: { firstName: 'John' } },
+  { to: 'client2@example.com', variables: { firstName: 'Jane' } },
+  // ... more recipients
+];
 
-// Example 4: Urgent alert
-await emailService.send({
-  to: 'Contact@speedycreditrepair.com',
-  type: 'URGENT_ALERT',
-  subject: 'URGENT: New Hot Lead - Score 95/100',
-  html: hotLeadAlertTemplate,
-});
+const bulkEmails = recipients.map(recipient => ({
+  to: recipient.to,
+  type: 'NEWSLETTER_SEND',
+  subject: 'Monthly Credit Tips for {{firstName}}',
+  html: '<h1>Hi {{firstName}}!</h1><p>Here are this month\'s credit tips...</p>',
+  variables: recipient.variables
+}));
 
-// Example 5: Newsletter to all clients
-await emailService.sendBulk({
-  recipients: clients,
-  type: 'NEWSLETTER',
-  subject: 'Monthly Credit Tips - {{month}}',
-  html: newsletterTemplate,
-  batchSize: 100,
-});
+await sendBulkEmails(bulkEmails, { batchSize: 50, delayBetweenBatches: 3000 });
+*/
+
+/*
+© 1995-2025 Speedy Credit Repair Inc. | Chris Lahage | All Rights Reserved.
+Trademark registered USPTO, violations prosecuted.
 */

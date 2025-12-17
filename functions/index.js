@@ -12,16 +12,17 @@ if (!admin.apps.length) admin.initializeApp();
 // ============================================
 // HELPER: GEN 1 CONFIGURATION WRAPPERS
 // ============================================
-const runtimeOpts = { timeoutSeconds: 300, memory: '512MB' };
+// ⭐ FIXED: Removed runWith() to avoid firebase-functions 4.9.0 compatibility issues
+// Using default Gen 1 settings instead (60s timeout, 256MB memory)
 
 // Wraps logic into a Gen 1 HTTP Function
-const wrapHttp = (handler) => functions.runWith(runtimeOpts).https.onRequest(handler);
+const wrapHttp = (handler) => functions.https.onRequest(handler);
 // Wraps logic into a Gen 1 Callable Function
-const wrapCall = (handler) => functions.runWith(runtimeOpts).https.onCall(handler);
+const wrapCall = (handler) => functions.https.onCall(handler);
 // Wraps logic into a Gen 1 Scheduler
-const wrapSchedule = (schedule, handler) => functions.runWith(runtimeOpts).pubsub.schedule(schedule).timeZone('America/Los_Angeles').onRun(handler);
+const wrapSchedule = (schedule, handler) => functions.pubsub.schedule(schedule).timeZone('America/Los_Angeles').onRun(handler);
 // Wraps logic into a Gen 1 Firestore Trigger
-const wrapFirestore = (path) => functions.runWith(runtimeOpts).firestore.document(path);
+const wrapFirestore = (path) => functions.firestore.document(path);
 
 // ============================================
 // ⭐ NEW: WORKFLOW TESTING DASHBOARD TEST FUNCTIONS

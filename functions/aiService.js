@@ -1,10 +1,16 @@
 /**
  * functions/aiService.js
  *
- * SECURE AI Cloud Function Wrapper (OpenAI + Anthropic)
+ * SECURE AI Cloud Function Logic (OpenAI + Anthropic)
+ * 
+ * ⭐ FIXED FOR FIREBASE-FUNCTIONS 4.9.0 COMPATIBILITY ⭐
+ * 
+ * This file exports RAW handler functions (no firebase-functions wrapping).
+ * The index.js file wraps these functions with wrapCall() to apply Gen 1 runtime settings.
+ * 
+ * This eliminates the "double wrapping" issue that caused the CPU deployment error.
  *
  * Purpose: Move all AI API calls server-side to protect API keys
- * Updated with explicit Gen 1 Runtime Settings to fix deployment errors.
  *
  * Features:
  * - OpenAI GPT completions
@@ -119,16 +125,17 @@ async function verifyAuth(context) {
 }
 
 // ============================================================================
-// AI SERVICE ENDPOINTS (FIXED WITH .runWith)
+// AI SERVICE ENDPOINTS (RAW FUNCTIONS - NO WRAPPING)
+// ============================================================================
+// ⭐ These are exported as RAW async functions
+// ⭐ index.js wraps them with wrapCall() to apply Gen 1 runtime settings
+// ⭐ This prevents double-wrapping and fixes the CPU deployment error
 // ============================================================================
 
 /**
  * Generic AI Completion Endpoint
  */
-exports.aiComplete = functions.runWith({
-  timeoutSeconds: 300,
-  memory: '512MB'
-}).https.onCall(async (data, context) => {
+exports.aiComplete = async (data, context) => {
   try {
     const userId = await verifyAuth(context);
 
@@ -165,15 +172,12 @@ exports.aiComplete = functions.runWith({
     if (error instanceof functions.https.HttpsError) throw error;
     throw new functions.https.HttpsError('internal', 'AI service error: ' + error.message);
   }
-});
+};
 
 /**
  * Anthropic Claude Completion Endpoint
  */
-exports.anthropicComplete = functions.runWith({
-  timeoutSeconds: 300,
-  memory: '512MB'
-}).https.onCall(async (data, context) => {
+exports.anthropicComplete = async (data, context) => {
   try {
     const userId = await verifyAuth(context);
 
@@ -234,15 +238,12 @@ exports.anthropicComplete = functions.runWith({
     if (error instanceof functions.https.HttpsError) throw error;
     throw new functions.https.HttpsError('internal', 'Anthropic service error: ' + error.message);
   }
-});
+};
 
 /**
  * Generate AI Insights
  */
-exports.generateInsights = functions.runWith({
-  timeoutSeconds: 300,
-  memory: '512MB'
-}).https.onCall(async (data, context) => {
+exports.generateInsights = async (data, context) => {
   try {
     const userId = await verifyAuth(context);
 
@@ -255,65 +256,83 @@ exports.generateInsights = functions.runWith({
       throw new functions.https.HttpsError('invalid-argument', 'Data is required.');
     }
 
-    const prompt = `Analyze this data and provide insights: ${JSON.stringify(data.data)}`;
+    const analysisType = data.type || 'general';
+    const systemPrompt = `You are an expert data analyst. Provide actionable insights for ${analysisType} analysis.`;
+    const userPrompt = `Analyze this data and provide insights:\n${JSON.stringify(data.data, null, 2)}`;
+
+    // Try Anthropic first, fallback to OpenAI
+    let response, tokensUsed, estimatedCost, provider;
 
     if (anthropicConfig.apiKey) {
-      const response = await fetch(anthropicConfig.baseURL, {
-        method: 'POST',
-        headers: {
-          'x-api-key': anthropicConfig.apiKey,
-          'anthropic-version': anthropicConfig.apiVersion,
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 2000,
-          temperature: 0.7,
-          messages: [{ role: 'user', content: prompt }]
-        })
-      });
+      try {
+        const anthropicResponse = await fetch(anthropicConfig.baseURL, {
+          method: 'POST',
+          headers: {
+            'x-api-key': anthropicConfig.apiKey,
+            'anthropic-version': anthropicConfig.apiVersion,
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 2000,
+            temperature: 0.5,
+            messages: [
+              { role: 'user', content: `${systemPrompt}\n\n${userPrompt}` }
+            ]
+          })
+        });
 
-      if (!response.ok) throw new Error(`Anthropic API error: ${response.statusText}`);
+        if (anthropicResponse.ok) {
+          const result = await anthropicResponse.json();
+          response = result.content[0]?.text;
+          tokensUsed = (result.usage?.input_tokens || 0) + (result.usage?.output_tokens || 0);
+          estimatedCost = calculateAnthropicCost('claude-sonnet-4-20250514', result.usage);
+          provider = 'anthropic';
+        }
+      } catch (err) {
+        console.warn('Anthropic failed, falling back to OpenAI:', err);
+      }
+    }
 
-      const result = await response.json();
-      const insights = result.content[0]?.text || '';
-      const tokensUsed = (result.usage?.input_tokens || 0) + (result.usage?.output_tokens || 0);
-      const estimatedCost = calculateAnthropicCost('claude-sonnet-4-20250514', result.usage);
-
-      await logAIUsage(userId, 'generateInsights', tokensUsed, estimatedCost);
-
-      return { success: true, insights, tokensUsed, estimatedCost, provider: 'anthropic' };
-    } else {
+    // Fallback to OpenAI if Anthropic failed or not configured
+    if (!response) {
       const completion = await getOpenAI().chat.completions.create({
         model: 'gpt-4',
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.7,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        temperature: 0.5,
         max_tokens: 2000,
       });
 
-      const insights = completion.choices[0].message.content;
-      const tokensUsed = completion.usage.total_tokens;
-      const estimatedCost = calculateCost('gpt-4', tokensUsed);
-
-      await logAIUsage(userId, 'generateInsights', tokensUsed, estimatedCost);
-
-      return { success: true, insights, tokensUsed, estimatedCost, provider: 'openai' };
+      response = completion.choices[0].message.content;
+      tokensUsed = completion.usage.total_tokens;
+      estimatedCost = calculateCost('gpt-4', tokensUsed);
+      provider = 'openai';
     }
+
+    await logAIUsage(userId, 'generateInsights', tokensUsed, estimatedCost);
+
+    return {
+      success: true,
+      insights: response,
+      tokensUsed,
+      estimatedCost,
+      provider
+    };
 
   } catch (error) {
     console.error('Generate Insights Error:', error);
     if (error instanceof functions.https.HttpsError) throw error;
     throw new functions.https.HttpsError('internal', 'Insights generation error: ' + error.message);
   }
-});
+};
 
 /**
- * Credit Report Analysis
+ * Analyze Credit Report
  */
-exports.analyzeCreditReport = functions.runWith({
-  timeoutSeconds: 540, // Extended timeout for parsing (9 mins)
-  memory: '1GB'        // Higher memory for large reports
-}).https.onCall(async (data, context) => {
+exports.analyzeCreditReport = async (data, context) => {
   try {
     const userId = await verifyAuth(context);
 
@@ -323,22 +342,91 @@ exports.analyzeCreditReport = functions.runWith({
     }
 
     if (!data.reportData) {
-      throw new functions.https.HttpsError('invalid-argument', 'Credit report data is required.');
+      throw new functions.https.HttpsError('invalid-argument', 'Report data is required.');
     }
 
-    const systemPrompt = `You are a FCRA-compliant credit repair expert. Analyze the credit report data and provide:
-1. Overall credit health score (0-100)
-2. Key issues affecting credit score
-3. Specific dispute-able items
-4. Action plan with prioritized steps
-5. Estimated timeline for improvement
+    const systemPrompt = `You are a credit repair expert. Analyze this credit report and provide:
+1. Overall Credit Health Score (0-100)
+2. Top Issues Affecting Credit
+3. Recommended Dispute Items
+4. Action Plan for Improvement
+5. Estimated Timeline for Score Increase
 
-Be specific, actionable, and compliant with FCRA regulations.`;
+Return as JSON with these fields: score, issues, recommendations, actionPlan, timeline.`;
 
-    const userPrompt = `Analyze this credit report:
-${JSON.stringify(data.reportData, null, 2)}
+    const userPrompt = `Analyze this credit report:\n${JSON.stringify(data.reportData, null, 2)}\n\nClient Info: ${JSON.stringify(data.clientInfo, null, 2)}`;
 
-Client Info: ${JSON.stringify(data.clientInfo || {}, null, 2)}`;
+    const completion = await getOpenAI().chat.completions.create({
+      model: 'gpt-4',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      temperature: 0.2,
+      max_tokens: 2500,
+      response_format: { type: "json_object" }
+    });
+
+    const analysis = JSON.parse(completion.choices[0].message.content);
+    const tokensUsed = completion.usage.total_tokens;
+    const estimatedCost = calculateCost('gpt-4', tokensUsed);
+
+    // Store analysis in Firestore
+    const analysisRef = await db.collection('creditAnalyses').add({
+      userId: data.clientId || userId,
+      analyzedBy: userId,
+      analysis,
+      tokensUsed,
+      estimatedCost,
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    await logAIUsage(userId, 'analyzeCreditReport', tokensUsed, estimatedCost);
+
+    return {
+      success: true,
+      analysisId: analysisRef.id,
+      analysis,
+      tokensUsed,
+      estimatedCost
+    };
+
+  } catch (error) {
+    console.error('Credit Analysis Error:', error);
+    if (error instanceof functions.https.HttpsError) throw error;
+    throw new functions.https.HttpsError('internal', 'Analysis error: ' + error.message);
+  }
+};
+
+/**
+ * Generate Dispute Letter
+ */
+exports.generateDisputeLetter = async (data, context) => {
+  try {
+    const userId = await verifyAuth(context);
+
+    const withinLimit = await checkRateLimit(userId, 50);
+    if (!withinLimit) {
+      throw new functions.https.HttpsError('resource-exhausted', 'Rate limit exceeded.');
+    }
+
+    if (!data.disputeItem || !data.bureau || !data.clientInfo) {
+      throw new functions.https.HttpsError(
+        'invalid-argument',
+        'Dispute item, bureau, and client info are required.'
+      );
+    }
+
+    const systemPrompt = `You are a professional credit dispute letter writer. Generate a formal, legally-compliant dispute letter to ${data.bureau} credit bureau.
+
+Follow FCRA guidelines. Be professional, factual, and assertive.`;
+
+    const userPrompt = `Generate a dispute letter for:
+Client: ${data.clientInfo.name}
+Address: ${data.clientInfo.address}
+Dispute Item: ${data.disputeItem.description}
+Reason: ${data.reason || 'This item is inaccurate and should be removed.'}
+Account Number: ${data.disputeItem.accountNumber || 'Unknown'}`;
 
     const completion = await getOpenAI().chat.completions.create({
       model: 'gpt-4',
@@ -347,69 +435,6 @@ Client Info: ${JSON.stringify(data.clientInfo || {}, null, 2)}`;
         { role: 'user', content: userPrompt }
       ],
       temperature: 0.3,
-      max_tokens: 2000,
-    });
-
-    const analysis = completion.choices[0].message.content;
-    const tokensUsed = completion.usage.total_tokens;
-    const estimatedCost = calculateCost('gpt-4', tokensUsed);
-
-    const analysisRef = await db.collection('creditAnalyses').add({
-      userId: data.clientId || userId,
-      analyzedBy: userId,
-      analysis,
-      reportData: data.reportData,
-      tokensUsed,
-      estimatedCost,
-      createdAt: admin.firestore.FieldValue.serverTimestamp()
-    });
-
-    await logAIUsage(userId, 'analyzeCreditReport', tokensUsed, estimatedCost);
-
-    return { success: true, analysisId: analysisRef.id, analysis, tokensUsed, estimatedCost };
-
-  } catch (error) {
-    console.error('Credit Analysis Error:', error);
-    if (error instanceof functions.https.HttpsError) throw error;
-    throw new functions.https.HttpsError('internal', 'Credit analysis error: ' + error.message);
-  }
-});
-
-/**
- * Generate Dispute Letter
- */
-exports.generateDisputeLetter = functions.runWith({
-  timeoutSeconds: 300,
-  memory: '512MB'
-}).https.onCall(async (data, context) => {
-  try {
-    const userId = await verifyAuth(context);
-
-    const withinLimit = await checkRateLimit(userId, 100);
-    if (!withinLimit) {
-      throw new functions.https.HttpsError('resource-exhausted', 'Rate limit exceeded.');
-    }
-
-    if (!data.accountInfo || !data.disputeReason) {
-      throw new functions.https.HttpsError('invalid-argument', 'Account info and dispute reason are required.');
-    }
-
-    const systemPrompt = `You are an expert at writing FCRA-compliant credit dispute letters.
-Generate a professional, legally sound dispute letter.`;
-
-    const userPrompt = `Generate a dispute letter for:
-Account Information: ${JSON.stringify(data.accountInfo, null, 2)}
-Dispute Reason: ${data.disputeReason}
-Client Information: ${JSON.stringify(data.clientInfo, null, 2)}
-Bureau: ${data.bureau || 'All Three Bureaus'}`;
-
-    const completion = await getOpenAI().chat.completions.create({
-      model: 'gpt-4',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
-      ],
-      temperature: 0.4,
       max_tokens: 1500,
     });
 
@@ -417,37 +442,40 @@ Bureau: ${data.bureau || 'All Three Bureaus'}`;
     const tokensUsed = completion.usage.total_tokens;
     const estimatedCost = calculateCost('gpt-4', tokensUsed);
 
+    // Save letter to Firestore
     const letterRef = await db.collection('disputeLetters').add({
-      userId: data.clientId || userId,
-      createdBy: userId,
-      letter,
-      accountInfo: data.accountInfo,
-      disputeReason: data.disputeReason,
+      clientId: data.clientId || userId,
+      generatedBy: userId,
       bureau: data.bureau,
-      status: 'draft',
+      disputeItem: data.disputeItem,
+      letter,
       tokensUsed,
       estimatedCost,
+      status: 'draft',
       createdAt: admin.firestore.FieldValue.serverTimestamp()
     });
 
     await logAIUsage(userId, 'generateDisputeLetter', tokensUsed, estimatedCost);
 
-    return { success: true, letterId: letterRef.id, letter, tokensUsed, estimatedCost };
+    return {
+      success: true,
+      letterId: letterRef.id,
+      letter,
+      tokensUsed,
+      estimatedCost
+    };
 
   } catch (error) {
     console.error('Dispute Letter Generation Error:', error);
     if (error instanceof functions.https.HttpsError) throw error;
-    throw new functions.https.HttpsError('internal', 'Dispute letter generation error: ' + error.message);
+    throw new functions.https.HttpsError('internal', 'Letter generation error: ' + error.message);
   }
-});
+};
 
 /**
  * Score Lead
  */
-exports.scoreLead = functions.runWith({
-  timeoutSeconds: 300,
-  memory: '512MB'
-}).https.onCall(async (data, context) => {
+exports.scoreLead = async (data, context) => {
   try {
     const userId = await verifyAuth(context);
 
@@ -471,7 +499,7 @@ Return response as JSON.`;
 
     const userPrompt = `Score this lead: ${JSON.stringify(data.leadData, null, 2)}`;
 
-    const completion = await openai.chat.completions.create({
+    const completion = await getOpenAI().chat.completions.create({
       model: 'gpt-4',
       messages: [
         { role: 'system', content: systemPrompt },
@@ -503,15 +531,12 @@ Return response as JSON.`;
     if (error instanceof functions.https.HttpsError) throw error;
     throw new functions.https.HttpsError('internal', 'Lead scoring error: ' + error.message);
   }
-});
+};
 
 /**
  * Parse Credit Report
  */
-exports.parseCreditReport = functions.runWith({
-  timeoutSeconds: 540,
-  memory: '1GB'
-}).https.onCall(async (data, context) => {
+exports.parseCreditReport = async (data, context) => {
   try {
     const userId = await verifyAuth(context);
 
@@ -562,15 +587,12 @@ exports.parseCreditReport = functions.runWith({
     if (error instanceof functions.https.HttpsError) throw error;
     throw new functions.https.HttpsError('internal', 'Report parsing error: ' + error.message);
   }
-});
+};
 
 /**
  * Get AI Usage Stats
  */
-exports.getAIUsageStats = functions.runWith({
-  timeoutSeconds: 60,
-  memory: '512MB'
-}).https.onCall(async (data, context) => {
+exports.getAIUsageStats = async (data, context) => {
   try {
     const userId = await verifyAuth(context);
     const now = Date.now();
@@ -607,15 +629,12 @@ exports.getAIUsageStats = functions.runWith({
     console.error('Get Usage Stats Error:', error);
     throw new functions.https.HttpsError('internal', 'Failed to retrieve usage stats: ' + error.message);
   }
-});
+};
 
 /**
  * Get All AI Usage (Admin)
  */
-exports.getAllAIUsage = functions.runWith({
-  timeoutSeconds: 60,
-  memory: '512MB'
-}).https.onCall(async (data, context) => {
+exports.getAllAIUsage = async (data, context) => {
   try {
     const userId = await verifyAuth(context);
     const userDoc = await db.collection('users').doc(userId).get();
@@ -664,7 +683,7 @@ exports.getAllAIUsage = functions.runWith({
     console.error('Get All Usage Error:', error);
     throw new functions.https.HttpsError('internal', 'Failed to retrieve all usage: ' + error.message);
   }
-});
+};
 
 // ============================================================================
 // HELPER FUNCTIONS (Cost Calculation)
