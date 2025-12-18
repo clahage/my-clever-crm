@@ -243,22 +243,21 @@ export const navigationItems = [
   // 🏠 CORE OPERATIONS - 7 PRIMARY HUBS
   // ==========================================================================
   {
-    id: 'core-operations-group',
-    title: 'Core Operations',
-    icon: LayoutDashboard,
-    isGroup: true,
-    permission: 'user',
-    mobileHidden: false,
-    category: 'core',
-    defaultExpanded: true,
-    items: [
+       id: 'core-operations-group',
+       title: 'Core Operations',
+       icon: LayoutDashboard,
+       isGroup: true,
+       permission: 'user',
+       mobileHidden: false,
+       category: 'core',
+       defaultExpanded: true,
+       items: [
       // HUB 1: CLIENTS & PIPELINE (Consolidated: 6 items → 1 hub)
       {
-        id: 'clients-pipeline-hub',
-        title: 'Clients & Pipeline',
-        path: '/clients-hub',
+        id: 'contacts-pipeline-hub',
+        title: 'Contacts & Pipeline',
+        path: '/contacts-pipeline',
         icon: Users,
-        permission: 'user',
         badge: 'AI',
         description: 'Complete client lifecycle: contacts, pipeline, intake, segments',
         consolidated: ['ClientsHub', 'Contacts', 'Pipeline', 'ContactDetailPage', 'ClientIntake', 'Segments']

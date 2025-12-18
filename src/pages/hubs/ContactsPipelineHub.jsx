@@ -2613,8 +2613,8 @@ const ClientsHub = () => {
           onSave={async (savedContact) => {
             console.log('✅ Contact saved from UltimateContactForm:', savedContact);
 
-            // Refresh clients list
-            await loadClients();
+            // Data refreshes automatically via Firebase real-time listener (onSnapshot at line 487-500)
+            // No manual reload needed!
 
             // Show success message
             setSnackbar({
@@ -2626,13 +2626,14 @@ const ClientsHub = () => {
             });
 
             // Return to list view
+            setView('list');
             setSelectedClient(null);
-            setActiveTab(0);
+            setDialogOpen(false);
           }}
           onCancel={() => {
-            console.log('❌ Contact form cancelled');
+            setView('list');
             setSelectedClient(null);
-            setActiveTab(0);
+            setDialogOpen(false);
           }}
         />
       </CardContent>

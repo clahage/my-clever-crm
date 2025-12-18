@@ -246,7 +246,7 @@ const BureauCommunicationHub = lazy(() => import('@/pages/hubs/BureauCommunicati
 const CalendarSchedulingHub = lazy(() => import('@/pages/hubs/CalendarSchedulingHub'));
 const CertificationSystem = lazy(() => import('@/pages/CertificationSystem')); // Restored - correct path
 const ClientSuccessRetentionHub = lazy(() => import('@/pages/hubs/ClientSuccessRetentionHub'));
-const ClientsHub = lazy(() => import('@/pages/hubs/ClientsHub'));
+const ContactsPipelineHub = lazy(() => import('@/pages/hubs/ContactsPipelineHub'));
 const CollectionsARHub = lazy(() => import('@/pages/hubs/CollectionsARHub'));
 const CommunicationsHub = lazy(() => import('@/pages/hubs/CommunicationsHub'));
 const ComplianceHub = lazy(() => import('@/pages/hubs/ComplianceHub'));
@@ -664,13 +664,13 @@ const AppContent = () => {
   }
 />
 
-{/* Clients Hub - Complete client management */}
+{/* Contacts & Pipeline Hub - Complete contact/lead/client management */}
 <Route
-  path="clients-hub"
+  path="contacts-pipeline"
   element={
     <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
-        <ClientsHub />
+        <ContactsPipelineHub />
       </Suspense>
     </ProtectedRoute>
   }
