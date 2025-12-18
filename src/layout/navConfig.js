@@ -666,7 +666,7 @@ export const navigationItems = [
   {
     id: 'admin-portal',
     title: 'Admin Portal',
-    path: '/portal',
+    path: '/admin-portal',
     icon: Shield,
     permission: 'admin',
     mobileHidden: true,

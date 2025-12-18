@@ -406,7 +406,7 @@ const AppContent = () => {
         <Route path="home" element={<Suspense fallback={<LoadingFallback />}><Home /></Suspense>} />
         <Route path="client-portal" element={<Suspense fallback={<LoadingFallback />}><ClientPortal /></Suspense>} />
         <Route path="client" element={<Suspense fallback={<LoadingFallback />}><ClientDashboard /></Suspense>} />
-        <Route path="portal" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><Portal /></Suspense></ProtectedRoute>} />
+        <Route path="admin-portal" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><Portal /></Suspense></ProtectedRoute>} />
         <Route path="credit-report-workflow" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><CreditReportWorkflow /></Suspense></ProtectedRoute>} />
         <Route path="admin/ai-reviews" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><AIReviewDashboard /></Suspense></ProtectedRoute>} />
         <Route path="admin/ai-reviews/:reviewId" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><AIReviewEditor /></Suspense></ProtectedRoute>} />

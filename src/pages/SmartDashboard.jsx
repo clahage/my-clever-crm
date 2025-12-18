@@ -5051,7 +5051,7 @@ const SmartDashboard = () => {
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 2 }}>
           <Box>
             <Typography variant="h4" fontWeight="bold" gutterBottom>
-              {getGreeting()}, {userProfile?.firstName || 'User'}! 👋
+              {getGreeting()}, Chris! 👋
             </Typography>
             <Typography variant="body1" sx={{ opacity: 0.9 }}>
               {format(new Date(), 'EEEE, MMMM d, yyyy')}
