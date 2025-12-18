@@ -80,14 +80,15 @@ const RealtimeDBManager = () => {
   const { user, userProfile } = useAuth();
 
   // ===== Realtime Database Instance =====
-  const rtdb = getDatabase();
+  const [rtdb, setRtdb] = useState(null);
+  const [dbError, setDbError] = useState(null);
 
   // ===== State Management =====
   const [currentPath, setCurrentPath] = useState('/');
   const [data, setData] = useState(null);
   const [children, setChildren] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // Start with true to show initial loading
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
@@ -113,29 +114,65 @@ const RealtimeDBManager = () => {
   });
 
   // =====================================================
-  // LIFECYCLE HOOKS
+  // INITIALIZE REALTIME DATABASE
   // =====================================================
   useEffect(() => {
+    try {
+      console.log('🔄 Initializing Firebase Realtime Database...');
+      const database = getDatabase();
+      setRtdb(database);
+      console.log('✅ Firebase Realtime Database initialized');
+    } catch (err) {
+      console.error('❌ Firebase Realtime Database initialization error:', err);
+      setDbError(err.message);
+      setLoading(false);
+    }
+  }, []);
+
+  // =====================================================
+  // LIFECYCLE HOOKS - Load data when DB is ready
+  // =====================================================
+  useEffect(() => {
+    if (!rtdb) return;
+
+    const loadTimeout = setTimeout(() => {
+      if (loading) {
+        console.warn('⏱️ Load timeout - setting loading to false');
+        setLoading(false);
+        setError('Connection timeout. The Realtime Database may not be configured or accessible.');
+      }
+    }, 10000); // 10 second timeout
+
     loadData();
     
     // Set up real-time listener
     const dataRef = ref(rtdb, currentPath);
-    const unsubscribe = onValue(dataRef, (snapshot) => {
-      if (snapshot.exists()) {
-        processData(snapshot.val());
-      } else {
-        setData(null);
-        setChildren([]);
+    const unsubscribe = onValue(
+      dataRef,
+      (snapshot) => {
+        clearTimeout(loadTimeout);
+        if (snapshot.exists()) {
+          processData(snapshot.val());
+        } else {
+          setData(null);
+          setChildren([]);
+        }
+        setLoading(false);
+      },
+      (error) => {
+        clearTimeout(loadTimeout);
+        console.error('❌ Real-time listener error:', error);
+        setError(`Database error: ${error.message}`);
+        setLoading(false);
       }
-    }, (error) => {
-      console.error('Real-time listener error:', error);
-    });
+    );
 
     // Cleanup listener on unmount or path change
     return () => {
+      clearTimeout(loadTimeout);
       off(dataRef);
     };
-  }, [currentPath]);
+  }, [currentPath, rtdb]);
 
   // =====================================================
   // DATA LOADING FUNCTIONS
@@ -143,25 +180,34 @@ const RealtimeDBManager = () => {
 
   // Load data from current path
   const loadData = async () => {
+    if (!rtdb) {
+      setError('Realtime Database not initialized');
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
 
+      console.log(`📂 Loading data from path: ${currentPath}`);
       const dataRef = ref(rtdb, currentPath);
       const snapshot = await get(dataRef);
 
       if (snapshot.exists()) {
         const value = snapshot.val();
         processData(value);
+        console.log('✅ Data loaded successfully');
 
         // Log activity
         await logActivity('view', `Viewed data at ${currentPath}`);
       } else {
+        console.log('ℹ️ No data at this path');
         setData(null);
         setChildren([]);
       }
     } catch (err) {
-      console.error('Error loading data:', err);
+      console.error('❌ Error loading data:', err);
       setError(`Failed to load data: ${err.message}`);
     } finally {
       setLoading(false);
@@ -219,12 +265,15 @@ const RealtimeDBManager = () => {
 
   // Create new node
   const handleCreate = async () => {
+    if (!rtdb) return;
+
     try {
       setLoading(true);
       setError(null);
 
       if (!newKey.trim()) {
         setError('Key is required');
+        setLoading(false);
         return;
       }
 
@@ -233,6 +282,7 @@ const RealtimeDBManager = () => {
         value = JSON.parse(editData);
       } catch (err) {
         setError('Invalid JSON format');
+        setLoading(false);
         return;
       }
 
@@ -259,22 +309,23 @@ const RealtimeDBManager = () => {
 
   // Update existing node
   const handleUpdate = async () => {
+    if (!rtdb || !currentItem) return;
+
     try {
       setLoading(true);
       setError(null);
-
-      if (!currentItem) return;
 
       let value;
       try {
         value = JSON.parse(editData);
       } catch (err) {
         setError('Invalid JSON format');
+        setLoading(false);
         return;
       }
 
-      const itemPath = currentPath === '/' ? `/${currentItem.key}` : `${currentPath}/${currentItem.key}`;
-      const dataRef = ref(rtdb, itemPath);
+      const updatePath = currentPath === '/' ? `/${currentItem.key}` : `${currentPath}/${currentItem.key}`;
+      const dataRef = ref(rtdb, updatePath);
       
       await set(dataRef, value);
 
@@ -296,14 +347,14 @@ const RealtimeDBManager = () => {
 
   // Delete node
   const handleDelete = async () => {
+    if (!rtdb || !currentItem) return;
+
     try {
       setLoading(true);
       setError(null);
 
-      if (!currentItem) return;
-
-      const itemPath = currentPath === '/' ? `/${currentItem.key}` : `${currentPath}/${currentItem.key}`;
-      const dataRef = ref(rtdb, itemPath);
+      const deletePath = currentPath === '/' ? `/${currentItem.key}` : `${currentPath}/${currentItem.key}`;
+      const dataRef = ref(rtdb, deletePath);
       
       await remove(dataRef);
 
@@ -323,36 +374,127 @@ const RealtimeDBManager = () => {
   };
 
   // =====================================================
-  // IMPORT/EXPORT OPERATIONS
+  // HELPER FUNCTIONS
   // =====================================================
 
-  // Export data to JSON
-  const handleExport = () => {
-    try {
-      const exportData = data || {};
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-        type: 'application/json',
-      });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      const fileName = currentPath === '/' ? 'root' : currentPath.split('/').pop();
-      link.download = `rtdb_${fileName}_${new Date().toISOString().split('T')[0]}.json`;
-      link.click();
-      URL.revokeObjectURL(url);
+  // Navigate to child node
+  const navigateToChild = (key) => {
+    const newPath = currentPath === '/' ? `/${key}` : `${currentPath}/${key}`;
+    setCurrentPath(newPath);
+  };
 
-      setSuccess('Data exported successfully');
-
-      // Log activity
-      logActivity('export', `Exported data from ${currentPath}`);
-    } catch (err) {
-      console.error('Error exporting data:', err);
-      setError(`Failed to export data: ${err.message}`);
+  // Navigate up one level
+  const navigateUp = () => {
+    const pathParts = currentPath.split('/').filter(Boolean);
+    if (pathParts.length > 0) {
+      pathParts.pop();
+      setCurrentPath(pathParts.length > 0 ? `/${pathParts.join('/')}` : '/');
     }
   };
 
-  // Import data from JSON
+  // Navigate to root
+  const navigateToRoot = () => {
+    setCurrentPath('/');
+  };
+
+  // Format data for display
+  const formatData = (value) => {
+    try {
+      if (typeof value === 'object' && value !== null) {
+        return JSON.stringify(value, null, 2);
+      }
+      return String(value);
+    } catch (err) {
+      return 'Error formatting data';
+    }
+  };
+
+  // Format file size
+  const formatFileSize = (bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  };
+
+  // Log activity to Firestore
+  const logActivity = async (action, details) => {
+    try {
+      await setDoc(doc(collection(db, 'activityLogs')), {
+        type: 'realtimedb',
+        action,
+        details,
+        path: currentPath,
+        userId: user?.uid,
+        userEmail: user?.email,
+        timestamp: serverTimestamp(),
+      });
+    } catch (err) {
+      console.error('Error logging activity:', err);
+    }
+  };
+
+  // Handle menu open
+  const handleMenuOpen = (event, item) => {
+    setAnchorEl(event.currentTarget);
+    setMenuItem(item);
+  };
+
+  // Handle menu close
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setMenuItem(null);
+  };
+
+  // Handle view
+  const handleView = (item) => {
+    setCurrentItem(item);
+    setViewDialogOpen(true);
+    handleMenuClose();
+  };
+
+  // Handle edit
+  const handleEdit = (item) => {
+    setCurrentItem(item);
+    setEditData(formatData(item.value));
+    setEditDialogOpen(true);
+    handleMenuClose();
+  };
+
+  // Handle delete single
+  const handleDeleteSingle = (item) => {
+    setCurrentItem(item);
+    setDeleteDialogOpen(true);
+    handleMenuClose();
+  };
+
+  // Handle copy
+  const handleCopy = (item) => {
+    const text = formatData(item.value);
+    navigator.clipboard.writeText(text);
+    setSuccess('Copied to clipboard!');
+    handleMenuClose();
+  };
+
+  // Handle export
+  const handleExport = () => {
+    if (!data) return;
+    
+    const dataStr = JSON.stringify(data, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `rtdb-export-${currentPath.replace(/\//g, '-')}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Handle import
   const handleImport = async () => {
+    if (!rtdb) return;
+
     try {
       setLoading(true);
       setError(null);
@@ -362,13 +504,14 @@ const RealtimeDBManager = () => {
         value = JSON.parse(importData);
       } catch (err) {
         setError('Invalid JSON format');
+        setLoading(false);
         return;
       }
 
       const dataRef = ref(rtdb, currentPath);
       await set(dataRef, value);
 
-      setSuccess('Data imported successfully');
+      setSuccess('Data imported successfully!');
       setImportDialogOpen(false);
       setImportData('');
       loadData();
@@ -383,324 +526,196 @@ const RealtimeDBManager = () => {
     }
   };
 
-  // =====================================================
-  // NAVIGATION FUNCTIONS
-  // =====================================================
-
-  // Navigate to child
-  const navigateToChild = (key) => {
-    const newPath = currentPath === '/' ? `/${key}` : `${currentPath}/${key}`;
-    setCurrentPath(newPath);
-  };
-
-  // Navigate up one level
-  const navigateUp = () => {
-    if (currentPath === '/') return;
-    const parts = currentPath.split('/');
-    parts.pop();
-    const newPath = parts.join('/') || '/';
-    setCurrentPath(newPath);
-  };
-
-  // Navigate to root
-  const navigateToRoot = () => {
-    setCurrentPath('/');
-  };
-
-  // Navigate to specific path from breadcrumb
-  const navigateToPath = (index) => {
-    const parts = currentPath.split('/').filter(Boolean);
-    if (index === 0) {
-      setCurrentPath('/');
-    } else {
-      const newPath = '/' + parts.slice(0, index).join('/');
-      setCurrentPath(newPath);
-    }
-  };
-
-  // Get breadcrumb parts
-  const getBreadcrumbs = () => {
-    if (currentPath === '/') return [{ name: 'root', path: '/' }];
-    
-    const parts = currentPath.split('/').filter(Boolean);
-    const breadcrumbs = [{ name: 'root', path: '/' }];
-    
-    parts.forEach((part, index) => {
-      breadcrumbs.push({
-        name: part,
-        path: '/' + parts.slice(0, index + 1).join('/'),
-      });
-    });
-    
-    return breadcrumbs;
-  };
+  // Filter children based on search query
+  const filteredChildren = searchQuery
+    ? children.filter(item =>
+        item.key.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : children;
 
   // =====================================================
-  // HELPER FUNCTIONS
+  // RENDER - Database not initialized
   // =====================================================
-
-  // Log activity to Firestore
-  const logActivity = async (action, description) => {
-    try {
-      const logEntry = {
-        action,
-        description,
-        path: currentPath,
-        userId: user.uid,
-        userEmail: user.email,
-        userName: userProfile?.name || 'Unknown',
-        timestamp: serverTimestamp(),
-        source: 'RealtimeDBManager',
-      };
-
-      await setDoc(doc(collection(db, 'activityLog')), logEntry);
-    } catch (err) {
-      console.error('Error logging activity:', err);
-    }
-  };
-
-  // Format data for display
-  const formatData = (value) => {
-    try {
-      return JSON.stringify(value, null, 2);
-    } catch (err) {
-      return 'Error formatting data';
-    }
-  };
-
-  // Format file size
-  const formatFileSize = (bytes) => {
-    if (!bytes) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
-  };
-
-  // Get type color
-  const getTypeColor = (type) => {
-    switch (type) {
-      case 'object': return 'primary';
-      case 'array': return 'secondary';
-      case 'string': return 'success';
-      case 'number': return 'warning';
-      case 'boolean': return 'info';
-      case 'null': return 'default';
-      default: return 'default';
-    }
-  };
-
-  // Get value preview
-  const getValuePreview = (value) => {
-    if (value === null) return 'null';
-    if (typeof value === 'object') {
-      if (Array.isArray(value)) {
-        return `Array[${value.length}]`;
-      }
-      return `Object{${Object.keys(value).length}}`;
-    }
-    const stringValue = String(value);
-    return stringValue.length > 50 ? stringValue.substring(0, 50) + '...' : stringValue;
-  };
-
-  // Menu handlers
-  const handleMenuOpen = (event, item) => {
-    setAnchorEl(event.currentTarget);
-    setMenuItem(item);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-    setMenuItem(null);
-  };
-
-  // View item
-  const handleView = (item) => {
-    setCurrentItem(item);
-    setViewDialogOpen(true);
-    handleMenuClose();
-  };
-
-  // Edit item
-  const handleEdit = (item) => {
-    setCurrentItem(item);
-    setEditData(formatData(item.value));
-    setEditDialogOpen(true);
-    handleMenuClose();
-  };
-
-  // Prepare delete
-  const handleDeleteSingle = (item) => {
-    setCurrentItem(item);
-    setDeleteDialogOpen(true);
-    handleMenuClose();
-  };
-
-  // Copy item
-  const handleCopy = async (item) => {
-    try {
-      const newKey = `${item.key}_copy_${Date.now()}`;
-      const newPath = currentPath === '/' ? `/${newKey}` : `${currentPath}/${newKey}`;
-      const dataRef = ref(rtdb, newPath);
-      
-      await set(dataRef, item.value);
-
-      setSuccess(`Node copied: ${newKey}`);
-      loadData();
-
-      // Log activity
-      await logActivity('copy', `Copied node ${item.key} to ${newKey} at ${currentPath}`);
-    } catch (err) {
-      console.error('Error copying node:', err);
-      setError(`Failed to copy node: ${err.message}`);
-    }
-    handleMenuClose();
-  };
+  if (dbError) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="error">
+          <Typography variant="h6" gutterBottom>
+            Firebase Realtime Database Not Available
+          </Typography>
+          <Typography variant="body2">
+            {dbError}
+          </Typography>
+          <Typography variant="body2" sx={{ mt: 2 }}>
+            This feature requires Firebase Realtime Database to be enabled in your Firebase project.
+            Currently, SpeedyCRM uses Firestore as the primary database.
+          </Typography>
+          <Typography variant="body2" sx={{ mt: 1 }}>
+            <strong>To enable Realtime Database:</strong>
+          </Typography>
+          <ol>
+            <li>Go to Firebase Console → Realtime Database</li>
+            <li>Click "Create Database"</li>
+            <li>Choose your security rules</li>
+            <li>Refresh this page</li>
+          </ol>
+        </Alert>
+      </Box>
+    );
+  }
 
   // =====================================================
-  // RENDER COMPONENT
+  // RENDER - Main UI
   // =====================================================
   return (
-    <Box sx={{ p: 3 }}>
-      {/* ===== Header ===== */}
-      <Box sx={{ mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-          <Database size={32} className="text-orange-500" />
-          <Typography variant="h4" fontWeight="bold">
-            Realtime Database Manager
-          </Typography>
-        </Box>
-        <Typography variant="body2" color="text.secondary">
-          Browse and manage Firebase Realtime Database with real-time updates
-        </Typography>
-      </Box>
-
+    <Box>
       {/* ===== Alerts ===== */}
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+        <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
           {error}
         </Alert>
       )}
       {success && (
-        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>
+        <Alert severity="success" onClose={() => setSuccess(null)} sx={{ mb: 2 }}>
           {success}
         </Alert>
       )}
 
-      {/* ===== Statistics Cards ===== */}
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Database size={32} className="text-blue-500" />
-                <Box>
-                  <Typography variant="h4" fontWeight="bold">
-                    {stats.totalNodes}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Total Nodes
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <FileText size={32} className="text-green-500" />
-                <Box>
-                  <Typography variant="h4" fontWeight="bold">
-                    {formatFileSize(stats.dataSize)}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Data Size
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      {/* ===== Navigation & Actions ===== */}
+      {/* ===== Header with Statistics ===== */}
       <Paper sx={{ p: 2, mb: 3 }}>
         <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={6}>
-            {/* Breadcrumb Navigation */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <IconButton size="small" onClick={navigateToRoot} disabled={currentPath === '/'}>
-                <Home size={20} />
-              </IconButton>
-              {currentPath !== '/' && (
-                <IconButton size="small" onClick={navigateUp}>
-                  <ArrowLeft size={20} />
-                </IconButton>
-              )}
-              <Breadcrumbs separator={<ChevronRight size={16} />}>
-                {getBreadcrumbs().map((crumb, index) => (
-                  <Link
-                    key={crumb.path}
-                    component="button"
-                    variant="body2"
-                    onClick={() => navigateToPath(index)}
-                    sx={{
-                      fontWeight: index === getBreadcrumbs().length - 1 ? 'bold' : 'normal',
-                      cursor: 'pointer',
-                      textDecoration: 'none',
-                      '&:hover': { textDecoration: 'underline' },
-                    }}
-                  >
-                    {crumb.name}
-                  </Link>
-                ))}
-              </Breadcrumbs>
-            </Box>
+          <Grid item xs={12} md={3}>
+            <Card>
+              <CardContent>
+                <Typography variant="body2" color="text.secondary">
+                  Current Path
+                </Typography>
+                <Typography variant="h6" sx={{ fontFamily: 'monospace', fontSize: '1rem' }}>
+                  {currentPath}
+                </Typography>
+              </CardContent>
+            </Card>
           </Grid>
-          <Grid item xs={12} md={6}>
-            <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-              <Button
-                variant="contained"
-                startIcon={<Plus size={20} />}
-                onClick={() => {
-                  setEditData('{\n  \n}');
-                  setCreateDialogOpen(true);
-                }}
-              >
-                Create Node
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={<Upload size={20} />}
-                onClick={() => setImportDialogOpen(true)}
-              >
-                Import
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={<Download size={20} />}
-                onClick={handleExport}
-                disabled={!data}
-              >
-                Export
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={<RefreshCw size={20} />}
-                onClick={loadData}
-                disabled={loading}
-              >
-                Refresh
-              </Button>
-            </Box>
+          <Grid item xs={12} md={3}>
+            <Card>
+              <CardContent>
+                <Typography variant="body2" color="text.secondary">
+                  Total Nodes
+                </Typography>
+                <Typography variant="h6">
+                  {stats.totalNodes.toLocaleString()}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <Card>
+              <CardContent>
+                <Typography variant="body2" color="text.secondary">
+                  Data Size
+                </Typography>
+                <Typography variant="h6">
+                  {formatFileSize(stats.dataSize)}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <Card>
+              <CardContent>
+                <Typography variant="body2" color="text.secondary">
+                  Status
+                </Typography>
+                <Chip
+                  label={loading ? 'Loading...' : 'Connected'}
+                  color={loading ? 'warning' : 'success'}
+                  size="small"
+                  icon={loading ? <CircularProgress size={16} /> : <CheckCircle size={16} />}
+                />
+              </CardContent>
+            </Card>
           </Grid>
         </Grid>
       </Paper>
 
+      {/* ===== Breadcrumb Navigation ===== */}
+      <Paper sx={{ p: 2, mb: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+          <Breadcrumbs>
+            <Link
+              component="button"
+              variant="body2"
+              onClick={navigateToRoot}
+              sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
+            >
+              <Home size={16} />
+              Root
+            </Link>
+            {currentPath.split('/').filter(Boolean).map((part, index, arr) => {
+              const isLast = index === arr.length - 1;
+              return (
+                <Typography
+                  key={index}
+                  color={isLast ? 'text.primary' : 'text.secondary'}
+                  sx={{ fontFamily: 'monospace' }}
+                >
+                  {part}
+                </Typography>
+              );
+            })}
+          </Breadcrumbs>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Tooltip title="Go Back">
+              <IconButton onClick={navigateUp} disabled={currentPath === '/'} size="small">
+                <ArrowLeft size={20} />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Refresh">
+              <IconButton onClick={loadData} disabled={loading} size="small">
+                <RefreshCw size={20} />
+              </IconButton>
+            </Tooltip>
+          </Box>
+        </Box>
+
+        {/* ===== Action Buttons ===== */}
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          <Button
+            variant="contained"
+            startIcon={<Plus size={20} />}
+            onClick={() => {
+              setNewKey('');
+              setEditData('{\n  "key": "value"\n}');
+              setCreateDialogOpen(true);
+            }}
+            disabled={loading}
+          >
+            Create Node
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<Download size={20} />}
+            onClick={handleExport}
+            disabled={!data || loading}
+          >
+            Export
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<Upload size={20} />}
+            onClick={() => {
+              setImportData('');
+              setImportDialogOpen(true);
+            }}
+            disabled={loading}
+          >
+            Import
+          </Button>
+        </Box>
+      </Paper>
+
       {/* ===== Search Bar ===== */}
-      <Paper sx={{ p: 2, mb: 3 }}>
+      <Paper sx={{ p: 2, mb: 2 }}>
         <TextField
           fullWidth
           placeholder="Search nodes..."
@@ -717,108 +732,88 @@ const RealtimeDBManager = () => {
       </Paper>
 
       {/* ===== Data Display ===== */}
-      <Paper>
+      <Paper sx={{ mb: 2 }}>
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', p: 8 }}>
+          <Box sx={{ p: 8, textAlign: 'center' }}>
             <CircularProgress />
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+              Loading database...
+            </Typography>
           </Box>
-        ) : !data ? (
-          <Box sx={{ textAlign: 'center', py: 8 }}>
+        ) : data === null ? (
+          <Box sx={{ p: 8, textAlign: 'center' }}>
             <Database size={48} style={{ opacity: 0.3 }} />
             <Typography variant="h6" color="text.secondary" sx={{ mt: 2 }}>
               No data at this path
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Create your first node to get started
+              Create a new node to get started
             </Typography>
-            <Button
-              variant="contained"
-              startIcon={<Plus size={20} />}
-              onClick={() => {
-                setEditData('{\n  \n}');
-                setCreateDialogOpen(true);
-              }}
-              sx={{ mt: 2 }}
-            >
-              Create Node
-            </Button>
           </Box>
-        ) : children.length > 0 ? (
-          <TableContainer sx={{ maxHeight: 600 }}>
-            <Table stickyHeader>
+        ) : typeof data === 'object' && !Array.isArray(data) && children.length > 0 ? (
+          <TableContainer>
+            <Table>
               <TableHead>
                 <TableRow>
                   <TableCell>Key</TableCell>
                   <TableCell>Type</TableCell>
-                  <TableCell>Value Preview</TableCell>
+                  <TableCell>Preview</TableCell>
                   <TableCell align="right">Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {children
-                  .filter(item => {
-                    if (!searchQuery) return true;
-                    const search = searchQuery.toLowerCase();
-                    return (
-                      item.key.toLowerCase().includes(search) ||
-                      getValuePreview(item.value).toLowerCase().includes(search)
-                    );
-                  })
-                  .map((item) => (
-                    <TableRow
-                      key={item.key}
-                      hover
-                      sx={{
-                        cursor: item.type === 'object' || item.type === 'array' ? 'pointer' : 'default',
-                      }}
-                      onDoubleClick={() => {
-                        if (item.type === 'object' || item.type === 'array') {
-                          navigateToChild(item.key);
-                        }
-                      }}
-                    >
-                      <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          {(item.type === 'object' || item.type === 'array') && (
-                            <FolderOpen size={20} className="text-blue-500" />
-                          )}
-                          <Typography variant="body2" fontWeight="medium">
-                            {item.key}
-                          </Typography>
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={item.type}
-                          color={getTypeColor(item.type)}
-                          size="small"
-                          variant="outlined"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                          sx={{
-                            maxWidth: 400,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {getValuePreview(item.value)}
+                {filteredChildren.map((item) => (
+                  <TableRow key={item.key} hover>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        {item.type === 'object' || item.type === 'array' ? (
+                          <FolderOpen size={16} />
+                        ) : (
+                          <FileText size={16} />
+                        )}
+                        <Typography sx={{ fontFamily: 'monospace' }}>
+                          {item.key}
                         </Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        <IconButton
-                          size="small"
-                          onClick={(e) => handleMenuOpen(e, item)}
-                        >
-                          <MoreVertical size={20} />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Chip label={item.type} size="small" />
+                    </TableCell>
+                    <TableCell>
+                      <Typography
+                        sx={{
+                          fontFamily: 'monospace',
+                          fontSize: '0.875rem',
+                          maxWidth: 400,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {formatData(item.value).substring(0, 100)}
+                        {formatData(item.value).length > 100 ? '...' : ''}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                      {item.type === 'object' || item.type === 'array' ? (
+                        <Tooltip title="Open">
+                          <IconButton
+                            size="small"
+                            onClick={() => navigateToChild(item.key)}
+                          >
+                            <ChevronRight size={20} />
+                          </IconButton>
+                        </Tooltip>
+                      ) : null}
+                      <IconButton
+                        size="small"
+                        onClick={(e) => handleMenuOpen(e, item)}
+                      >
+                        <MoreVertical size={20} />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </TableContainer>
