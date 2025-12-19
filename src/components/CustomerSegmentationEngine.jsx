@@ -179,7 +179,7 @@ const CustomerSegmentationEngine = () => {
     // Engagement score based on activity
     let score = 0;
     if (customer.lastLoginAt) {
-      const daysSinceLogin = (Date.now() - customer.lastLoginAt.toMillis()) / (1000 * 60 * 60 * 24);
+      const daysSinceLogin = (Date.now() - getTimestampMillis(customer.lastLoginAt)) / (1000 * 60 * 60 * 24);
       score += daysSinceLogin < 7 ? 30 : daysSinceLogin < 30 ? 20 : 10;
     }
     if (customer.emailOpens) score += Math.min(customer.emailOpens * 2, 30);
@@ -192,7 +192,7 @@ const CustomerSegmentationEngine = () => {
     // Churn risk based on inactivity and payment issues
     let risk = 0;
     if (customer.lastLoginAt) {
-      const daysSinceLogin = (Date.now() - customer.lastLoginAt.toMillis()) / (1000 * 60 * 60 * 24);
+      const daysSinceLogin = (Date.now() - getTimestampMillis(customer.lastLoginAt)) / (1000 * 60 * 60 * 24);
       if (daysSinceLogin > 90) risk += 40;
       else if (daysSinceLogin > 60) risk += 25;
       else if (daysSinceLogin > 30) risk += 10;
@@ -218,7 +218,7 @@ const CustomerSegmentationEngine = () => {
 
     customers.forEach(customer => {
       const recency = customer.lastPurchaseAt 
-        ? (now - customer.lastPurchaseAt.toMillis()) / (1000 * 60 * 60 * 24) 
+        ? (now - getTimestampMillis(customer.lastPurchaseAt)) / (1000 * 60 * 60 * 24) 
         : 999;
       const frequency = customer.purchaseCount || 0;
       const monetary = customer.lifetimeValue || 0;

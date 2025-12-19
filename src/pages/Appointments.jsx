@@ -79,8 +79,8 @@ const AIAppointmentEngine = {
 
     // Analyze existing appointments to find patterns
     const busyTimes = existingAppointments.map(apt => ({
-      start: new Date(apt.startTime.toMillis()),
-      end: new Date(apt.endTime.toMillis())
+      start: new Date(getTimestampMillis(apt.startTime)),
+      end: new Date(getTimestampMillis(apt.endTime))
     }));
 
     // Generate suggestions for next 7 days
@@ -147,7 +147,7 @@ const AIAppointmentEngine = {
 
     // Booking lead time (last minute bookings more risky)
     const hoursUntilAppointment = appointment.startTime
-      ? (appointment.startTime.toMillis() - Date.now()) / (1000 * 60 * 60)
+      ? (getTimestampMillis(appointment.startTime) - Date.now()) / (1000 * 60 * 60)
       : 0;
     
     if (hoursUntilAppointment < 24) {
@@ -178,7 +178,7 @@ const AIAppointmentEngine = {
 
     // Time of day (early morning/late evening higher risk)
     if (appointment.startTime) {
-      const hour = new Date(appointment.startTime.toMillis()).getHours();
+      const hour = new Date(getTimestampMillis(appointment.startTime)).getHours();
       if (hour < 8 || hour > 18) {
         noShowRisk += 5;
         factors.push({ factor: 'Off-Peak Hours', impact: 5, value: `${hour}:00` });
@@ -209,11 +209,11 @@ const AIAppointmentEngine = {
     // Find scheduling gaps
     if (minimizeGaps) {
       const sortedAppts = [...appointments].sort((a, b) => 
-        a.startTime.toMillis() - b.startTime.toMillis()
+        getTimestampMillis(a.startTime) - getTimestampMillis(b.startTime)
       );
 
       for (let i = 0; i < sortedAppts.length - 1; i++) {
-        const gap = (sortedAppts[i + 1].startTime.toMillis() - sortedAppts[i].endTime.toMillis()) / (1000 * 60);
+        const gap = (getTimestampMillis(sortedAppts[i + 1].startTime) - getTimestampMillis(sortedAppts[i].endTime)) / (1000 * 60);
         
         if (gap > 60) {
           optimizations.push({
@@ -250,7 +250,7 @@ const AIAppointmentEngine = {
     if (balanceWorkload) {
       const dailyLoads = {};
       appointments.forEach(apt => {
-        const date = new Date(apt.startTime.toMillis()).toDateString();
+        const date = new Date(getTimestampMillis(apt.startTime)).toDateString();
         dailyLoads[date] = (dailyLoads[date] || 0) + 1;
       });
 
@@ -309,11 +309,11 @@ const AIAppointmentEngine = {
 
     appointments.forEach(apt => {
       // Peak hours
-      const hour = new Date(apt.startTime.toMillis()).getHours();
+      const hour = new Date(getTimestampMillis(apt.startTime)).getHours();
       patterns.peakHours[hour] = (patterns.peakHours[hour] || 0) + 1;
 
       // Peak days
-      const day = new Date(apt.startTime.toMillis()).getDay();
+      const day = new Date(getTimestampMillis(apt.startTime)).getDay();
       patterns.peakDays[day] = (patterns.peakDays[day] || 0) + 1;
 
       // Duration
@@ -368,7 +368,7 @@ function calculateTimeConfidence(date, existingAppointments) {
 function getTimeReason(date, existingAppointments) {
   const hour = date.getHours();
   const dayAppointments = existingAppointments.filter(apt => {
-    const aptDate = new Date(apt.startTime.toMillis());
+    const aptDate = new Date(getTimestampMillis(apt.startTime));
     return aptDate.toDateString() === date.toDateString();
   });
 
@@ -1091,7 +1091,7 @@ const Appointments = () => {
   const getAppointmentsForDate = (date) => {
     return appointments.filter(apt => {
       if (!apt.startTime) return false;
-      const aptDate = new Date(apt.startTime.toMillis());
+      const aptDate = new Date(getTimestampMillis(apt.startTime));
       return aptDate.toDateString() === date.toDateString();
     });
   };
@@ -1138,7 +1138,7 @@ const Appointments = () => {
     
     const weekAppts = appointments.filter(a => {
       if (!a.startTime) return false;
-      const aptDate = new Date(a.startTime.toMillis());
+      const aptDate = new Date(getTimestampMillis(a.startTime));
       return aptDate >= weekStart && aptDate <= weekEnd;
     });
 

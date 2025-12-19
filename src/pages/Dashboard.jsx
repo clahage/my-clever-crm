@@ -27,6 +27,8 @@ import {
   Battery, Signal, Wifi, Video, PhoneCall, MessageCircle, Link2,
   GitBranch, Sun, Moon, Cloud, Droplet, Wind, Thermometer
 } from 'lucide-react';
+import { Carousel } from 'react-responsive-carousel';
+import 'react-responsive-carousel/lib/styles/carousel.min.css';
 
 const Dashboard = () => {
   const [timeRange, setTimeRange] = useState('week');
@@ -41,6 +43,14 @@ const Dashboard = () => {
   const [invoices, setInvoices] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [activities, setActivities] = useState([]);
+
+  const motivationalQuotes = [
+    "Success is not final, failure is not fatal: It is the courage to continue that counts.",
+    "Your credit journey is unique. Every step forward is progress.",
+    "Small improvements each day lead to stunning results.",
+    "Believe you can and you're halfway there.",
+    "The best way to get started is to quit talking and begin doing."
+  ];
 
   // ============================================================================
   // FIREBASE DATA FETCHING
@@ -225,6 +235,19 @@ const Dashboard = () => {
     </div>
   );
 
+  // Progress bar for credit score improvement
+  const ProgressBar = ({ value, max }) => (
+    <div style={{ width: '100%', background: '#e0e0e0', borderRadius: 8, height: 16, margin: '8px 0' }}>
+      <div style={{
+        width: `${Math.min(100, (value / max) * 100)}%`,
+        background: 'linear-gradient(90deg, #10B981 0%, #3B82F6 100%)',
+        height: '100%',
+        borderRadius: 8,
+        transition: 'width 0.6s cubic-bezier(0.23, 1, 0.32, 1)'
+      }} />
+    </div>
+  );
+
   if (loading) {
     return (
       <div className="p-8">
@@ -240,8 +263,46 @@ const Dashboard = () => {
     );
   }
 
+  // Enhanced card hover effects and micro-interactions
+  const cardStyle = {
+    transition: 'box-shadow 0.3s, transform 0.3s',
+    boxShadow: '0 2px 8px rgba(102,126,234,0.08)',
+    borderRadius: 16,
+    background: '#fff',
+    cursor: 'pointer',
+  };
+  const cardHoverStyle = {
+    boxShadow: '0 8px 24px rgba(102,126,234,0.18)',
+    transform: 'translateY(-4px) scale(1.03)',
+  };
+
   return (
     <div className="p-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
+      {/* Motivational Quote Carousel */}
+      <div style={{ maxWidth: 600, margin: '0 auto 32px auto' }}>
+        <Carousel
+          autoPlay
+          infiniteLoop
+          showThumbs={false}
+          showStatus={false}
+          interval={6000}
+          transitionTime={800}
+          swipeable
+          emulateTouch
+          dynamicHeight={false}
+          renderArrowPrev={(onClickHandler, hasPrev, label) => null}
+          renderArrowNext={(onClickHandler, hasNext, label) => null}
+        >
+          {motivationalQuotes.map((quote, idx) => (
+            <div key={idx} style={{ padding: 24, background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)', borderRadius: 16 }}>
+              <h2 style={{ color: 'white', fontWeight: 'bold', fontSize: 22, textAlign: 'center', marginBottom: 8 }}>
+                {quote}
+              </h2>
+            </div>
+          ))}
+        </Carousel>
+      </div>
+
       {/* Header */}
       <div className="mb-6 flex justify-between items-center">
         <div>
@@ -326,6 +387,13 @@ const Dashboard = () => {
           <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{stats.monthlyRevenue.value}</h3>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Monthly Revenue</p>
         </div>
+      </div>
+
+      {/* Credit Score Progress Bar */}
+      <div style={{ maxWidth: 400, margin: '0 auto 24px auto', textAlign: 'center' }}>
+        <h3 style={{ fontWeight: 'bold', marginBottom: 8 }}>Credit Score Progress</h3>
+        <ProgressBar value={stats.avgScore.value} max={850} />
+        <span style={{ fontWeight: 'bold', color: '#10B981' }}>{stats.avgScore.value} / 850</span>
       </div>
 
       {/* Main Content Grid */}

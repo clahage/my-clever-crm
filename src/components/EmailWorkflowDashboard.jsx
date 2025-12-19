@@ -280,7 +280,7 @@ const EmailWorkflowDashboard = () => {
    */
   const formatDate = (timestamp) => {
     if (!timestamp) return 'N/A';
-    return new Date(timestamp.toMillis()).toLocaleDateString('en-US', {
+    return new Date(getTimestampMillis(timestamp)).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',

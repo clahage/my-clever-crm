@@ -194,7 +194,7 @@ const DuplicateManager = () => {
         lastContact: [master, ...duplicatesToMerge]
           .map(d => d.lastContact)
           .filter(Boolean)
-          .sort((a, b) => b.toMillis() - a.toMillis())[0] || master.lastContact,
+          .sort((a, b) => getTimestampMillis(b) - getTimestampMillis(a))[0] || master.lastContact,
         
         // Merge source list
         sources: [

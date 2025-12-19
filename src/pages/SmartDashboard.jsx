@@ -2477,7 +2477,7 @@ const LeadScoringWidget = () => {
           if (data.consultationRequested) score += 15;
           if (data.source === 'referral') score += 10;
           if (data.lastContact) {
-            const daysSinceContact = Math.floor((Date.now() - data.lastContact?.toMillis()) / 86400000);
+            const daysSinceContact = Math.floor((Date.now() - getTimestampMillis(data.lastContact)) / 86400000);
             if (daysSinceContact < 7) score += 10;
           }
 
@@ -5286,7 +5286,7 @@ const SmartDashboard = () => {
         </DialogTitle>
         <DialogContent dividers>
           <UltimateContactForm
-            onSuccess={(newContact) => {
+            onSave={(newContact) => {
               setShowContactForm(false);
               console.log('✅ New contact created:', newContact);
             }}

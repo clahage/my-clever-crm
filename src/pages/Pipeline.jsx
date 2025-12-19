@@ -79,6 +79,15 @@ import {
 
 // ===== AI SERVICE IMPORT =====
 import RealPipelineAI from '../services/RealPipelineAIService';
+// Utility to normalize various timestamp formats to milliseconds
+const getTimestampMillis = (timestamp) => {
+  if (!timestamp) return Date.now();
+  if (timestamp?.toMillis) return timestamp.toMillis();
+  if (timestamp?.seconds) return timestamp.seconds * 1000;
+  if (timestamp instanceof Date) return timestamp.getTime();
+  try { return new Date(timestamp).getTime(); }
+  catch (e) { return Date.now(); }
+};
 
 // ================================================================================
 // UTILITY FUNCTIONS
@@ -95,7 +104,7 @@ const calculateDealHealth = (deal) => {
   
   // Last activity recency (0-30 points)
   if (deal.lastActivity) {
-    const daysSinceActivity = Math.floor((Date.now() - deal.lastActivity.toMillis()) / (1000 * 60 * 60 * 24));
+    const daysSinceActivity = Math.floor((Date.now() - getTimestampMillis(deal.lastActivity)) / (1000 * 60 * 60 * 24));
     if (daysSinceActivity > 30) health -= 30;
     else if (daysSinceActivity > 14) health -= 20;
     else if (daysSinceActivity > 7) health -= 10;
@@ -105,7 +114,7 @@ const calculateDealHealth = (deal) => {
   
   // Stage-appropriate timing (0-30 points)
   if (deal.createdAt) {
-    const daysInStage = Math.floor((Date.now() - deal.createdAt.toMillis()) / (1000 * 60 * 60 * 24));
+    const daysInStage = Math.floor((Date.now() - getTimestampMillis(deal.createdAt)) / (1000 * 60 * 60 * 24));
     const stageTargets = {
       'new': 1,
       'contacted': 3,
@@ -788,7 +797,7 @@ const Pipeline = () => {
         case 'health':
           return calculateDealHealth(b) - calculateDealHealth(a);
         case 'recent':
-          return (b.lastActivity?.toMillis() || 0) - (a.lastActivity?.toMillis() || 0);
+          return getTimestampMillis(b.lastActivity) - getTimestampMillis(a.lastActivity);
         default:
           return 0;
       }

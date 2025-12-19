@@ -989,7 +989,7 @@ const WorkflowOrchestrator = () => {
         currentStage: 'completion',
         stageIndex: 11,
         completedAt: serverTimestamp(),
-        duration: Date.now() - selectedWorkflow.startedAt?.toMillis(),
+        duration: Date.now() - getTimestampMillis(selectedWorkflow.startedAt),
       });
 
       addLog('success', '🎊 WORKFLOW COMPLETE! All stages executed successfully.');

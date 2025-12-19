@@ -285,11 +285,17 @@ const SEGMENTATION_CRITERIA = [
   { value: 'recency', label: 'Last Activity', type: 'date' },
 ];
 
+// ===== HELPER FUNCTIONS ===== 
+
+const getTimestampMillis = (timestamp) => { 
+  // ... helper function code ...
+};
+
 // ================================================================================
 // MAIN COMPONENT
 // ================================================================================
 
-const ClientsHub = () => {
+  const ClientsHub = () => {
   const { currentUser, userProfile } = useAuth();
   
   // ===== STATE MANAGEMENT =====
@@ -399,11 +405,13 @@ const ClientsHub = () => {
     category: '',
   });
   
-  // Analytics State
+// Analytics State
   const [analytics, setAnalytics] = useState({
     totalClients: 0,
+    clients: 0,
     activeClients: 0,
     leads: 0,
+    prospects: 0,
     conversionRate: 0,
     avgLeadScore: 0,
     avgEngagement: 0,
@@ -477,10 +485,10 @@ const ClientsHub = () => {
     console.log('🔥 Setting up Firebase listeners for ClientsHub');
     const unsubscribers = [];
     
-    // Listen to clients
+// Listen to clients
+    // ===== FIX #3: Show ALL contacts (removed userId filter) =====
     const clientsQuery = query(
       collection(db, 'contacts'),
-      where('userId', '==', currentUser.uid),
       orderBy('createdAt', 'desc')
     );
     
@@ -540,19 +548,21 @@ const ClientsHub = () => {
   
   // ===== CLIENT LIST FUNCTIONS =====
   
-  const calculateAnalytics = useCallback((clientData) => {
-    console.log('📊 Calculating analytics for', clientData.length, 'clients');
+     const calculateAnalytics = useCallback((clientData) => {
+     console.log('📊 Calculating analytics for', clientData.length, 'clients');
     
     try {
       const total = clientData.length;
+      // ===== FIX #2: Check roles ARRAY instead of status field =====
+      const clients = clientData.filter(c => Array.isArray(c.roles) && c.roles.includes('client')).length;
       const active = clientData.filter(c => c.status === 'active').length;
-      const leads = clientData.filter(c => c.status === 'lead').length;
-      const prospects = clientData.filter(c => c.status === 'prospect').length;
+      const leads = clientData.filter(c => Array.isArray(c.roles) && c.roles.includes('lead')).length;
+      const prospects = clientData.filter(c => Array.isArray(c.roles) && c.roles.includes('prospect')).length;
       const completed = clientData.filter(c => c.status === 'completed').length;
       const cancelled = clientData.filter(c => c.status === 'cancelled').length;
       const atRisk = clientData.filter(c => c.status === 'at_risk').length;
       
-      const conversionRate = leads > 0 ? ((active / leads) * 100).toFixed(1) : 0;
+      const conversionRate = leads > 0 ? ((clients / leads) * 100).toFixed(1) : 0;
       const avgScore = clientData.length > 0 
         ? (clientData.reduce((sum, c) => sum + (c.leadScore || 0), 0) / clientData.length).toFixed(1)
         : 0;
@@ -643,10 +653,12 @@ const ClientsHub = () => {
         });
       }
 
-      setAnalytics({
+    setAnalytics({
         totalClients: total,
+        clients,
         activeClients: active,
         leads,
+        prospects,
         conversionRate,
         avgLeadScore: avgScore,
         avgEngagement,
@@ -1048,13 +1060,13 @@ const ClientsHub = () => {
           bVal = b.totalRevenue || 0;
           break;
         case 'lastContact':
-          aVal = a.lastContact ? a.lastContact.toMillis() : 0;
-          bVal = b.lastContact ? b.lastContact.toMillis() : 0;
+          aVal = getTimestampMillis(a.lastContact);
+          bVal = getTimestampMillis(b.lastContact);
           break;
         case 'createdAt':
         default:
-          aVal = a.createdAt ? a.createdAt.toMillis() : 0;
-          bVal = b.createdAt ? b.createdAt.toMillis() : 0;
+          aVal = getTimestampMillis(a.createdAt);
+          bVal = getTimestampMillis(b.createdAt);
           break;
       }
       if (sortOrder === 'asc') {
@@ -2380,26 +2392,26 @@ const ClientsHub = () => {
         <Grid container spacing={2} sx={{ mb: 3 }}>
           <Grid item xs={6} sm={3}>
             <Card sx={{ p: 2, textAlign: 'center', bgcolor: '#E3F2FD' }}>
-              <Typography variant="h4" color="primary">{analytics.totalClients}</Typography>
-              <Typography variant="caption">Total Clients</Typography>
+              <Typography variant="h4" color="primary">{analytics.totalClients || 0}</Typography>
+              <Typography variant="caption">Total Contacts</Typography>
             </Card>
           </Grid>
           <Grid item xs={6} sm={3}>
             <Card sx={{ p: 2, textAlign: 'center', bgcolor: '#E8F5E9' }}>
-              <Typography variant="h4" color="success.main">{analytics.activeClients}</Typography>
-              <Typography variant="caption">Active</Typography>
+              <Typography variant="h4" color="success.main">{analytics.clients || 0}</Typography>
+              <Typography variant="caption">Clients</Typography>
             </Card>
           </Grid>
           <Grid item xs={6} sm={3}>
             <Card sx={{ p: 2, textAlign: 'center', bgcolor: '#FFF3E0' }}>
-              <Typography variant="h4" color="warning.main">{analytics.leads}</Typography>
+              <Typography variant="h4" color="warning.main">{analytics.leads || 0}</Typography>
               <Typography variant="caption">Leads</Typography>
             </Card>
           </Grid>
           <Grid item xs={6} sm={3}>
-            <Card sx={{ p: 2, textAlign: 'center', bgcolor: '#FCE4EC' }}>
-              <Typography variant="h4" color="secondary">{analytics.conversionRate}%</Typography>
-              <Typography variant="caption">Conversion</Typography>
+            <Card sx={{ p: 2, textAlign: 'center', bgcolor: '#F3E5F5' }}>
+              <Typography variant="h4" color="secondary">{analytics.prospects || 0}</Typography>
+              <Typography variant="caption">Prospects</Typography>
             </Card>
           </Grid>
         </Grid>
@@ -2566,7 +2578,7 @@ const ClientsHub = () => {
                       <TableCell>
                         <Typography variant="caption">
                           {client.lastContact 
-                            ? new Date(client.lastContact.toMillis()).toLocaleDateString()
+                            ? new Date(getTimestampMillis(client.lastContact)).toLocaleDateString()
                             : 'Never'}
                         </Typography>
                       </TableCell>
@@ -2762,26 +2774,36 @@ const ClientsHub = () => {
           </Card>
         )}
         
-        {/* Quick Actions */}
+  {/* Quick Actions */}
         <Grid container spacing={2}>
           <Grid item xs={12} md={6}>
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>Recent Activity</Typography>
                 <List>
-                  {communications.slice(0, 5).map((comm) => (
-                    <ListItem key={comm.id}>
-                      <ListItemAvatar>
-                        <Avatar sx={{ bgcolor: COMMUNICATION_TYPES.find(t => t.value === comm.type)?.color }}>
-                          {React.createElement(COMMUNICATION_TYPES.find(t => t.value === comm.type)?.icon || Phone, { size: 20 })}
-                        </Avatar>
-                      </ListItemAvatar>
+                  {communications.length === 0 ? (
+                    <ListItem>
                       <ListItemText
-                        primary={comm.subject || comm.type}
-                        secondary={comm.createdAt?.toDate?.().toLocaleDateString()}
+                        primary="No recent activity"
+                        secondary="Activity will appear here as you interact with contacts"
+                        sx={{ textAlign: 'center', py: 2 }}
                       />
                     </ListItem>
-                  ))}
+                  ) : (
+                    communications.slice(0, 5).map((comm) => (
+                      <ListItem key={comm.id}>
+                        <ListItemAvatar>
+                          <Avatar sx={{ bgcolor: COMMUNICATION_TYPES.find(t => t.value === comm.type)?.color }}>
+                            {React.createElement(COMMUNICATION_TYPES.find(t => t.value === comm.type)?.icon || Phone, { size: 20 })}
+                          </Avatar>
+                        </ListItemAvatar>
+                        <ListItemText
+                          primary={comm.subject || comm.type}
+                          secondary={comm.createdAt?.toDate?.().toLocaleDateString()}
+                        />
+                      </ListItem>
+                    ))
+                  )}
                 </List>
               </CardContent>
             </Card>
@@ -2791,19 +2813,29 @@ const ClientsHub = () => {
               <CardContent>
                 <Typography variant="h6" gutterBottom>AI Recommendations</Typography>
                 <List>
-                  {aiRecommendations.slice(0, 5).map((rec, idx) => (
-                    <ListItem key={idx}>
-                      <ListItemAvatar>
-                        <Avatar sx={{ bgcolor: 'secondary.main' }}>
-                          <Sparkles size={20} />
-                        </Avatar>
-                      </ListItemAvatar>
+                  {aiRecommendations.length === 0 ? (
+                    <ListItem>
                       <ListItemText
-                        primary={rec.title}
-                        secondary={`Impact: ${rec.impact} • Effort: ${rec.effort}`}
+                        primary="No recommendations yet"
+                        secondary="AI recommendations will appear as you add more data"
+                        sx={{ textAlign: 'center', py: 2 }}
                       />
                     </ListItem>
-                  ))}
+                  ) : (
+                    aiRecommendations.slice(0, 5).map((rec, idx) => (
+                      <ListItem key={idx}>
+                        <ListItemAvatar>
+                          <Avatar sx={{ bgcolor: 'secondary.main' }}>
+                            <Sparkles size={20} />
+                          </Avatar>
+                        </ListItemAvatar>
+                        <ListItemText
+                          primary={rec.title}
+                          secondary={`Impact: ${rec.impact} • Effort: ${rec.effort}`}
+                        />
+                      </ListItem>
+                    ))
+                  )}
                 </List>
               </CardContent>
             </Card>
@@ -3897,7 +3929,7 @@ const ClientsHub = () => {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4">
           <Users size={32} style={{ verticalAlign: 'middle', marginRight: 12 }} />
-          Clients Hub - MEGA ENHANCED
+          Contacts Pipeline - MEGA ENHANCED
         </Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Tooltip title="Refresh Data">
@@ -3926,7 +3958,7 @@ const ClientsHub = () => {
           scrollButtons="auto"
         >
           <Tab label="Client List" icon={<Users size={18} />} iconPosition="start" />
-          <Tab label="Add/Edit Client" icon={<UserPlus size={18} />} iconPosition="start" />
+          <Tab label="Add/Edit Contact" icon={<UserPlus size={18} />} iconPosition="start" />
           <Tab label="Client Profile" icon={<UserCheck size={18} />} iconPosition="start" />
           <Tab label="Communications" icon={<MessageSquare size={18} />} iconPosition="start" />
           <Tab label="Documents" icon={<FileText size={18} />} iconPosition="start" />

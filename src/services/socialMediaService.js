@@ -104,7 +104,7 @@ class SocialMediaService {
         completedSnap.docs.forEach(doc => {
           const data = doc.data();
           if (data.timestamp && data.completedAt) {
-            const responseTime = data.completedAt.toMillis() - data.timestamp.toMillis();
+            const responseTime = getTimestampMillis(data.completedAt) - getTimestampMillis(data.timestamp);
             totalTime += responseTime;
             count++;
           }

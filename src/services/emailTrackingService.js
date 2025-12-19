@@ -267,7 +267,7 @@ class EmailTrackingService {
       
       // Recency bonus
       if (stats.lastEmailOpened) {
-        const daysSinceOpen = Math.floor((Date.now() - stats.lastEmailOpened.toMillis()) / (1000 * 60 * 60 * 24));
+        const daysSinceOpen = Math.floor((Date.now() - getTimestampMillis(stats.lastEmailOpened)) / (1000 * 60 * 60 * 24));
         if (daysSinceOpen < 7) score += 20;
         else if (daysSinceOpen < 30) score += 10;
       }
@@ -356,7 +356,7 @@ class EmailTrackingService {
         
         // Group by day
         if (email.sentAt) {
-          const day = new Date(email.sentAt.toMillis()).toLocaleDateString();
+          const day = new Date(getTimestampMillis(email.sentAt)).toLocaleDateString();
           if (!report.byDay[day]) {
             report.byDay[day] = { sent: 0, opened: 0, clicked: 0 };
           }
