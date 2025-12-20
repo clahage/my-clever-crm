@@ -143,6 +143,7 @@ const AIReviewEditor = lazy(() => import('@/components/AIReviewEditor'));
 const CreditAnalysisEngine = lazy(() => import('@/pages/CreditAnalysisEngine'));
 const PredictiveAnalytics = lazy(() => import('@/pages/PredictiveAnalytics'));
 const WorkflowTestingDashboard = lazy(() => import('@/pages/WorkflowTestingDashboard'));
+const IDIQSandboxTester = lazy(() => import('@/components/testing/IDIQSandboxTester'));
 
 // ===== CONTACT & CRM PAGES =====
 const Contacts = lazy(() => import('@/pages/Contacts'));
@@ -1175,6 +1176,18 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="admin">
       <Suspense fallback={<LoadingFallback />}>
         <WorkflowTestingDashboard />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* IDIQ Sandbox Tester */}
+<Route
+  path="testing/idiq"
+  element={
+    <ProtectedRoute requiredRole="admin">
+      <Suspense fallback={<LoadingFallback />}>
+        <IDIQSandboxTester />
       </Suspense>
     </ProtectedRoute>
   }

@@ -101,3 +101,14 @@ After deployment, check:
  All tabs display content
  No JavaScript errors in browser console (F12)
  Navigation works smoothly
+
+
+
+
+ # SAVE & DEPLOY WORKFLOW
+cd /c/my-clever-crm
+git add .
+git commit -m "Description of changes"
+git push origin main
+npm run build
+firebase deploy --only hosting

@@ -41,7 +41,7 @@ import {
   Smartphone, Palette, Brush, Info,
 
   // ===== MISC =====
-  MapPin, AlertCircle, Eye, Wrench, Lock, Key, HelpCircle, ExternalLink, RefreshCw
+MapPin, AlertCircle, Eye, Wrench, Lock, Key, HelpCircle, ExternalLink, RefreshCw, Beaker
 } from 'lucide-react';
 
 // ============================================================================
@@ -542,7 +542,7 @@ export const navigationItems = [
         description: 'Regulatory compliance and audit management'
       },
 
-      // WORKFLOW TESTING DASHBOARD (NEW)
+// WORKFLOW TESTING DASHBOARD (NEW)
       {
         id: 'workflow-testing-dashboard',
         title: 'Workflow Testing',
@@ -551,6 +551,17 @@ export const navigationItems = [
         permission: 'admin',
         badge: 'AI',
         description: 'AI-powered workflow testing and debugging'
+      },
+
+      // IDIQ SANDBOX TESTER (NEW)
+      {
+        id: 'idiq-sandbox-tester',
+        title: 'IDIQ Sandbox Tester',
+        path: '/testing/idiq',
+        icon: Beaker,
+        permission: 'admin',
+        badge: 'SANDBOX',
+        description: 'Test IDIQ Partner ID 11981 with 6 sandbox consumer profiles'
       },
 
       // WHITE LABEL CRM (Keep as-is)

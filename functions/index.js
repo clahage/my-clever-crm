@@ -578,6 +578,10 @@ exports.enrollIDIQMember = onRequest(
   }
 );
 
+// ===== IMPORT ENROLLIDIQ FROM SEPARATE FILE =====
+const { enrollIDIQ } = require('./enrollIDIQ');
+exports.enrollIDIQ = enrollIDIQ;
+
 exports.getIDIQMemberToken = onRequest(defaultConfig, async (req, res) => res.json({ success: true }));
 exports.getVerificationQuestions = onRequest(defaultConfig, async (req, res) => res.json({ success: true }));
 exports.submitVerificationAnswers = onRequest(defaultConfig, async (req, res) => res.json({ success: true }));
