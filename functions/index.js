@@ -702,5 +702,26 @@ exports.generateProgressTimeline = aiAdvancedFeatures.generateProgressTimeline;
 // Smart Notification Engine
 exports.analyzeNotificationTiming = aiAdvancedFeatures.analyzeNotificationTiming;
 
+// ============================================
+// AI REVENUE ENGINE (AFFILIATE & AUTO OPPORTUNITIES)
+// ============================================
+const aiRevenueEngine = require('./aiRevenueEngine');
+
+// Affiliate Link Management
+exports.saveAffiliateLink = aiRevenueEngine.saveAffiliateLink;
+exports.getAffiliateLinks = aiRevenueEngine.getAffiliateLinks;
+exports.trackAffiliateLinkClick = aiRevenueEngine.trackAffiliateLinkClick;
+
+// AI Credit Review Generator with Affiliate Integration
+exports.generateCreditReview = aiRevenueEngine.generateCreditReview;
+
+// Auto Loan Opportunity Detection
+exports.checkAutoOpportunities = aiRevenueEngine.checkAutoOpportunities;
+exports.scanAutoOpportunities = aiRevenueEngine.scanAutoOpportunities;
+
+// Revolving Credit Comparison
+exports.compareRevolvingCredit = aiRevenueEngine.compareRevolvingCredit;
+
 console.log('🚀 Firebase Gen 2 Functions configured successfully!');
 console.log('✨ AI Advanced Features loaded!');
+console.log('💰 AI Revenue Engine loaded!');
