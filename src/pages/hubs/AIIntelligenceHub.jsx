@@ -49,6 +49,11 @@ import {
   Refresh,
   Info,
   Star,
+  BarChart,
+  AttachMoney,
+  Warning,
+  CreditCard,
+  Email,
 } from '@mui/icons-material';
 import { useAuth } from '@/contexts/AuthContext';
 import { ROLE_HIERARCHY } from '@/layout/navConfig';
@@ -60,6 +65,7 @@ const AIScorePredictor = lazy(() => import('../../components/ai/AIScorePredictor
 const SmartPrioritization = lazy(() => import('../../components/ai/SmartPrioritization'));
 const AnomalyDetector = lazy(() => import('../../components/ai/AnomalyDetector'));
 const CreditCoachChat = lazy(() => import('../../components/ai/CreditCoachChat'));
+const AIBusinessDashboard = lazy(() => import('../../components/ai/AIBusinessDashboard'));
 
 // Placeholder components for features to be built
 const createPlaceholder = (title, description, icon) => () => (
@@ -188,6 +194,16 @@ const TABS = [
     description: 'Pay-for-delete scripts',
     color: '#00b894',
     badge: 'AI',
+  },
+  {
+    id: 'business',
+    label: 'Business Intelligence',
+    icon: BarChart,
+    component: AIBusinessDashboard,
+    permission: 'manager',
+    description: 'Revenue & churn analytics',
+    color: '#1a1a2e',
+    badge: 'EXEC',
   },
 ];
 

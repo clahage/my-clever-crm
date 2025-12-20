@@ -198,6 +198,21 @@ export const navigationItems = [
     category: 'admin',
     visibleTo: ['admin', 'masterAdmin']
   },
+  // ===========================================================================
+  // 🧠 AI COMMAND CENTER - PRIMARY AI ENTRY POINT
+  // ===========================================================================
+  {
+    id: 'ai-command-center',
+    title: 'AI Command Center',
+    path: '/ai-intelligence-hub',
+    icon: Brain,
+    permission: 'user',
+    mobileHidden: false,
+    badge: 'AI',
+    description: 'Complete AI-powered credit intelligence suite',
+    category: 'ai',
+    highlight: true
+  },
   // ========================================================================
   // 🛒 PRODUCTS & SERVICES HUB - NEW TOP LEVEL
   // ========================================================================
@@ -509,15 +524,16 @@ export const navigationItems = [
         consolidated: ['SettingsHub', 'AdminTools', 'ManageRoles']
       },
 
-      // HUB 18: AI HUB (Keep as-is)
+      // HUB 18: AI INTELLIGENCE HUB (MAJOR UPGRADE)
       {
-        id: 'ai-hub',
-        title: 'AI Hub',
-        path: '/ai-hub',
+        id: 'ai-intelligence-hub',
+        title: 'AI Intelligence Hub',
+        path: '/ai-intelligence-hub',
         icon: Brain,
         permission: 'user',
         badge: 'AI',
-        description: 'AI-powered tools, insights, and automation'
+        description: 'Complete AI suite: Score Predictor, Smart Prioritization, Anomaly Detection, Credit Coach, Strategy Planner',
+        consolidated: ['AIScorePredictor', 'SmartPrioritization', 'AnomalyDetector', 'CreditCoachChat', 'StrategyPlanner', 'ComplianceGuardian', 'GoodwillGenerator', 'NegotiationAssistant']
       },
 
       // HUB 19: SUPPORT HUB (Keep as-is)

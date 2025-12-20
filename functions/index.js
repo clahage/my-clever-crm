@@ -625,4 +625,44 @@ exports.testFunction = onRequest(
   }
 );
 
+// ============================================
+// AI CREDIT INTELLIGENCE FUNCTIONS
+// ============================================
+const aiCreditIntelligence = require('./aiCreditIntelligence');
+
+// Score prediction and analysis
+exports.predictCreditScoreAI = aiCreditIntelligence.predictCreditScore;
+exports.prioritizeDisputes = aiCreditIntelligence.prioritizeDisputes;
+exports.parseResponseLetter = aiCreditIntelligence.parseResponseLetter;
+exports.predictDisputeSuccess = aiCreditIntelligence.predictDisputeSuccess;
+exports.detectAnomalies = aiCreditIntelligence.detectAnomalies;
+exports.checkCompliance = aiCreditIntelligence.checkCompliance;
+exports.generateGoodwillLetter = aiCreditIntelligence.generateGoodwillLetter;
+exports.generateNegotiationScript = aiCreditIntelligence.generateNegotiationScript;
+exports.createStrategyPlan = aiCreditIntelligence.createStrategyPlan;
+exports.predictTimeline = aiCreditIntelligence.predictTimeline;
+
+// ============================================
+// AI CREDIT COACH FUNCTIONS (24/7 CHATBOT)
+// ============================================
+const aiCreditCoach = require('./aiCreditCoach');
+
+exports.chatWithCoach = aiCreditCoach.chatWithCoach;
+exports.getQuickTips = aiCreditCoach.getQuickTips;
+exports.getMotivation = aiCreditCoach.getMotivation;
+exports.explainScore = aiCreditCoach.explainScore;
+exports.answerFAQ = aiCreditCoach.answerFAQ;
+
+// ============================================
+// AI BUSINESS INTELLIGENCE FUNCTIONS
+// ============================================
+const aiBusinessIntelligence = require('./aiBusinessIntelligence');
+
+exports.forecastRevenue = aiBusinessIntelligence.forecastRevenue;
+exports.predictChurn = aiBusinessIntelligence.predictChurn;
+exports.composeMessage = aiBusinessIntelligence.composeMessage;
+exports.optimizeUtilization = aiBusinessIntelligence.optimizeUtilization;
+exports.analyzeAndTriggerWorkflows = aiBusinessIntelligence.analyzeAndTriggerWorkflows;
+exports.generateBusinessInsights = aiBusinessIntelligence.generateBusinessInsights;
+
 console.log('🚀 Firebase Gen 2 Functions configured successfully!');

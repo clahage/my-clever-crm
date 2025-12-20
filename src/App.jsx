@@ -288,6 +288,9 @@ const AttorneyNetworkHub = lazy(() => import('@/pages/hubs/AttorneyNetworkHub'))
 const CertificationAcademyHub = lazy(() => import('@/pages/hubs/CertificationAcademyHub'));
 const WhiteLabelCRMHub = lazy(() => import('@/pages/hubs/WhiteLabelCRMHub'));
 
+// ===== AI INTELLIGENCE HUB (December 2025) =====
+const AIIntelligenceHub = lazy(() => import('@/pages/hubs/AIIntelligenceHub'));
+
 // ============================================================================
 // PROTECTED ROUTE WRAPPER
 // ============================================================================
@@ -613,14 +616,25 @@ const AppContent = () => {
     </ProtectedRoute>
   }
 />
-{/* AI Hub - AI-powered features and analytics */}
+{/* AI Hub - AI-powered features and analytics (Legacy) */}
 <Route
   path="ai-hub"
-
   element={
     <ProtectedRoute requiredRole="prospect">
       <Suspense fallback={<LoadingFallback />}>
         <AIHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* AI Intelligence Hub - Complete AI Command Center (NEW) */}
+<Route
+  path="ai-intelligence-hub"
+  element={
+    <ProtectedRoute requiredRole="user">
+      <Suspense fallback={<LoadingFallback />}>
+        <AIIntelligenceHub />
       </Suspense>
     </ProtectedRoute>
   }
