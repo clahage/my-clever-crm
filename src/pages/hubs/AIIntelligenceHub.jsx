@@ -54,6 +54,12 @@ import {
   Warning,
   CreditCard,
   Email,
+  CompareArrows,
+  EmojiEvents,
+  Share,
+  Shield,
+  Assessment,
+  DocumentScanner,
 } from '@mui/icons-material';
 import { useAuth } from '@/contexts/AuthContext';
 import { ROLE_HIERARCHY } from '@/layout/navConfig';
@@ -66,6 +72,13 @@ const SmartPrioritization = lazy(() => import('../../components/ai/SmartPrioriti
 const AnomalyDetector = lazy(() => import('../../components/ai/AnomalyDetector'));
 const CreditCoachChat = lazy(() => import('../../components/ai/CreditCoachChat'));
 const AIBusinessDashboard = lazy(() => import('../../components/ai/AIBusinessDashboard'));
+
+// NEW: Advanced AI Features
+const CreditScoreSimulator = lazy(() => import('../../components/ai/CreditScoreSimulator'));
+const VictoryCelebrationDashboard = lazy(() => import('../../components/ai/VictoryCelebrationDashboard'));
+const ReferralPredictor = lazy(() => import('../../components/ai/ReferralPredictor'));
+const ComplianceMonitor = lazy(() => import('../../components/ai/ComplianceMonitor'));
+const ClientProgressPortal = lazy(() => import('../../components/ai/ClientProgressPortal'));
 
 // Placeholder components for features to be built
 const createPlaceholder = (title, description, icon) => () => (
@@ -204,6 +217,56 @@ const TABS = [
     description: 'Revenue & churn analytics',
     color: '#1a1a2e',
     badge: 'EXEC',
+  },
+  {
+    id: 'simulator',
+    label: 'Score Simulator',
+    icon: CompareArrows,
+    component: CreditScoreSimulator,
+    permission: 'user',
+    description: 'What-if scenarios',
+    color: '#7c3aed',
+    badge: 'NEW',
+  },
+  {
+    id: 'victories',
+    label: 'Victory Center',
+    icon: EmojiEvents,
+    component: VictoryCelebrationDashboard,
+    permission: 'user',
+    description: 'Celebrate client wins',
+    color: '#f59e0b',
+    badge: 'NEW',
+  },
+  {
+    id: 'referrals',
+    label: 'Referral AI',
+    icon: Share,
+    component: ReferralPredictor,
+    permission: 'manager',
+    description: 'Find referral candidates',
+    color: '#06b6d4',
+    badge: 'NEW',
+  },
+  {
+    id: 'compliance-check',
+    label: 'Compliance Check',
+    icon: Shield,
+    component: ComplianceMonitor,
+    permission: 'user',
+    description: 'FCRA/FDCPA checker',
+    color: '#dc2626',
+    badge: 'NEW',
+  },
+  {
+    id: 'progress',
+    label: 'Client Progress',
+    icon: Assessment,
+    component: ClientProgressPortal,
+    permission: 'user',
+    description: 'Visual timeline',
+    color: '#3b82f6',
+    badge: 'NEW',
   },
 ];
 

@@ -665,4 +665,42 @@ exports.optimizeUtilization = aiBusinessIntelligence.optimizeUtilization;
 exports.analyzeAndTriggerWorkflows = aiBusinessIntelligence.analyzeAndTriggerWorkflows;
 exports.generateBusinessInsights = aiBusinessIntelligence.generateBusinessInsights;
 
+// ============================================
+// AI ADVANCED FEATURES (WOW FEATURES)
+// ============================================
+const aiAdvancedFeatures = require('./aiAdvancedFeatures');
+
+// Credit Score Simulator
+exports.simulateCreditScore = aiAdvancedFeatures.simulateCreditScore;
+
+// Victory Celebration System
+exports.triggerVictoryCelebration = aiAdvancedFeatures.triggerVictoryCelebration;
+exports.onDisputeDeleted = aiAdvancedFeatures.onDisputeDeleted;
+
+// AI Upsell Engine
+exports.generateUpsellRecommendations = aiAdvancedFeatures.generateUpsellRecommendations;
+
+// Referral AI Predictor
+exports.predictReferralLikelihood = aiAdvancedFeatures.predictReferralLikelihood;
+
+// Document OCR Pipeline
+exports.processDocumentOCR = aiAdvancedFeatures.processDocumentOCR;
+
+// Dispute Letter A/B Testing
+exports.recordDisputeLetterResult = aiAdvancedFeatures.recordDisputeLetterResult;
+exports.getLetterEffectivenessReport = aiAdvancedFeatures.getLetterEffectivenessReport;
+
+// Bureau Response Predictor
+exports.predictBureauResponse = aiAdvancedFeatures.predictBureauResponse;
+
+// Regulatory Compliance Monitor
+exports.checkRegulatoryCompliance = aiAdvancedFeatures.checkRegulatoryCompliance;
+
+// Client Progress Portal
+exports.generateProgressTimeline = aiAdvancedFeatures.generateProgressTimeline;
+
+// Smart Notification Engine
+exports.analyzeNotificationTiming = aiAdvancedFeatures.analyzeNotificationTiming;
+
 console.log('🚀 Firebase Gen 2 Functions configured successfully!');
+console.log('✨ AI Advanced Features loaded!');
