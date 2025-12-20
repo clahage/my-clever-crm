@@ -50,7 +50,7 @@ import {
   AutoAwesome,
 } from '@mui/icons-material';
 import { httpsCallable } from 'firebase/functions';
-import { functions } from '@/firebase/config';
+import { functions } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Message Component

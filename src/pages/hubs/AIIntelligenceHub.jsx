@@ -58,7 +58,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { ROLE_HIERARCHY } from '@/layout/navConfig';
 import { collection, query, getDocs, orderBy, limit, where } from 'firebase/firestore';
-import { db } from '@/firebase/config';
+import { db } from '@/lib/firebase';
 
 // Lazy load AI components
 const AIScorePredictor = lazy(() => import('../../components/ai/AIScorePredictor'));

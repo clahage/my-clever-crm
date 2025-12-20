@@ -48,7 +48,7 @@ import {
 } from '@mui/icons-material';
 import { httpsCallable } from 'firebase/functions';
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
-import { db, functions } from '@/firebase/config';
+import { db, functions } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Severity Badge Component

@@ -53,7 +53,7 @@ import {
 } from '@mui/icons-material';
 import { httpsCallable } from 'firebase/functions';
 import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
-import { db, functions } from '@/firebase/config';
+import { db, functions } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Score Gauge Component
