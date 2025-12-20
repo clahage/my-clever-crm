@@ -291,6 +291,18 @@ const WhiteLabelCRMHub = lazy(() => import('@/pages/hubs/WhiteLabelCRMHub'));
 // ===== AI INTELLIGENCE HUB (December 2025) =====
 const AIIntelligenceHub = lazy(() => import('@/pages/hubs/AIIntelligenceHub'));
 
+// ===== EXECUTIVE SUITE COMPONENTS (December 2025) =====
+const ExecutiveKPIDashboard = lazy(() => import('@/components/dashboard/ExecutiveKPIDashboard'));
+const TekionLeadManager = lazy(() => import('@/components/sales/TekionLeadManager'));
+const PaymentHealthMonitor = lazy(() => import('@/components/dashboard/PaymentHealthMonitor'));
+const TeamTaskManager = lazy(() => import('@/components/operations/TeamTaskManager'));
+const ComplianceCalendar = lazy(() => import('@/components/operations/ComplianceCalendar'));
+const DocumentVault = lazy(() => import('@/components/operations/DocumentVault'));
+const CommunicationCenter = lazy(() => import('@/components/communication/CommunicationCenter'));
+const ClientOnboardingWizard = lazy(() => import('@/components/onboarding/ClientOnboardingWizard'));
+const ReferralManager = lazy(() => import('@/components/sales/ReferralManager'));
+const AutoOpportunityDashboard = lazy(() => import('@/components/revenue/AutoOpportunityDashboard'));
+
 // ============================================================================
 // PROTECTED ROUTE WRAPPER
 // ============================================================================
@@ -1182,6 +1194,136 @@ const AppContent = () => {
   }
 />
 
+
+{/* ============================================================================ */}
+{/* ===== 👔 EXECUTIVE SUITE ROUTES (December 2025) ===== */}
+{/* ============================================================================ */}
+
+{/* Executive KPI Dashboard */}
+<Route
+  path="executive-dashboard"
+  element={
+    <ProtectedRoute requiredRoles={['manager', 'admin', 'masterAdmin']}>
+      <Suspense fallback={<LoadingFallback />}>
+        <ExecutiveKPIDashboard />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Toyota/Tekion Lead Manager */}
+<Route
+  path="toyota-leads"
+  element={
+    <ProtectedRoute requiredRoles={['manager', 'admin', 'masterAdmin']}>
+      <Suspense fallback={<LoadingFallback />}>
+        <TekionLeadManager />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Tekion Leads Alias */}
+<Route path="tekion-leads" element={<Navigate to="/toyota-leads" replace />} />
+
+{/* Payment Health Monitor */}
+<Route
+  path="payment-health"
+  element={
+    <ProtectedRoute requiredRoles={['manager', 'admin', 'masterAdmin']}>
+      <Suspense fallback={<LoadingFallback />}>
+        <PaymentHealthMonitor />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Team Task Manager */}
+<Route
+  path="team-tasks"
+  element={
+    <ProtectedRoute requiredRoles={['manager', 'admin', 'masterAdmin']}>
+      <Suspense fallback={<LoadingFallback />}>
+        <TeamTaskManager />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Compliance Calendar */}
+<Route
+  path="compliance-calendar"
+  element={
+    <ProtectedRoute requiredRoles={['manager', 'admin', 'masterAdmin']}>
+      <Suspense fallback={<LoadingFallback />}>
+        <ComplianceCalendar />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Document Vault */}
+<Route
+  path="document-vault"
+  element={
+    <ProtectedRoute requiredRole="user">
+      <Suspense fallback={<LoadingFallback />}>
+        <DocumentVault />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* AI Communication Center */}
+<Route
+  path="communication-center"
+  element={
+    <ProtectedRoute requiredRole="user">
+      <Suspense fallback={<LoadingFallback />}>
+        <CommunicationCenter />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Client Onboarding Wizard */}
+<Route
+  path="client-onboarding"
+  element={
+    <ProtectedRoute requiredRole="user">
+      <Suspense fallback={<LoadingFallback />}>
+        <ClientOnboardingWizard />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Referral Manager */}
+<Route
+  path="referral-manager"
+  element={
+    <ProtectedRoute requiredRole="user">
+      <Suspense fallback={<LoadingFallback />}>
+        <ReferralManager />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Auto Opportunity Dashboard */}
+<Route
+  path="auto-opportunities"
+  element={
+    <ProtectedRoute requiredRoles={['manager', 'admin', 'masterAdmin']}>
+      <Suspense fallback={<LoadingFallback />}>
+        <AutoOpportunityDashboard />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Commission Tracker - Alias to Toyota Leads */}
+<Route path="commissions" element={<Navigate to="/toyota-leads" replace />} />
 
 {/* Workflow Testing Dashboard */}
 <Route
