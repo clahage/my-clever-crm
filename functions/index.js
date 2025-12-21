@@ -625,4 +625,206 @@ exports.testFunction = onRequest(
   }
 );
 
+// ============================================
+// AI CREDIT INTELLIGENCE FUNCTIONS
+// ============================================
+const aiCreditIntelligence = require('./aiCreditIntelligence');
+
+// Score prediction and analysis
+exports.predictCreditScoreAI = aiCreditIntelligence.predictCreditScore;
+exports.prioritizeDisputes = aiCreditIntelligence.prioritizeDisputes;
+exports.parseResponseLetter = aiCreditIntelligence.parseResponseLetter;
+exports.predictDisputeSuccess = aiCreditIntelligence.predictDisputeSuccess;
+exports.detectAnomalies = aiCreditIntelligence.detectAnomalies;
+exports.checkCompliance = aiCreditIntelligence.checkCompliance;
+exports.generateGoodwillLetter = aiCreditIntelligence.generateGoodwillLetter;
+exports.generateNegotiationScript = aiCreditIntelligence.generateNegotiationScript;
+exports.createStrategyPlan = aiCreditIntelligence.createStrategyPlan;
+exports.predictTimeline = aiCreditIntelligence.predictTimeline;
+
+// ============================================
+// AI CREDIT COACH FUNCTIONS (24/7 CHATBOT)
+// ============================================
+const aiCreditCoach = require('./aiCreditCoach');
+
+exports.chatWithCoach = aiCreditCoach.chatWithCoach;
+exports.getQuickTips = aiCreditCoach.getQuickTips;
+exports.getMotivation = aiCreditCoach.getMotivation;
+exports.explainScore = aiCreditCoach.explainScore;
+exports.answerFAQ = aiCreditCoach.answerFAQ;
+
+// ============================================
+// AI BUSINESS INTELLIGENCE FUNCTIONS
+// ============================================
+const aiBusinessIntelligence = require('./aiBusinessIntelligence');
+
+exports.forecastRevenue = aiBusinessIntelligence.forecastRevenue;
+exports.predictChurn = aiBusinessIntelligence.predictChurn;
+exports.composeMessage = aiBusinessIntelligence.composeMessage;
+exports.optimizeUtilization = aiBusinessIntelligence.optimizeUtilization;
+exports.analyzeAndTriggerWorkflows = aiBusinessIntelligence.analyzeAndTriggerWorkflows;
+exports.generateBusinessInsights = aiBusinessIntelligence.generateBusinessInsights;
+
+// ============================================
+// AI ADVANCED FEATURES (WOW FEATURES)
+// ============================================
+const aiAdvancedFeatures = require('./aiAdvancedFeatures');
+
+// Credit Score Simulator
+exports.simulateCreditScore = aiAdvancedFeatures.simulateCreditScore;
+
+// Victory Celebration System
+exports.triggerVictoryCelebration = aiAdvancedFeatures.triggerVictoryCelebration;
+exports.onDisputeDeleted = aiAdvancedFeatures.onDisputeDeleted;
+
+// AI Upsell Engine
+exports.generateUpsellRecommendations = aiAdvancedFeatures.generateUpsellRecommendations;
+
+// Referral AI Predictor
+exports.predictReferralLikelihood = aiAdvancedFeatures.predictReferralLikelihood;
+
+// Document OCR Pipeline
+exports.processDocumentOCR = aiAdvancedFeatures.processDocumentOCR;
+
+// Dispute Letter A/B Testing
+exports.recordDisputeLetterResult = aiAdvancedFeatures.recordDisputeLetterResult;
+exports.getLetterEffectivenessReport = aiAdvancedFeatures.getLetterEffectivenessReport;
+
+// Bureau Response Predictor
+exports.predictBureauResponse = aiAdvancedFeatures.predictBureauResponse;
+
+// Regulatory Compliance Monitor
+exports.checkRegulatoryCompliance = aiAdvancedFeatures.checkRegulatoryCompliance;
+
+// Client Progress Portal
+exports.generateProgressTimeline = aiAdvancedFeatures.generateProgressTimeline;
+
+// Smart Notification Engine
+exports.analyzeNotificationTiming = aiAdvancedFeatures.analyzeNotificationTiming;
+
+// ============================================
+// AI REVENUE ENGINE (AFFILIATE & AUTO OPPORTUNITIES)
+// ============================================
+const aiRevenueEngine = require('./aiRevenueEngine');
+
+// Affiliate Link Management
+exports.saveAffiliateLink = aiRevenueEngine.saveAffiliateLink;
+exports.getAffiliateLinks = aiRevenueEngine.getAffiliateLinks;
+exports.trackAffiliateLinkClick = aiRevenueEngine.trackAffiliateLinkClick;
+
+// AI Credit Review Generator with Affiliate Integration
+exports.generateCreditReview = aiRevenueEngine.generateCreditReview;
+
+// Auto Loan Opportunity Detection
+exports.checkAutoOpportunities = aiRevenueEngine.checkAutoOpportunities;
+exports.scanAutoOpportunities = aiRevenueEngine.scanAutoOpportunities;
+
+// Revolving Credit Comparison
+exports.compareRevolvingCredit = aiRevenueEngine.compareRevolvingCredit;
+
+// ============================================
+// CLIENT EXPERIENCE (ONBOARDING & COMMUNICATION)
+// ============================================
+const clientExperience = require('./clientExperience');
+
+// Smart Onboarding
+exports.createOnboardingSession = clientExperience.createOnboardingSession;
+exports.updateOnboardingStep = clientExperience.updateOnboardingStep;
+exports.getOnboardingSession = clientExperience.getOnboardingSession;
+
+// AI Communication Center
+exports.generateClientCommunication = clientExperience.generateClientCommunication;
+exports.saveCommunicationTemplate = clientExperience.saveCommunicationTemplate;
+exports.getCommunicationTemplates = clientExperience.getCommunicationTemplates;
+exports.logSentCommunication = clientExperience.logSentCommunication;
+
+// Client Satisfaction & NPS
+exports.createSatisfactionSurvey = clientExperience.createSatisfactionSurvey;
+exports.submitSurveyResponse = clientExperience.submitSurveyResponse;
+exports.getNPSAnalytics = clientExperience.getNPSAnalytics;
+
+// Milestone Triggers
+exports.checkMilestoneTriggers = clientExperience.checkMilestoneTriggers;
+
+// ============================================
+// SALES TRACKER (TOYOTA/TEKION & REFERRALS)
+// ============================================
+const salesTracker = require('./salesTracker');
+
+// Auto Lead Management
+exports.createAutoLead = salesTracker.createAutoLead;
+exports.updateAutoLeadStatus = salesTracker.updateAutoLeadStatus;
+exports.exportToTekion = salesTracker.exportToTekion;
+exports.getAutoLeads = salesTracker.getAutoLeads;
+exports.reassignAutoLead = salesTracker.reassignAutoLead;
+
+// Commission Tracking
+exports.getCommissionSummary = salesTracker.getCommissionSummary;
+exports.markCommissionPaid = salesTracker.markCommissionPaid;
+
+// Review & Referral Engine
+exports.createReviewRequest = salesTracker.createReviewRequest;
+exports.trackReviewCompletion = salesTracker.trackReviewCompletion;
+exports.createReferral = salesTracker.createReferral;
+exports.convertReferral = salesTracker.convertReferral;
+exports.getReferralAnalytics = salesTracker.getReferralAnalytics;
+
+// Team Members
+exports.getTeamMembers = salesTracker.getTeamMembers;
+exports.addTeamMember = salesTracker.addTeamMember;
+
+// ============================================
+// BUSINESS INTELLIGENCE (KPIS & ANALYTICS)
+// ============================================
+const businessIntelligence = require('./businessIntelligence');
+
+// Executive Dashboard
+exports.getExecutiveKPIs = businessIntelligence.getExecutiveKPIs;
+exports.getRevenueForecast = businessIntelligence.getRevenueForecast;
+
+// Payment Health Monitor
+exports.analyzePaymentHealth = businessIntelligence.analyzePaymentHealth;
+exports.checkPaymentHealth = businessIntelligence.checkPaymentHealth;
+
+// Dispute Pattern Analysis
+exports.analyzeDisputePatterns = businessIntelligence.analyzeDisputePatterns;
+exports.getLetterEffectiveness = businessIntelligence.getLetterEffectiveness;
+
+// ============================================
+// OPERATIONS (TASKS, DOCS, COMPLIANCE)
+// ============================================
+const operations = require('./operations');
+
+// Team Task Manager
+exports.createTask = operations.createTask;
+exports.updateTask = operations.updateTask;
+exports.addTaskComment = operations.addTaskComment;
+exports.getTasks = operations.getTasks;
+exports.getTaskDashboard = operations.getTaskDashboard;
+exports.checkOverdueTasks = operations.checkOverdueTasks;
+
+// Document Vault
+exports.registerDocument = operations.registerDocument;
+exports.getDocuments = operations.getDocuments;
+exports.logDocumentAccess = operations.logDocumentAccess;
+exports.archiveDocument = operations.archiveDocument;
+exports.checkExpiringDocuments = operations.checkExpiringDocuments;
+
+// Compliance Calendar
+exports.createComplianceEvent = operations.createComplianceEvent;
+exports.getComplianceCalendar = operations.getComplianceCalendar;
+exports.completeComplianceEvent = operations.completeComplianceEvent;
+exports.initializeComplianceCalendar = operations.initializeComplianceCalendar;
+exports.checkComplianceDeadlines = operations.checkComplianceDeadlines;
+
+// Notifications
+exports.getNotifications = operations.getNotifications;
+exports.markNotificationRead = operations.markNotificationRead;
+
 console.log('🚀 Firebase Gen 2 Functions configured successfully!');
+console.log('✨ AI Advanced Features loaded!');
+console.log('💰 AI Revenue Engine loaded!');
+console.log('👤 Client Experience loaded!');
+console.log('🚗 Sales Tracker loaded!');
+console.log('📊 Business Intelligence loaded!');
+console.log('⚙️ Operations loaded!');

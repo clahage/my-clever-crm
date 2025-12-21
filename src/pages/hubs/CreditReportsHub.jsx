@@ -2,6 +2,8 @@
 // ============================================================================
 // 📊 CREDIT REPORTS HUB - IDIQ SYSTEM UNIFIED INTERFACE
 // ============================================================================
+// UPDATED: Added Upload & Parse and Report Viewer tabs
+// ============================================================================
 
 import React, { useState, Suspense, lazy } from 'react';
 import {
@@ -13,6 +15,7 @@ import {
   Avatar,
   CircularProgress,
   Alert,
+  Chip,
 } from '@mui/material';
 import {
   Shield as ShieldIcon,
@@ -24,6 +27,11 @@ import {
   Dashboard as ControlIcon,
   Settings as ConfigIcon,
   TrendingUp as OptimizerIcon,
+  CloudUpload as UploadIcon,
+  Visibility as ViewerIcon,
+  AutoAwesome as ReviewIcon,
+  DirectionsCar as AutoIcon,
+  Link as AffiliateIcon,
 } from '@mui/icons-material';
 import { useAuth } from '@/contexts/AuthContext';
 import { ROLE_HIERARCHY } from '@/layout/navConfig';
@@ -37,9 +45,22 @@ const CreditMonitoringSystem = lazy(() => import('../../components/credit/Credit
 const CreditScoreOptimizer = lazy(() => import('../hubs/CreditScoreOptimizer'));
 const IDIQControlCenter = lazy(() => import('../../components/credit/IDIQControlCenter'));
 const IDIQConfig = lazy(() => import('../../components/credit/IDIQConfig'));
+// NEW: Credit Report Upload & Viewer components
+const CreditReportUploader = lazy(() => import('../../components/credit/CreditReportUploader'));
+const CreditReportViewer = lazy(() => import('../../components/credit/CreditReportViewer'));
 
-// Tab configuration
+// NEW: Revenue & Affiliate Integration components
+const CreditReviewGenerator = lazy(() => import('../../components/revenue/CreditReviewGenerator'));
+const AutoOpportunityDashboard = lazy(() => import('../../components/revenue/AutoOpportunityDashboard'));
+const AffiliateLinkManager = lazy(() => import('../../components/revenue/AffiliateLinkManager'));
+
+// Tab configuration - UPDATED with new tabs
 const TABS = [
+  { id: 'upload', label: 'Upload & Parse', icon: UploadIcon, component: CreditReportUploader, permission: 'user', badge: 'NEW' },
+  { id: 'viewer', label: 'Report Viewer', icon: ViewerIcon, component: CreditReportViewer, permission: 'user', badge: 'AI' },
+  { id: 'review', label: 'AI Review', icon: ReviewIcon, component: CreditReviewGenerator, permission: 'user', badge: 'REV' },
+  { id: 'auto', label: 'Auto Financing', icon: AutoIcon, component: AutoOpportunityDashboard, permission: 'manager', badge: '$$$' },
+  { id: 'affiliates', label: 'Affiliates', icon: AffiliateIcon, component: AffiliateLinkManager, permission: 'admin', badge: 'REV' },
   { id: 'enroll', label: 'Enroll Client', icon: EnrollIcon, component: IDIQEnrollment, permission: 'user' },
   { id: 'reports', label: 'View Reports', icon: ReportIcon, component: ClientCreditReport, permission: 'client' },
   { id: 'workflow', label: 'Workflows', icon: WorkflowIcon, component: CreditReportWorkflow, permission: 'user' },

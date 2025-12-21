@@ -117,15 +117,29 @@ import {
 } from 'lucide-react';
 
 // ===== LAZY LOAD COMPONENTS (Performance Optimization) =====
+// Core dispute components - fully implemented
+const DisputeGenerator = lazy(() => import('@/components/dispute/DisputeGenerator'));
+const DisputeTracker = lazy(() => import('@/components/dispute/DisputeTracker'));
+const DisputeResultUploader = lazy(() => import('@/components/dispute/DisputeResultUploader'));
+// Existing credit components
 const AIDisputeGenerator = lazy(() => import('@/components/credit/AIDisputeGenerator'));
-const DisputeTrackingSystem = lazy(() => import('@/components/dispute/DisputeTrackingSystem'));
-const BureauResponseProcessor = lazy(() => import('@/components/dispute/BureauResponseProcessor'));
-const DisputeTemplateManager = lazy(() => import('@/components/dispute/DisputeTemplateManager'));
-const DisputeStrategyAnalyzer = lazy(() => import('@/components/dispute/DisputeStrategyAnalyzer'));
-const DisputeAnalyticsDashboard = lazy(() => import('@/components/dispute/DisputeAnalyticsDashboard'));
-const AutomatedFollowupSystem = lazy(() => import('@/components/dispute/AutomatedFollowupSystem'));
-const DisputeHubConfig = lazy(() => import('@/components/dispute/DisputeHubConfig'));
-const AIDisputeCoach = lazy(() => import('@/components/dispute/AIDisputeCoach'));
+// Placeholder for future components - graceful fallback
+const createPlaceholder = (name) => () => (
+  <Box sx={{ p: 4, textAlign: 'center' }}>
+    <Typography variant="h6" color="text.secondary" gutterBottom>
+      {name}
+    </Typography>
+    <Typography variant="body2" color="text.secondary">
+      This feature is coming soon. Contact support for more information.
+    </Typography>
+  </Box>
+);
+const DisputeTemplateManager = lazy(() => Promise.resolve({ default: createPlaceholder('Dispute Templates') }));
+const DisputeStrategyAnalyzer = lazy(() => Promise.resolve({ default: createPlaceholder('Strategy Analyzer') }));
+const DisputeAnalyticsDashboard = lazy(() => Promise.resolve({ default: createPlaceholder('Analytics Dashboard') }));
+const AutomatedFollowupSystem = lazy(() => Promise.resolve({ default: createPlaceholder('Automated Follow-ups') }));
+const DisputeHubConfig = lazy(() => Promise.resolve({ default: createPlaceholder('Dispute Settings') }));
+const AIDisputeCoach = lazy(() => Promise.resolve({ default: createPlaceholder('AI Coach') }));
 
 // ============================================================================
 // TAB CONFIGURATION
@@ -133,33 +147,43 @@ const AIDisputeCoach = lazy(() => import('@/components/dispute/AIDisputeCoach'))
 const TABS = [
   {
     id: 'generator',
-    label: 'Generator',
+    label: 'Generate Disputes',
     icon: FileText,
-    description: 'Create AI-powered dispute letters',
-    component: AIDisputeGenerator,
+    description: 'Create AI-powered dispute letters with bulk selection',
+    component: DisputeGenerator,
     roles: ['user', 'manager', 'admin', 'masterAdmin'],
     color: '#2196f3',
-    badge: 'AI',
+    badge: 'NEW',
   },
   {
     id: 'tracking',
-    label: 'Active Disputes',
+    label: 'Dispute Tracking',
     icon: TrendingUp,
-    description: 'Track all active disputes',
-    component: DisputeTrackingSystem,
+    description: 'Track all active disputes with real-time status',
+    component: DisputeTracker,
     roles: ['user', 'manager', 'admin', 'masterAdmin'],
     color: '#4caf50',
     badge: null,
   },
   {
     id: 'responses',
-    label: 'Bureau Responses',
+    label: 'Result Management',
     icon: Mail,
-    description: 'Process bureau responses',
-    component: BureauResponseProcessor,
+    description: 'Upload and process bureau response letters',
+    component: DisputeResultUploader,
     roles: ['user', 'manager', 'admin', 'masterAdmin'],
     color: '#ff9800',
     badge: null,
+  },
+  {
+    id: 'legacy',
+    label: 'Legacy Generator',
+    icon: Zap,
+    description: 'Original AI dispute generator',
+    component: AIDisputeGenerator,
+    roles: ['user', 'manager', 'admin', 'masterAdmin'],
+    color: '#9c27b0',
+    badge: 'AI',
   },
   {
     id: 'templates',

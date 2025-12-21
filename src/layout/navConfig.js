@@ -184,6 +184,109 @@ export const navigationItems = [
     description: 'Intelligent role-adaptive dashboard with AI insights',
     category: 'core'
   },
+
+  // ==========================================================================
+  // 👔 EXECUTIVE SUITE - OWNER/MANAGER COMMAND CENTER
+  // ==========================================================================
+  {
+    id: 'executive-suite-group',
+    title: 'Executive Suite',
+    icon: Crown,
+    isGroup: true,
+    permission: 'manager',
+    mobileHidden: false,
+    category: 'executive',
+    defaultExpanded: true,
+    items: [
+      {
+        id: 'executive-kpi-dashboard',
+        title: 'Executive Dashboard',
+        path: '/executive-dashboard',
+        icon: BarChart3,
+        permission: 'manager',
+        badge: 'KPI',
+        description: 'Real-time business KPIs, revenue, and performance metrics'
+      },
+      {
+        id: 'toyota-lead-manager',
+        title: 'Toyota Sales Pipeline',
+        path: '/toyota-leads',
+        icon: Target,
+        permission: 'manager',
+        badge: '$$$',
+        description: 'Auto leads, Tekion export, commission tracking'
+      },
+      {
+        id: 'payment-health-monitor',
+        title: 'Payment Health',
+        path: '/payment-health',
+        icon: Wallet,
+        permission: 'manager',
+        badge: 'AI',
+        description: 'At-risk payments, churn prediction, revenue protection'
+      },
+      {
+        id: 'team-task-manager',
+        title: 'Team Tasks',
+        path: '/team-tasks',
+        icon: CheckSquare,
+        permission: 'manager',
+        description: 'Assign and track team tasks, workload management'
+      },
+      {
+        id: 'compliance-calendar',
+        title: 'Compliance Calendar',
+        path: '/compliance-calendar',
+        icon: Calendar,
+        permission: 'manager',
+        badge: 'FCRA',
+        description: 'FCRA, CROA deadlines and regulatory compliance'
+      }
+    ]
+  },
+
+  // ==========================================================================
+  // 🚗 AUTO SALES INTEGRATION - TOYOTA/TEKION
+  // ==========================================================================
+  {
+    id: 'auto-sales-group',
+    title: 'Auto Sales',
+    icon: Target,
+    isGroup: true,
+    permission: 'user',
+    mobileHidden: false,
+    category: 'sales',
+    defaultExpanded: false,
+    visibleTo: ['manager', 'admin', 'masterAdmin'],
+    items: [
+      {
+        id: 'auto-opportunity-dashboard',
+        title: 'Auto Opportunities',
+        path: '/auto-opportunities',
+        icon: Target,
+        permission: 'user',
+        badge: 'AI',
+        description: 'AI-detected auto loan/lease opportunities'
+      },
+      {
+        id: 'tekion-lead-manager',
+        title: 'Tekion Lead Manager',
+        path: '/tekion-leads',
+        icon: Send,
+        permission: 'manager',
+        badge: 'CRM',
+        description: 'Export leads to Tekion, track conversions'
+      },
+      {
+        id: 'commission-tracker',
+        title: 'Commission Tracker',
+        path: '/commissions',
+        icon: DollarSign,
+        permission: 'manager',
+        description: 'Track auto sales commissions and splits'
+      }
+    ]
+  },
   // ===========================================================================
   // 🛡️ ADMIN DASHBOARD (NEW TAB FOR ADMIN/MASTERADMIN)
   // ===========================================================================
@@ -197,6 +300,21 @@ export const navigationItems = [
     description: 'Unified admin dashboard for Firestore, Storage, Auth, and Realtime DB management',
     category: 'admin',
     visibleTo: ['admin', 'masterAdmin']
+  },
+  // ===========================================================================
+  // 🧠 AI COMMAND CENTER - PRIMARY AI ENTRY POINT
+  // ===========================================================================
+  {
+    id: 'ai-command-center',
+    title: 'AI Command Center',
+    path: '/ai-intelligence-hub',
+    icon: Brain,
+    permission: 'user',
+    mobileHidden: false,
+    badge: 'AI',
+    description: 'Complete AI-powered credit intelligence suite',
+    category: 'ai',
+    highlight: true
   },
   // ========================================================================
   // 🛒 PRODUCTS & SERVICES HUB - NEW TOP LEVEL
@@ -509,15 +627,16 @@ export const navigationItems = [
         consolidated: ['SettingsHub', 'AdminTools', 'ManageRoles']
       },
 
-      // HUB 18: AI HUB (Keep as-is)
+      // HUB 18: AI INTELLIGENCE HUB (MAJOR UPGRADE)
       {
-        id: 'ai-hub',
-        title: 'AI Hub',
-        path: '/ai-hub',
+        id: 'ai-intelligence-hub',
+        title: 'AI Intelligence Hub',
+        path: '/ai-intelligence-hub',
         icon: Brain,
         permission: 'user',
         badge: 'AI',
-        description: 'AI-powered tools, insights, and automation'
+        description: 'Complete AI suite: Score Predictor, Smart Prioritization, Anomaly Detection, Credit Coach, Strategy Planner',
+        consolidated: ['AIScorePredictor', 'SmartPrioritization', 'AnomalyDetector', 'CreditCoachChat', 'StrategyPlanner', 'ComplianceGuardian', 'GoodwillGenerator', 'NegotiationAssistant']
       },
 
       // HUB 19: SUPPORT HUB (Keep as-is)
