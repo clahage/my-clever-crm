@@ -241,6 +241,42 @@ export const navigationItems = [
         permission: 'manager',
         badge: 'FCRA',
         description: 'FCRA, CROA deadlines and regulatory compliance'
+      },
+      {
+        id: 'document-vault',
+        title: 'Document Vault',
+        path: '/document-vault',
+        icon: FolderOpen,
+        permission: 'user',
+        badge: 'AI',
+        description: 'Secure document storage and management with AI organization'
+      },
+      {
+        id: 'communication-center',
+        title: 'Communication Center',
+        path: '/communication-center',
+        icon: MessageSquare,
+        permission: 'user',
+        badge: 'AI',
+        description: 'AI-powered communication tools and message generation'
+      },
+      {
+        id: 'client-onboarding',
+        title: 'Client Onboarding',
+        path: '/client-onboarding',
+        icon: UserPlus,
+        permission: 'user',
+        badge: 'SMART',
+        description: 'Intelligent client onboarding wizard with AI guidance'
+      },
+      {
+        id: 'referral-manager',
+        title: 'Referral Manager',
+        path: '/referral-manager',
+        icon: Handshake,
+        permission: 'user',
+        badge: 'PRO',
+        description: 'Advanced referral tracking and management system'
       }
     ]
   },
