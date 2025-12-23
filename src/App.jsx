@@ -443,11 +443,11 @@ const AppContent = () => {
         {/* CLIENTS & CONTACTS SECTION */}
         {/* ============================================================================ */}
 
-        {/* Contacts - Redirect to clients-hub */}
-        <Route path="contacts" element={<Navigate to="/clients-hub" replace />} />
+        {/* Contacts - Redirect to contacts-pipeline (fixed from /clients-hub which doesn't exist) */}
+        <Route path="contacts" element={<Navigate to="/contacts-pipeline" replace />} />
         <Route path="contacts/:id" element={<Suspense fallback={<LoadingFallback />}><ContactDetailPage /></Suspense>} />
-        <Route path="intake" element={<Navigate to="/clients-hub" replace />} />
-        <Route path="new-client" element={<Navigate to="/clients-hub" replace />} />
+        <Route path="intake" element={<Navigate to="/contacts-pipeline" replace />} />
+        <Route path="new-client" element={<Navigate to="/contacts-pipeline" replace />} />
 
         {/* Pipeline - Standalone AND ClientsHub Tab 12 */}
         <Route 
