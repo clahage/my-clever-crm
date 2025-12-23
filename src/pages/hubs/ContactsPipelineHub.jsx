@@ -197,7 +197,7 @@ import {
 // CONSTANTS & CONFIGURATION
 // ================================================================================
 
-const CLIENT_STATUSES = [
+const CONTACT_STATUSES = [
   { value: 'lead', label: 'Lead', color: '#9C27B0', description: 'Initial contact, not yet qualified' },
   { value: 'prospect', label: 'Prospect', color: '#2196F3', description: 'Qualified lead, potential Contact' },
   { value: 'active', label: 'Active', color: '#4CAF50', description: 'Current paying Contact' },
@@ -305,8 +305,8 @@ const getTimestampMillis = (timestamp) => {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   
   // Contact List State
-  const [contacts, setClients] = useState([]);
-  const [filteredClients, setFilteredClients] = useState([]);
+  const [contacts, setContacts] = useState([]);
+  const [filteredContacts, setFilteredContacts] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [sourceFilter, setSourceFilter] = useState('all');
@@ -315,7 +315,7 @@ const getTimestampMillis = (timestamp) => {
   const [sortOrder, setSortOrder] = useState('desc');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);
-  const [selectedClients, setSelectedClients] = useState([]);
+  const [selectedContacts, setSelectedContacts] = useState([]);
   const [bulkActionAnchor, setBulkActionAnchor] = useState(null);
   
   // Advanced Filters
@@ -333,8 +333,8 @@ const getTimestampMillis = (timestamp) => {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   
   // Contact Management State
-  const [selectedClient, setSelectedClient] = useState(null);
-  const [clientForm, setClientForm] = useState({
+  const [selectedContact, setSelectedContact] = useState(null);
+  const [contactForm, setContactForm] = useState({
     firstName: '',
     lastName: '',
     email: '',
@@ -352,14 +352,14 @@ const getTimestampMillis = (timestamp) => {
   const [documents, setDocuments] = useState([]);
   const [notes, setNotes] = useState([]);
   const [tasks, setTasks] = useState([]);
-  const [clientStats, setClientStats] = useState({
+  const [contactStats, setContactStats] = useState({
     totalContacts: 0,
     lastContact: null,
     avgResponseTime: 0,
     documentsCount: 0,
     tasksCompleted: 0,
     totalRevenue: 0,
-    daysAsClient: 0,
+    daysAsContact: 0,
   });
   
   // Communication State
@@ -407,16 +407,16 @@ const getTimestampMillis = (timestamp) => {
   
 // Analytics State
   const [analytics, setAnalytics] = useState({
-    totalClients: 0,
+    totalContacts: 0,
     contacts: 0,
-    activeClients: 0,
+    activeContacts: 0,
     leads: 0,
     prospects: 0,
     conversionRate: 0,
     avgLeadScore: 0,
     avgEngagement: 0,
     totalRevenue: 0,
-    avgRevenuePerClient: 0,
+    avgRevenuePerContact: 0,
     churnRate: 0,
     recentActivity: [],
     statusDistribution: [],
@@ -498,8 +498,8 @@ const getTimestampMillis = (timestamp) => {
       snapshot.forEach((doc) => {
         contactData.push({ id: doc.id, ...doc.data() });
       });
-      setClients(contactData);
-      setFilteredClients(contactData);
+      setContacts(contactData);
+      setFilteredContacts(contactData);
       calculateAnalytics(contactData);
       runPredictiveAnalysis(contactData);
     }, (error) => {
@@ -574,7 +574,7 @@ const getTimestampMillis = (timestamp) => {
       
       // Calculate revenue metrics
       const totalRevenue = contactData.reduce((sum, c) => sum + (c.totalRevenue || 0), 0);
-      const avgRevenuePerClient = contactData.length > 0 ? (totalRevenue / contactData.length) : 0;
+      const avgRevenuePerContact = contactData.length > 0 ? (totalRevenue / contactData.length) : 0;
       
       // Calculate churn rate (cancelled / (active + cancelled) * 100)
       const churnRate = (active + cancelled) > 0 
@@ -582,7 +582,7 @@ const getTimestampMillis = (timestamp) => {
         : 0;
       
       // Status distribution
-      const statusDist = CLIENT_STATUSES.map(status => ({
+      const statusDist = CONTACT_STATUSES.map(status => ({
         name: status.label,
         value: contactData.filter(c => c.status === status.value).length,
         color: status.color,
@@ -654,16 +654,16 @@ const getTimestampMillis = (timestamp) => {
       }
 
     setAnalytics({
-        totalClients: total,
+        totalContacts: total,
         contacts,
-        activeClients: active,
+        activeContacts: active,
         leads,
         prospects,
         conversionRate,
         avgLeadScore: avgScore,
         avgEngagement,
         totalRevenue,
-        avgRevenuePerClient,
+        avgRevenuePerContact,
         churnRate,
         recentActivity: [], // You can fill this with actual recent activity
         statusDistribution: statusDist,
@@ -686,22 +686,22 @@ const getTimestampMillis = (timestamp) => {
       // 1. CHURN PREDICTION
       const churnPredictions = contactData
         .filter((c) => c.status === 'active')
-        .map((Contact) => {
+        .map((contact) => {
             let churnScore = 0;
-            const daysSinceContact = Contact.lastContact
-              ? Math.floor((new Date() - Contact.lastContact.toDate()) / (1000 * 60 * 60 * 24))
+            const daysSinceContact = contact.lastContact
+              ? Math.floor((new Date() - contact.lastContact.toDate()) / (1000 * 60 * 60 * 24))
               : 365;
             if (daysSinceContact > 90) churnScore += 40;
             else if (daysSinceContact > 60) churnScore += 30;
             else if (daysSinceContact > 30) churnScore += 15;
-            const engagement = Contact.engagementScore || 50;
+            const engagement = contact.engagementScore || 50;
             if (engagement < 30) churnScore += 35;
             else if (engagement < 50) churnScore += 20;
             else if (engagement < 70) churnScore += 5;
-            if (Contact.missedPayments > 0) churnScore += 15;
-            if (Contact.disputesRaised > 2) churnScore += 10;
-            if (Contact.openTickets > 3) churnScore += 10;
-            if (Contact.usageTrend === 'declining') churnScore += 15;
+            if (contact.missedPayments > 0) churnScore += 15;
+            if (contact.disputesRaised > 2) churnScore += 10;
+            if (contact.openTickets > 3) churnScore += 10;
+            if (contact.usageTrend === 'declining') churnScore += 15;
             const churnProbability = Math.min(95, Math.max(5, churnScore));
             const risk =
               churnProbability > 70 ? 'high' :
@@ -710,12 +710,12 @@ const getTimestampMillis = (timestamp) => {
             const interventions = [];
             if (daysSinceContact > 60) interventions.push('Schedule check-in call');
             if (engagement < 50) interventions.push('Send engagement survey');
-            if (Contact.missedPayments > 0) interventions.push('Review payment plan');
-            if (Contact.openTickets > 2) interventions.push('Escalate support issues');
-            if (Contact.usageTrend === 'declining') interventions.push('Offer training session');
+            if (contact.missedPayments > 0) interventions.push('Review payment plan');
+            if (contact.openTickets > 2) interventions.push('Escalate support issues');
+            if (contact.usageTrend === 'declining') interventions.push('Offer training session');
             return {
-              clientId: Contact.id,
-              clientName: `${Contact.firstName} ${Contact.lastName}`,
+              contactId: contact.id,
+              contactName: `${contact.firstName} ${contact.lastName}`,
               churnProbability,
               risk,
               factors: [
@@ -731,8 +731,8 @@ const getTimestampMillis = (timestamp) => {
                 },
                 {
                   name: 'Payment Issues',
-                  value: Contact.missedPayments || 0,
-                  impact: Contact.missedPayments > 0 ? 'medium' : 'low',
+                  value: contact.missedPayments || 0,
+                  impact: contact.missedPayments > 0 ? 'medium' : 'low',
                 },
               ],
               interventions,
@@ -747,25 +747,25 @@ const getTimestampMillis = (timestamp) => {
         // 2. CLV FORECASTING
         const clvForecasts = contactData
           .filter((c) => c.status === 'active' || c.status === 'prospect')
-          .map((Contact) => {
-            const currentValue = Contact.totalRevenue || 0;
+          .map((contact) => {
+            const currentValue = contact.totalRevenue || 0;
             const createdAt =
-              Contact.createdAt?.toDate?.() != null
-                ? Contact.createdAt.toDate()
-                : Contact.createdAt
-                ? new Date(Contact.createdAt)
+              contact.createdAt?.toDate?.() != null
+                ? contact.createdAt.toDate()
+                : contact.createdAt
+                ? new Date(contact.createdAt)
                 : null;
-            const daysAsClient = createdAt
+            const daysAsContact = createdAt
               ? Math.max(
                   0,
                   (new Date().getTime() - createdAt.getTime()) /
                     (1000 * 60 * 60 * 24),
                 )
               : 0;
-            const monthsAsClient = Math.max(1, Math.floor(daysAsClient / 30));
+            const monthsAsClient = Math.max(1, Math.floor(daysAsContact / 30));
             const avgMonthlyValue =
               monthsAsClient > 0 ? currentValue / monthsAsClient : currentValue;
-            const engagement = Contact.engagementScore || 50;
+            const engagement = contact.engagementScore || 50;
             const retentionMultiplier =
               engagement >= 80 ? 1.4 :
               engagement >= 60 ? 1.2 :
@@ -788,8 +788,8 @@ const getTimestampMillis = (timestamp) => {
               60;
             const confidence = Math.min(95, Math.max(50, confidenceBase));
             return {
-              clientId: Contact.id,
-              clientName: `${Contact.firstName} ${Contact.lastName}`,
+              contactId: contact.id,
+              contactName: `${contact.firstName} ${contact.lastName}`,
               currentValue: Math.round(currentValue),
               predictedCLV,
               tier,
@@ -799,12 +799,12 @@ const getTimestampMillis = (timestamp) => {
           .sort((a, b) => b.predictedCLV - a.predictedCLV);
         // 3. NEXT BEST ACTIONS
         const nextBestActions = contactData
-          .map((Contact) => {
+          .map((contact) => {
             const actions = [];
-            const daysSinceContact = Contact.lastContact 
-              ? Math.floor((new Date() - Contact.lastContact.toDate()) / (1000 * 60 * 60 * 24))
+            const daysSinceContact = contact.lastContact 
+              ? Math.floor((new Date() - contact.lastContact.toDate()) / (1000 * 60 * 60 * 24))
               : 365;
-            if (Contact.status === 'lead' && daysSinceContact < 7) {
+            if (contact.status === 'lead' && daysSinceContact < 7) {
               actions.push({
                 action: 'Follow-up call',
                 priority: 'high',
@@ -813,7 +813,7 @@ const getTimestampMillis = (timestamp) => {
                 effort: 'low',
               });
             }
-            if (Contact.status === 'prospect' && Contact.leadScore > 7) {
+            if (contact.status === 'prospect' && contact.leadScore > 7) {
               actions.push({
                 action: 'Send proposal',
                 priority: 'high',
@@ -822,7 +822,7 @@ const getTimestampMillis = (timestamp) => {
                 effort: 'medium',
               });
             }
-            if (Contact.status === 'active' && (Contact.engagementScore || 50) < 40) {
+            if (contact.status === 'active' && (contact.engagementScore || 50) < 40) {
               actions.push({
                 action: 'Re-engagement campaign',
                 priority: 'medium',
@@ -831,7 +831,7 @@ const getTimestampMillis = (timestamp) => {
                 effort: 'low',
               });
             }
-            if (Contact.status === 'active' && Contact.totalRevenue > 5000 && !Contact.referrals) {
+            if (contact.status === 'active' && contact.totalRevenue > 5000 && !contact.referrals) {
               actions.push({
                 action: 'Request referral',
                 priority: 'medium',
@@ -840,7 +840,7 @@ const getTimestampMillis = (timestamp) => {
                 effort: 'low',
               });
             }
-            if (Contact.status === 'completed') {
+            if (contact.status === 'completed') {
               actions.push({
                 action: 'Request testimonial',
                 priority: 'low',
@@ -850,8 +850,8 @@ const getTimestampMillis = (timestamp) => {
               });
             }
             return {
-              clientId: Contact.id,
-              clientName: `${Contact.firstName} ${Contact.lastName}`,
+              contactId: contact.id,
+              contactName: `${contact.firstName} ${contact.lastName}`,
               actions,
             };
           })
@@ -860,9 +860,9 @@ const getTimestampMillis = (timestamp) => {
         // 4. UPSELL OPPORTUNITIES
         const upsellOpportunities = contactData
           .filter((c) => c.status === 'active')
-          .map((Contact) => {
+          .map((contact) => {
             const opportunities = [];
-            if ((Contact.engagementScore || 50) > 70 && Contact.currentPlan === 'basic') {
+            if ((contact.engagementScore || 50) > 70 && contact.currentPlan === 'basic') {
               opportunities.push({
                 type: 'plan_upgrade',
                 description: 'Upgrade to Premium Plan',
@@ -871,7 +871,7 @@ const getTimestampMillis = (timestamp) => {
                 reasoning: 'High engagement, ready for advanced features',
               });
             }
-            if (Contact.totalRevenue > 3000 && !Contact.hasAddonServices) {
+            if (contact.totalRevenue > 3000 && !contact.hasAddonServices) {
               opportunities.push({
                 type: 'addon_service',
                 description: 'Add Credit Monitoring',
@@ -880,7 +880,7 @@ const getTimestampMillis = (timestamp) => {
                 reasoning: 'High-value Contact, natural add-on',
               });
             }
-            if (Contact.monthsAsClient > 6 && Contact.satisfactionScore > 8) {
+            if (contact.monthsAsContact > 6 && contact.satisfactionScore > 8) {
               opportunities.push({
                 type: 'referral_program',
                 description: 'Enroll in Referral Program',
@@ -890,8 +890,8 @@ const getTimestampMillis = (timestamp) => {
               });
             }
             return {
-              clientId: Contact.id,
-              clientName: `${Contact.firstName} ${Contact.lastName}`,
+              contactId: contact.id,
+              contactName: `${contact.firstName} ${contact.lastName}`,
               opportunities,
               totalPotentialValue: opportunities.reduce(
                 (sum, o) => sum + o.estimatedValue,
@@ -905,23 +905,23 @@ const getTimestampMillis = (timestamp) => {
         // 5. WIN-BACK CANDIDATES
         const winBackCandidates = contactData
           .filter((c) => c.status === 'inactive' || c.status === 'cancelled')
-          .map((Contact) => {
-            const daysSinceCancellation = Contact.cancellationDate
+          .map((contact) => {
+            const daysSinceCancellation = contact.cancellationDate
               ? Math.floor(
-                  (new Date() - Contact.cancellationDate.toDate()) /
+                  (new Date() - contact.cancellationDate.toDate()) /
                     (1000 * 60 * 60 * 24)
                 )
               : 90;
             let winBackScore = 50;
             if (daysSinceCancellation < 90) winBackScore += 20;
-            if (Contact.previousSatisfaction > 7) winBackScore += 15;
-            if (Contact.totalRevenue > 2000) winBackScore += 10;
-            if (Contact.cancellationReason === 'price') winBackScore += 15;
-            if (Contact.engagementScore > 60) winBackScore += 10;
+            if (contact.previousSatisfaction > 7) winBackScore += 15;
+            if (contact.totalRevenue > 2000) winBackScore += 10;
+            if (contact.cancellationReason === 'price') winBackScore += 15;
+            if (contact.engagementScore > 60) winBackScore += 10;
             const probability = Math.min(95, Math.max(10, winBackScore)) / 100;
             return {
-              clientId: Contact.id,
-              clientName: `${Contact.firstName} ${Contact.lastName}`,
+              contactId: contact.id,
+              contactName: `${contact.firstName} ${contact.lastName}`,
               daysSinceCancellation,
               probability,
               strategies: [
@@ -936,31 +936,31 @@ const getTimestampMillis = (timestamp) => {
           .sort((a, b) => b.probability - a.probability)
           .slice(0, 10);
         // 6. ENGAGEMENT SCORES (ML-based)
-        const engagementScores = contactData.map((Contact) => {
+        const engagementScores = contactData.map((contact) => {
           let score = 0;
-          const commsLast30Days = Contact.communicationsLast30Days || 0;
+          const commsLast30Days = contact.communicationsLast30Days || 0;
           score += Math.min(30, commsLast30Days * 3);
-          const responseRate = Contact.responseRate || 0;
+          const responseRate = contact.responseRate || 0;
           score += responseRate * 0.25;
-          const portalVisits = Contact.portalVisitsLast30Days || 0;
+          const portalVisits = contact.portalVisitsLast30Days || 0;
           score += Math.min(20, portalVisits * 2);
-          const taskCompletionRate = Contact.taskCompletionRate || 0;
+          const taskCompletionRate = contact.taskCompletionRate || 0;
           score += taskCompletionRate * 0.15;
-          const daysSinceContact = Contact.lastContact
-            ? Math.floor((new Date() - Contact.lastContact.toDate()) / (1000 * 60 * 60 * 24))
+          const daysSinceContact = contact.lastContact
+            ? Math.floor((new Date() - contact.lastContact.toDate()) / (1000 * 60 * 60 * 24))
             : 365;
           if (daysSinceContact < 7) score += 10;
           else if (daysSinceContact < 14) score += 7;
           else if (daysSinceContact < 30) score += 4;
           const engagementScore = Math.min(100, Math.round(score));
-          const previous = Contact.previousEngagementScore || 50;
+          const previous = contact.previousEngagementScore || 50;
           const change = engagementScore - previous;
           let trend = 'stable';
           if (change > 10) trend = 'increasing';
           else if (change < -10) trend = 'decreasing';
           return {
-            clientId: Contact.id,
-            clientName: `${Contact.firstName} ${Contact.lastName}`,
+            contactId: contact.id,
+            contactName: `${contact.firstName} ${contact.lastName}`,
             score: engagementScore,
             trend,
             category:
@@ -1075,15 +1075,15 @@ const getTimestampMillis = (timestamp) => {
         return aVal < bVal ? 1 : -1;
       }
     });
-    setFilteredClients(filtered);
+    setFilteredContacts(filtered);
     console.log(`✅ Filtered to ${filtered.length} contacts`);
   }, [contacts, searchTerm, statusFilter, sourceFilter, stageFilter, sortBy, sortOrder, advancedFilters, showAdvancedFilters]);
   
   // ===== CONTACT MANAGEMENT FUNCTIONS =====
   
-  const handleAddClient = () => {
+  const handleAddContact = () => {
     console.log('➕ Opening add Contact form');
-    setClientForm({
+    setContactForm({
       firstName: '',
       lastName: '',
       email: '',
@@ -1097,51 +1097,51 @@ const getTimestampMillis = (timestamp) => {
       notes: '',
       customFields: {},
     });
-    setSelectedClient(null);
+    setSelectedContact(null);
     setActiveTab(1);
   };
   
-  const handleEditClient = (Contact) => {
-    console.log('✏️ Editing Contact:', Contact.id);
-    setClientForm({
-      firstName: Contact.firstName || '',
-      lastName: Contact.lastName || '',
-      email: Contact.email || '',
-      phone: Contact.phone || '',
-      status: Contact.status || 'lead',
-      source: Contact.source || '',
-      leadScore: Contact.leadScore || 5,
-      engagementScore: Contact.engagementScore || 50,
-      journeyStage: Contact.journeyStage || 'awareness',
-      tags: Contact.tags || [],
-      notes: Contact.notes || '',
-      customFields: Contact.customFields || {},
+  const handleEditContact = (contact) => {
+    console.log('✏️ Editing Contact:', contact.id);
+    setContactForm({
+      firstName: contact.firstName || '',
+      lastName: contact.lastName || '',
+      email: contact.email || '',
+      phone: contact.phone || '',
+      status: contact.status || 'lead',
+      source: contact.source || '',
+      leadScore: contact.leadScore || 5,
+      engagementScore: contact.engagementScore || 50,
+      journeyStage: contact.journeyStage || 'awareness',
+      tags: contact.tags || [],
+      notes: contact.notes || '',
+      customFields: contact.customFields || {},
     });
-    setSelectedClient(Contact);
+    setSelectedContact(Contact);
     setActiveTab(1);
   };
   
-  const handleSaveClient = async () => {
-    if (!clientForm.firstName || !clientForm.lastName) {
+  const handleSaveContact = async () => {
+    if (!contactForm.firstName || !contactForm.lastName) {
       setSnackbar({ open: true, message: 'First name and last name are required', severity: 'error' });
       return;
     }
     
-    console.log('💾 Saving Contact:', selectedClient ? 'Update' : 'New');
+    console.log('💾 Saving Contact:', selectedContact ? 'Update' : 'New');
     setSaving(true);
     
     try {
       const contactData = {
-        ...clientForm,
+        ...contactForm,
         userId: currentUser.uid,
         updatedAt: serverTimestamp(),
       };
       
-      if (selectedClient) {
+      if (selectedContact) {
         // Update existing
-        await updateDoc(doc(db, 'contacts', selectedClient.id), contactData);
+        await updateDoc(doc(db, 'contacts', selectedcontact.id), contactData);
         setSnackbar({ open: true, message: 'Contact updated successfully!', severity: 'success' });
-        console.log('✅ Contact updated:', selectedClient.id);
+        console.log('✅ Contact updated:', selectedcontact.id);
       } else {
         // Create new
         contactData.createdAt = serverTimestamp();
@@ -1151,7 +1151,7 @@ const getTimestampMillis = (timestamp) => {
       }
       
       // Reset form
-      setClientForm({
+      setContactForm({
         firstName: '',
         lastName: '',
         email: '',
@@ -1165,7 +1165,7 @@ const getTimestampMillis = (timestamp) => {
         notes: '',
         customFields: {},
       });
-      setSelectedClient(null);
+      setSelectedContact(null);
       setActiveTab(0);
     } catch (error) {
       console.error('❌ Error saving Contact:', error);
@@ -1175,7 +1175,7 @@ const getTimestampMillis = (timestamp) => {
     }
   };
   
-  const handleDeleteClient = async (clientId) => {
+  const handleDeleteContact = async (clientId) => {
     if (!window.confirm('Are you sure you want to delete this Contact? This action cannot be undone.')) {
       return;
     }
@@ -1199,25 +1199,25 @@ const getTimestampMillis = (timestamp) => {
   
   const handleSelectAll = (event) => {
     if (event.target.checked) {
-      const pageClients = filteredClients.slice(page * rowsPerPage, (page + 1) * rowsPerPage);
-      setSelectedClients(pageClients.map(c => c.id));
-      console.log('✅ Selected all', pageClients.length, 'contacts on page');
+      const pageContacts = filteredContacts.slice(page * rowsPerPage, (page + 1) * rowsPerPage);
+      setSelectedContacts(pageContacts.map(c => c.id));
+      console.log('✅ Selected all', pageContacts.length, 'contacts on page');
     } else {
-      setSelectedClients([]);
+      setSelectedContacts([]);
       console.log('❌ Deselected all contacts');
     }
   };
   
-  const handleSelectClient = (clientId) => {
-    if (selectedClients.includes(clientId)) {
-      setSelectedClients(selectedClients.filter(id => id !== clientId));
+  const handleSelectContact = (clientId) => {
+    if (selectedContacts.includes(clientId)) {
+      setSelectedContacts(selectedContacts.filter(id => id !== clientId));
     } else {
-      setSelectedClients([...selectedClients, clientId]);
+      setSelectedContacts([...selectedContacts, clientId]);
     }
   };
   
   const handleBulkAction = async (action) => {
-    console.log('⚡ Bulk action:', action, 'on', selectedClients.length, 'contacts');
+    console.log('⚡ Bulk action:', action, 'on', selectedContacts.length, 'contacts');
     setBulkActionAnchor(null);
     setSaving(true);
     
@@ -1226,17 +1226,17 @@ const getTimestampMillis = (timestamp) => {
       
       switch (action) {
         case 'delete':
-          if (!window.confirm(`Delete ${selectedClients.length} contacts? This cannot be undone.`)) {
+          if (!window.confirm(`Delete ${selectedContacts.length} contacts? This cannot be undone.`)) {
             setSaving(false);
             return;
           }
-          selectedClients.forEach(clientId => {
+          selectedContacts.forEach(clientId => {
             batch.delete(doc(db, 'contacts', clientId));
           });
           break;
         
         case 'export':
-          handleExportClients(selectedClients);
+          handleExportContacts(selectedContacts);
           setSaving(false);
           return;
         
@@ -1246,9 +1246,9 @@ const getTimestampMillis = (timestamp) => {
             setSaving(false);
             return;
           }
-          selectedClients.forEach(clientId => {
+          selectedContacts.forEach(clientId => {
             const Contact = contacts.find(c => c.id === clientId);
-            const tags = Contact.tags || [];
+            const tags = contact.tags || [];
             if (!tags.includes(tag)) {
               batch.update(doc(db, 'contacts', clientId), {
                 tags: [...tags, tag],
@@ -1260,12 +1260,12 @@ const getTimestampMillis = (timestamp) => {
         
         case 'status':
           const status = window.prompt('Enter new status (lead/prospect/active/inactive/cancelled):');
-          if (!status || !CLIENT_STATUSES.some(s => s.value === status)) {
+          if (!status || !CONTACT_STATUSES.some(s => s.value === status)) {
             setSnackbar({ open: true, message: 'Invalid status', severity: 'error' });
             setSaving(false);
             return;
           }
-          selectedClients.forEach(clientId => {
+          selectedContacts.forEach(clientId => {
             batch.update(doc(db, 'contacts', clientId), {
               status,
               updatedAt: serverTimestamp(),
@@ -1285,8 +1285,8 @@ const getTimestampMillis = (timestamp) => {
       }
       
       await batch.commit();
-      setSnackbar({ open: true, message: `Bulk action completed on ${selectedClients.length} contacts`, severity: 'success' });
-      setSelectedClients([]);
+      setSnackbar({ open: true, message: `Bulk action completed on ${selectedContacts.length} contacts`, severity: 'success' });
+      setSelectedContacts([]);
       console.log('✅ Bulk action completed');
     } catch (error) {
       console.error('❌ Error in bulk action:', error);
@@ -1298,18 +1298,18 @@ const getTimestampMillis = (timestamp) => {
   
   // ===== CONTACT PROFILE FUNCTIONS =====
   
-  const handleViewProfile = async (Contact) => {
-    console.log('👁️ Loading profile for:', Contact.id);
-    setSelectedClient(Contact);
+  const handleViewProfile = async (contact) => {
+    console.log('👁️ Loading profile for:', contact.id);
+    setSelectedContact(Contact);
     setLoading(true);
     
     try {
       // Load all related data
       const [commsSnapshot, docsSnapshot, notesSnapshot, tasksSnapshot] = await Promise.all([
-        getDocs(query(collection(db, 'communications'), where('clientId', '==', Contact.id), orderBy('createdAt', 'desc'))),
-        getDocs(query(collection(db, 'documents'), where('clientId', '==', Contact.id), orderBy('createdAt', 'desc'))),
-        getDocs(query(collection(db, 'notes'), where('clientId', '==', Contact.id), orderBy('createdAt', 'desc'))),
-        getDocs(query(collection(db, 'tasks'), where('clientId', '==', Contact.id), orderBy('createdAt', 'desc'))),
+        getDocs(query(collection(db, 'communications'), where('clientId', '==', contact.id), orderBy('createdAt', 'desc'))),
+        getDocs(query(collection(db, 'documents'), where('clientId', '==', contact.id), orderBy('createdAt', 'desc'))),
+        getDocs(query(collection(db, 'notes'), where('clientId', '==', contact.id), orderBy('createdAt', 'desc'))),
+        getDocs(query(collection(db, 'tasks'), where('clientId', '==', contact.id), orderBy('createdAt', 'desc'))),
       ]);
       
       const commsData = [];
@@ -1342,10 +1342,10 @@ const getTimestampMillis = (timestamp) => {
         avgResponseTime: 4.5, // In production: calculate from actual data
         documentsCount: docsData.length,
         tasksCompleted: tasksData.filter(t => t.status === 'completed').length,
-        totalRevenue: Contact.totalRevenue || 0,
-        daysAsClient: Contact.createdAt ? Math.floor((new Date() - Contact.createdAt.toDate()) / (1000 * 60 * 60 * 24)) : 0,
+        totalRevenue: contact.totalRevenue || 0,
+        daysAsContact: contact.createdAt ? Math.floor((new Date() - contact.createdAt.toDate()) / (1000 * 60 * 60 * 24)) : 0,
       };
-      setClientStats(stats);
+      setContactStats(stats);
       
       // Generate AI insights
       await generateAIInsights(Contact, commsData, docsData, notesData, tasksData);
@@ -1362,7 +1362,7 @@ const getTimestampMillis = (timestamp) => {
   // ===== AI FUNCTIONS =====
   
   const generateAIInsights = async (Contact, comms, docs, notes, tasks) => {
-    console.log('🤖 Generating AI insights for Contact:', Contact.id);
+    console.log('🤖 Generating AI insights for Contact:', contact.id);
     setAiProcessing(true);
     
     try {
@@ -1370,11 +1370,11 @@ const getTimestampMillis = (timestamp) => {
       const recommendations = [];
       
       // Lead score analysis
-      if (Contact.leadScore < 4) {
+      if (contact.leadScore < 4) {
         insights.push({
           type: 'warning',
           title: 'Low Lead Score',
-          message: `This Contact has a lead score of ${Contact.leadScore}/10. Consider increasing engagement or re-evaluating fit.`,
+          message: `This Contact has a lead score of ${contact.leadScore}/10. Consider increasing engagement or re-evaluating fit.`,
           action: 'Review lead criteria',
           priority: 'medium',
         });
@@ -1384,11 +1384,11 @@ const getTimestampMillis = (timestamp) => {
           impact: 'medium',
           effort: 'low',
         });
-      } else if (Contact.leadScore > 7) {
+      } else if (contact.leadScore > 7) {
         insights.push({
           type: 'success',
           title: 'High-Quality Lead',
-          message: `Excellent lead score of ${Contact.leadScore}/10. Prioritize follow-up and conversion efforts.`,
+          message: `Excellent lead score of ${contact.leadScore}/10. Prioritize follow-up and conversion efforts.`,
           action: 'Schedule follow-up call',
           priority: 'high',
         });
@@ -1401,7 +1401,7 @@ const getTimestampMillis = (timestamp) => {
       }
       
       // Engagement analysis
-      const engagementScore = Contact.engagementScore || 50;
+      const engagementScore = contact.engagementScore || 50;
       if (engagementScore < 30) {
         insights.push({
           type: 'error',
@@ -1439,7 +1439,7 @@ const getTimestampMillis = (timestamp) => {
         return daysSince <= 30;
       });
       
-      if (recentComms.length === 0 && Contact.status === 'active') {
+      if (recentComms.length === 0 && contact.status === 'active') {
         insights.push({
           type: 'warning',
           title: 'No Recent Communication',
@@ -1530,9 +1530,9 @@ const getTimestampMillis = (timestamp) => {
       }
       
       // Status progression
-      if (Contact.status === 'lead') {
-        const daysSinceCreated = Contact.createdAt 
-          ? Math.floor((new Date() - Contact.createdAt.toDate()) / (1000 * 60 * 60 * 24))
+      if (contact.status === 'lead') {
+        const daysSinceCreated = contact.createdAt 
+          ? Math.floor((new Date() - contact.createdAt.toDate()) / (1000 * 60 * 60 * 24))
           : 0;
         
         if (daysSinceCreated > 7) {
@@ -1578,7 +1578,7 @@ const getTimestampMillis = (timestamp) => {
       }
       
       // Revenue opportunity
-      if (Contact.status === 'active' && Contact.totalRevenue > 5000 && !Contact.hasReferrals) {
+      if (contact.status === 'active' && contact.totalRevenue > 5000 && !contact.hasReferrals) {
         insights.push({
           type: 'success',
           title: 'Referral Opportunity',
@@ -1595,7 +1595,7 @@ const getTimestampMillis = (timestamp) => {
       }
       
       // Churn risk (using predictions)
-      const churnPrediction = predictions.churnPredictions.find(p => p.clientId === Contact.id);
+      const churnPrediction = predictions.churnPredictions.find(p => p.clientId === contact.id);
       if (churnPrediction && churnPrediction.risk === 'high') {
         insights.push({
           type: 'error',
@@ -1615,7 +1615,7 @@ const getTimestampMillis = (timestamp) => {
       }
       
       // CLV opportunity
-      const clvForecast = predictions.clvForecasts.find(p => p.clientId === Contact.id);
+      const clvForecast = predictions.clvForecasts.find(p => p.clientId === contact.id);
       if (clvForecast && clvForecast.tier === 'platinum') {
         insights.push({
           type: 'success',
@@ -1670,7 +1670,7 @@ const getTimestampMillis = (timestamp) => {
     try {
       const commData = {
         ...commForm,
-        clientId: selectedClient.id,
+        contactId: selectedcontact.id,
         userId: currentUser.uid,
         createdAt: serverTimestamp(),
         createdBy: currentUser.uid,
@@ -1679,14 +1679,14 @@ const getTimestampMillis = (timestamp) => {
       await addDoc(collection(db, 'communications'), commData);
       
       // Update Contact's last contact
-      await updateDoc(doc(db, 'contacts', selectedClient.id), {
+      await updateDoc(doc(db, 'contacts', selectedcontact.id), {
         lastContact: serverTimestamp(),
       });
       
       // Refresh communications
       const commsQuery = query(
         collection(db, 'communications'),
-        where('clientId', '==', selectedClient.id),
+        where('clientId', '==', selectedcontact.id),
         orderBy('createdAt', 'desc')
       );
       const commsSnapshot = await getDocs(commsQuery);
@@ -1731,7 +1731,7 @@ const getTimestampMillis = (timestamp) => {
     
     try {
       // Upload file to Firebase Storage
-      const fileRef = ref(storage, `contacts/${selectedClient.id}/${Date.now()}_${docForm.file.name}`);
+      const fileRef = ref(storage, `contacts/${selectedcontact.id}/${Date.now()}_${docForm.file.name}`);
       await uploadBytes(fileRef, docForm.file);
       const fileUrl = await getDownloadURL(fileRef);
       
@@ -1744,7 +1744,7 @@ const getTimestampMillis = (timestamp) => {
         fileName: docForm.file.name,
         fileSize: docForm.file.size,
         fileType: docForm.file.type,
-        clientId: selectedClient.id,
+        contactId: selectedcontact.id,
         userId: currentUser.uid,
         createdAt: serverTimestamp(),
         createdBy: currentUser.uid,
@@ -1755,7 +1755,7 @@ const getTimestampMillis = (timestamp) => {
       // Refresh documents
       const docsQuery = query(
         collection(db, 'documents'),
-        where('clientId', '==', selectedClient.id),
+        where('clientId', '==', selectedcontact.id),
         orderBy('createdAt', 'desc')
       );
       const docsSnapshot = await getDocs(docsQuery);
@@ -1793,7 +1793,7 @@ const getTimestampMillis = (timestamp) => {
       // Refresh documents
       const docsQuery = query(
         collection(db, 'documents'),
-        where('clientId', '==', selectedClient.id),
+        where('clientId', '==', selectedcontact.id),
         orderBy('createdAt', 'desc')
       );
       const docsSnapshot = await getDocs(docsQuery);
@@ -1838,7 +1838,7 @@ const getTimestampMillis = (timestamp) => {
     try {
       const noteData = {
         ...noteForm,
-        clientId: selectedClient.id,
+        contactId: selectedcontact.id,
         userId: currentUser.uid,
         createdAt: serverTimestamp(),
         createdBy: currentUser.uid,
@@ -1849,7 +1849,7 @@ const getTimestampMillis = (timestamp) => {
       // Refresh notes
       const notesQuery = query(
         collection(db, 'notes'),
-        where('clientId', '==', selectedClient.id),
+        where('clientId', '==', selectedcontact.id),
         orderBy('createdAt', 'desc')
       );
       const notesSnapshot = await getDocs(notesQuery);
@@ -1898,7 +1898,7 @@ const getTimestampMillis = (timestamp) => {
     try {
       const taskData = {
         ...taskForm,
-        clientId: selectedClient.id,
+        contactId: selectedcontact.id,
         userId: currentUser.uid,
         createdAt: serverTimestamp(),
         createdBy: currentUser.uid,
@@ -1909,7 +1909,7 @@ const getTimestampMillis = (timestamp) => {
       // Refresh tasks
       const tasksQuery = query(
         collection(db, 'tasks'),
-        where('clientId', '==', selectedClient.id),
+        where('clientId', '==', selectedcontact.id),
         orderBy('createdAt', 'desc')
       );
       const tasksSnapshot = await getDocs(tasksQuery);
@@ -2069,7 +2069,7 @@ const getTimestampMillis = (timestamp) => {
   
   // ===== EXPORT FUNCTIONS (NEW) =====
   
-  const handleExportClients = (clientIds = null) => {
+  const handleExportContacts = (clientIds = null) => {
     console.log('📥 Opening export dialog');
     setExportDialog(true);
   };
@@ -2079,9 +2079,9 @@ const getTimestampMillis = (timestamp) => {
     setExporting(true);
     
     try {
-      const clientsToExport = selectedClients.length > 0 
-        ? contacts.filter(c => selectedClients.includes(c.id))
-        : filteredClients;
+      const contactsToExport = selectedContacts.length > 0 
+        ? contacts.filter(c => selectedContacts.includes(c.id))
+        : filteredContacts;
       
       // Select fields to export
       const fieldsToExport = exportFields.length > 0 ? exportFields : [
@@ -2097,7 +2097,7 @@ const getTimestampMillis = (timestamp) => {
         case 'csv':
           // CSV export
           const csvHeaders = fieldsToExport.join(',');
-          const csvRows = clientsToExport.map(Contact =>
+          const csvRows = contactsToExport.map(Contact =>
             fieldsToExport.map(field => {
               const value = Contact[field];
               if (value === null || value === undefined) return '';
@@ -2112,7 +2112,7 @@ const getTimestampMillis = (timestamp) => {
         
         case 'json':
           // JSON export
-          exportData = JSON.stringify(clientsToExport.map(Contact => {
+          exportData = JSON.stringify(contactsToExport.map(Contact => {
             const exportClient = {};
             fieldsToExport.forEach(field => {
               exportClient[field] = Contact[field];
@@ -2130,7 +2130,7 @@ const getTimestampMillis = (timestamp) => {
           // XLSX export (simplified - in production use a library like xlsx)
           setSnackbar({ open: true, message: 'XLSX export coming soon - using CSV instead', severity: 'info' });
           const xlsxHeaders = fieldsToExport.join(',');
-          const xlsxRows = clientsToExport.map(Contact =>
+          const xlsxRows = contactsToExport.map(Contact =>
             fieldsToExport.map(field => {
               const value = Contact[field];
               if (value === null || value === undefined) return '';
@@ -2156,7 +2156,7 @@ const getTimestampMillis = (timestamp) => {
       link.click();
       URL.revokeObjectURL(url);
       
-      setSnackbar({ open: true, message: `Exported ${clientsToExport.length} contacts successfully!`, severity: 'success' });
+      setSnackbar({ open: true, message: `Exported ${contactsToExport.length} contacts successfully!`, severity: 'success' });
       setExportDialog(false);
       console.log('✅ Export complete');
     } catch (error) {
@@ -2196,7 +2196,7 @@ const getTimestampMillis = (timestamp) => {
               onChange={(e) => setStatusFilter(e.target.value)}
             >
               <MenuItem value="all">All Statuses</MenuItem>
-              {CLIENT_STATUSES.map(status => (
+              {CONTACT_STATUSES.map(status => (
                 <MenuItem key={status.value} value={status.value}>{status.label}</MenuItem>
               ))}
             </Select>
@@ -2242,7 +2242,7 @@ const getTimestampMillis = (timestamp) => {
           <Button
             variant="contained"
             startIcon={<Plus size={18} />}
-            onClick={handleAddClient}
+            onClick={handleAddContact}
           >
             Add Contact
           </Button>
@@ -2250,19 +2250,19 @@ const getTimestampMillis = (timestamp) => {
           <Button
             variant="outlined"
             startIcon={<Download size={18} />}
-            onClick={() => handleExportClients()}
+            onClick={() => handleExportContacts()}
           >
             Export
           </Button>
           
-          {selectedClients.length > 0 && (
+          {selectedContacts.length > 0 && (
             <>
               <Button
                 variant="outlined"
                 startIcon={<MoreVertical size={18} />}
                 onClick={(e) => setBulkActionAnchor(e.currentTarget)}
               >
-                Bulk Actions ({selectedClients.length})
+                Bulk Actions ({selectedContacts.length})
               </Button>
               <Menu
                 anchorEl={bulkActionAnchor}
@@ -2423,8 +2423,8 @@ const getTimestampMillis = (timestamp) => {
               <TableRow>
                 <TableCell padding="checkbox">
                   <Checkbox
-                    indeterminate={selectedClients.length > 0 && selectedClients.length < filteredClients.slice(page * rowsPerPage, (page + 1) * rowsPerPage).length}
-                    checked={filteredClients.slice(page * rowsPerPage, (page + 1) * rowsPerPage).length > 0 && selectedClients.length === filteredClients.slice(page * rowsPerPage, (page + 1) * rowsPerPage).length}
+                    indeterminate={selectedContacts.length > 0 && selectedContacts.length < filteredContacts.slice(page * rowsPerPage, (page + 1) * rowsPerPage).length}
+                    checked={filteredContacts.slice(page * rowsPerPage, (page + 1) * rowsPerPage).length > 0 && selectedContacts.length === filteredContacts.slice(page * rowsPerPage, (page + 1) * rowsPerPage).length}
                     onChange={handleSelectAll}
                   />
                 </TableCell>
@@ -2495,32 +2495,32 @@ const getTimestampMillis = (timestamp) => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredClients
+              {filteredContacts
                 .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((Contact) => {
-                  const statusObj = CLIENT_STATUSES.find(s => s.value === Contact.status);
-                  const stageObj = JOURNEY_STAGES.find(s => s.value === Contact.journeyStage);
+                .map((contact) => {
+                  const statusObj = CONTACT_STATUSES.find(s => s.value === contact.status);
+                  const stageObj = JOURNEY_STAGES.find(s => s.value === contact.journeyStage);
                   
                   return (
-                    <TableRow key={Contact.id} hover>
+                    <TableRow key={contact.id} hover>
                       <TableCell padding="checkbox">
                         <Checkbox
-                          checked={selectedClients.includes(Contact.id)}
-                          onChange={() => handleSelectClient(Contact.id)}
+                          checked={selectedContacts.includes(contact.id)}
+                          onChange={() => handleSelectContact(contact.id)}
                         />
                       </TableCell>
                       <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main', fontSize: 14 }}>
-                            {Contact.firstName?.[0]}{Contact.lastName?.[0]}
+                            {contact.firstName?.[0]}{contact.lastName?.[0]}
                           </Avatar>
                           <Box>
                             <Typography variant="body2" fontWeight="medium">
-                              {Contact.firstName} {Contact.lastName}
+                              {contact.firstName} {contact.lastName}
                             </Typography>
-                            {Contact.tags && Contact.tags.length > 0 && (
+                            {contact.tags && contact.tags.length > 0 && (
                               <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5 }}>
-                                {Contact.tags.slice(0, 2).map(tag => (
+                                {contact.tags.slice(0, 2).map(tag => (
                                   <Chip key={tag} label={tag} size="small" sx={{ height: 16, fontSize: 10 }} />
                                 ))}
                               </Box>
@@ -2529,12 +2529,12 @@ const getTimestampMillis = (timestamp) => {
                         </Box>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2">{Contact.email}</Typography>
-                        <Typography variant="caption" color="text.secondary">{Contact.phone}</Typography>
+                        <Typography variant="body2">{contact.email}</Typography>
+                        <Typography variant="caption" color="text.secondary">{contact.phone}</Typography>
                       </TableCell>
                       <TableCell>
                         <Chip
-                          label={statusObj?.label || Contact.status}
+                          label={statusObj?.label || contact.status}
                           size="small"
                           sx={{
                             bgcolor: statusObj?.color || '#757575',
@@ -2555,30 +2555,30 @@ const getTimestampMillis = (timestamp) => {
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <LinearProgress
                             variant="determinate"
-                            value={(Contact.leadScore || 0) * 10}
+                            value={(contact.leadScore || 0) * 10}
                             sx={{ flexGrow: 1, height: 6, borderRadius: 3 }}
                           />
-                          <Typography variant="caption">{Contact.leadScore || 0}/10</Typography>
+                          <Typography variant="caption">{contact.leadScore || 0}/10</Typography>
                         </Box>
                       </TableCell>
                       <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <LinearProgress
                             variant="determinate"
-                            value={Contact.engagementScore || 0}
+                            value={contact.engagementScore || 0}
                             sx={{ flexGrow: 1, height: 6, borderRadius: 3 }}
-                            color={Contact.engagementScore > 70 ? 'success' : Contact.engagementScore > 40 ? 'warning' : 'error'}
+                            color={contact.engagementScore > 70 ? 'success' : contact.engagementScore > 40 ? 'warning' : 'error'}
                           />
-                          <Typography variant="caption">{Contact.engagementScore || 0}%</Typography>
+                          <Typography variant="caption">{contact.engagementScore || 0}%</Typography>
                         </Box>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="caption">{Contact.source || 'Unknown'}</Typography>
+                        <Typography variant="caption">{contact.source || 'Unknown'}</Typography>
                       </TableCell>
                       <TableCell>
                         <Typography variant="caption">
-                          {Contact.lastContact 
-                            ? new Date(getTimestampMillis(Contact.lastContact)).toLocaleDateString()
+                          {contact.lastContact 
+                            ? new Date(getTimestampMillis(contact.lastContact)).toLocaleDateString()
                             : 'Never'}
                         </Typography>
                       </TableCell>
@@ -2586,10 +2586,10 @@ const getTimestampMillis = (timestamp) => {
                         <IconButton size="small" onClick={() => handleViewProfile(Contact)}>
                           <Eye size={16} />
                         </IconButton>
-                        <IconButton size="small" onClick={() => handleEditClient(Contact)}>
+                        <IconButton size="small" onClick={() => handleEditContact(Contact)}>
                           <Edit size={16} />
                         </IconButton>
-                        <IconButton size="small" onClick={() => handleDeleteClient(Contact.id)} color="error">
+                        <IconButton size="small" onClick={() => handleDeleteContact(contact.id)} color="error">
                           <Delete size={16} />
                         </IconButton>
                       </TableCell>
@@ -2603,7 +2603,7 @@ const getTimestampMillis = (timestamp) => {
         <TablePagination
           rowsPerPageOptions={[10, 25, 50, 100]}
           component="div"
-          count={filteredClients.length}
+          count={filteredContacts.length}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={(e, newPage) => setPage(newPage)}
@@ -2620,8 +2620,8 @@ const getTimestampMillis = (timestamp) => {
     <Card>
       <CardContent>
         <UltimateContactForm
-          contactId={selectedClient?.id || null}
-          initialData={selectedClient || {}}
+          contactId={selectedContact?.id || null}
+          initialData={selectedContact || {}}
           onSave={async (savedContact) => {
             console.log('✅ Contact saved from UltimateContactForm:', savedContact);
 
@@ -2631,7 +2631,7 @@ const getTimestampMillis = (timestamp) => {
             // Show success message
             setSnackbar({
               open: true,
-              message: selectedClient
+              message: selectedContact
                 ? 'Contact updated successfully!'
                 : 'Contact created successfully! Lead Lifecycle AI has been triggered.',
               severity: 'success'
@@ -2639,12 +2639,12 @@ const getTimestampMillis = (timestamp) => {
 
             // Return to list view
             setView('list');
-            setSelectedClient(null);
+            setSelectedContact(null);
             setDialogOpen(false);
           }}
           onCancel={() => {
             setView('list');
-            setSelectedClient(null);
+            setSelectedContact(null);
             setDialogOpen(false);
           }}
         />
@@ -2670,20 +2670,20 @@ const getTimestampMillis = (timestamp) => {
           <CardContent>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <Avatar sx={{ width: 80, height: 80, fontSize: 32, bgcolor: 'primary.main' }}>
-                {selectedContact.firstName?.[0]}{selectedContact.lastName?.[0]}
+                {selectedcontact.firstName?.[0]}{selectedcontact.lastName?.[0]}
               </Avatar>
               <Box sx={{ flexGrow: 1 }}>
                 <Typography variant="h5">
-                  {selectedContact.firstName} {selectedContact.lastName}
+                  {selectedcontact.firstName} {selectedcontact.lastName}
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
                   <Chip 
-                    label={CLIENT_STATUSES.find(s => s.value === selectedContact.status)?.label} 
+                    label={CONTACT_STATUSES.find(s => s.value === selectedcontact.status)?.label} 
                     size="small"
-                    sx={{ bgcolor: CLIENT_STATUSES.find(s => s.value === selectedContact.status)?.color, color: 'white' }}
+                    sx={{ bgcolor: CONTACT_STATUSES.find(s => s.value === selectedcontact.status)?.color, color: 'white' }}
                   />
-                  <Chip label={`Score: ${selectedContact.leadScore}/10`} size="small" />
-                  <Chip label={`Engagement: ${selectedContact.engagementScore || 50}%`} size="small" />
+                  <Chip label={`Score: ${selectedcontact.leadScore}/10`} size="small" />
+                  <Chip label={`Engagement: ${selectedcontact.engagementScore || 50}%`} size="small" />
                 </Box>
               </Box>
               <Box sx={{ display: 'flex', gap: 1 }}>
@@ -2703,7 +2703,7 @@ const getTimestampMillis = (timestamp) => {
           <Grid item xs={6} sm={4} md={2}>
             <Card sx={{ p: 2, textAlign: 'center' }}>
               <MessageSquare size={24} color="#2196F3" style={{ marginBottom: 8 }} />
-              <Typography variant="h6">{clientStats.totalContacts}</Typography>
+              <Typography variant="h6">{contactStats.totalContacts}</Typography>
               <Typography variant="caption">Contacts</Typography>
             </Card>
           </Grid>
@@ -2717,28 +2717,28 @@ const getTimestampMillis = (timestamp) => {
           <Grid item xs={6} sm={4} md={2}>
             <Card sx={{ p: 2, textAlign: 'center' }}>
               <CheckCircle size={24} color="#FF9800" style={{ marginBottom: 8 }} />
-              <Typography variant="h6">{clientStats.tasksCompleted}</Typography>
+              <Typography variant="h6">{contactStats.tasksCompleted}</Typography>
               <Typography variant="caption">Tasks Done</Typography>
             </Card>
           </Grid>
           <Grid item xs={6} sm={4} md={2}>
             <Card sx={{ p: 2, textAlign: 'center' }}>
               <DollarSign size={24} color="#9C27B0" style={{ marginBottom: 8 }} />
-              <Typography variant="h6">${clientStats.totalRevenue.toLocaleString()}</Typography>
+              <Typography variant="h6">${contactStats.totalRevenue.toLocaleString()}</Typography>
               <Typography variant="caption">Revenue</Typography>
             </Card>
           </Grid>
           <Grid item xs={6} sm={4} md={2}>
             <Card sx={{ p: 2, textAlign: 'center' }}>
               <Clock size={24} color="#00BCD4" style={{ marginBottom: 8 }} />
-              <Typography variant="h6">{clientStats.avgResponseTime}h</Typography>
+              <Typography variant="h6">{contactStats.avgResponseTime}h</Typography>
               <Typography variant="caption">Avg Response</Typography>
             </Card>
           </Grid>
           <Grid item xs={6} sm={4} md={2}>
             <Card sx={{ p: 2, textAlign: 'center' }}>
               <Calendar size={24} color="#FFC107" style={{ marginBottom: 8 }} />
-              <Typography variant="h6">{clientStats.daysAsClient}</Typography>
+              <Typography variant="h6">{contactStats.daysAsContact}</Typography>
               <Typography variant="caption">Days Active</Typography>
             </Card>
           </Grid>
@@ -2846,7 +2846,7 @@ const getTimestampMillis = (timestamp) => {
   };
   
   const renderCommunications = () => {
-    if (!selectedClient) {
+    if (!selectedContact) {
       return <Alert severity="info">Please select a Contact first.</Alert>;
     }
     
@@ -2889,7 +2889,7 @@ const getTimestampMillis = (timestamp) => {
   };
   
   const renderDocuments = () => {
-    if (!selectedClient) {
+    if (!selectedContact) {
       return <Alert severity="info">Please select a Contact first.</Alert>;
     }
     
@@ -2943,7 +2943,7 @@ const getTimestampMillis = (timestamp) => {
   };
   
   const renderNotes = () => {
-    if (!selectedClient) {
+    if (!selectedContact) {
       return <Alert severity="info">Please select a Contact first.</Alert>;
     }
     
@@ -2984,7 +2984,7 @@ const getTimestampMillis = (timestamp) => {
   };
   
   const renderTasks = () => {
-    if (!selectedClient) {
+    if (!selectedContact) {
       return <Alert severity="info">Please select a Contact first.</Alert>;
     }
     
@@ -3301,7 +3301,7 @@ const getTimestampMillis = (timestamp) => {
             <Grid item xs={6} sm={3}>
               <Card sx={{ p: 2, bgcolor: '#E3F2FD', textAlign: 'center' }}>
                 <Typography variant="h5" color="primary">
-                  ${analytics.avgRevenuePerClient.toFixed(0)}
+                  ${analytics.avgRevenuePerContact.toFixed(0)}
                 </Typography>
                 <Typography variant="caption">Avg per Contact</Typography>
               </Card>
