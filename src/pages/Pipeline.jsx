@@ -89,6 +89,37 @@ const getTimestampMillis = (timestamp) => {
   catch (e) { return Date.now(); }
 };
 
+// Normalize stage names from various sources to valid pipeline stages
+const normalizePipelineStage = (stage) => {
+  if (!stage) return 'new';
+  const stageMap = {
+    // Direct mappings
+    'new': 'new',
+    'contacted': 'contacted',
+    'qualified': 'qualified',
+    'proposal': 'proposal',
+    'negotiation': 'negotiation',
+    'won': 'won',
+    'lost': 'lost',
+    // Common alternate names
+    'prospecting': 'new',
+    'prospect': 'contacted',
+    'lead': 'new',
+    'initial': 'new',
+    'discovery': 'contacted',
+    'demo': 'qualified',
+    'evaluation': 'qualified',
+    'quote': 'proposal',
+    'contract': 'negotiation',
+    'closed': 'won',
+    'closed-won': 'won',
+    'closed-lost': 'lost',
+    'active': 'qualified',
+    'pending': 'proposal'
+  };
+  return stageMap[stage.toLowerCase()] || 'new';
+};
+
 // ================================================================================
 // UTILITY FUNCTIONS
 // ================================================================================
@@ -517,7 +548,7 @@ const Pipeline = () => {
             name: data.name || `${data.firstName || ''} ${data.lastName || ''}`.trim() || 'Unknown',
             email: data.email,
             phone: data.phone,
-            stage: data.pipelineStage || 'new',
+            stage: normalizePipelineStage(data.pipelineStage || data.stage),
             value: data.estimatedValue || 0,
             leadScore: data.leadScore || 0,
             source: data.source || 'contact',

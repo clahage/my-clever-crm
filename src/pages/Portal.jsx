@@ -55,10 +55,11 @@ export default function Portal() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loading, setLoading] = useState(true);
 
-  // Stats state
+  // Stats state - distinguishing between contacts and paying clients
   const [stats, setStats] = useState({
-    totalClients: 0,
-    activeClients: 0,
+    totalContacts: 0,    // All contacts in database
+    payingClients: 0,    // Contacts with type='client' or roles includes 'client'
+    activeContacts: 0,   // Contacts with recent activity
     pendingReviews: 0,
     monthlyRevenue: 0,
     conversionRate: 0,
@@ -73,15 +74,23 @@ export default function Portal() {
   const loadDashboardData = async () => {
     setLoading(true);
     try {
-      // Load real clients from Firestore
-      const clientsSnapshot = await getDocs(collection(db, 'contacts'));
-      const allClients = clientsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      
-      // Count active clients (those with recent activity)
+      // Load all contacts from Firestore
+      const contactsSnapshot = await getDocs(collection(db, 'contacts'));
+      const allContacts = contactsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      // Count PAYING CLIENTS (type='client' OR roles includes 'client' OR status='active')
+      const payingClients = allContacts.filter(contact =>
+        contact.type === 'client' ||
+        contact.roles?.includes('client') ||
+        contact.status === 'active' ||
+        contact.isPayingClient === true
+      );
+
+      // Count contacts with recent activity (30 days)
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const activeClients = allClients.filter(client => {
-        const lastActivity = client.lastActivityDate || client.createdAt;
+      const activeContacts = allContacts.filter(contact => {
+        const lastActivity = contact.lastActivityDate || contact.createdAt;
         if (!lastActivity) return false;
         const activityDate = lastActivity.toDate ? lastActivity.toDate() : new Date(lastActivity);
         return activityDate >= thirtyDaysAgo;
@@ -89,7 +98,7 @@ export default function Portal() {
 
       // Load pending reviews
       const reviews = await getPendingReviews();
-      
+
       // Load revenue stats (last 30 days)
       const revenue = await getRevenueStats(thirtyDaysAgo.toISOString(), new Date().toISOString());
 
@@ -98,13 +107,14 @@ export default function Portal() {
         const scoresQuery = query(collection(db, 'creditScores'), orderBy('date', 'desc'), limit(100));
         const scoresSnapshot = await getDocs(scoresQuery);
         const recentScores = scoresSnapshot.docs.map(doc => doc.data().score || 0).filter(s => s > 0);
-        const avgScore = recentScores.length > 0 
+        const avgScore = recentScores.length > 0
           ? Math.round(recentScores.reduce((a, b) => a + b, 0) / recentScores.length)
           : 650;
 
         setStats({
-          totalClients: allClients.length,
-          activeClients: activeClients.length,
+          totalContacts: allContacts.length,
+          payingClients: payingClients.length,
+          activeContacts: activeContacts.length,
           pendingReviews: reviews.length,
           monthlyRevenue: revenue.summary.totalRevenue,
           conversionRate: revenue.summary.conversionRate,
@@ -113,8 +123,9 @@ export default function Portal() {
       } catch (scoreError) {
         // If creditScores collection doesn't exist yet
         setStats({
-          totalClients: allClients.length,
-          activeClients: activeClients.length,
+          totalContacts: allContacts.length,
+          payingClients: payingClients.length,
+          activeContacts: activeContacts.length,
           pendingReviews: reviews.length,
           monthlyRevenue: revenue.summary.totalRevenue,
           conversionRate: revenue.summary.conversionRate,
@@ -125,8 +136,9 @@ export default function Portal() {
       console.error('Error loading dashboard data:', error);
       // Fallback to zeros if error
       setStats({
-        totalClients: 0,
-        activeClients: 0,
+        totalContacts: 0,
+        payingClients: 0,
+        activeContacts: 0,
         pendingReviews: 0,
         monthlyRevenue: 0,
         conversionRate: 0,
@@ -139,7 +151,7 @@ export default function Portal() {
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'clients', label: 'Clients', icon: Users },
+    { id: 'clients', label: 'Contacts', icon: Users },
     { id: 'ai-reviews', label: 'AI Reviews', icon: Brain },
     { id: 'revenue', label: 'Revenue', icon: DollarSign },
     { id: 'settings', label: 'Settings', icon: Settings },
@@ -178,7 +190,7 @@ export default function Portal() {
 
       {/* Key Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Total Clients */}
+        {/* Total Contacts (with paying client count) */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 hover:shadow-lg transition-shadow cursor-pointer"
              onClick={() => setActiveTab('clients')}>
           <div className="flex items-center justify-between mb-4">
@@ -189,18 +201,18 @@ export default function Portal() {
           </div>
           <div className="mb-1">
             <div className="text-3xl font-bold text-gray-900 dark:text-white">
-              {stats.totalClients}
+              {stats.totalContacts}
             </div>
             <div className="text-sm text-gray-600 dark:text-gray-400">
-              Total Clients
+              Total Contacts
             </div>
           </div>
           <div className="text-xs text-green-600 dark:text-green-400 font-medium">
-            Real data from Firestore
+            {stats.payingClients} paying clients
           </div>
         </div>
 
-        {/* Active Clients */}
+        {/* Active Contacts */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
           <div className="flex items-center justify-between mb-4">
             <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
@@ -210,14 +222,14 @@ export default function Portal() {
           </div>
           <div className="mb-1">
             <div className="text-3xl font-bold text-gray-900 dark:text-white">
-              {stats.activeClients}
+              {stats.activeContacts}
             </div>
             <div className="text-sm text-gray-600 dark:text-gray-400">
               Active This Month
             </div>
           </div>
           <div className="text-xs text-gray-600 dark:text-gray-400">
-            {stats.totalClients > 0 ? ((stats.activeClients / stats.totalClients) * 100).toFixed(0) : 0}% of total
+            {stats.totalContacts > 0 ? ((stats.activeContacts / stats.totalContacts) * 100).toFixed(0) : 0}% of total
           </div>
         </div>
 
@@ -359,7 +371,7 @@ export default function Portal() {
               </div>
               <div className="flex-1">
                 <p className="text-sm text-gray-900 dark:text-white font-medium">
-                  {stats.totalClients} clients loaded from database
+                  {stats.totalContacts} contacts loaded from database
                 </p>
                 <p className="text-xs text-gray-600 dark:text-gray-400">Real-time data</p>
               </div>
@@ -396,12 +408,12 @@ export default function Portal() {
             Performance Metrics
           </h3>
           <div className="space-y-4">
-            {/* Client Growth */}
+            {/* Contact Growth */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Client Growth</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">Contact Growth</span>
                 <span className="text-sm font-bold text-green-600 dark:text-green-400">
-                  {stats.totalClients} total
+                  {stats.totalContacts} total ({stats.payingClients} clients)
                 </span>
               </div>
               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
@@ -414,13 +426,13 @@ export default function Portal() {
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-gray-600 dark:text-gray-400">Active Rate</span>
                 <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
-                  {stats.totalClients > 0 ? ((stats.activeClients / stats.totalClients) * 100).toFixed(0) : 0}%
+                  {stats.totalContacts > 0 ? ((stats.activeContacts / stats.totalContacts) * 100).toFixed(0) : 0}%
                 </span>
               </div>
               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                <div 
-                  className="bg-blue-600 h-2 rounded-full" 
-                  style={{ width: `${stats.totalClients > 0 ? ((stats.activeClients / stats.totalClients) * 100) : 0}%` }}
+                <div
+                  className="bg-blue-600 h-2 rounded-full"
+                  style={{ width: `${stats.totalContacts > 0 ? ((stats.activeContacts / stats.totalContacts) * 100) : 0}%` }}
                 ></div>
               </div>
             </div>
