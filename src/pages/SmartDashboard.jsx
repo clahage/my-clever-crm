@@ -5286,9 +5286,34 @@ const SmartDashboard = () => {
         </DialogTitle>
         <DialogContent dividers>
           <UltimateContactForm
-            onSave={(newContact) => {
-              setShowContactForm(false);
-              console.log('✅ New contact created:', newContact);
+            onSave={async (newContact) => {
+              try {
+                // ===== SAVE TO FIRESTORE =====
+                const docRef = await addDoc(collection(db, 'contacts'), {
+                  ...newContact,
+                  createdAt: serverTimestamp(),
+                  updatedAt: serverTimestamp(),
+                  roles: ['contact'],
+                  status: 'active',
+                  source: 'manual',
+                  createdBy: auth.currentUser?.uid || 'system',
+                  // Extract primary email and phone for easy querying
+                  email: newContact.emails?.[0]?.address || '',
+                  phone: newContact.phones?.[0]?.number || '',
+                });
+                
+                console.log('✅ Contact saved to Firestore! ID:', docRef.id);
+                console.log('📧 onContactCreated function should trigger now...');
+                
+                setShowContactForm(false);
+                
+                // Success notification
+                alert(`✅ Contact "${newContact.firstName} ${newContact.lastName}" created successfully!\n\nID: ${docRef.id}`);
+                
+              } catch (error) {
+                console.error('❌ Error saving contact to Firestore:', error);
+                alert(`❌ Failed to save contact: ${error.message}`);
+              }
             }}
             onCancel={() => setShowContactForm(false)}
           />

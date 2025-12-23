@@ -48,9 +48,6 @@ const gmailAppPassword = defineSecret('GMAIL_APP_PASSWORD');
 const gmailFromName = defineSecret('GMAIL_FROM_NAME');
 const gmailReplyTo = defineSecret('GMAIL_REPLY_TO');
 const openaiApiKey = defineSecret('OPENAI_API_KEY');
-const sendgridApiKey = defineSecret('SENDGRID_API_KEY');
-const sendgridFromName = defineSecret('SENDGRID_FROM_NAME');
-const sendgridReplyTo = defineSecret('SENDGRID_REPLY_TO');
 const telnyxApiKey = defineSecret('TELNYX_API_KEY');
 const telnyxPhone = defineSecret('TELNYX_PHONE');
 const webhookSecret = defineSecret('WEBHOOK_SECRET');
@@ -61,7 +58,6 @@ const webhookSecret = defineSecret('WEBHOOK_SECRET');
 // These are non-secret configuration values
 const allowUnauthenticated = process.env.ALLOW_UNAUTHENTICATED === 'true';
 const gmailFromEmail = process.env.GMAIL_FROM_EMAIL;
-const sendgridFromEmail = process.env.SENDGRID_FROM_EMAIL;
 
 // ============================================
 // DEFAULT CONFIGURATION FOR FUNCTIONS
@@ -247,10 +243,119 @@ exports.processAIReceptionistCall = onDocumentWritten(
 exports.onContactCreated = onDocumentCreated(
   {
     document: 'contacts/{contactId}',
-    memory: '512MiB'
+    memory: '512MiB',
+    secrets: ['GMAIL_USER', 'GMAIL_APP_PASSWORD']
   },
   async (event) => {
-    console.log('New contact created:', event.params.contactId);
+    const contactId = event.params.contactId;
+    const contactData = event.data.data();
+    
+    console.log('🎉 New contact created:', contactId);
+    console.log('📧 Contact email:', contactData.email);
+    console.log('👤 Contact name:', `${contactData.firstName} ${contactData.lastName}`);
+    
+    try {
+      // ===== SEND WELCOME EMAIL =====
+      if (contactData.email) {
+        console.log('📤 Attempting to send welcome email...');
+        
+        const nodemailer = require('nodemailer');
+        
+        // Configure Gmail SMTP
+        const transporter = nodemailer.createTransporter({
+          service: 'gmail',
+          auth: {
+            user: process.env.GMAIL_USER,
+            pass: process.env.GMAIL_APP_PASSWORD
+          }
+        });
+        
+        // Email content
+        const mailOptions = {
+          from: `"Speedy Credit Repair" <${process.env.GMAIL_USER}>`,
+          to: contactData.email,
+          subject: `Welcome to Speedy Credit Repair, ${contactData.firstName}!`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #667eea;">Welcome to Speedy Credit Repair!</h2>
+              
+              <p>Hi ${contactData.firstName},</p>
+              
+              <p>Thank you for contacting Speedy Credit Repair! We're excited to help you achieve your credit goals.</p>
+              
+              <p><strong>What happens next?</strong></p>
+              <ul>
+                <li>A member of our team will review your information</li>
+                <li>We'll contact you within 24 hours to discuss your credit situation</li>
+                <li>We'll create a personalized credit repair strategy for you</li>
+              </ul>
+              
+              <p><strong>Your Contact Information:</strong></p>
+              <ul>
+                <li>Email: ${contactData.email}</li>
+                <li>Phone: ${contactData.phone || 'Not provided'}</li>
+              </ul>
+              
+              <p>If you have any immediate questions, feel free to call us at <strong>(714) 555-0000</strong></p>
+              
+              <p>Best regards,<br>
+              <strong>Chris Lahage</strong><br>
+              Owner, Speedy Credit Repair<br>
+              Est. 1995 | BBB A+ Rating | 4.9★ Google Reviews</p>
+              
+              <hr style="margin: 20px 0; border: none; border-top: 1px solid #e5e7eb;">
+              
+              <p style="font-size: 12px; color: #6b7280;">
+                © 1995-2025 Speedy Credit Repair Inc. | All Rights Reserved<br>
+                This email was sent because you submitted a contact form at speedycreditrepair.com
+              </p>
+            </div>
+          `
+        };
+        
+        // Send email
+        await transporter.sendMail(mailOptions);
+        console.log('✅ Welcome email sent successfully to:', contactData.email);
+        
+      } else {
+        console.log('⚠️ No email address provided, skipping welcome email');
+      }
+      
+      // ===== UPDATE CONTACT TIMELINE =====
+      console.log('📝 Updating contact timeline...');
+      
+      const admin = require('firebase-admin');
+      const db = admin.firestore();
+      
+      const contactRef = db.collection('contacts').doc(contactId);
+      
+      await contactRef.update({
+        'timeline': admin.firestore.FieldValue.arrayUnion({
+          id: Date.now(),
+          type: 'welcome_email_sent',
+          description: 'Welcome email sent automatically',
+          timestamp: new Date().toISOString(),
+          metadata: {
+            source: 'system',
+            emailAddress: contactData.email
+          }
+        }),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+      
+      console.log('✅ Contact timeline updated');
+      
+      // ===== LOG SUCCESS =====
+      console.log('🎉 onContactCreated workflow completed successfully for:', contactId);
+      
+    } catch (error) {
+      console.error('❌ Error in onContactCreated:', error);
+      console.error('Error details:', error.message);
+      console.error('Stack trace:', error.stack);
+      
+      // Don't throw - we don't want to fail the entire function
+      // Just log the error and continue
+    }
   }
 );
 
