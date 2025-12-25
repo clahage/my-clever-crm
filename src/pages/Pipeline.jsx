@@ -327,7 +327,7 @@ export const PipelineUtils = {
 // MAIN PIPELINE COMPONENT
 // ================================================================================
 
-const Pipeline = () => {
+  const Pipeline = ({ onEditContact, onViewContact }) => {
   const { user, userProfile } = useAuth();
   const navigate = useNavigate();
 
@@ -1280,11 +1280,30 @@ const Pipeline = () => {
                               {/* Quick Actions */}
                               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button
-                                  onClick={() => navigate(`/contacts/${deal.id}`)}
+                                  onClick={() => {
+                                    if (onViewContact) {
+                                      onViewContact(deal);
+                                    } else {
+                                      navigate(`/contacts/${deal.id}`);
+                                    }
+                                  }}
                                   className="p-1 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded"
-                                  title="View details"
+                                  title="View profile"
                                 >
                                   <Eye className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    if (onEditContact) {
+                                      onEditContact(deal);
+                                    } else {
+                                      navigate(`/contacts/${deal.id}`);
+                                    }
+                                  }}
+                                  className="p-1 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30 rounded"
+                                  title="Edit contact"
+                                >
+                                  <Edit className="w-4 h-4" />
                                 </button>
                                 <button
                                   onClick={() => {

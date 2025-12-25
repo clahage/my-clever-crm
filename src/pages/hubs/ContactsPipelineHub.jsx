@@ -487,12 +487,12 @@ const getTimestampMillis = (timestamp) => {
     
 // Listen to contacts
     // ===== FIX #3: Show ALL contacts (removed userId filter) =====
-    const clientsQuery = query(
+    const contactsQuery = query(
       collection(db, 'contacts'),
       orderBy('createdAt', 'desc')
     );
     
-    const unsubClients = onSnapshot(clientsQuery, (snapshot) => {
+    const unsubContacts = onSnapshot(contactsQuery, (snapshot) => {
       console.log(`📥 Received ${snapshot.size} contacts from Firebase`);
       const contactData = [];
       snapshot.forEach((doc) => {
@@ -506,7 +506,7 @@ const getTimestampMillis = (timestamp) => {
       console.error('❌ Error listening to contacts:', error);
       setSnackbar({ open: true, message: 'Error loading contacts', severity: 'error' });
     });
-    unsubscribers.push(unsubClients);
+    unsubscribers.push(unsubContacts);
     
     // Listen to segments
     const segmentsQuery = query(
@@ -554,7 +554,7 @@ const getTimestampMillis = (timestamp) => {
     try {
       const total = contactData.length;
       // ===== FIX #2: Check roles ARRAY instead of status field =====
-      const clients = contactData.filter(c => Array.isArray(c.roles) && c.roles.includes('client')).length;
+      const activeClients = contactData.filter(c => Array.isArray(c.roles) && c.roles.includes('client')).length;
       const active = contactData.filter(c => c.status === 'active').length;
       const leads = contactData.filter(c => Array.isArray(c.roles) && c.roles.includes('lead')).length;
       const prospects = contactData.filter(c => Array.isArray(c.roles) && c.roles.includes('prospect')).length;
@@ -562,7 +562,7 @@ const getTimestampMillis = (timestamp) => {
       const cancelled = contactData.filter(c => c.status === 'cancelled').length;
       const atRisk = contactData.filter(c => c.status === 'at_risk').length;
       
-      const conversionRate = leads > 0 ? ((clients / leads) * 100).toFixed(1) : 0;
+      const conversionRate = leads > 0 ? ((activeClients / leads) * 100).toFixed(1) : 0;
       const avgScore = contactData.length > 0 
         ? (contactData.reduce((sum, c) => sum + (c.leadScore || 0), 0) / contactData.length).toFixed(1)
         : 0;
@@ -762,9 +762,9 @@ const getTimestampMillis = (timestamp) => {
                     (1000 * 60 * 60 * 24),
                 )
               : 0;
-            const monthsAsClient = Math.max(1, Math.floor(daysAsContact / 30));
+            const monthsAsContact = Math.max(1, Math.floor(daysAsContact / 30));
             const avgMonthlyValue =
-              monthsAsClient > 0 ? currentValue / monthsAsClient : currentValue;
+              monthsAsContact > 0 ? currentValue / monthsAsContact : currentValue;
             const engagement = contact.engagementScore || 50;
             const retentionMultiplier =
               engagement >= 80 ? 1.4 :
@@ -1093,6 +1093,7 @@ const getTimestampMillis = (timestamp) => {
       leadScore: 5,
       engagementScore: 50,
       journeyStage: 'awareness',
+      roles: ['contact'],           // ← FIXED: Added default roles
       tags: [],
       notes: '',
       customFields: {},
@@ -1102,23 +1103,25 @@ const getTimestampMillis = (timestamp) => {
   };
   
   const handleEditContact = (contact) => {
-    console.log('✏️ Editing Contact:', contact.id);
+    console.log('✏️ Editing contact:', contact.id);
+    
+    // ===== CRITICAL FIX: Preserve ALL fields, don't cherry-pick! =====
     setContactForm({
-      firstName: contact.firstName || '',
-      lastName: contact.lastName || '',
-      email: contact.email || '',
-      phone: contact.phone || '',
-      status: contact.status || 'lead',
-      source: contact.source || '',
-      leadScore: contact.leadScore || 5,
-      engagementScore: contact.engagementScore || 50,
-      journeyStage: contact.journeyStage || 'awareness',
+      ...contact,  // ← Keep EVERYTHING from original contact!
+      // Only set defaults for fields that might be missing:
+      roles: contact.roles || ['contact'],
       tags: contact.tags || [],
-      notes: contact.notes || '',
       customFields: contact.customFields || {},
     });
-    setSelectedContact(Contact);
+    
+    setSelectedContact(contact);
     setActiveTab(1);
+  };
+  
+  const handleViewContact = (contact) => {
+    console.log('👁️ Viewing contact:', contact.id);
+    setSelectedContact(contact);
+    setActiveTab(2); // Contact Profile tab
   };
   
   const handleSaveContact = async () => {
@@ -1139,9 +1142,9 @@ const getTimestampMillis = (timestamp) => {
       
       if (selectedContact) {
         // Update existing
-        await updateDoc(doc(db, 'contacts', selectedcontact.id), contactData);
+        await updateDoc(doc(db, 'contacts', selectedContact.id), contactData);
         setSnackbar({ open: true, message: 'Contact updated successfully!', severity: 'success' });
-        console.log('✅ Contact updated:', selectedcontact.id);
+        console.log('✅ Contact updated:', selectedContact.id);
       } else {
         // Create new
         contactData.createdAt = serverTimestamp();
@@ -1161,6 +1164,7 @@ const getTimestampMillis = (timestamp) => {
         leadScore: 5,
         engagementScore: 50,
         journeyStage: 'awareness',
+        roles: ['contact'],           // ← FIXED: Added roles to reset
         tags: [],
         notes: '',
         customFields: {},
@@ -1175,16 +1179,16 @@ const getTimestampMillis = (timestamp) => {
     }
   };
   
-  const handleDeleteContact = async (clientId) => {
+  const handleDeleteContact = async (contactId) => {
     if (!window.confirm('Are you sure you want to delete this Contact? This action cannot be undone.')) {
       return;
     }
     
-    console.log('🗑️ Deleting Contact:', clientId);
+    console.log('🗑️ Deleting Contact:', contactId);
     setSaving(true);
     
     try {
-      await deleteDoc(doc(db, 'contacts', clientId));
+      await deleteDoc(doc(db, 'contacts', contactId));
       setSnackbar({ open: true, message: 'Contact deleted successfully', severity: 'success' });
       console.log('✅ Contact deleted');
     } catch (error) {
@@ -1208,11 +1212,11 @@ const getTimestampMillis = (timestamp) => {
     }
   };
   
-  const handleSelectContact = (clientId) => {
-    if (selectedContacts.includes(clientId)) {
-      setSelectedContacts(selectedContacts.filter(id => id !== clientId));
+  const handleSelectContact = (contactId) => {
+    if (selectedContacts.includes(contactId)) {
+      setSelectedContacts(selectedContacts.filter(id => id !== contactId));
     } else {
-      setSelectedContacts([...selectedContacts, clientId]);
+      setSelectedContacts([...selectedContacts, contactId]);
     }
   };
   
@@ -1230,8 +1234,8 @@ const getTimestampMillis = (timestamp) => {
             setSaving(false);
             return;
           }
-          selectedContacts.forEach(clientId => {
-            batch.delete(doc(db, 'contacts', clientId));
+          selectedContacts.forEach(contactId => {
+            batch.delete(doc(db, 'contacts', contactId));
           });
           break;
         
@@ -1246,11 +1250,11 @@ const getTimestampMillis = (timestamp) => {
             setSaving(false);
             return;
           }
-          selectedContacts.forEach(clientId => {
-            const Contact = contacts.find(c => c.id === clientId);
+          selectedContacts.forEach(contactId => {
+            const contact = contacts.find(c => c.id === contactId);  // ← FIXED: Lowercase c
             const tags = contact.tags || [];
             if (!tags.includes(tag)) {
-              batch.update(doc(db, 'contacts', clientId), {
+              batch.update(doc(db, 'contacts', contactId), {
                 tags: [...tags, tag],
                 updatedAt: serverTimestamp(),
               });
@@ -1265,8 +1269,8 @@ const getTimestampMillis = (timestamp) => {
             setSaving(false);
             return;
           }
-          selectedContacts.forEach(clientId => {
-            batch.update(doc(db, 'contacts', clientId), {
+          selectedContacts.forEach(contactId => {
+            batch.update(doc(db, 'contacts', contactId), {
               status,
               updatedAt: serverTimestamp(),
             });
@@ -1300,16 +1304,16 @@ const getTimestampMillis = (timestamp) => {
   
   const handleViewProfile = async (contact) => {
     console.log('👁️ Loading profile for:', contact.id);
-    setSelectedContact(Contact);
+    setSelectedContact(contact);
     setLoading(true);
     
     try {
       // Load all related data
       const [commsSnapshot, docsSnapshot, notesSnapshot, tasksSnapshot] = await Promise.all([
-        getDocs(query(collection(db, 'communications'), where('clientId', '==', contact.id), orderBy('createdAt', 'desc'))),
-        getDocs(query(collection(db, 'documents'), where('clientId', '==', contact.id), orderBy('createdAt', 'desc'))),
-        getDocs(query(collection(db, 'notes'), where('clientId', '==', contact.id), orderBy('createdAt', 'desc'))),
-        getDocs(query(collection(db, 'tasks'), where('clientId', '==', contact.id), orderBy('createdAt', 'desc'))),
+        getDocs(query(collection(db, 'communications'), where('contactId', '==', contact.id), orderBy('createdAt', 'desc'))),
+        getDocs(query(collection(db, 'documents'), where('contactId', '==', contact.id), orderBy('createdAt', 'desc'))),
+        getDocs(query(collection(db, 'notes'), where('contactId', '==', contact.id), orderBy('createdAt', 'desc'))),
+        getDocs(query(collection(db, 'tasks'), where('contactId', '==', contact.id), orderBy('createdAt', 'desc'))),
       ]);
       
       const commsData = [];
@@ -1348,7 +1352,7 @@ const getTimestampMillis = (timestamp) => {
       setContactStats(stats);
       
       // Generate AI insights
-      await generateAIInsights(Contact, commsData, docsData, notesData, tasksData);
+      await generateAIInsights(contact, commsData, docsData, notesData, tasksData);  // ← FIXED: Lowercase c
       
       setActiveTab(2); // Switch to profile tab
     } catch (error) {
@@ -1361,7 +1365,7 @@ const getTimestampMillis = (timestamp) => {
   
   // ===== AI FUNCTIONS =====
   
-  const generateAIInsights = async (Contact, comms, docs, notes, tasks) => {
+  const generateAIInsights = async (contact, comms, docs, notes, tasks) => {  // ← FIXED: Lowercase c parameter
     console.log('🤖 Generating AI insights for Contact:', contact.id);
     setAiProcessing(true);
     
@@ -1595,7 +1599,7 @@ const getTimestampMillis = (timestamp) => {
       }
       
       // Churn risk (using predictions)
-      const churnPrediction = predictions.churnPredictions.find(p => p.clientId === contact.id);
+      const churnPrediction = predictions.churnPredictions.find(p => p.contactId === contact.id);
       if (churnPrediction && churnPrediction.risk === 'high') {
         insights.push({
           type: 'error',
@@ -1615,7 +1619,7 @@ const getTimestampMillis = (timestamp) => {
       }
       
       // CLV opportunity
-      const clvForecast = predictions.clvForecasts.find(p => p.clientId === contact.id);
+      const clvForecast = predictions.clvForecasts.find(p => p.contactId === contact.id);
       if (clvForecast && clvForecast.tier === 'platinum') {
         insights.push({
           type: 'success',
@@ -1686,7 +1690,7 @@ const getTimestampMillis = (timestamp) => {
       // Refresh communications
       const commsQuery = query(
         collection(db, 'communications'),
-        where('clientId', '==', selectedcontact.id),
+        where('contactId', '==', selectedcontact.id),
         orderBy('createdAt', 'desc')
       );
       const commsSnapshot = await getDocs(commsQuery);
@@ -1755,7 +1759,7 @@ const getTimestampMillis = (timestamp) => {
       // Refresh documents
       const docsQuery = query(
         collection(db, 'documents'),
-        where('clientId', '==', selectedcontact.id),
+        where('contactId', '==', selectedcontact.id),
         orderBy('createdAt', 'desc')
       );
       const docsSnapshot = await getDocs(docsQuery);
@@ -1793,7 +1797,7 @@ const getTimestampMillis = (timestamp) => {
       // Refresh documents
       const docsQuery = query(
         collection(db, 'documents'),
-        where('clientId', '==', selectedcontact.id),
+        where('contactId', '==', selectedcontact.id),
         orderBy('createdAt', 'desc')
       );
       const docsSnapshot = await getDocs(docsQuery);
@@ -1849,7 +1853,7 @@ const getTimestampMillis = (timestamp) => {
       // Refresh notes
       const notesQuery = query(
         collection(db, 'notes'),
-        where('clientId', '==', selectedcontact.id),
+        where('contactId', '==', selectedcontact.id),
         orderBy('createdAt', 'desc')
       );
       const notesSnapshot = await getDocs(notesQuery);
@@ -1909,7 +1913,7 @@ const getTimestampMillis = (timestamp) => {
       // Refresh tasks
       const tasksQuery = query(
         collection(db, 'tasks'),
-        where('clientId', '==', selectedcontact.id),
+        where('contactId', '==', selectedcontact.id),
         orderBy('createdAt', 'desc')
       );
       const tasksSnapshot = await getDocs(tasksQuery);
@@ -1957,7 +1961,7 @@ const getTimestampMillis = (timestamp) => {
       const segmentData = {
         ...segmentForm,
         userId: currentUser.uid,
-        clientCount: 0, // Will be calculated
+        contactCount: 0, // Will be calculated
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       };
@@ -1981,25 +1985,25 @@ const getTimestampMillis = (timestamp) => {
     }
   };
   
-  const calculateSegmentClients = (segment) => {
+  const calculateSegmentContacts = (segment) => {
     // Apply segment criteria to filter contacts
-    let segmentClients = [...contacts];
+    let segmentContacts = [...contacts];
     
     segment.criteria.forEach(criterion => {
       switch (criterion.type) {
         case 'range':
-          segmentClients = segmentClients.filter(c =>
+          segmentContacts = segmentContacts.filter(c =>
             (c[criterion.field] || 0) >= criterion.min &&
             (c[criterion.field] || 0) <= criterion.max
           );
           break;
         case 'select':
-          segmentClients = segmentClients.filter(c =>
+          segmentContacts = segmentContacts.filter(c =>
             c[criterion.field] === criterion.value
           );
           break;
         case 'multi':
-          segmentClients = segmentClients.filter(c =>
+          segmentContacts = segmentContacts.filter(c =>
             c[criterion.field] && criterion.values.some(v => c[criterion.field].includes(v))
           );
           break;
@@ -2011,7 +2015,7 @@ const getTimestampMillis = (timestamp) => {
       }
     });
     
-    return segmentClients;
+    return segmentContacts;
   };
   
   // ===== AUTOMATION/WORKFLOW FUNCTIONS (NEW) =====
@@ -2069,7 +2073,7 @@ const getTimestampMillis = (timestamp) => {
   
   // ===== EXPORT FUNCTIONS (NEW) =====
   
-  const handleExportContacts = (clientIds = null) => {
+  const handleExportContacts = (contactIds = null) => {
     console.log('📥 Opening export dialog');
     setExportDialog(true);
   };
@@ -2106,23 +2110,23 @@ const getTimestampMillis = (timestamp) => {
             }).join(',')
           );
           exportData = [csvHeaders, ...csvRows].join('\n');
-          filename = `clients_export_${Date.now()}.csv`;
+          filename = `contacts_export_${Date.now()}.csv`;
           mimeType = 'text/csv';
           break;
         
         case 'json':
           // JSON export
           exportData = JSON.stringify(contactsToExport.map(Contact => {
-            const exportClient = {};
+            const exportContact = {};
             fieldsToExport.forEach(field => {
-              exportClient[field] = Contact[field];
-              if (typeof exportClient[field] === 'object' && exportClient[field]?.toDate) {
-                exportClient[field] = exportClient[field].toDate().toISOString();
+              exportContact[field] = Contact[field];
+              if (typeof exportContact[field] === 'object' && exportContact[field]?.toDate) {
+                exportContact[field] = exportContact[field].toDate().toISOString();
               }
             });
-            return exportClient;
+            return exportContact;
           }), null, 2);
-          filename = `clients_export_${Date.now()}.json`;
+          filename = `contacts_export_${Date.now()}.json`;
           mimeType = 'application/json';
           break;
         
@@ -2139,7 +2143,7 @@ const getTimestampMillis = (timestamp) => {
             }).join(',')
           );
           exportData = [xlsxHeaders, ...xlsxRows].join('\n');
-          filename = `clients_export_${Date.now()}.csv`;
+          filename = `contacts_export_${Date.now()}.csv`;
           mimeType = 'text/csv';
           break;
         
@@ -2392,7 +2396,7 @@ const getTimestampMillis = (timestamp) => {
         <Grid container spacing={2} sx={{ mb: 3 }}>
           <Grid item xs={6} sm={3}>
             <Card sx={{ p: 2, textAlign: 'center', bgcolor: '#E3F2FD' }}>
-              <Typography variant="h4" color="primary">{analytics.totalClients || 0}</Typography>
+              <Typography variant="h4" color="primary">{analytics.totalContacts || 0}</Typography>
               <Typography variant="caption">Total Contacts</Typography>
             </Card>
           </Grid>
@@ -2583,10 +2587,10 @@ const getTimestampMillis = (timestamp) => {
                         </Typography>
                       </TableCell>
                       <TableCell align="right">
-                        <IconButton size="small" onClick={() => handleViewProfile(Contact)}>
+                        <IconButton size="small" onClick={() => handleViewProfile(contact)}>
                           <Eye size={16} />
                         </IconButton>
-                        <IconButton size="small" onClick={() => handleEditContact(Contact)}>
+                        <IconButton size="small" onClick={() => handleEditContact(contact)}>
                           <Edit size={16} />
                         </IconButton>
                         <IconButton size="small" onClick={() => handleDeleteContact(contact.id)} color="error">
@@ -2616,36 +2620,59 @@ const getTimestampMillis = (timestamp) => {
     </Card>
   );
 
-  const renderAddEditContact = () => (
+const renderAddEditContact = () => (
     <Card>
       <CardContent>
         <UltimateContactForm
           contactId={selectedContact?.id || null}
-          initialData={selectedContact || {}}
+          initialData={selectedContact ? contactForm : {}}
           onSave={async (savedContact) => {
             console.log('✅ Contact saved from UltimateContactForm:', savedContact);
-
-            // Data refreshes automatically via Firebase real-time listener (onSnapshot at line 487-500)
-            // No manual reload needed!
-
-            // Show success message
-            setSnackbar({
-              open: true,
-              message: selectedContact
-                ? 'Contact updated successfully!'
-                : 'Contact created successfully! Lead Lifecycle AI has been triggered.',
-              severity: 'success'
-            });
-
-            // Return to list view
-            setView('list');
-            setSelectedContact(null);
-            setDialogOpen(false);
+            
+            try {
+              const contactData = {
+                ...savedContact,
+                userId: currentUser.uid,
+                updatedAt: serverTimestamp(),
+              };
+              
+              if (selectedContact?.id) {
+                // Update existing contact
+                await updateDoc(doc(db, 'contacts', selectedContact.id), contactData);
+                console.log('✅ Contact updated in Firebase:', selectedContact.id);
+                setSnackbar({
+                  open: true,
+                  message: 'Contact updated successfully!',
+                  severity: 'success'
+                });
+              } else {
+                // Create new contact
+                contactData.createdAt = serverTimestamp();
+                const docRef = await addDoc(collection(db, 'contacts'), contactData);
+                console.log('✅ New contact created in Firebase:', docRef.id);
+                setSnackbar({
+                  open: true,
+                  message: 'Contact created successfully! Lead Lifecycle AI has been triggered.',
+                  severity: 'success'
+                });
+              }
+              
+              // Return to list view
+              setActiveTab(0);
+              setSelectedContact(null);
+              
+            } catch (error) {
+              console.error('❌ Error saving contact to Firebase:', error);
+              setSnackbar({
+                open: true,
+                message: 'Error saving contact: ' + error.message,
+                severity: 'error'
+              });
+            }
           }}
           onCancel={() => {
-            setView('list');
+            setActiveTab(0);
             setSelectedContact(null);
-            setDialogOpen(false);
           }}
         />
       </CardContent>
@@ -2670,20 +2697,20 @@ const getTimestampMillis = (timestamp) => {
           <CardContent>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <Avatar sx={{ width: 80, height: 80, fontSize: 32, bgcolor: 'primary.main' }}>
-                {selectedcontact.firstName?.[0]}{selectedcontact.lastName?.[0]}
+                {selectedContact.firstName?.[0]}{selectedContact.lastName?.[0]}
               </Avatar>
               <Box sx={{ flexGrow: 1 }}>
                 <Typography variant="h5">
-                  {selectedcontact.firstName} {selectedcontact.lastName}
+                  {selectedContact.firstName} {selectedContact.lastName}
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
                   <Chip 
-                    label={CONTACT_STATUSES.find(s => s.value === selectedcontact.status)?.label} 
+                    label={CONTACT_STATUSES.find(s => s.value === selectedContact.status)?.label} 
                     size="small"
-                    sx={{ bgcolor: CONTACT_STATUSES.find(s => s.value === selectedcontact.status)?.color, color: 'white' }}
+                    sx={{ bgcolor: CONTACT_STATUSES.find(s => s.value === selectedContact.status)?.color, color: 'white' }}
                   />
-                  <Chip label={`Score: ${selectedcontact.leadScore}/10`} size="small" />
-                  <Chip label={`Engagement: ${selectedcontact.engagementScore || 50}%`} size="small" />
+                  <Chip label={`Score: ${selectedContact.leadScore}/10`} size="small" />
+                  <Chip label={`Engagement: ${selectedContact.engagementScore || 50}%`} size="small" />
                 </Box>
               </Box>
               <Box sx={{ display: 'flex', gap: 1 }}>
@@ -2710,7 +2737,7 @@ const getTimestampMillis = (timestamp) => {
           <Grid item xs={6} sm={4} md={2}>
             <Card sx={{ p: 2, textAlign: 'center' }}>
               <FileText size={24} color="#4CAF50" style={{ marginBottom: 8 }} />
-              <Typography variant="h6">{cStats.documentsCount}</Typography>
+              <Typography variant="h6">{contactStats.documentsCount}</Typography>  {/* ← FIXED: Changed cStats to contactStats */}
               <Typography variant="caption">Documents</Typography>
             </Card>
           </Grid>
@@ -3158,14 +3185,14 @@ const getTimestampMillis = (timestamp) => {
           
           <Grid container spacing={2}>
             {segments.map((segment) => {
-              const segmentClients = calculateSegmentClients(segment);
+              const segmentContacts = calculateSegmentContacts(segment);
               return (
                 <Grid item xs={12} md={6} key={segment.id}>
                   <Card variant="outlined" sx={{ borderLeft: `4px solid ${segment.color}` }}>
                     <CardContent>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
                         <Typography variant="h6">{segment.name}</Typography>
-                        <Chip label={`${segmentClients.length} contacts`} />
+                        <Chip label={`${segmentContacts.length} contacts`} />
                       </Box>
                       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                         {segment.description}
@@ -3411,8 +3438,8 @@ const getTimestampMillis = (timestamp) => {
                   </TableHead>
                   <TableBody>
                     {predictions.churnPredictions.slice(0, 10).map((pred) => (
-                      <TableRow key={pred.clientId}>
-                        <TableCell>{pred.clientName}</TableCell>
+                      <TableRow key={pred.contactId}>
+                        <TableCell>{pred.contactName}</TableCell>
                         <TableCell>
                           <Chip 
                             label={pred.risk}
@@ -3457,8 +3484,8 @@ const getTimestampMillis = (timestamp) => {
                   </TableHead>
                   <TableBody>
                     {predictions.clvForecasts.slice(0, 10).map((pred) => (
-                      <TableRow key={pred.clientId}>
-                        <TableCell>{pred.clientName}</TableCell>
+                      <TableRow key={pred.contactId}>
+                        <TableCell>{pred.contactName}</TableCell>
                         <TableCell>
                           <Chip 
                             label={pred.tier}
@@ -3493,9 +3520,9 @@ const getTimestampMillis = (timestamp) => {
             <AccordionDetails>
               <List>
                 {predictions.nextBestActions.slice(0, 10).map((item) => (
-                  <ListItem key={item.clientId} divider>
+                  <ListItem key={item.contactId} divider>
                     <ListItemText
-                      primary={item.clientName}
+                      primary={item.contactName}
                       secondary={
                         <Box>
                           {item.actions.map((action, idx) => (
@@ -3535,8 +3562,8 @@ const getTimestampMillis = (timestamp) => {
                   </TableHead>
                   <TableBody>
                     {predictions.upsellOpportunities.map((opp) => (
-                      <TableRow key={opp.clientId}>
-                        <TableCell>{opp.clientName}</TableCell>
+                      <TableRow key={opp.contactId}>
+                        <TableCell>{opp.contactName}</TableCell>
                         <TableCell>
                           {opp.opportunities.map((o, idx) => (
                             <Typography key={idx} variant="body2">
@@ -3576,8 +3603,8 @@ const getTimestampMillis = (timestamp) => {
                   </TableHead>
                   <TableBody>
                     {predictions.winBackCandidates.map((cand) => (
-                      <TableRow key={cand.clientId}>
-                        <TableCell>{cand.clientName}</TableCell>
+                      <TableRow key={cand.contactId}>
+                        <TableCell>{cand.contactName}</TableCell>
                         <TableCell>{(cand.probability * 100).toFixed(0)}%</TableCell>
                         <TableCell>{cand.daysSinceCancellation} days</TableCell>
                         <TableCell>
@@ -3991,7 +4018,7 @@ const getTimestampMillis = (timestamp) => {
           {activeTab === 9 && renderAutomation()}
           {activeTab === 10 && renderRevenueLifecycle()}
           {activeTab === 11 && renderPredictiveIntelligence()}
-          {activeTab === 12 && <Pipeline />}
+          {activeTab === 12 && <Pipeline onEditContact={handleEditContact} onViewContact={handleViewContact} />}
         </>
       )}
       

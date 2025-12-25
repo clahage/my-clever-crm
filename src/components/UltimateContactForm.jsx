@@ -232,11 +232,13 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
     // Internal
     notes: '',
     tags: [],
-    roles: ['contact'], // Multiple roles: contact, lead, client, affiliate, previous-client, inactive
+    roles: ['contact'],
     assignedTo: '',
     leadSource: 'ai-receptionist',
     leadScore: 0,
     lifecycleStage: 'new',
+    stage: 'prospecting',           
+    pipelineStage: 'new',          
     dataQualityScore: 0,
     lastSavedAt: null,
     lastSavedBy: '',
@@ -826,6 +828,8 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
         engagementScore
       },
       dataQualityScore: dataQuality.score,
+      stage: formData.stage || 'prospecting',           // DEFAULT STAGE
+      pipelineStage: formData.pipelineStage || 'new',   // DEFAULT PIPELINE STAGE
       lastSavedAt: new Date().toISOString(),
       lastSavedBy: 'manual'
     };

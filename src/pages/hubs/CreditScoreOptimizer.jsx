@@ -126,6 +126,7 @@ import {
   Mail,
   Phone,
   MapPin,
+  LayoutDashboard,
 } from 'lucide-react';
 
 import {

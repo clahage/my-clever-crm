@@ -81,9 +81,17 @@ exports.sendFaxOutbound = onRequest(
   }
 );
 
-exports.sendRawEmail = onRequest(
+exports.sendEmail = onRequest(
   defaultConfig,
   async (req, res) => {
+    // ADD CORS headers for localhost testing
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'POST');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+    if (req.method === 'OPTIONS') {
+      res.status(204).send('');
+      return;
+    }
     cors(req, res, async () => {
       // ... [Your existing Email Logic] ...
       res.json({ success: true, message: "Email Sent" });
