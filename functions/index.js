@@ -84,18 +84,85 @@ exports.sendFaxOutbound = onRequest(
 exports.sendEmail = onRequest(
   defaultConfig,
   async (req, res) => {
-    // ADD CORS headers for localhost testing
+    // CORS headers
     res.set('Access-Control-Allow-Origin', '*');
-    res.set('Access-Control-Allow-Methods', 'POST');
-    res.set('Access-Control-Allow-Headers', 'Content-Type');
+    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
     if (req.method === 'OPTIONS') {
       res.status(204).send('');
       return;
     }
-    cors(req, res, async () => {
-      // ... [Your existing Email Logic] ...
-      res.json({ success: true, message: "Email Sent" });
-    });
+
+    try {
+      const emailData = req.body;
+      console.log('📧 SendEmail function called with data:', emailData);
+
+      // Validate required fields
+      if (!emailData.to || !emailData.subject) {
+        res.status(400).json({ 
+          success: false, 
+          error: 'Missing required fields: to, subject' 
+        });
+        return;
+      }
+
+      // Import nodemailer
+      const nodemailer = require('nodemailer');
+
+      // Get Gmail credentials from Secret Manager
+      const { defineSecret } = require('firebase-functions/params');
+      const gmailUser = defineSecret('GMAIL_USER');
+      const gmailAppPassword = defineSecret('GMAIL_APP_PASSWORD');
+
+      // Create transporter with Gmail SMTP
+      const transporter = nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 587,
+        secure: false,
+        auth: {
+          user: gmailUser.value(),
+          pass: gmailAppPassword.value(),
+        },
+      });
+
+      // Prepare email options
+      const mailOptions = {
+        from: emailData.from 
+          ? `"${emailData.from.name}" <${emailData.from.email}>`
+          : gmailUser.value(),
+        to: Array.isArray(emailData.to) ? emailData.to.join(', ') : emailData.to,
+        subject: emailData.subject,
+        html: emailData.html || emailData.text,
+        text: emailData.text,
+        replyTo: emailData.replyTo || emailData.from?.email,
+      };
+
+      // Add attachments if provided
+      if (emailData.attachments && emailData.attachments.length > 0) {
+        mailOptions.attachments = emailData.attachments;
+      }
+
+      // Send email
+      console.log('📧 Sending email via Gmail SMTP...');
+      const info = await transporter.sendMail(mailOptions);
+      console.log('✅ Email sent successfully:', info.messageId);
+
+      // Return success with messageId
+      res.json({
+        success: true,
+        messageId: info.messageId,
+        accepted: info.accepted,
+        response: info.response
+      });
+
+    } catch (error) {
+      console.error('❌ SendEmail error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
   }
 );
 

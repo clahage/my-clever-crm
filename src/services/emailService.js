@@ -416,13 +416,27 @@ class EmailService {
         }
       };
       
-      // Send via Firebase Cloud Function
+      // Send via Gen 2 Firebase Cloud Function
       console.log(`📧 EmailService: Sending via Cloud Function to ${aliasConfig.email}`);
-      const sendEmailFunction = httpsCallable(this.functions, 'sendEmail');
-      const result = await sendEmailFunction(emailData);
+      const GEN2_FUNCTION_URL = 'https://sendemail-tvkxcewmxq-uc.a.run.app';
+      
+      const response = await fetch(GEN2_FUNCTION_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(emailData)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Cloud Function error: ${response.status} - ${errorText}`);
+      }
+
+      const result = await response.json();
       
       // Log email to Firestore
-      await this.logEmail(emailData, result.data);
+      await this.logEmail(emailData, result);
       
       // Update rate limit counters
       this.updateRateLimitCounters();
@@ -431,7 +445,7 @@ class EmailService {
       
       return {
         success: true,
-        messageId: result.data.messageId,
+        messageId: result.messageId || result.data?.messageId || 'sent-' + Date.now(),
         alias: emailType.alias,
         type,
         sentAt: new Date().toISOString()
