@@ -1057,6 +1057,255 @@ exports.checkComplianceDeadlines = operations.checkComplianceDeadlines;
 exports.getNotifications = operations.getNotifications;
 exports.markNotificationRead = operations.markNotificationRead;
 
+// ============================================
+// ESCALATION & ENROLLMENT SUPPORT FUNCTIONS
+// ============================================
+// Functions for handling enrollment failures, escalations, and callbacks
+
+// Send urgent alert when enrollment fails
+exports.sendEscalationAlert = onCall(
+  {
+    ...defaultConfig,
+    secrets: [gmailUser, gmailAppPassword, telnyxApiKey, telnyxPhone]
+  },
+  async (request) => {
+    const { escalationId, type, urgency, contactName, contactEmail, contactPhone, description } = request.data;
+
+    console.log('🚨 Escalation Alert triggered:', { escalationId, type, urgency });
+
+    const db = admin.firestore();
+
+    try {
+      // Log to Firestore
+      await db.collection('escalationAlerts').add({
+        escalationId,
+        type,
+        urgency,
+        contactName,
+        contactEmail,
+        contactPhone,
+        description,
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        status: 'pending'
+      });
+
+      // Send email to team for high/critical urgency
+      if (urgency === 'high' || urgency === 'critical') {
+        const user = gmailUser.value();
+        const pass = gmailAppPassword.value();
+
+        const transporter = nodemailer.createTransport({
+          host: 'smtp.gmail.com',
+          port: 587,
+          secure: false,
+          auth: { user, pass }
+        });
+
+        const urgencyEmoji = urgency === 'critical' ? '🚨🚨🚨' : '🚨';
+        const subject = `${urgencyEmoji} ${urgency.toUpperCase()}: Enrollment Escalation - ${contactName || 'Unknown'}`;
+
+        const body = `
+ENROLLMENT ESCALATION ALERT
+
+Type: ${type}
+Urgency: ${urgency.toUpperCase()}
+Contact: ${contactName || 'Unknown'}
+Phone: ${contactPhone || 'Not provided'}
+Email: ${contactEmail || 'Not provided'}
+
+Description:
+${description}
+
+Action Required: Please follow up immediately.
+
+---
+Escalation ID: ${escalationId}
+Timestamp: ${new Date().toISOString()}
+        `.trim();
+
+        await transporter.sendMail({
+          from: `"SpeedyCRM Alerts" <${user}>`,
+          to: 'chris@speedycreditrepair.com',
+          subject,
+          text: body,
+          html: wrapEmailInHTML(subject, body)
+        });
+
+        console.log('✅ Escalation email sent');
+      }
+
+      // Send SMS for critical urgency
+      if (urgency === 'critical' && telnyxApiKey.value()) {
+        try {
+          await fetch('https://api.telnyx.com/v2/messages', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${telnyxApiKey.value()}`
+            },
+            body: JSON.stringify({
+              from: telnyxPhone.value(),
+              to: '+17145551234', // Team phone - update as needed
+              text: `🚨 CRITICAL: IDIQ enrollment failed for ${contactName}. Check CRM immediately.`
+            })
+          });
+          console.log('✅ Escalation SMS sent');
+        } catch (smsError) {
+          console.warn('⚠️ SMS sending failed:', smsError.message);
+        }
+      }
+
+      return { success: true, escalationId };
+
+    } catch (error) {
+      console.error('❌ Escalation alert error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+);
+
+// Schedule a callback for a user
+exports.scheduleCallback = onCall(
+  {
+    ...defaultConfig,
+    secrets: [gmailUser, gmailAppPassword]
+  },
+  async (request) => {
+    const { contactId, contactName, phone, email, preferredTime, preferredDate, reason, notes } = request.data;
+
+    console.log('📞 Scheduling callback for:', contactName);
+
+    const db = admin.firestore();
+
+    try {
+      // Create callback record
+      const callbackRef = await db.collection('callbacks').add({
+        contactId,
+        contactName,
+        phone,
+        email,
+        preferredTime,
+        preferredDate,
+        reason,
+        notes,
+        status: 'scheduled',
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+
+      // Create task for team
+      await db.collection('tasks').add({
+        title: `Callback: ${reason}`,
+        description: `Call ${contactName} at ${phone}\nReason: ${reason}\n${notes || ''}`,
+        contactId,
+        type: 'callback',
+        priority: 'high',
+        status: 'pending',
+        dueDate: preferredDate ? new Date(`${preferredDate} ${preferredTime}`) : new Date(),
+        assignedTo: null,
+        createdBy: 'system',
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        relatedTo: {
+          type: 'callback',
+          id: callbackRef.id
+        }
+      });
+
+      // Send confirmation email to contact
+      if (email) {
+        const user = gmailUser.value();
+        const pass = gmailAppPassword.value();
+
+        const transporter = nodemailer.createTransport({
+          host: 'smtp.gmail.com',
+          port: 587,
+          secure: false,
+          auth: { user, pass }
+        });
+
+        const body = `Hi ${contactName},
+
+We've received your callback request and will call you on ${preferredDate} at ${preferredTime}.
+
+Reason: ${reason}
+
+If you need to reschedule, please reply to this email or call us at (888) 724-7344.
+
+Thank you for choosing Speedy Credit Repair!`;
+
+        await transporter.sendMail({
+          from: `"Speedy Credit Repair" <${user}>`,
+          to: email,
+          subject: 'Your Callback Request - Speedy Credit Repair',
+          text: body,
+          html: wrapEmailInHTML('Callback Confirmation', body, contactName)
+        });
+
+        console.log('✅ Callback confirmation email sent');
+      }
+
+      return { success: true, callbackId: callbackRef.id };
+
+    } catch (error) {
+      console.error('❌ Schedule callback error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+);
+
+// Log enrollment failure for tracking
+exports.logEnrollmentFailure = onCall(
+  defaultConfig,
+  async (request) => {
+    const { contactId, errorType, errorMessage, formData, step, userId } = request.data;
+
+    console.log('📋 Logging enrollment failure:', { contactId, errorType });
+
+    const db = admin.firestore();
+
+    try {
+      // Sanitize form data (remove sensitive info)
+      const sanitizedFormData = { ...formData };
+      if (sanitizedFormData.ssn) {
+        sanitizedFormData.ssn = `***-**-${sanitizedFormData.ssn.slice(-4)}`;
+      }
+      delete sanitizedFormData.password;
+      delete sanitizedFormData.idiqPassword;
+
+      const failureRef = await db.collection('enrollmentFailures').add({
+        contactId,
+        errorType,
+        errorMessage,
+        formData: sanitizedFormData,
+        step,
+        userId,
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        status: 'pending',
+        retryCount: 0,
+        resolved: false
+      });
+
+      // Update contact record if exists
+      if (contactId) {
+        try {
+          await db.collection('contacts').doc(contactId).update({
+            'idiq.enrollmentStatus': 'failed',
+            'idiq.lastError': errorType,
+            'idiq.lastErrorDate': admin.firestore.FieldValue.serverTimestamp()
+          });
+        } catch (updateError) {
+          console.warn('Could not update contact:', updateError.message);
+        }
+      }
+
+      return { success: true, failureId: failureRef.id };
+
+    } catch (error) {
+      console.error('❌ Log enrollment failure error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+);
+
 console.log('🚀 Firebase Gen 2 Functions configured successfully!');
 console.log('✨ AI Advanced Features loaded!');
 console.log('💰 AI Revenue Engine loaded!');
