@@ -165,6 +165,13 @@ import RealPipelineAIService from '@/services/RealPipelineAIService';
 import Pipeline from '@/pages/Pipeline';
 import { useAuth } from '@/contexts/AuthContext';
 import UltimateContactForm from '@/components/UltimateContactForm';
+
+// AI-Guided Form System imports
+import VoiceMicButton from '@/components/voice/VoiceMicButton';
+import AIFormAssistant from '@/components/ai/AIFormAssistant';
+import GlobalContactAutocomplete from '@/components/GlobalContactAutocomplete';
+import { lookupZIP } from '@/services/ZIPLookupService';
+import useContactAutosuggest from '@/hooks/useContactAutosuggest';
 import {
   BarChart as RechartsBarChart,
   Bar,
@@ -692,6 +699,17 @@ const ContactsPipelineHub = () => {
     followUp: false,
     followUpDate: '',
   });
+
+  // AI-Guided Form System state
+  const [focusedField, setFocusedField] = useState(null);
+
+  // Contact autosuggest hook
+  const {
+    suggestions: contactSuggestions,
+    isLoading: autosuggestLoading,
+    search: searchContactsAutosuggest,
+    clearSuggestions: clearContactSuggestions
+  } = useContactAutosuggest({ formName: 'ContactsPipelineHub', maxSuggestions: 5 });
   
   // ===== EMAIL DIALOG STATE (NEW) =====
   const [emailDialog, setEmailDialog] = useState(false);
@@ -2755,6 +2773,15 @@ const ContactsPipelineHub = () => {
               startAdornment: (
                 <InputAdornment position="start">
                   <Search size={20} />
+                </InputAdornment>
+              ),
+              endAdornment: (
+                <InputAdornment position="end">
+                  <VoiceMicButton
+                    onResult={(text) => setSearchTerm(text)}
+                    fieldType="text"
+                    size="small"
+                  />
                 </InputAdornment>
               ),
             }}
@@ -5374,6 +5401,16 @@ const renderAddEditContact = () => (
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      {/* AI Form Assistant - Floating helper widget */}
+      <AIFormAssistant
+        currentStep={activeTab}
+        currentField={focusedField}
+        formData={contactForm}
+        formName="ContactsPipelineHub"
+        onFieldFocus={setFocusedField}
+        showProactively={true}
+      />
     </Box>
   );
 };

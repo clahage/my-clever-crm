@@ -7,10 +7,17 @@
 // Last Updated: 2025-12-02 - Changed "Client" to "Contact" terminology
 // ============================================================================
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Phone, Mail, MapPin, FileText, CreditCard, Users, Bell, Plus, X, ChevronDown, ChevronUp, Mic, Eye, EyeOff, Brain, Clock, Globe, MessageSquare, Activity, Upload, Download, Search, AlertCircle, CheckCircle, TrendingUp, Zap, Shield, Star, Target, Calendar, DollarSign, Briefcase, Home } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { collection, addDoc, updateDoc, doc, onSnapshot, query, where, orderBy, limit, getDocs, serverTimestamp } from 'firebase/firestore';
+
+// AI-Guided Form System imports
+import VoiceMicButton from './voice/VoiceMicButton';
+import PronunciationRecorder from './voice/PronunciationRecorder';
+import AIFormAssistant from './ai/AIFormAssistant';
+import { lookupZIP } from '../services/ZIPLookupService';
+import useContactAutosuggest from '../hooks/useContactAutosuggest';
 
 // ============================================================================
 // MAIN COMPONENT DECLARATION
@@ -269,9 +276,47 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
   const [dataQuality, setDataQuality] = useState({ score: 0, issues: [], blockers: [], canSave: false });
   const [uploadingFile, setUploadingFile] = useState(false);
   const [realtimeData, setRealtimeData] = useState(null);
-  
+  const [focusedField, setFocusedField] = useState(null);
+
   const autoSaveTimerRef = useRef(null);
   const fileInputRef = useRef(null);
+
+  // Contact autosuggest hook for finding existing contacts
+  const {
+    suggestions: contactSuggestions,
+    isLoading: autosuggestLoading,
+    search: searchContacts,
+    selectContact,
+    clearSuggestions
+  } = useContactAutosuggest({ formName: 'UltimateContactForm', maxSuggestions: 5 });
+
+  // Handle autofill from selected contact
+  const handleContactAutofill = useCallback(async (contact) => {
+    const autofillData = await selectContact(contact);
+    if (autofillData) {
+      setFormData(prev => ({
+        ...prev,
+        firstName: autofillData.firstName || prev.firstName,
+        lastName: autofillData.lastName || prev.lastName,
+        middleName: autofillData.middleName || prev.middleName,
+        preferredName: autofillData.preferredName || prev.preferredName,
+        dateOfBirth: autofillData.dateOfBirth || prev.dateOfBirth,
+        ssn: autofillData.ssn || prev.ssn,
+        phones: autofillData.phone ? [{ type: 'mobile', number: autofillData.phone, isPrimary: true, canText: true, canCall: true, verified: false }] : prev.phones,
+        emails: autofillData.email ? [{ type: 'personal', address: autofillData.email, isPrimary: true, verified: false }] : prev.emails,
+        addresses: autofillData.address ? [{
+          type: 'home',
+          street: autofillData.address,
+          city: autofillData.city || '',
+          state: autofillData.state || '',
+          zip: autofillData.zip || '',
+          isPrimary: true,
+          verified: false
+        }] : prev.addresses
+      }));
+      addTimelineEvent('autofill', `Auto-filled from existing contact: ${contact.name}`);
+    }
+  }, [selectContact]);
 
   // Real-time listener for AI receptionist calls
   useEffect(() => {
@@ -681,28 +726,25 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
   };
 
   const handleZipCodeChange = async (zip, addressIndex) => {
+    // Always update the zip field immediately
+    updateArrayItem('addresses', addressIndex, { zip });
+
     if (zip.length === 5) {
-      // In production: call real ZIP API
-      const zipData = {
-        '90620': { city: 'Buena Park', state: 'CA' },
-        '92647': { city: 'Huntington Beach', state: 'CA' },
-        '92648': { city: 'Huntington Beach', state: 'CA' },
-        '92649': { city: 'Huntington Beach', state: 'CA' },
-        '90630': { city: 'Cypress', state: 'CA' },
-        '92683': { city: 'Westminster', state: 'CA' },
-        '92655': { city: 'Midway City', state: 'CA' },
-        '92646': { city: 'Huntington Beach', state: 'CA' }
-      };
-      const data = zipData[zip] || { city: '', state: '' };
-      updateArrayItem('addresses', addressIndex, { 
-        zip, 
-        city: data.city, 
-        state: data.state 
-      });
-      
-      addTimelineEvent('address_lookup', `ZIP code ${zip} auto-populated: ${data.city}, ${data.state}`);
-    } else {
-      updateArrayItem('addresses', addressIndex, { zip });
+      try {
+        // Use real ZIP lookup service with Zippopotamus API
+        const data = await lookupZIP(zip);
+        if (data && data.city) {
+          updateArrayItem('addresses', addressIndex, {
+            zip,
+            city: data.city,
+            state: data.stateAbbr || data.state
+          });
+          addTimelineEvent('address_lookup', `ZIP code ${zip} auto-populated: ${data.city}, ${data.stateAbbr} (via ${data.source})`);
+        }
+      } catch (error) {
+        console.error('ZIP lookup failed:', error);
+        // Silently fail - user can still enter city/state manually
+      }
     }
   };
 
@@ -1216,35 +1258,90 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   First Name <span className="text-yellow-600 text-xs">(recommended)</span>
                 </label>
-                <input
-                  type="text"
-                  value={formData.firstName}
-                  onChange={(e) => updateField('firstName', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="First name"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={formData.firstName}
+                    onChange={(e) => {
+                      updateField('firstName', e.target.value);
+                      searchContacts(e.target.value, 'name');
+                    }}
+                    onFocus={() => setFocusedField('firstName')}
+                    className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="First name"
+                  />
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                    <VoiceMicButton
+                      onResult={(text) => updateField('firstName', text)}
+                      fieldType="text"
+                      size="small"
+                    />
+                  </div>
+                </div>
+                {/* Contact suggestions dropdown */}
+                {focusedField === 'firstName' && contactSuggestions.length > 0 && (
+                  <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                    {contactSuggestions.map((contact) => (
+                      <div
+                        key={contact.id}
+                        className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b last:border-b-0"
+                        onClick={() => {
+                          handleContactAutofill(contact);
+                          clearSuggestions();
+                          setFocusedField(null);
+                        }}
+                      >
+                        <div className="font-medium text-sm">{contact.name}</div>
+                        {contact.phone && <div className="text-xs text-gray-500">{contact.phone}</div>}
+                        {contact.email && <div className="text-xs text-gray-500">{contact.email}</div>}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Middle Name</label>
-                <input
-                  type="text"
-                  value={formData.middleName}
-                  onChange={(e) => updateField('middleName', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  placeholder="Middle name"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={formData.middleName}
+                    onChange={(e) => updateField('middleName', e.target.value)}
+                    className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="Middle name"
+                  />
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                    <VoiceMicButton
+                      onResult={(text) => updateField('middleName', text)}
+                      fieldType="text"
+                      size="small"
+                    />
+                  </div>
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Last Name <span className="text-yellow-600 text-xs">(recommended)</span>
                 </label>
-                <input
-                  type="text"
-                  value={formData.lastName}
-                  onChange={(e) => updateField('lastName', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  placeholder="Last name"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={formData.lastName}
+                    onChange={(e) => {
+                      updateField('lastName', e.target.value);
+                      searchContacts(e.target.value, 'name');
+                    }}
+                    onFocus={() => setFocusedField('lastName')}
+                    className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="Last name"
+                  />
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                    <VoiceMicButton
+                      onResult={(text) => updateField('lastName', text)}
+                      fieldType="text"
+                      size="small"
+                    />
+                  </div>
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Suffix</label>
@@ -1276,21 +1373,17 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
                 <p className="text-xs text-gray-500 mt-1">Used in personalized communications</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Name Pronunciation
-                  <Mic className="w-4 h-4 text-blue-600 cursor-pointer hover:text-blue-700" title="Record pronunciation" />
                 </label>
-                <input
-                  type="text"
+                <PronunciationRecorder
                   value={formData.namePronunciation}
-                  onChange={(e) => updateField('namePronunciation', e.target.value)}
-                  placeholder="e.g., Gon-ZAH-lez"
-                  autoComplete="off"
-                  data-lpignore="true"
-                  data-form-type="other"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  onChange={(data) => updateField('namePronunciation', data)}
+                  name={`${formData.firstName} ${formData.lastName}`.trim() || 'Contact'}
+                  compact={true}
+                  showPhonetic={true}
                 />
-                <p className="text-xs text-gray-500 mt-1">Helps team pronounce name correctly</p>
+                <p className="text-xs text-gray-500 mt-1">Record or type how to pronounce the name</p>
               </div>
             </div>
 
@@ -3167,6 +3260,16 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
           )}
         </div>
       )}
+
+      {/* AI Form Assistant - Floating helper widget */}
+      <AIFormAssistant
+        currentStep={0}
+        currentField={focusedField}
+        formData={formData}
+        formName="UltimateContactForm"
+        onFieldFocus={(field) => setFocusedField(field)}
+        showProactively={true}
+      />
     </div>
   );
 };

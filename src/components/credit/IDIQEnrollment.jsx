@@ -117,6 +117,12 @@ import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { ROLE_HIERARCHY } from '../../layout/navConfig';
 
+// AI-Guided Form System imports
+import AIFormAssistant from '../ai/AIFormAssistant';
+import { SecurityQuestionHelper, IDIQContactCard, ProTipBanner } from '../ai/SecurityQuestionHelper';
+import EnrollmentFailureHandler from '../enrollment/EnrollmentFailureHandler';
+import EnrollmentSuccessFlow from '../enrollment/EnrollmentSuccessFlow';
+
 // ============================================================================
 // 🎨 CONSTANTS & CONFIGURATION
 // ============================================================================
@@ -294,6 +300,12 @@ const IDIQEnrollment = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+
+  // AI-Guided Form System state
+  const [focusedField, setFocusedField] = useState(null);
+  const [showFailureHandler, setShowFailureHandler] = useState(false);
+  const [showSuccessFlow, setShowSuccessFlow] = useState(false);
+  const [enrollmentErrorType, setEnrollmentErrorType] = useState('TECHNICAL_ERROR');
 
   // Step 1: Client selection
   const [clients, setClients] = useState([]);
@@ -603,10 +615,24 @@ const IDIQEnrollment = () => {
 
       setSuccess('Credit report enrollment completed successfully!');
       setActiveStep(5);
+      setShowSuccessFlow(true);
 
     } catch (error) {
       console.error('❌ Enrollment Error:', error);
       setError('Failed to complete enrollment');
+      // Determine error type for failure handler
+      if (error.message?.includes('identity')) {
+        setEnrollmentErrorType('IDENTITY_NOT_VERIFIED');
+      } else if (error.message?.includes('security')) {
+        setEnrollmentErrorType('SECURITY_QUESTIONS_FAILED');
+      } else if (error.message?.includes('already')) {
+        setEnrollmentErrorType('ALREADY_ENROLLED');
+      } else if (error.message?.includes('fraud')) {
+        setEnrollmentErrorType('FRAUD_ALERT');
+      } else {
+        setEnrollmentErrorType('TECHNICAL_ERROR');
+      }
+      setShowFailureHandler(true);
     } finally {
       setLoading(false);
     }
@@ -1415,6 +1441,83 @@ const IDIQEnrollment = () => {
           </Fade>
         )}
       </Paper>
+
+      {/* Enrollment Failure Handler */}
+      {showFailureHandler && (
+        <Dialog
+          open={showFailureHandler}
+          onClose={() => setShowFailureHandler(false)}
+          maxWidth="md"
+          fullWidth
+        >
+          <DialogContent sx={{ p: 0 }}>
+            <EnrollmentFailureHandler
+              error={{ message: error }}
+              errorType={enrollmentErrorType}
+              formData={clientInfo}
+              contactId={selectedClient?.id}
+              onRetry={() => {
+                setShowFailureHandler(false);
+                setError(null);
+                // Retry from verification step
+                setActiveStep(1);
+              }}
+              onReview={() => {
+                setShowFailureHandler(false);
+                setError(null);
+                setActiveStep(1);
+              }}
+              onClose={() => setShowFailureHandler(false)}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Enrollment Success Flow */}
+      {showSuccessFlow && (
+        <Dialog
+          open={showSuccessFlow}
+          onClose={() => setShowSuccessFlow(false)}
+          maxWidth="lg"
+          fullWidth
+        >
+          <DialogContent sx={{ p: 0 }}>
+            <EnrollmentSuccessFlow
+              enrollmentData={{
+                contactId: selectedClient?.id,
+                contactName: `${clientInfo.firstName} ${clientInfo.lastName}`,
+                enrollmentId: enrollmentId,
+                creditData: creditData,
+                selectedBureaus: Object.keys(selectedBureaus).filter(b => selectedBureaus[b]),
+              }}
+              onComplete={() => {
+                setShowSuccessFlow(false);
+                // Reset for new enrollment
+                setActiveStep(0);
+                setSelectedClient(null);
+                setClientInfo({
+                  firstName: '', lastName: '', middleName: '',
+                  ssn: '', dateOfBirth: '', phone: '', email: '',
+                  address: { street: '', city: '', state: '', zip: '' },
+                });
+              }}
+              onScheduleConsultation={(data) => {
+                console.log('Schedule consultation:', data);
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* AI Form Assistant - Floating helper widget */}
+      <AIFormAssistant
+        currentStep={activeStep}
+        currentField={focusedField}
+        formData={clientInfo}
+        formName="IDIQEnrollment"
+        onFieldFocus={setFocusedField}
+        showProactively={true}
+      />
     </Box>
   );
 };
