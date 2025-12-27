@@ -15,10 +15,19 @@ import {
 
 class EmailTrackingService {
   constructor() {
-    // Updated to use your deployed Firebase Functions
-    this.baseUrl = 'https://us-central1-my-clever-crm.cloudfunctions.net';
+    // ═══════════════════════════════════════════════════════════════
+    // GEN 2 CLOUD FUNCTION URLs (NOT cloudfunctions.net - that's Gen 1!)
+    // ═══════════════════════════════════════════════════════════════
+    // Note: Gen 2 functions use .run.app URLs, not cloudfunctions.net
+    // If you deploy trackEmailOpen/trackEmailClick, update these URLs
+    // Format: https://[functionname]-tvkxcewmxq-uc.a.run.app
+    this.baseUrl = 'https://us-central1-my-clever-crm.cloudfunctions.net'; // Keep for now until tracking functions deployed as Gen 2
     this.pixelEndpoint = '/trackEmailOpen';
     this.clickEndpoint = '/trackEmailClick';
+    
+    // TODO: When tracking functions are deployed as Gen 2, use:
+    // this.trackOpenUrl = 'https://trackemailopen-tvkxcewmxq-uc.a.run.app';
+    // this.trackClickUrl = 'https://trackemailclick-tvkxcewmxq-uc.a.run.app';
   }
 
   // Generate unique tracking ID for each email

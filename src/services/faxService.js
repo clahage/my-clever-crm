@@ -369,12 +369,21 @@ export const sendFax = async ({
     // ─────────────────────────────────────────────────────────────────────────
     // 5. SMART URL SWITCHING (Local vs Cloud)
     // ─────────────────────────────────────────────────────────────────────────
-    const isLocal = window.location.hostname === 'localhost' || 
+    // ═══════════════════════════════════════════════════════════════
+    // GEN 2 CLOUD FUNCTION URL
+    // ═══════════════════════════════════════════════════════════════
+    const isLocal = window.location.hostname === 'localhost' ||
                     window.location.hostname === '127.0.0.1';
-    
-    const endpoint = isLocal 
+
+    // Gen 2 functions use .run.app URLs (NOT cloudfunctions.net - that's Gen 1!)
+    // Note: sendFaxOutbound is NOT in your current functions list
+    // You may need to deploy it or use an existing function
+    const endpoint = isLocal
       ? 'http://127.0.0.1:5001/my-clever-crm/us-central1/sendFaxOutbound'
-      : 'https://us-central1-my-clever-crm.cloudfunctions.net/sendFaxOutbound';
+      : 'https://sendfaxoutbound-tvkxcewmxq-uc.a.run.app';
+    
+    // ⚠️ WARNING: If sendFaxOutbound is not deployed yet, this will fail
+    // Check: firebase functions:list | grep -i fax
 
     console.log(`🔗 Backend Endpoint: ${isLocal ? 'LOCAL EMULATOR' : 'PRODUCTION CLOUD'}`);
     console.log(`📡 URL: ${endpoint}`);

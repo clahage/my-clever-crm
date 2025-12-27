@@ -416,9 +416,15 @@ class EmailService {
         }
       };
       
-      // Send via Gen 2 Firebase Cloud Function
+      // ═══════════════════════════════════════════════════════════════
+// SEND VIA GEN 2 FIREBASE CLOUD FUNCTION
+// ═══════════════════════════════════════════════════════════════
       console.log(`📧 EmailService: Sending via Cloud Function to ${aliasConfig.email}`);
+      
+      // Gen 2 Cloud Function URL (NEVER use cloudfunctions.net - that's Gen 1!)
       const GEN2_FUNCTION_URL = 'https://sendemail-tvkxcewmxq-uc.a.run.app';
+      
+      console.log(`📧 EmailService: Calling ${GEN2_FUNCTION_URL}`);
       
       const response = await fetch(GEN2_FUNCTION_URL, {
         method: 'POST',
@@ -428,24 +434,35 @@ class EmailService {
         body: JSON.stringify(emailData)
       });
 
+      // Get response text first for better error messages
+      const responseText = await response.text();
+      console.log(`📧 EmailService: Response status ${response.status}:`, responseText);
+
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Cloud Function error: ${response.status} - ${errorText}`);
+        throw new Error(`Cloud Function error: ${response.status} - ${responseText}`);
       }
 
-      const result = await response.json();
+      // Parse the JSON response
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (parseError) {
+        console.warn('📧 EmailService: Response was not JSON, using text:', responseText);
+        result = { success: true, message: responseText };
+      }
       
-      // Log email to Firestore
-      await this.logEmail(emailData, result);
+      // Log email to Firestore with fallback messageId
+      const messageId = result.messageId || result.data?.messageId || 'sent-' + Date.now();
+      await this.logEmail(emailData, { ...result, messageId });
       
       // Update rate limit counters
       this.updateRateLimitCounters();
       
-      console.log(`✅ EmailService: Email sent successfully via ${aliasConfig.email}`);
+      console.log(`✅ EmailService: Email sent successfully via ${aliasConfig.email}, messageId: ${messageId}`);
       
       return {
         success: true,
-        messageId: result.messageId || result.data?.messageId || 'sent-' + Date.now(),
+        messageId: messageId,
         alias: emailType.alias,
         type,
         sentAt: new Date().toISOString()

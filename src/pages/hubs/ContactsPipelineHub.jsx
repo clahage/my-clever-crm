@@ -1,5 +1,5 @@
 // ================================================================================
-// CONTACTS HUB - MEGA ULTRA MAXIMUM ENHANCED VERSION
+// CONTACTS PIPELINE HUB - MEGA ULTRA MAXIMUM ENHANCED VERSION
 // ================================================================================
 // Version: 3.0.0 - MEGA ENHANCED EDITION
 // Purpose: Complete Contact management system with advanced AI and ML features
@@ -153,11 +153,13 @@ import {
   Heart,
   Bell,
   BellOff,
+  Briefcase,
 } from 'lucide-react';
 import { Timeline, TimelineItem, TimelineSeparator, TimelineConnector, TimelineContent, TimelineDot, TimelineOppositeContent } from '@mui/lab';
 import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, where, orderBy, serverTimestamp, onSnapshot, getDoc, writeBatch, limit, startAfter } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 // ADD THIS IMPORT
 import RealPipelineAIService from '@/services/RealPipelineAIService';
 import Pipeline from '@/pages/Pipeline';
@@ -208,6 +210,28 @@ const CONTACT_STATUSES = [
   { value: 'at_risk', label: 'At Risk', color: '#E91E63', description: 'High churn probability' },
 ];
 
+// ===== TEMPERATURE CALCULATION =====
+// Combines Lead Score (1-10) and Engagement Score (0-100) for contact temperature
+// Formula: 60% Lead Score + 40% Engagement Score (both normalized to 0-100)
+const calculateTemperature = (leadScore = 0, engagementScore = 0) => {
+  // Normalize lead score to 0-100 scale
+  const normalizedLeadScore = (leadScore / 10) * 100;
+  // Combined score: 60% lead score, 40% engagement
+  const combinedScore = (normalizedLeadScore * 0.6) + (engagementScore * 0.4);
+  
+  if (combinedScore >= 80) {
+    return { label: '🔥 Hot', color: '#D32F2F', priority: 1, score: combinedScore };
+  } else if (combinedScore >= 60) {
+    return { label: '🌡️ Warm', color: '#F57C00', priority: 2, score: combinedScore };
+  } else if (combinedScore >= 40) {
+    return { label: '😐 Lukewarm', color: '#FFC107', priority: 3, score: combinedScore };
+  } else if (combinedScore >= 20) {
+    return { label: '❄️ Cool', color: '#03A9F4', priority: 4, score: combinedScore };
+  } else {
+    return { label: '🧊 Cold', color: '#90A4AE', priority: 5, score: combinedScore };
+  }
+};
+
 const LEAD_SOURCES = [
   'Website',
   'Referral',
@@ -236,6 +260,301 @@ const COMMUNICATION_TYPES = [
   { value: 'meeting', label: 'Meeting', icon: Users, color: '#9C27B0' },
   { value: 'note', label: 'Note', icon: FileText, color: '#607D8B' },
   { value: 'video', label: 'Video Call', icon: Activity, color: '#00BCD4' },
+  { value: 'phone', label: 'Phone', icon: Phone, color: '#4CAF50' },
+];
+
+const EMAIL_TEMPLATES = [
+  {
+    id: 'welcome',
+    name: '👋 Welcome - New Client',
+    category: 'Onboarding',
+    subject: 'Welcome to Speedy Credit Repair - Let\'s Get Started!',
+    body: `Dear {{firstName}},
+
+Welcome to Speedy Credit Repair! We're thrilled to have you on board and excited to help you achieve your credit goals.
+
+Here's what happens next:
+1. We'll review your credit reports from all three bureaus
+2. Our team will identify errors, inaccuracies, and opportunities for improvement
+3. We'll create a personalized dispute strategy for your situation
+4. You'll receive regular updates on our progress
+
+If you haven't already, please send us:
+• A copy of your government-issued ID
+• A recent utility bill or bank statement (proof of address)
+• Your Social Security card (optional but helpful)
+
+Have questions? Reply to this email or call us at (888) 724-7344.
+
+We're here to help you every step of the way!
+
+Best regards,
+The Speedy Credit Repair Team
+Established 1995 | A+ BBB Rating`
+  },
+  {
+    id: 'document_request',
+    name: '📄 Document Request',
+    category: 'Onboarding',
+    subject: 'Documents Needed for Your Credit Repair - Action Required',
+    body: `Dear {{firstName}},
+
+To continue processing your credit repair case, we need the following documents:
+
+☐ Government-issued photo ID (driver's license or passport)
+☐ Proof of current address (utility bill, bank statement, or lease dated within 60 days)
+☐ Social Security card or official SSN documentation
+
+Please upload these documents through your client portal or reply to this email with clear photos/scans.
+
+Once we receive your documents, we can:
+• Pull your credit reports from all three bureaus
+• Begin identifying disputable items
+• Start the dispute process immediately
+
+Need help? Reply to this email or call us at (888) 724-7344.
+
+Thank you for your prompt attention to this matter.
+
+Best regards,
+The Speedy Credit Repair Team`
+  },
+  {
+    id: 'credit_report_ready',
+    name: '📊 Credit Report Ready for Review',
+    category: 'Updates',
+    subject: 'Your Credit Reports Are Ready - Review Your Dispute Strategy',
+    body: `Dear {{firstName}},
+
+Great news! We've pulled your credit reports from all three bureaus (Equifax, Experian, and TransUnion) and completed our initial analysis.
+
+Here's what we found:
+• Total accounts reviewed: [NUMBER]
+• Potential disputable items identified: [NUMBER]
+• Estimated timeline for first round: 30-45 days
+
+Our Dispute Strategy:
+We'll be challenging the following types of items:
+• Inaccurate account information
+• Outdated negative items
+• Duplicate entries
+• Unverifiable accounts
+
+Next Steps:
+1. Review your personalized dispute plan in your client portal
+2. Let us know if you have any questions about specific items
+3. We'll begin sending dispute letters within 48 hours
+
+Log in to your portal to see the full details: [PORTAL_LINK]
+
+Questions? We're here to help!
+
+Best regards,
+The Speedy Credit Repair Team`
+  },
+  {
+    id: 'dispute_sent',
+    name: '📬 Disputes Filed - Letters Sent',
+    category: 'Updates',
+    subject: 'Dispute Letters Sent to Credit Bureaus on Your Behalf',
+    body: `Dear {{firstName}},
+
+We've officially filed disputes with the credit bureaus on your behalf!
+
+What We Sent:
+• Dispute letters sent to: Equifax, Experian, TransUnion
+• Number of items disputed: [NUMBER]
+• Date sent: {{today}}
+
+What Happens Next:
+The credit bureaus have 30 days to investigate our disputes. During this time:
+• They must verify the accuracy of each disputed item
+• Items they cannot verify must be removed
+• You may receive letters from creditors - forward these to us
+
+Timeline:
+• Days 1-30: Bureau investigation period
+• Day 30-35: Results start arriving
+• Day 35-45: We analyze results and plan next round
+
+Important: Do NOT open any new credit accounts during this process.
+
+We'll update you as soon as we receive responses!
+
+Best regards,
+The Speedy Credit Repair Team`
+  },
+  {
+    id: 'progress_update',
+    name: '📈 Monthly Progress Update',
+    category: 'Updates',
+    subject: 'Your Credit Repair Progress Update - {{month}}',
+    body: `Dear {{firstName}},
+
+Here's your monthly credit repair progress report!
+
+PROGRESS SUMMARY:
+━━━━━━━━━━━━━━━━━━
+Starting Score: [STARTING_SCORE]
+Current Score: [CURRENT_SCORE]
+Change: +[POINTS] points 📈
+
+ITEMS REMOVED THIS MONTH:
+• [ITEM 1 DESCRIPTION]
+• [ITEM 2 DESCRIPTION]
+• [ITEM 3 DESCRIPTION]
+
+PENDING DISPUTES:
+• [NUMBER] items awaiting bureau response
+• Expected results by: [DATE]
+
+NEXT STEPS:
+We'll be sending the next round of disputes on [DATE], targeting:
+• [ACCOUNT/ITEM DESCRIPTION]
+• [ACCOUNT/ITEM DESCRIPTION]
+
+Your dedication to this process is paying off! Keep up the great work.
+
+Questions about your progress? Reply to this email or log into your portal.
+
+Best regards,
+The Speedy Credit Repair Team`
+  },
+  {
+    id: 'payment_reminder',
+    name: '💳 Payment Reminder',
+    category: 'Billing',
+    subject: 'Friendly Payment Reminder - Credit Repair Services',
+    body: `Dear {{firstName}},
+
+This is a friendly reminder that your credit repair service payment is coming up.
+
+Payment Details:
+• Amount Due: $[AMOUNT]
+• Due Date: [DATE]
+• Service Period: [PERIOD]
+
+Payment Options:
+• Log into your portal to pay online
+• Call us at (888) 724-7344 to pay by phone
+• Reply to this email with any questions
+
+Your continued service ensures we can keep working on your credit disputes and monitoring your progress.
+
+Thank you for choosing Speedy Credit Repair!
+
+Best regards,
+The Speedy Credit Repair Team`
+  },
+  {
+    id: 'payment_received',
+    name: '✅ Payment Confirmation',
+    category: 'Billing',
+    subject: 'Payment Received - Thank You!',
+    body: `Dear {{firstName}},
+
+Thank you! We've received your payment.
+
+Payment Confirmation:
+• Amount: $[AMOUNT]
+• Date: {{today}}
+• Reference #: [REFERENCE]
+
+Your account is current and our team continues working on your credit improvement.
+
+Need a receipt? Reply to this email and we'll send one right over.
+
+Thank you for your trust in Speedy Credit Repair!
+
+Best regards,
+The Speedy Credit Repair Team`
+  },
+  {
+    id: 'completion',
+    name: '🎉 Program Complete - Congratulations!',
+    category: 'Completion',
+    subject: 'Congratulations! Your Credit Repair Journey is Complete! 🎉',
+    body: `Dear {{firstName}},
+
+CONGRATULATIONS! 🎉
+
+You've successfully completed your credit repair program with Speedy Credit Repair!
+
+YOUR RESULTS:
+━━━━━━━━━━━━━━━━━━
+Starting Score: [STARTING_SCORE]
+Final Score: [FINAL_SCORE]
+Total Improvement: +[POINTS] points! 📈
+
+Items Removed/Corrected: [NUMBER]
+Accounts Verified: [NUMBER]
+
+WHAT'S NEXT:
+Now that your credit is improved, here are some tips to maintain it:
+✓ Pay all bills on time, every time
+✓ Keep credit utilization below 30%
+✓ Don't close old accounts
+✓ Monitor your credit regularly
+✓ Dispute any new errors immediately
+
+We're so proud of your progress! It's been an honor helping you achieve your credit goals.
+
+Remember, we're always here if you need us in the future. Don't hesitate to reach out or refer friends and family - we offer a referral bonus!
+
+Cheers to your financial success!
+
+Best regards,
+The Speedy Credit Repair Team
+Established 1995 | A+ BBB Rating | 4.9★ Google`
+  },
+  {
+    id: 'follow_up',
+    name: '📞 Follow-Up - Haven\'t Heard From You',
+    category: 'Outreach',
+    subject: 'Checking In - How Can We Help?',
+    body: `Dear {{firstName}},
+
+We noticed we haven't connected in a while and wanted to check in.
+
+Are you still interested in improving your credit? We're here to help!
+
+Quick options:
+📞 Call us: (888) 724-7344
+📧 Reply to this email
+🌐 Visit: speedycreditrepair.com
+
+If your situation has changed or you have questions about our services, we'd love to hear from you.
+
+Looking forward to connecting!
+
+Best regards,
+The Speedy Credit Repair Team`
+  },
+  {
+    id: 'referral_thank_you',
+    name: '🙏 Referral Thank You',
+    category: 'Outreach',
+    subject: 'Thank You for Your Referral!',
+    body: `Dear {{firstName}},
+
+THANK YOU for referring a friend to Speedy Credit Repair! 🙏
+
+Your trust means the world to us. Referrals from satisfied clients like you are the highest compliment we can receive.
+
+Your Referral Bonus:
+As a thank you, you'll receive [BONUS_AMOUNT] credit toward your next service or as a cash reward once your referral enrolls.
+
+Keep referring! For each new client you send our way:
+• You receive: [REFERRAL_BONUS]
+• They receive: [NEW_CLIENT_BONUS] off their first month
+
+Share your unique referral link: [REFERRAL_LINK]
+
+Thank you again for your confidence in our team!
+
+Warmly,
+The Speedy Credit Repair Team`
+  },
 ];
 
 const TASK_PRIORITIES = [
@@ -295,7 +614,7 @@ const getTimestampMillis = (timestamp) => {
 // MAIN COMPONENT
 // ================================================================================
 
-  const ContactsHub = () => {
+const ContactsPipelineHub = () => {
   const { currentUser, userProfile } = useAuth();
   
   // ===== STATE MANAGEMENT =====
@@ -374,6 +693,27 @@ const getTimestampMillis = (timestamp) => {
     followUpDate: '',
   });
   
+  // ===== EMAIL DIALOG STATE (NEW) =====
+  const [emailDialog, setEmailDialog] = useState(false);
+  const [emailForm, setEmailForm] = useState({
+    to: '',
+    subject: '',
+    body: '',
+    template: '',
+  });
+  const [sendingEmail, setSendingEmail] = useState(false);
+  
+  // ===== PHONE CALL DIALOG STATE (NEW) =====
+  const [phoneCallDialog, setPhoneCallDialog] = useState(false);
+  const [phoneCallForm, setPhoneCallForm] = useState({
+    duration: '',
+    outcome: 'completed',
+    notes: '',
+    followUp: false,
+    followUpDate: '',
+    callType: 'outbound',
+  });
+  
   // Document State
   const [docDialog, setDocDialog] = useState(false);
   const [uploadingDoc, setUploadingDoc] = useState(false);
@@ -405,7 +745,7 @@ const getTimestampMillis = (timestamp) => {
     category: '',
   });
   
-// Analytics State
+  // Analytics State
   const [analytics, setAnalytics] = useState({
     totalContacts: 0,
     contacts: 0,
@@ -1099,7 +1439,7 @@ const getTimestampMillis = (timestamp) => {
       customFields: {},
     });
     setSelectedContact(null);
-    setActiveTab(1);
+    setActiveTab(3);
   };
   
   const handleEditContact = (contact) => {
@@ -1115,13 +1455,13 @@ const getTimestampMillis = (timestamp) => {
     });
     
     setSelectedContact(contact);
-    setActiveTab(1);
+    setActiveTab(3);
   };
   
   const handleViewContact = (contact) => {
     console.log('👁️ Viewing contact:', contact.id);
     setSelectedContact(contact);
-    setActiveTab(2); // Contact Profile tab
+    setActiveTab(4); // Contact Profile tab
   };
   
   const handleSaveContact = async () => {
@@ -1354,7 +1694,7 @@ const getTimestampMillis = (timestamp) => {
       // Generate AI insights
       await generateAIInsights(contact, commsData, docsData, notesData, tasksData);  // ← FIXED: Lowercase c
       
-      setActiveTab(2); // Switch to profile tab
+      setActiveTab(4); // Switch to profile tab
     } catch (error) {
       console.error('❌ Error loading Contact profile:', error);
       setSnackbar({ open: true, message: 'Error loading Contact profile: ' + error.message, severity: 'error' });
@@ -1674,7 +2014,7 @@ const getTimestampMillis = (timestamp) => {
     try {
       const commData = {
         ...commForm,
-        contactId: selectedcontact.id,
+        contactId: selectedContact.id,
         userId: currentUser.uid,
         createdAt: serverTimestamp(),
         createdBy: currentUser.uid,
@@ -1683,14 +2023,14 @@ const getTimestampMillis = (timestamp) => {
       await addDoc(collection(db, 'communications'), commData);
       
       // Update Contact's last contact
-      await updateDoc(doc(db, 'contacts', selectedcontact.id), {
+      await updateDoc(doc(db, 'contacts', selectedContact.id), {
         lastContact: serverTimestamp(),
       });
       
       // Refresh communications
       const commsQuery = query(
         collection(db, 'communications'),
-        where('contactId', '==', selectedcontact.id),
+        where('contactId', '==', selectedContact.id),
         orderBy('createdAt', 'desc')
       );
       const commsSnapshot = await getDocs(commsQuery);
@@ -1706,6 +2046,235 @@ const getTimestampMillis = (timestamp) => {
     } catch (error) {
       console.error('❌ Error saving communication:', error);
       setSnackbar({ open: true, message: 'Error saving communication: ' + error.message, severity: 'error' });
+    } finally {
+      setSaving(false);
+    }
+  };
+  // ===== SEND EMAIL HANDLER - USES EXISTING manualSendEmail FUNCTION =====
+  const handleSendEmail = async () => {
+    // ===== VALIDATION =====
+    if (!selectedContact) {
+      setSnackbar({ open: true, message: 'No contact selected', severity: 'error' });
+      return;
+    }
+    
+    if (!emailForm.subject || !emailForm.body) {
+      setSnackbar({ open: true, message: 'Subject and body are required', severity: 'error' });
+      return;
+    }
+    
+    const recipientEmail = selectedContact.emails?.[0]?.address || selectedContact.email;
+    if (!recipientEmail) {
+      setSnackbar({ open: true, message: 'Contact has no email address', severity: 'error' });
+      return;
+    }
+    
+    setSaving(true);
+    console.log('📧 Sending email to:', selectedContact.firstName, selectedContact.lastName);
+    console.log('📧 Recipient:', recipientEmail);
+    console.log('📧 Subject:', emailForm.subject);
+    
+    try {
+      // ===== PREPARE EMAIL DATA FOR manualSendEmail =====
+      const emailData = {
+        // Required fields
+        to: recipientEmail,
+        subject: emailForm.subject,
+        text: emailForm.body,  // Plain text version
+        
+        // Optional: HTML version (convert line breaks to <br>)
+        html: emailForm.body
+          .replace(/\n\n/g, '</p><p>')
+          .replace(/\n/g, '<br>')
+          .replace(/^/, '<p>')
+          .replace(/$/, '</p>'),
+        
+        // Contact info for logging
+        contactId: selectedContact.id,
+        contactName: `${selectedContact.firstName || ''} ${selectedContact.lastName || ''}`.trim(),
+        
+        // Template tracking
+        templateId: emailForm.template || null,
+        
+        // Sender info
+        from: 'chris@speedycreditrepair.com',
+        fromName: 'Chris Lahage - Speedy Credit Repair',
+      };
+      
+      console.log('📤 Calling manualSendEmail Cloud Function...');
+      
+      // ===== CALL EXISTING CLOUD FUNCTION =====
+      let emailSent = false;
+      let sendError = null;
+      let messageId = null;
+      
+      try {
+        const functions = getFunctions();
+        const manualSendEmail = httpsCallable(functions, 'manualSendEmail');
+        
+        const result = await manualSendEmail(emailData);
+        console.log('📬 Cloud Function result:', result.data);
+        
+        // Check for success
+        emailSent = result.data?.success === true || result.data?.messageId;
+        messageId = result.data?.messageId;
+        
+        if (!emailSent && result.data?.error) {
+          sendError = result.data.error;
+        }
+      } catch (cloudFunctionError) {
+        console.warn('⚠️ Cloud Function error:', cloudFunctionError);
+        sendError = cloudFunctionError.message || 'Cloud function unavailable';
+        // Continue to log the communication even if sending failed
+      }
+      
+      // ===== LOG TO FIREBASE COMMUNICATIONS =====
+      const communicationData = {
+        type: 'email',
+        subject: emailForm.subject,
+        content: emailForm.body,
+        direction: 'outbound',
+        status: emailSent ? 'sent' : 'logged',
+        recipientEmail: recipientEmail,
+        templateUsed: emailForm.template || null,
+        actualSendAttempted: true,
+        actualSendSuccess: emailSent,
+        sendError: sendError || null,
+        createdAt: serverTimestamp(),
+        createdBy: currentUser?.uid || null,
+        createdByName: userProfile?.displayName || currentUser?.email || null,
+      };
+      
+      // Only add messageId if it exists (Firebase doesn't accept undefined)
+      if (messageId) {
+        communicationData.messageId = messageId;
+      }
+      
+      await addDoc(collection(db, 'contacts', selectedContact.id, 'communications'), communicationData);
+      console.log('📝 Communication logged to Firebase');
+      
+      // ===== UPDATE CONTACT'S LAST CONTACT =====
+      await updateDoc(doc(db, 'contacts', selectedContact.id), {
+        lastContact: serverTimestamp(),
+        lastContactType: 'email',
+        lastEmailSent: serverTimestamp(),
+      });
+      
+      // ===== USER FEEDBACK =====
+      if (emailSent) {
+        setSnackbar({ 
+          open: true, 
+          message: `✅ Email sent successfully to ${recipientEmail}!`, 
+          severity: 'success' 
+        });
+      } else {
+        setSnackbar({ 
+          open: true, 
+          message: `📝 Email logged (${sendError || 'sending unavailable'})`, 
+          severity: 'info' 
+        });
+      }
+      
+      // ===== CLEANUP =====
+      setEmailDialog(false);
+      setEmailForm({ to: '', subject: '', body: '', template: '' });
+      
+      // ===== REFRESH COMMUNICATIONS TIMELINE =====
+      const commsSnapshot = await getDocs(
+        query(collection(db, 'contacts', selectedContact.id, 'communications'), orderBy('createdAt', 'desc'))
+      );
+      const commsData = [];
+      commsSnapshot.forEach((d) => commsData.push({ id: d.id, ...d.data() }));
+      setCommunications(commsData);
+      
+      console.log('✅ Email process complete');
+      
+    } catch (error) {
+      console.error('❌ Error in email process:', error);
+      setSnackbar({ 
+        open: true, 
+        message: `Failed: ${error.message}`, 
+        severity: 'error' 
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+  
+  // ===== LOG PHONE CALL HANDLER =====
+  const handleLogPhoneCall = async () => {
+    if (!selectedContact) {
+      setSnackbar({ open: true, message: 'No contact selected', severity: 'error' });
+      return;
+    }
+    
+    if (!phoneCallForm.notes) {
+      setSnackbar({ open: true, message: 'Please add call notes', severity: 'error' });
+      return;
+    }
+    
+    setSaving(true);
+    console.log('📞 Logging phone call for:', selectedContact.firstName, selectedContact.lastName);
+    
+    try {
+      // Log the communication to subcollection
+      await addDoc(collection(db, 'contacts', selectedContact.id, 'communications'), {
+        type: 'phone',
+        subject: `${phoneCallForm.callType === 'inbound' ? 'Inbound' : 'Outbound'} Call - ${phoneCallForm.outcome}`,
+        content: phoneCallForm.notes,
+        direction: phoneCallForm.callType,
+        duration: phoneCallForm.duration ? parseInt(phoneCallForm.duration) : null,
+        outcome: phoneCallForm.outcome,
+        followUp: phoneCallForm.followUp,
+        followUpDate: phoneCallForm.followUpDate || null,
+        createdAt: serverTimestamp(),
+        createdBy: currentUser?.uid,
+        createdByName: userProfile?.displayName || currentUser?.email,
+      });
+      
+      // Update contact's lastContact
+      await updateDoc(doc(db, 'contacts', selectedContact.id), {
+        lastContact: serverTimestamp(),
+        lastContactType: 'phone',
+      });
+      
+      // Create follow-up task if requested
+      if (phoneCallForm.followUp && phoneCallForm.followUpDate) {
+        await addDoc(collection(db, 'contacts', selectedContact.id, 'tasks'), {
+          title: `Follow up from ${phoneCallForm.callType} call`,
+          description: `Follow up regarding: ${phoneCallForm.notes.substring(0, 100)}...`,
+          dueDate: phoneCallForm.followUpDate,
+          status: 'pending',
+          priority: 'medium',
+          createdAt: serverTimestamp(),
+          createdBy: currentUser?.uid,
+        });
+        console.log('📅 Follow-up task created');
+      }
+      
+      setSnackbar({ open: true, message: 'Phone call logged successfully!', severity: 'success' });
+      setPhoneCallDialog(false);
+      setPhoneCallForm({
+        duration: '',
+        outcome: 'completed',
+        notes: '',
+        followUp: false,
+        followUpDate: '',
+        callType: 'outbound',
+      });
+      
+      // Refresh communications
+      const commsSnapshot = await getDocs(
+        query(collection(db, 'contacts', selectedContact.id, 'communications'), orderBy('createdAt', 'desc'))
+      );
+      const commsData = [];
+      commsSnapshot.forEach((d) => commsData.push({ id: d.id, ...d.data() }));
+      setCommunications(commsData);
+      
+      console.log('✅ Phone call logged successfully');
+    } catch (error) {
+      console.error('❌ Error logging phone call:', error);
+      setSnackbar({ open: true, message: `Failed to log call: ${error.message}`, severity: 'error' });
     } finally {
       setSaving(false);
     }
@@ -1735,7 +2304,7 @@ const getTimestampMillis = (timestamp) => {
     
     try {
       // Upload file to Firebase Storage
-      const fileRef = ref(storage, `contacts/${selectedcontact.id}/${Date.now()}_${docForm.file.name}`);
+      const fileRef = ref(storage, `contacts/${selectedContact.id}/${Date.now()}_${docForm.file.name}`);
       await uploadBytes(fileRef, docForm.file);
       const fileUrl = await getDownloadURL(fileRef);
       
@@ -1748,7 +2317,7 @@ const getTimestampMillis = (timestamp) => {
         fileName: docForm.file.name,
         fileSize: docForm.file.size,
         fileType: docForm.file.type,
-        contactId: selectedcontact.id,
+        contactId: selectedContact.id,
         userId: currentUser.uid,
         createdAt: serverTimestamp(),
         createdBy: currentUser.uid,
@@ -1759,7 +2328,7 @@ const getTimestampMillis = (timestamp) => {
       // Refresh documents
       const docsQuery = query(
         collection(db, 'documents'),
-        where('contactId', '==', selectedcontact.id),
+        where('contactId', '==', selectedContact.id),
         orderBy('createdAt', 'desc')
       );
       const docsSnapshot = await getDocs(docsQuery);
@@ -1797,7 +2366,7 @@ const getTimestampMillis = (timestamp) => {
       // Refresh documents
       const docsQuery = query(
         collection(db, 'documents'),
-        where('contactId', '==', selectedcontact.id),
+        where('contactId', '==', selectedContact.id),
         orderBy('createdAt', 'desc')
       );
       const docsSnapshot = await getDocs(docsQuery);
@@ -1842,7 +2411,7 @@ const getTimestampMillis = (timestamp) => {
     try {
       const noteData = {
         ...noteForm,
-        contactId: selectedcontact.id,
+        contactId: selectedContact.id,
         userId: currentUser.uid,
         createdAt: serverTimestamp(),
         createdBy: currentUser.uid,
@@ -1853,7 +2422,7 @@ const getTimestampMillis = (timestamp) => {
       // Refresh notes
       const notesQuery = query(
         collection(db, 'notes'),
-        where('contactId', '==', selectedcontact.id),
+        where('contactId', '==', selectedContact.id),
         orderBy('createdAt', 'desc')
       );
       const notesSnapshot = await getDocs(notesQuery);
@@ -1902,7 +2471,7 @@ const getTimestampMillis = (timestamp) => {
     try {
       const taskData = {
         ...taskForm,
-        contactId: selectedcontact.id,
+        contactId: selectedContact.id,
         userId: currentUser.uid,
         createdAt: serverTimestamp(),
         createdBy: currentUser.uid,
@@ -1913,7 +2482,7 @@ const getTimestampMillis = (timestamp) => {
       // Refresh tasks
       const tasksQuery = query(
         collection(db, 'tasks'),
-        where('contactId', '==', selectedcontact.id),
+        where('contactId', '==', selectedContact.id),
         orderBy('createdAt', 'desc')
       );
       const tasksSnapshot = await getDocs(tasksQuery);
@@ -2454,7 +3023,7 @@ const getTimestampMillis = (timestamp) => {
                       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
                     }}
                   >
-                    Status
+                    Temperature
                   </TableSortLabel>
                 </TableCell>
                 <TableCell>Stage</TableCell>
@@ -2519,7 +3088,19 @@ const getTimestampMillis = (timestamp) => {
                             {contact.firstName?.[0]}{contact.lastName?.[0]}
                           </Avatar>
                           <Box>
-                            <Typography variant="body2" fontWeight="medium">
+                            <Typography 
+                              variant="body2" 
+                              fontWeight="medium"
+                              onClick={() => handleViewProfile(contact)}
+                              sx={{ 
+                                cursor: 'pointer', 
+                                color: 'primary.main',
+                                '&:hover': { 
+                                  textDecoration: 'underline',
+                                  color: 'primary.dark'
+                                }
+                              }}
+                            >
                               {contact.firstName} {contact.lastName}
                             </Typography>
                             {contact.tags && contact.tags.length > 0 && (
@@ -2537,15 +3118,22 @@ const getTimestampMillis = (timestamp) => {
                         <Typography variant="caption" color="text.secondary">{contact.phone}</Typography>
                       </TableCell>
                       <TableCell>
-                        <Chip
-                          label={statusObj?.label || contact.status}
-                          size="small"
-                          sx={{
-                            bgcolor: statusObj?.color || '#757575',
-                            color: 'white',
-                            fontWeight: 'medium',
-                          }}
-                        />
+                        {(() => {
+                          const temp = calculateTemperature(contact.leadScore, contact.engagementScore);
+                          return (
+                            <Tooltip title={`Score: ${temp.score?.toFixed(0) || 0}%`}>
+                              <Chip
+                                label={temp.label}
+                                size="small"
+                                sx={{
+                                  bgcolor: temp.color,
+                                  color: 'white',
+                                  fontWeight: 'medium',
+                                }}
+                              />
+                            </Tooltip>
+                          );
+                        })()}
                       </TableCell>
                       <TableCell>
                         <Chip
@@ -2872,44 +3460,244 @@ const renderAddEditContact = () => (
     );
   };
   
+  // ===== ENHANCED COMMUNICATIONS TAB =====
+  // Features: Send Email, Log Phone Call, Add Note, Enhanced Timeline
   const renderCommunications = () => {
+    // ===== NO CONTACT SELECTED STATE =====
     if (!selectedContact) {
-      return <Alert severity="info">Please select a Contact first.</Alert>;
+      return (
+        <Card>
+          <CardContent>
+            <Box sx={{ textAlign: 'center', py: 6 }}>
+              <MessageSquare size={64} style={{ opacity: 0.3, marginBottom: 16 }} />
+              <Typography variant="h6" color="text.secondary" gutterBottom>
+                No Contact Selected
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Select a contact from the Contact List or Clients tab to view and manage communications.
+              </Typography>
+              <Button
+                variant="contained"
+                startIcon={<Users size={18} />}
+                onClick={() => setActiveTab(0)}
+              >
+                Go to Contact List
+              </Button>
+            </Box>
+          </CardContent>
+        </Card>
+      );
     }
+    
+    // Get contact email and phone for display
+    const recipientEmail = selectedContact.emails?.[0]?.address || selectedContact.email;
+    const recipientPhone = selectedContact.phones?.[0]?.number || selectedContact.phone;
     
     return (
       <Card>
         <CardContent>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-            <Typography variant="h6">Communications History</Typography>
+          {/* ===== CONTACT HEADER ===== */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, pb: 2, borderBottom: 1, borderColor: 'divider' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Avatar sx={{ bgcolor: 'primary.main', width: 56, height: 56, fontSize: '1.5rem' }}>
+                {selectedContact.firstName?.[0]}{selectedContact.lastName?.[0]}
+              </Avatar>
+              <Box>
+                <Typography variant="h5" fontWeight="bold">
+                  {selectedContact.firstName} {selectedContact.lastName}
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 2, mt: 0.5, flexWrap: 'wrap' }}>
+                  {recipientEmail && (
+                    <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Mail size={14} /> {recipientEmail}
+                    </Typography>
+                  )}
+                  {recipientPhone && (
+                    <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Phone size={14} /> {recipientPhone}
+                    </Typography>
+                  )}
+                </Box>
+              </Box>
+            </Box>
+            <Chip 
+              label={`${communications.length} Communications`} 
+              color="primary" 
+              variant="outlined"
+            />
+          </Box>
+          
+          {/* ===== ACTION BUTTONS ===== */}
+          <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
             <Button
               variant="contained"
+              color="primary"
+              startIcon={<Mail size={18} />}
+              onClick={() => {
+                setEmailForm({
+                  ...emailForm,
+                  to: recipientEmail || '',
+                  subject: '',
+                  body: '',
+                });
+                setEmailDialog(true);
+              }}
+              disabled={!recipientEmail}
+            >
+              Send Email
+            </Button>
+            <Button
+              variant="contained"
+              color="success"
+              startIcon={<Phone size={18} />}
+              onClick={() => setPhoneCallDialog(true)}
+            >
+              Log Phone Call
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<FileText size={18} />}
+              onClick={handleAddNote}
+            >
+              Add Note
+            </Button>
+            <Button
+              variant="outlined"
               startIcon={<Plus size={18} />}
               onClick={handleAddCommunication}
             >
-              Log Communication
+              Log Other
             </Button>
           </Box>
           
-          <Timeline>
-            {communications.map((comm) => (
-              <TimelineItem key={comm.id}>
-                <TimelineOppositeContent color="text.secondary">
-                  {comm.createdAt?.toDate?.().toLocaleString()}
-                </TimelineOppositeContent>
-                <TimelineSeparator>
-                  <TimelineDot color="primary">
-                    {React.createElement(COMMUNICATION_TYPES.find(t => t.value === comm.type)?.icon || Phone, { size: 16 })}
-                  </TimelineDot>
-                  <TimelineConnector />
-                </TimelineSeparator>
-                <TimelineContent>
-                  <Typography variant="subtitle2">{comm.subject || comm.type}</Typography>
-                  <Typography variant="body2">{comm.content}</Typography>
-                </TimelineContent>
-              </TimelineItem>
-            ))}
-          </Timeline>
+          <Divider sx={{ mb: 3 }} />
+          
+          {/* ===== COMMUNICATIONS TIMELINE ===== */}
+          <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
+            Communications History
+          </Typography>
+          
+          {communications.length === 0 ? (
+            <Box sx={{ textAlign: 'center', py: 6, bgcolor: 'action.hover', borderRadius: 2 }}>
+              <MessageSquare size={48} style={{ opacity: 0.3, marginBottom: 16 }} />
+              <Typography variant="h6" color="text.secondary" gutterBottom>
+                No Communications Yet
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Start the conversation with {selectedContact.firstName}!
+              </Typography>
+            </Box>
+          ) : (
+            <Timeline position="right" sx={{ p: 0 }}>
+              {communications.map((comm, index) => {
+                const commType = COMMUNICATION_TYPES.find(t => t.value === comm.type);
+                const isEmail = comm.type === 'email';
+                const isPhone = comm.type === 'phone' || comm.type === 'call';
+                const isNote = comm.type === 'note';
+                
+                return (
+                  <TimelineItem key={comm.id}>
+                    <TimelineOppositeContent 
+                      color="text.secondary" 
+                      sx={{ flex: 0.15, minWidth: 100 }}
+                    >
+                      <Typography variant="caption" display="block" fontWeight="medium">
+                        {comm.createdAt?.toDate?.().toLocaleDateString()}
+                      </Typography>
+                      <Typography variant="caption" display="block">
+                        {comm.createdAt?.toDate?.().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </Typography>
+                    </TimelineOppositeContent>
+                    <TimelineSeparator>
+                      <TimelineDot 
+                        sx={{ 
+                          bgcolor: isEmail ? '#1976D2' : 
+                                   isPhone ? '#4CAF50' : 
+                                   isNote ? '#FF9800' : '#757575',
+                          boxShadow: 2,
+                        }}
+                      >
+                        {isEmail && <Mail size={16} color="white" />}
+                        {isPhone && <Phone size={16} color="white" />}
+                        {isNote && <FileText size={16} color="white" />}
+                        {!isEmail && !isPhone && !isNote && <MessageSquare size={16} color="white" />}
+                      </TimelineDot>
+                      {index < communications.length - 1 && <TimelineConnector />}
+                    </TimelineSeparator>
+                    <TimelineContent sx={{ pb: 3 }}>
+                      <Card 
+                        variant="outlined" 
+                        sx={{ 
+                          p: 2,
+                          borderLeft: 4,
+                          borderLeftColor: isEmail ? '#1976D2' : 
+                                          isPhone ? '#4CAF50' : 
+                                          isNote ? '#FF9800' : '#757575',
+                          '&:hover': { bgcolor: 'action.hover' },
+                        }}
+                      >
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                          <Typography variant="subtitle1" fontWeight="bold">
+                            {comm.subject || commType?.label || comm.type}
+                          </Typography>
+                          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                            {comm.direction && (
+                              <Chip 
+                                label={comm.direction === 'inbound' ? '← Inbound' : '→ Outbound'} 
+                                size="small" 
+                                variant="outlined"
+                                sx={{ fontSize: '0.7rem' }}
+                              />
+                            )}
+                            <Chip 
+                              label={commType?.label || comm.type} 
+                              size="small" 
+                              sx={{ 
+                                bgcolor: isEmail ? '#E3F2FD' : 
+                                         isPhone ? '#E8F5E9' : 
+                                         isNote ? '#FFF3E0' : '#F5F5F5',
+                                color: isEmail ? '#1976D2' : 
+                                       isPhone ? '#4CAF50' : 
+                                       isNote ? '#F57C00' : '#757575',
+                                fontWeight: 'medium',
+                              }}
+                            />
+                          </Box>
+                        </Box>
+                        <Typography 
+                          variant="body2" 
+                          sx={{ 
+                            whiteSpace: 'pre-wrap',
+                            color: 'text.secondary',
+                            mb: 1,
+                          }}
+                        >
+                          {comm.content}
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mt: 1 }}>
+                          {comm.outcome && (
+                            <Typography variant="caption" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <CheckCircle size={12} /> Outcome: {comm.outcome}
+                            </Typography>
+                          )}
+                          {comm.duration && (
+                            <Typography variant="caption" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <Clock size={12} /> {comm.duration} min
+                            </Typography>
+                          )}
+                          {comm.createdByName && (
+                            <Typography variant="caption" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <Users size={12} /> {comm.createdByName}
+                            </Typography>
+                          )}
+                        </Box>
+                      </Card>
+                    </TimelineContent>
+                  </TimelineItem>
+                );
+              })}
+            </Timeline>
+          )}
         </CardContent>
       </Card>
     );
@@ -3720,6 +4508,264 @@ const renderAddEditContact = () => (
       </DialogActions>
     </Dialog>
   );
+  // ===== EMAIL DIALOG WITH TEMPLATES =====
+  const renderEmailDialog = () => {
+    // Helper to replace template variables
+    const processTemplate = (text) => {
+      if (!text || !selectedContact) return text;
+      
+      const today = new Date().toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+      const month = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      
+      return text
+        .replace(/\{\{firstName\}\}/g, selectedContact.firstName || '')
+        .replace(/\{\{lastName\}\}/g, selectedContact.lastName || '')
+        .replace(/\{\{fullName\}\}/g, `${selectedContact.firstName || ''} ${selectedContact.lastName || ''}`.trim())
+        .replace(/\{\{email\}\}/g, selectedContact.emails?.[0]?.address || selectedContact.email || '')
+        .replace(/\{\{today\}\}/g, today)
+        .replace(/\{\{month\}\}/g, month);
+    };
+    
+    const handleTemplateSelect = (templateId) => {
+      if (!templateId) {
+        setEmailForm({ ...emailForm, template: '' });
+        return;
+      }
+      
+      const template = EMAIL_TEMPLATES.find(t => t.id === templateId);
+      if (template) {
+        setEmailForm({
+          ...emailForm,
+          template: templateId,
+          subject: processTemplate(template.subject),
+          body: processTemplate(template.body),
+        });
+      }
+    };
+    
+    // Group templates by category
+    const templatesByCategory = EMAIL_TEMPLATES.reduce((acc, template) => {
+      if (!acc[template.category]) acc[template.category] = [];
+      acc[template.category].push(template);
+      return acc;
+    }, {});
+    
+    return (
+      <Dialog open={emailDialog} onClose={() => setEmailDialog(false)} maxWidth="md" fullWidth>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Mail size={24} /> Send Email
+        </DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            {/* Template Selector */}
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel>Email Template (Optional)</InputLabel>
+                <Select
+                  value={emailForm.template || ''}
+                  label="Email Template (Optional)"
+                  onChange={(e) => handleTemplateSelect(e.target.value)}
+                >
+                  <MenuItem value="">
+                    <em>-- No Template (Write from scratch) --</em>
+                  </MenuItem>
+                  {Object.entries(templatesByCategory).map(([category, templates]) => [
+                    <MenuItem key={`cat-${category}`} disabled sx={{ fontWeight: 'bold', bgcolor: 'action.hover' }}>
+                      {category}
+                    </MenuItem>,
+                    ...templates.map(template => (
+                      <MenuItem key={template.id} value={template.id} sx={{ pl: 3 }}>
+                        {template.name}
+                      </MenuItem>
+                    ))
+                  ])}
+                </Select>
+              </FormControl>
+            </Grid>
+            
+            {/* To Field */}
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="To"
+                value={emailForm.to}
+                disabled
+                InputProps={{
+                  startAdornment: <InputAdornment position="start"><Mail size={16} /></InputAdornment>,
+                }}
+              />
+            </Grid>
+            
+            {/* Subject Field */}
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Subject"
+                value={emailForm.subject}
+                onChange={(e) => setEmailForm({ ...emailForm, subject: e.target.value })}
+                required
+                placeholder="Enter email subject..."
+              />
+            </Grid>
+            
+            {/* Message Body */}
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Message Body"
+                value={emailForm.body}
+                onChange={(e) => setEmailForm({ ...emailForm, body: e.target.value })}
+                multiline
+                rows={12}
+                required
+                placeholder="Write your email message here..."
+                sx={{ 
+                  '& .MuiInputBase-input': { 
+                    fontFamily: 'monospace',
+                    fontSize: '0.9rem',
+                  }
+                }}
+              />
+            </Grid>
+            
+            {/* Template Variables Help */}
+            {emailForm.template && (
+              <Grid item xs={12}>
+                <Alert severity="info" icon={<Sparkles size={20} />}>
+                  <AlertTitle>Template Applied</AlertTitle>
+                  Variables like [AMOUNT], [DATE], [NUMBER] are placeholders - edit them with actual values before sending.
+                </Alert>
+              </Grid>
+            )}
+            
+            {/* Info Alert */}
+            <Grid item xs={12}>
+              <Alert severity="info" icon={<AlertCircle size={20} />}>
+                This email will be logged to the contact's communication history.
+              </Alert>
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, pt: 0 }}>
+          <Button onClick={() => setEmailDialog(false)}>Cancel</Button>
+          <Button 
+            onClick={handleSendEmail} 
+            variant="contained"
+            disabled={saving || !emailForm.subject || !emailForm.body}
+            startIcon={saving ? <CircularProgress size={18} /> : <Send size={18} />}
+          >
+            {saving ? 'Saving...' : 'Log Email'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    );
+  };
+  
+  // ===== PHONE CALL DIALOG =====
+  const renderPhoneCallDialog = () => (
+    <Dialog open={phoneCallDialog} onClose={() => setPhoneCallDialog(false)} maxWidth="sm" fullWidth>
+      <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Phone size={24} /> Log Phone Call
+      </DialogTitle>
+      <DialogContent>
+        <Grid container spacing={2} sx={{ mt: 1 }}>
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth>
+              <InputLabel>Call Type</InputLabel>
+              <Select
+                value={phoneCallForm.callType}
+                label="Call Type"
+                onChange={(e) => setPhoneCallForm({ ...phoneCallForm, callType: e.target.value })}
+              >
+                <MenuItem value="outbound">📞 Outbound (I called them)</MenuItem>
+                <MenuItem value="inbound">📲 Inbound (They called me)</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              label="Duration (minutes)"
+              type="number"
+              value={phoneCallForm.duration}
+              onChange={(e) => setPhoneCallForm({ ...phoneCallForm, duration: e.target.value })}
+              placeholder="e.g., 15"
+            />
+          </Grid>
+          <Grid item xs={12}>
+            <FormControl fullWidth>
+              <InputLabel>Call Outcome</InputLabel>
+              <Select
+                value={phoneCallForm.outcome}
+                label="Call Outcome"
+                onChange={(e) => setPhoneCallForm({ ...phoneCallForm, outcome: e.target.value })}
+              >
+                <MenuItem value="completed">✅ Completed - Spoke with contact</MenuItem>
+                <MenuItem value="voicemail">📭 Left Voicemail</MenuItem>
+                <MenuItem value="no_answer">❌ No Answer</MenuItem>
+                <MenuItem value="busy">⏳ Busy - Try again later</MenuItem>
+                <MenuItem value="wrong_number">🚫 Wrong Number</MenuItem>
+                <MenuItem value="disconnected">📵 Number Disconnected</MenuItem>
+                <MenuItem value="scheduled_callback">📅 Scheduled Callback</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              label="Call Notes"
+              value={phoneCallForm.notes}
+              onChange={(e) => setPhoneCallForm({ ...phoneCallForm, notes: e.target.value })}
+              multiline
+              rows={4}
+              required
+              placeholder="What was discussed? Any action items?"
+            />
+          </Grid>
+          <Grid item xs={12}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={phoneCallForm.followUp}
+                  onChange={(e) => setPhoneCallForm({ ...phoneCallForm, followUp: e.target.checked })}
+                />
+              }
+              label="Create Follow-Up Task"
+            />
+          </Grid>
+          {phoneCallForm.followUp && (
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Follow-up Date"
+                type="date"
+                value={phoneCallForm.followUpDate}
+                onChange={(e) => setPhoneCallForm({ ...phoneCallForm, followUpDate: e.target.value })}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+          )}
+        </Grid>
+      </DialogContent>
+      <DialogActions sx={{ p: 2, pt: 0 }}>
+        <Button onClick={() => setPhoneCallDialog(false)}>Cancel</Button>
+        <Button 
+          onClick={handleLogPhoneCall} 
+          variant="contained"
+          color="success"
+          disabled={saving || !phoneCallForm.notes}
+          startIcon={saving ? <CircularProgress size={18} /> : <Phone size={18} />}
+        >
+          {saving ? 'Saving...' : 'Log Call'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
   
   const renderDocumentDialog = () => (
     <Dialog open={docDialog} onClose={() => setDocDialog(false)} maxWidth="sm" fullWidth>
@@ -3948,7 +4994,273 @@ const renderAddEditContact = () => (
       </DialogActions>
     </Dialog>
   );
-  
+
+  // ===== RENDER CLIENTS TAB =====
+  // Shows only contacts with 'client' role in beautiful accordion cards
+  const renderClientsTab = () => {
+    // Filter contacts that have 'client' role
+    const clients = contacts.filter(contact => 
+      contact.roles && contact.roles.includes('client')
+    );
+    
+    return (
+      <Card>
+        <CardContent>
+          {/* ===== HEADER ===== */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Box>
+              <Typography variant="h5" fontWeight="bold" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Briefcase size={24} />
+                Active Clients
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {clients.length} client{clients.length !== 1 ? 's' : ''} with active service
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button
+                variant="outlined"
+                startIcon={<Download size={18} />}
+                onClick={() => setExportDialog(true)}
+              >
+                Export
+              </Button>
+            </Box>
+          </Box>
+          
+          {/* ===== STATS CARDS ===== */}
+          <Grid container spacing={2} sx={{ mb: 3 }}>
+            <Grid item xs={6} sm={3}>
+              <Card sx={{ p: 2, textAlign: 'center', bgcolor: '#E8F5E9' }}>
+                <Typography variant="h4" color="success.main">{clients.length}</Typography>
+                <Typography variant="caption">Total Clients</Typography>
+              </Card>
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <Card sx={{ p: 2, textAlign: 'center', bgcolor: '#E3F2FD' }}>
+                <Typography variant="h4" color="primary">
+                  {clients.filter(c => c.status === 'active').length}
+                </Typography>
+                <Typography variant="caption">Active</Typography>
+              </Card>
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <Card sx={{ p: 2, textAlign: 'center', bgcolor: '#FFF3E0' }}>
+                <Typography variant="h4" color="warning.main">
+                  {clients.filter(c => c.idiq?.membershipStatus === 'active').length}
+                </Typography>
+                <Typography variant="caption">IDIQ Active</Typography>
+              </Card>
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <Card sx={{ p: 2, textAlign: 'center', bgcolor: '#F3E5F5' }}>
+                <Typography variant="h4" color="secondary">
+                  ${clients.reduce((sum, c) => sum + (c.totalRevenue || 0), 0).toLocaleString()}
+                </Typography>
+                <Typography variant="caption">Total Revenue</Typography>
+              </Card>
+            </Grid>
+          </Grid>
+          
+          {/* ===== CLIENTS LIST - ACCORDION STYLE ===== */}
+          {clients.length === 0 ? (
+            <Box sx={{ textAlign: 'center', py: 8 }}>
+              <Briefcase size={64} style={{ opacity: 0.3, marginBottom: 16 }} />
+              <Typography variant="h6" color="text.secondary" gutterBottom>
+                No Clients Yet
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Contacts become clients when you add the "Client" role to their profile.
+              </Typography>
+              <Button
+                variant="contained"
+                startIcon={<Users size={18} />}
+                onClick={() => setActiveTab(0)}
+              >
+                View All Contacts
+              </Button>
+            </Box>
+          ) : (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {clients.map((client) => (
+                <Accordion 
+                  key={client.id}
+                  sx={{ 
+                    borderRadius: 2, 
+                    '&:before': { display: 'none' },
+                    boxShadow: 1,
+                    '&:hover': { boxShadow: 3 }
+                  }}
+                >
+                  <AccordionSummary
+                    expandIcon={<ChevronDown />}
+                    sx={{ 
+                      '&:hover': { bgcolor: 'action.hover' },
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%', pr: 2 }}>
+                      <Avatar sx={{ bgcolor: 'success.main', width: 48, height: 48 }}>
+                        {client.firstName?.[0]}{client.lastName?.[0]}
+                      </Avatar>
+                      <Box sx={{ flexGrow: 1 }}>
+                        <Typography variant="subtitle1" fontWeight="bold">
+                          {client.firstName} {client.lastName}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {client.emails?.[0]?.address || client.email || 'No email'}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                        <Chip 
+                          label={client.status || 'Active'} 
+                          size="small" 
+                          color={client.status === 'active' ? 'success' : 'default'}
+                        />
+                        <Chip 
+                          label={`Score: ${client.leadScore || 0}/10`} 
+                          size="small" 
+                          variant="outlined"
+                          color={client.leadScore >= 7 ? 'success' : client.leadScore >= 4 ? 'warning' : 'error'}
+                        />
+                      </Box>
+                    </Box>
+                  </AccordionSummary>
+                  <AccordionDetails sx={{ bgcolor: 'grey.50' }}>
+                    <Grid container spacing={3}>
+                      {/* ===== CONTACT INFO SECTION ===== */}
+                      <Grid item xs={12} md={4}>
+                        <Typography variant="subtitle2" color="primary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Phone size={16} /> Contact Information
+                        </Typography>
+                        <Box sx={{ pl: 2 }}>
+                          <Typography variant="body2" sx={{ mb: 1 }}>
+                            <strong>Phone:</strong> {client.phones?.[0]?.number || client.phone || 'N/A'}
+                          </Typography>
+                          <Typography variant="body2" sx={{ mb: 1 }}>
+                            <strong>Email:</strong> {client.emails?.[0]?.address || client.email || 'N/A'}
+                          </Typography>
+                          <Typography variant="body2" sx={{ mb: 1 }}>
+                            <strong>Preferred:</strong> {client.preferredContactMethod || 'Phone'}
+                          </Typography>
+                          <Typography variant="body2">
+                            <strong>Language:</strong> {client.language || 'English'}
+                          </Typography>
+                        </Box>
+                      </Grid>
+                      
+                      {/* ===== CREDIT INFO SECTION ===== */}
+                      <Grid item xs={12} md={4}>
+                        <Typography variant="subtitle2" color="primary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Target size={16} /> Credit Profile
+                        </Typography>
+                        <Box sx={{ pl: 2 }}>
+                          <Typography variant="body2" sx={{ mb: 1 }}>
+                            <strong>Score:</strong> {client.creditProfile?.approximateScore || 'Not provided'}
+                          </Typography>
+                          <Typography variant="body2" sx={{ mb: 1 }}>
+                            <strong>Goal:</strong> {client.creditProfile?.targetScore || 'Not set'}
+                          </Typography>
+                          <Typography variant="body2" sx={{ mb: 1 }}>
+                            <strong>Urgency:</strong> {client.creditProfile?.urgencyLevel || 'Medium'}
+                          </Typography>
+                          <Typography variant="body2">
+                            <strong>Knowledge:</strong> {client.creditProfile?.creditKnowledge || 'Beginner'}
+                          </Typography>
+                        </Box>
+                      </Grid>
+                      
+                      {/* ===== IDIQ STATUS SECTION ===== */}
+                      <Grid item xs={12} md={4}>
+                        <Typography variant="subtitle2" color="primary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Shield size={16} /> IDIQ Status
+                        </Typography>
+                        <Box sx={{ pl: 2 }}>
+                          <Typography variant="body2" sx={{ mb: 1 }}>
+                            <strong>Status:</strong>{' '}
+                            <Chip 
+                              label={client.idiq?.membershipStatus || 'Not Enrolled'} 
+                              size="small"
+                              color={client.idiq?.membershipStatus === 'active' ? 'success' : 'default'}
+                            />
+                          </Typography>
+                          <Typography variant="body2" sx={{ mb: 1 }}>
+                            <strong>Member ID:</strong> {client.idiq?.memberId || 'N/A'}
+                          </Typography>
+                          <Typography variant="body2" sx={{ mb: 1 }}>
+                            <strong>Last Report:</strong> {client.idiq?.lastReportPull || 'Never'}
+                          </Typography>
+                          <Typography variant="body2">
+                            <strong>Monitoring:</strong> {client.idiq?.monitoringActive ? '✅ Active' : '❌ Inactive'}
+                          </Typography>
+                        </Box>
+                      </Grid>
+                      
+                      {/* ===== ACTION BUTTONS ===== */}
+                      <Grid item xs={12}>
+                        <Divider sx={{ my: 2 }} />
+                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            startIcon={<Eye size={16} />}
+                            onClick={() => handleViewProfile(client)}
+                          >
+                            View Full Profile
+                          </Button>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            startIcon={<Edit size={16} />}
+                            onClick={() => handleEditContact(client)}
+                          >
+                            Edit Client
+                          </Button>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            startIcon={<MessageSquare size={16} />}
+                            onClick={() => {
+                              setSelectedContact(client);
+                              setActiveTab(5); // Communications tab
+                            }}
+                          >
+                            Communications
+                          </Button>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            startIcon={<FileText size={16} />}
+                            onClick={() => {
+                              setSelectedContact(client);
+                              setActiveTab(6); // Documents tab
+                            }}
+                          >
+                            Documents
+                          </Button>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            startIcon={<CheckCircle size={16} />}
+                            onClick={() => {
+                              setSelectedContact(client);
+                              setActiveTab(8); // Tasks tab
+                            }}
+                          >
+                            Tasks
+                          </Button>
+                        </Box>
+                      </Grid>
+                    </Grid>
+                  </AccordionDetails>
+                </Accordion>
+              ))}
+            </Box>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
+
   // ===== MAIN RENDER =====
   
   return (
@@ -3984,19 +5296,27 @@ const renderAddEditContact = () => (
           variant="scrollable"
           scrollButtons="auto"
         >
+          {/* ===== TAB 0-2: PRIMARY TABS ===== */}
           <Tab label="Contact List" icon={<Users size={18} />} iconPosition="start" />
+          <Tab label="Sales Pipeline" icon={<GitBranch size={18} />} iconPosition="start" />
+          <Tab label="Clients" icon={<Briefcase size={18} />} iconPosition="start" />
+          
+          {/* ===== TAB 3-4: CONTACT MANAGEMENT ===== */}
           <Tab label="Add/Edit Contact" icon={<UserPlus size={18} />} iconPosition="start" /> 
           <Tab label="Contact Profile" icon={<UserCheck size={18} />} iconPosition="start" />
+          
+          {/* ===== TAB 5-8: COMMUNICATION & TASKS ===== */}
           <Tab label="Communications" icon={<MessageSquare size={18} />} iconPosition="start" />
           <Tab label="Documents" icon={<FileText size={18} />} iconPosition="start" />
           <Tab label="Notes" icon={<FileText size={18} />} iconPosition="start" />
           <Tab label="Tasks" icon={<CheckCircle size={18} />} iconPosition="start" />
+          
+          {/* ===== TAB 9-13: ANALYTICS & AI ===== */}
           <Tab label="Analytics" icon={<BarChart size={18} />} iconPosition="start" />
           <Tab label="Segmentation" icon={<Layers size={18} />} iconPosition="start" />
           <Tab label="Automation" icon={<Zap size={18} />} iconPosition="start" />
           <Tab label="Revenue" icon={<DollarSign size={18} />} iconPosition="start" />
           <Tab label="AI Intelligence" icon={<Brain size={18} />} iconPosition="start" />
-          <Tab label="Sales Pipeline" icon={<GitBranch size={18} />} iconPosition="start" />
         </Tabs>
       </Card>
       
@@ -4006,24 +5326,34 @@ const renderAddEditContact = () => (
         </Box>
       ) : (
         <>
+          {/* ===== TAB 0-2: PRIMARY TABS ===== */}
           {activeTab === 0 && renderContactList()}
-          {activeTab === 1 && renderAddEditContact()}
-          {activeTab === 2 && renderContactProfile()}
-          {activeTab === 3 && renderCommunications()}
-          {activeTab === 4 && renderDocuments()}
-          {activeTab === 5 && renderNotes()}
-          {activeTab === 6 && renderTasks()}
-          {activeTab === 7 && renderAnalytics()}
-          {activeTab === 8 && renderSegmentation()}
-          {activeTab === 9 && renderAutomation()}
-          {activeTab === 10 && renderRevenueLifecycle()}
-          {activeTab === 11 && renderPredictiveIntelligence()}
-          {activeTab === 12 && <Pipeline onEditContact={handleEditContact} onViewContact={handleViewContact} />}
+          {activeTab === 1 && <Pipeline onEditContact={handleEditContact} onViewContact={handleViewContact} />}
+          {activeTab === 2 && renderClientsTab()}
+          
+          {/* ===== TAB 3-4: CONTACT MANAGEMENT ===== */}
+          {activeTab === 3 && renderAddEditContact()}
+          {activeTab === 4 && renderContactProfile()}
+          
+          {/* ===== TAB 5-8: COMMUNICATION & TASKS ===== */}
+          {activeTab === 5 && renderCommunications()}
+          {activeTab === 6 && renderDocuments()}
+          {activeTab === 7 && renderNotes()}
+          {activeTab === 8 && renderTasks()}
+          
+          {/* ===== TAB 9-13: ANALYTICS & AI ===== */}
+          {activeTab === 9 && renderAnalytics()}
+          {activeTab === 10 && renderSegmentation()}
+          {activeTab === 11 && renderAutomation()}
+          {activeTab === 12 && renderRevenueLifecycle()}
+          {activeTab === 13 && renderPredictiveIntelligence()}
         </>
       )}
       
       {/* ===== DIALOGS ===== */}
       {renderCommunicationDialog()}
+      {renderEmailDialog()}
+      {renderPhoneCallDialog()}
       {renderDocumentDialog()}
       {renderNoteDialog()}
       {renderTaskDialog()}
@@ -4048,18 +5378,19 @@ const renderAddEditContact = () => (
   );
 };
 
-export default ContactsHub;
+export default ContactsPipelineHub;
 
 // ================================================================================
-// END OF CONTACTS HUB - MEGA ULTRA MAXIMUM ENHANCED VERSION
+// END OF CONTACTS PIPELINE HUB - MEGA ULTRA MAXIMUM ENHANCED VERSION
 // ================================================================================
-// Total Lines: 3,500+
+// File: src/pages/hubs/ContactsPipelineHub.jsx
+// Total Lines: 4,300+
 // Status: ✅ PRODUCTION-READY & COMPLETE
 // All Features: FULLY IMPLEMENTED (NO Placeholders)
 // Quality: Enterprise-Grade with ML & Advanced AI
 // 
-// NEW FEATURES ADDED:
-// 1. 5 New Tabs (Analytics, Segmentation, Automation, Revenue, AI Intelligence)
+// FEATURES:
+// 1. 14 Tabs (Contact List, Pipeline, Clients, Add/Edit, Profile, etc.)
 // 2. 20+ AI/ML Features (Churn Prediction, CLV Forecasting, etc.)
 // 3. Advanced Filtering (50+ filter options)
 // 4. Bulk Actions (Select multiple, perform actions)
@@ -4069,14 +5400,9 @@ export default ContactsHub;
 // 8. Revenue Forecasting (Per-Contact CLV)
 // 9. Customer Journey Mapping (Stage tracking)
 // 10. Win-Back Strategies (Re-engagement campaigns)
-// 11. Upsell Detection (Opportunity identification)
-// 12. Next-Best-Action Recommendations (AI-driven)
+// 11. Clients Tab with Accordion Cards (NEW!)
+// 12. Clickable Contact Names (NEW!)
 // 13. Engagement Scoring (ML algorithm)
 // 14. Churn Risk Analysis (Probability + interventions)
 // 15. Advanced Export (CSV, JSON, XLSX with custom fields)
-// 16. Real-time Collaboration Features
-// 17. Timeline Visualization Enhancements
-// 18. Custom Field Management
-// 19. Template Management System
-// 20. Integration Webhooks Support
 // ================================================================================

@@ -234,8 +234,8 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
     tags: [],
     roles: ['contact'],
     assignedTo: '',
-    leadSource: 'ai-receptionist',
-    leadScore: 0,
+    leadSource: '',
+    leadScore: 5,
     lifecycleStage: 'new',
     stage: 'prospecting',           
     pipelineStage: 'new',          
@@ -266,7 +266,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
   const [duplicates, setDuplicates] = useState([]);
   const [autoSaving, setAutoSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
-  const [dataQuality, setDataQuality] = useState({ score: 0, issues: [] });
+  const [dataQuality, setDataQuality] = useState({ score: 0, issues: [], blockers: [], canSave: false });
   const [uploadingFile, setUploadingFile] = useState(false);
   const [realtimeData, setRealtimeData] = useState(null);
   
@@ -327,67 +327,108 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
     }
   }, [formData.ssn]);
 
-  // Calculate data quality score
+  // ============================================================================
+  // CALCULATE DATA QUALITY SCORE
+  // ============================================================================
+  // Christopher's Rules:
+  // - MINIMUM TO SAVE: Phone OR Email (at least one)
+  // - Everything else is OPTIONAL and adds to completeness
+  // - Verified checkboxes are informational, not required
+  // - Issues shown as yellow warnings, not blockers
+  // ============================================================================
   useEffect(() => {
     const calculateQuality = () => {
       let score = 0;
-      const issues = [];
-      const maxScore = 100;
+      const issues = [];      // Yellow warnings (informational)
+      const blockers = [];    // Red blockers (prevent save)
       
-      // Required fields (30 points)
-      if (formData.firstName && formData.lastName) score += 10;
-      else issues.push('Missing name information');
+      // ═══════════════════════════════════════════════════════════════
+      // MINIMUM REQUIRED: Phone OR Email (one must exist)
+      // ═══════════════════════════════════════════════════════════════
+      const hasPhone = formData.phones.some(p => p.number && p.number.replace(/\D/g, '').length >= 10);
+      const hasEmail = formData.emails.some(e => e.address && e.address.includes('@'));
       
-      if (formData.dateOfBirth) score += 5;
-      else issues.push('Missing date of birth');
+      if (!hasPhone && !hasEmail) {
+        blockers.push('⛔ Must provide at least a phone number OR email address');
+      } else {
+        score += 20; // Base score for having contact method
+      }
       
-      if (formData.ssn && formData.ssn.length === 9) score += 10;
-      else issues.push('Missing or incomplete SSN');
+      // ═══════════════════════════════════════════════════════════════
+      // OPTIONAL BUT RECOMMENDED (adds to score, doesn't block)
+      // ═══════════════════════════════════════════════════════════════
       
-      if (formData.phones.length > 0 && formData.phones[0].number) score += 5;
-      else issues.push('Missing phone number');
+      // Name (15 points possible)
+      if (formData.firstName && formData.lastName) {
+        score += 15;
+      } else if (formData.firstName || formData.lastName) {
+        score += 7;
+        issues.push('💡 Full name helps with personalization');
+      } else {
+        issues.push('💡 Name recommended for communication');
+      }
       
-      // Contact verification (20 points)
-      const verifiedPhone = formData.phones.some(p => p.verified);
-      if (verifiedPhone) score += 10;
-      else issues.push('Phone not verified');
+      // Date of Birth (10 points)
+      if (formData.dateOfBirth) {
+        score += 10;
+      } else {
+        issues.push('💡 DOB needed for credit bureaus');
+      }
       
-      const verifiedEmail = formData.emails.some(e => e.verified);
-      if (verifiedEmail) score += 10;
-      else issues.push('Email not verified');
+      // SSN (15 points)
+      if (formData.ssn && formData.ssn.length === 9) {
+        score += 15;
+      } else if (formData.ssnLast4) {
+        score += 5;
+        issues.push('💡 Full SSN needed for credit disputes');
+      } else {
+        issues.push('💡 SSN required for credit repair services');
+      }
       
-      // Address completeness (15 points)
+      // Contact verification (BONUS points - not required)
+      if (formData.phones.some(p => p.verified)) score += 5;
+      if (formData.emails.some(e => e.verified)) score += 5;
+      
+      // Address (10 points)
       const hasFullAddress = formData.addresses.some(a => 
         a.street && a.city && a.state && a.zip
       );
-      if (hasFullAddress) score += 10;
-      else issues.push('Incomplete address');
+      if (hasFullAddress) {
+        score += 10;
+      } else {
+        issues.push('💡 Address helps with dispute letters');
+      }
       
-      if (formData.addresses.some(a => a.verified)) score += 5;
-      else issues.push('Address not verified');
+      // Employment (5 points)
+      if (formData.employment.employer) {
+        score += 5;
+      }
       
-      // Employment (10 points)
-      if (formData.employment.employer && formData.employment.monthlyIncome) score += 10;
-      else issues.push('Missing employment details');
+      // Lead Source (5 points)
+      if (formData.leadSource) {
+        score += 5;
+      } else {
+        issues.push('💡 Lead source helps track marketing');
+      }
       
-      // Credit profile (10 points)
-      if (formData.creditProfile.approximateScore) score += 5;
-      if (formData.creditProfile.primaryGoals.length > 0) score += 5;
+      // Credit profile (5 points)
+      if (formData.creditProfile.approximateScore) {
+        score += 5;
+      }
       
-      // Documents (10 points)
-      const docScore = [
+      // Documents (5 points)
+      const docCount = [
         formData.documents.idReceived,
         formData.documents.proofOfAddressReceived,
         formData.documents.ssnCardReceived
       ].filter(Boolean).length;
-      score += docScore * 3.33;
-      
-      // IDIQ enrollment (5 points)
-      if (formData.idiq.membershipStatus === 'active') score += 5;
+      score += docCount * 1.67;
       
       setDataQuality({ 
-        score: Math.round(score), 
+        score: Math.min(100, Math.round(score)), 
         issues,
+        blockers,
+        canSave: blockers.length === 0,  // Easy check for save button
         lastCalculated: new Date().toISOString()
       });
     };
@@ -402,27 +443,31 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
       setAiAnalyzing(true);
       const suggestions = [];
       
-      // Completeness checks
+      // Completeness checks - Changed from "required" to "suggestion"
       if (!formData.firstName || !formData.lastName) {
         suggestions.push({ 
-          type: 'required', 
+          type: 'suggestion', 
           field: 'name', 
-          message: 'Basic name information needed',
-          priority: 'high'
+          message: 'Adding name helps personalize communications',
+          priority: 'medium'
         });
       }
       
-      if (formData.phones.length === 0 || !formData.phones[0].number) {
+      // Check for BOTH phone and email missing (this is the only blocker)
+      const hasPhone = formData.phones.some(p => p.number && p.number.replace(/\D/g, '').length >= 10);
+      const hasEmail = formData.emails.some(e => e.address && e.address.includes('@'));
+      
+      if (!hasPhone && !hasEmail) {
         suggestions.push({ 
           type: 'required', 
-          field: 'phone', 
-          message: 'At least one phone number required',
+          field: 'contact', 
+          message: 'At least one phone number OR email address is required',
           priority: 'high'
         });
       }
       
       // Duplicate detection
-      if (formData.firstName && formData.lastName && formData.phones[0]?.number) {
+      if (formData.firstName && formData.lastName && (hasPhone || hasEmail)) {
         // In production: query Firestore for potential duplicates
         // For now, simulate
         const potentialDupes = [];
@@ -1154,13 +1199,14 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
           title="Basic Information" 
           icon={Users} 
           section="basic" 
-          badge="Required" 
+          badge="Contact Info" 
           aiActive={true}
           completeness={
-            ((formData.firstName ? 25 : 0) +
-             (formData.lastName ? 25 : 0) +
-             (formData.dateOfBirth ? 25 : 0) +
-             (formData.ssn && formData.ssn.length === 9 ? 25 : 0))
+            ((formData.firstName ? 20 : 0) +
+             (formData.lastName ? 20 : 0) +
+             (formData.dateOfBirth ? 20 : 0) +
+             (formData.ssn && formData.ssn.length === 9 ? 20 : 0) +
+             (formData.leadSource ? 20 : 0))
           }
         />
         {expandedSections.basic && (
@@ -1168,7 +1214,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  First Name <span className="text-red-500">*</span>
+                  First Name <span className="text-yellow-600 text-xs">(recommended)</span>
                 </label>
                 <input
                   type="text"
@@ -1190,7 +1236,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Last Name <span className="text-red-500">*</span>
+                  Last Name <span className="text-yellow-600 text-xs">(recommended)</span>
                 </label>
                 <input
                   type="text"
@@ -1238,17 +1284,75 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
                   type="text"
                   value={formData.namePronunciation}
                   onChange={(e) => updateField('namePronunciation', e.target.value)}
-                  placeholder="e.g., La-HAH-gee"
+                  placeholder="e.g., Gon-ZAH-lez"
+                  autoComplete="off"
+                  data-lpignore="true"
+                  data-form-type="other"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
                 <p className="text-xs text-gray-500 mt-1">Helps team pronounce name correctly</p>
               </div>
             </div>
 
+            {/* Lead Source & Lead Score - NEW VISIBLE FIELDS */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                  <Target className="w-4 h-4 text-purple-600" />
+                  Lead Source
+                </label>
+                <select
+                  value={formData.leadSource}
+                  onChange={(e) => updateField('leadSource', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">-- Select Source --</option>
+                  <option value="ai-receptionist">🤖 AI Receptionist</option>
+                  <option value="website">🌐 Website Form</option>
+                  <option value="phone-call">📞 Phone Call</option>
+                  <option value="referral">👥 Referral</option>
+                  <option value="social-media">📱 Social Media</option>
+                  <option value="google-ads">🔍 Google Ads</option>
+                  <option value="facebook-ads">📘 Facebook Ads</option>
+                  <option value="walk-in">🚶 Walk-In</option>
+                  <option value="email-campaign">📧 Email Campaign</option>
+                  <option value="partner">🤝 Partner/Affiliate</option>
+                  <option value="returning-client">🔄 Returning Client</option>
+                  <option value="manual-entry">✏️ Manual Entry</option>
+                  <option value="other">📋 Other</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">How did this contact find us?</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                  <Star className="w-4 h-4 text-yellow-500" />
+                  Initial Lead Score
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="range"
+                    min="1"
+                    max="10"
+                    value={formData.leadScore || 5}
+                    onChange={(e) => updateField('leadScore', parseInt(e.target.value))}
+                    className="flex-1"
+                  />
+                  <span className={`px-3 py-1 rounded-full text-sm font-bold min-w-[60px] text-center ${
+                    formData.leadScore >= 8 ? 'bg-green-100 text-green-700' :
+                    formData.leadScore >= 5 ? 'bg-yellow-100 text-yellow-700' :
+                    'bg-red-100 text-red-700'
+                  }`}>
+                    {formData.leadScore || 5}/10
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">AI will adjust based on engagement</p>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Date of Birth <span className="text-red-500">*</span>
+                  Date of Birth <span className="text-yellow-600 text-xs">(for credit bureaus)</span>
                 </label>
                 <input
                   type="date"
@@ -1264,7 +1368,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center justify-between">
-                  <span>Social Security Number <span className="text-red-500">*</span></span>
+                  <span>Social Security Number <span className="text-yellow-600 text-xs">(for credit repair)</span></span>
                   <button
                     type="button"
                     onClick={() => setShowSSN(!showSSN)}
@@ -1279,6 +1383,9 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
                   onChange={(e) => handleSSNChange(e.target.value)}
                   placeholder="XXX-XX-XXXX"
                   maxLength="11"
+                  autoComplete="new-password"
+                  data-lpignore="true"
+                  data-form-type="other"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono"
                 />
                 {formData.ssnLast4 && (
@@ -1299,7 +1406,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
           title="Contact Information" 
           icon={Phone} 
           section="contact" 
-          badge="Required" 
+          badge="Phone OR Email Required" 
           aiActive={true}
           completeness={
             Math.round(
@@ -1311,6 +1418,14 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
         />
         {expandedSections.contact && (
           <div className="p-4 bg-white border border-gray-200 rounded-lg space-y-4">
+            {/* Minimum Requirement Notice */}
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0" />
+              <p className="text-sm text-blue-800">
+                <strong>Minimum required:</strong> At least one phone number OR email address to save this contact.
+              </p>
+            </div>
+
             {/* Phones */}
             <div>
               <div className="flex items-center justify-between mb-2">
@@ -1361,14 +1476,14 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
                     <Phone className="w-3 h-3 text-gray-600" />
                     <span className="text-xs">Call</span>
                   </label>
-                  <label className="flex items-center gap-1 px-2 py-1 bg-white rounded border border-gray-200 cursor-pointer hover:bg-gray-50">
+                  <label className="flex items-center gap-1 px-2 py-1 bg-white rounded border border-gray-200 cursor-pointer hover:bg-gray-50" title="Check when phone number has been verified">
                     <input
                       type="checkbox"
                       checked={phone.verified}
                       onChange={(e) => updateArrayItem('phones', index, { verified: e.target.checked })}
                       className="rounded border-gray-300"
                     />
-                    <CheckCircle className="w-3 h-3 text-gray-600" />
+                    <CheckCircle className="w-3 h-3 text-green-600" />
                     <span className="text-xs">Verified</span>
                   </label>
                   {formData.phones.length > 1 && (
@@ -3013,33 +3128,43 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
           </button>
           <button
             onClick={handleSave}
-            disabled={dataQuality.score < 30}
+            disabled={!dataQuality.canSave}
             className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 font-medium flex items-center gap-2 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Brain className="w-5 h-5" />
             Save Contact Profile
-            {dataQuality.score < 30 && (
-              <span className="text-xs bg-white/20 px-2 py-0.5 rounded">
-                {30 - dataQuality.score}% needed
+            {!dataQuality.canSave && dataQuality.blockers?.length > 0 && (
+              <span className="text-xs bg-red-500/30 px-2 py-0.5 rounded">
+                Phone or Email Required
               </span>
             )}
           </button>
         </div>
       </div>
 
-      {/* Data Quality Issues Modal Trigger */}
-      {dataQuality.issues.length > 0 && (
-        <div className="fixed bottom-4 right-4 z-50">
-          <button
-            onClick={() => {
-              // Show issues in a modal or expand section
-              alert(`Data Quality Issues:\n\n${dataQuality.issues.join('\n')}`);
-            }}
-            className="px-4 py-2 bg-yellow-500 text-white rounded-full shadow-lg hover:bg-yellow-600 flex items-center gap-2 animate-pulse"
-          >
-            <AlertCircle className="w-4 h-4" />
-            {dataQuality.issues.length} Issues
-          </button>
+      {/* Data Quality Issues Display */}
+      {(dataQuality.blockers?.length > 0 || dataQuality.issues?.length > 0) && (
+        <div className="fixed bottom-4 right-4 z-50 space-y-2">
+          {/* Red Blockers (prevent save) */}
+          {dataQuality.blockers?.length > 0 && (
+            <div className="px-4 py-2 bg-red-500 text-white rounded-lg shadow-lg flex items-center gap-2">
+              <AlertCircle className="w-4 h-4" />
+              <span className="text-sm">{dataQuality.blockers[0]}</span>
+            </div>
+          )}
+          
+          {/* Yellow Warnings (informational) */}
+          {dataQuality.issues?.length > 0 && (
+            <button
+              onClick={() => {
+                alert(`📋 Recommended Information:\n\n${dataQuality.issues.join('\n')}\n\n✅ These are optional - you can still save!`);
+              }}
+              className="px-4 py-2 bg-yellow-500 text-white rounded-full shadow-lg hover:bg-yellow-600 flex items-center gap-2"
+            >
+              <AlertCircle className="w-4 h-4" />
+              {dataQuality.issues.length} Suggestions
+            </button>
+          )}
         </div>
       )}
     </div>
