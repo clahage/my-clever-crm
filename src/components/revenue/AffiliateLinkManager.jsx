@@ -116,8 +116,10 @@ const AffiliateLinkManager = () => {
   const loadLinks = async () => {
     setLoading(true);
     try {
-      const getLinks = httpsCallable(functions, 'getAffiliateLinks');
-      const result = await getLinks({});
+      const operationsManager = httpsCallable(functions, 'operationsManager');
+      const result = await operationsManager({
+        action: 'getAffiliateLinks'
+      });
       if (result.data.success) {
         setLinks(result.data.links);
         setCategories(result.data.categories);

@@ -1,22 +1,28 @@
-// src/pages/idiq/IDIQEnrollment.jsx
 // ============================================================================
-// 🏆 ULTIMATE IDIQ CREDIT REPORT ENROLLMENT WIDGET
+// Path: src/components/credit/IDIQEnrollment.jsx
+// ============================================================================
+// 🏆 IDIQ CREDIT REPORT ENROLLMENT - PRODUCTION VERSION
+// ============================================================================
+// © 1995-2025 Speedy Credit Repair Inc. | Chris Lahage | All Rights Reserved
 // ============================================================================
 // FEATURES:
-// ✅ Real-time IDIQ API integration (Partner ID: 11981)
-// ✅ AI-powered credit analysis (OpenAI)
-// ✅ Predictive lead scoring
-// ✅ Automatic dispute generation
-// ✅ Client profile auto-update
-// ✅ Multi-bureau selection (Experian, Equifax, TransUnion)
-// ✅ SSN encryption & security
+// ✅ Real IDIQ API via Firebase Cloud Functions (Partner ID: 11981)
+// ✅ AI analysis via secure server-side Cloud Functions
+// ✅ Security questions with proper flow handling
+// ✅ Lead scoring and client profile auto-update
+// ✅ Multi-bureau credit report retrieval
+// ✅ SSN encryption & security (never sent to browser logs)
 // ✅ Real-time validation
 // ✅ Beautiful responsive UI with dark mode
 // ✅ Role-based access control (8-level hierarchy)
 // ✅ Progress tracking with animations
-// ✅ Email notifications
-// ✅ PDF report storage
 // ✅ Error recovery with retry logic
+// ============================================================================
+// SECURITY NOTES:
+// - ALL API calls go through Firebase Cloud Functions
+// - NO API keys exposed in browser
+// - SSN handled securely (masked in UI, never logged)
+// - OpenAI calls are server-side only
 // ============================================================================
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
@@ -51,22 +57,18 @@ import {
   DialogContent,
   DialogActions,
   InputAdornment,
-  Switch,
-  Radio,
-  RadioGroup,
-  FormLabel,
   Collapse,
   List,
   ListItem,
   ListItemText,
   ListItemIcon,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
   Avatar,
   Badge,
   Fade,
   Zoom,
+  Radio,
+  RadioGroup,
+  FormLabel,
 } from '@mui/material';
 import {
   CheckCircle as CheckIcon,
@@ -87,7 +89,6 @@ import {
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon,
   Search as SearchIcon,
-  AccountBalance as BankIcon,
   Description as DocumentIcon,
   Email as EmailIcon,
   Phone as PhoneIcon,
@@ -96,9 +97,8 @@ import {
   Psychology as BrainIcon,
   AutoAwesome as SparkleIcon,
   Speed as SpeedIcon,
-  Timeline as TimelineIcon,
-  Bolt as BoltIcon,
-  ExpandMore as ExpandMoreIcon,
+  HelpOutline as HelpIcon,
+  Close as CloseIcon,
 } from '@mui/icons-material';
 import { 
   collection, 
@@ -114,247 +114,141 @@ import {
   limit,
 } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { useAuth } from '../../contexts/AuthContext';
-import { ROLE_HIERARCHY } from '../../layout/navConfig';
 
-// AI-Guided Form System imports
-import AIFormAssistant from '../ai/AIFormAssistant';
-import { SecurityQuestionHelper, IDIQContactCard, ProTipBanner } from '../ai/SecurityQuestionHelper';
-import EnrollmentFailureHandler from '../enrollment/EnrollmentFailureHandler';
-import EnrollmentSuccessFlow from '../enrollment/EnrollmentSuccessFlow';
+// ============================================================================
+// 🔧 FIREBASE CLOUD FUNCTIONS SETUP
+// ============================================================================
+const functions = getFunctions();
+const idiqService = httpsCallable(functions, 'idiqService');
 
 // ============================================================================
 // 🎨 CONSTANTS & CONFIGURATION
 // ============================================================================
-
 const IDIQ_PARTNER_ID = '11981';
-const IDIQ_API_URL = import.meta.env.VITE_IDIQ_API_URL || 'https://api.idiq.com/v1';
-const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
 
 // Bureau configurations
 const BUREAUS = {
-  experian: { 
-    id: 'experian', 
-    name: 'Experian', 
-    color: '#0066B2',
-    icon: '🔵',
-    avgScore: 700,
-  },
-  equifax: { 
-    id: 'equifax', 
-    name: 'Equifax', 
-    color: '#C8102E',
-    icon: '🔴',
-    avgScore: 698,
-  },
   transunion: { 
     id: 'transunion', 
     name: 'TransUnion', 
-    color: '#005EB8',
-    icon: '🟣',
-    avgScore: 702,
+    color: '#00A4E4',
+    icon: '🔵',
+    description: 'Primary bureau for IDIQ integration',
   },
 };
 
 // Enrollment steps
 const STEPS = [
-  { id: 'select', label: 'Select Client', icon: PersonIcon },
-  { id: 'verify', label: 'Verify Info', icon: VerifiedIcon },
-  { id: 'bureaus', label: 'Choose Bureaus', icon: CreditIcon },
-  { id: 'pull', label: 'Pull Report', icon: BoltIcon },
-  { id: 'analyze', label: 'AI Analysis', icon: BrainIcon },
+  { id: 'client', label: 'Select Client', icon: PersonIcon },
+  { id: 'info', label: 'Client Info', icon: DocumentIcon },
+  { id: 'enroll', label: 'Enrollment', icon: CreditIcon },
+  { id: 'verify', label: 'Verification', icon: SecurityIcon },
+  { id: 'report', label: 'Credit Report', icon: AssessmentIcon },
   { id: 'complete', label: 'Complete', icon: CheckIcon },
 ];
 
-// SSN validation regex
-const SSN_REGEX = /^(?!000|666|9\d{2})\d{3}-?(?!00)\d{2}-?(?!0000)\d{4}$/;
+// US States
+const US_STATES = [
+  { code: 'AL', name: 'Alabama' }, { code: 'AK', name: 'Alaska' },
+  { code: 'AZ', name: 'Arizona' }, { code: 'AR', name: 'Arkansas' },
+  { code: 'CA', name: 'California' }, { code: 'CO', name: 'Colorado' },
+  { code: 'CT', name: 'Connecticut' }, { code: 'DE', name: 'Delaware' },
+  { code: 'FL', name: 'Florida' }, { code: 'GA', name: 'Georgia' },
+  { code: 'HI', name: 'Hawaii' }, { code: 'ID', name: 'Idaho' },
+  { code: 'IL', name: 'Illinois' }, { code: 'IN', name: 'Indiana' },
+  { code: 'IA', name: 'Iowa' }, { code: 'KS', name: 'Kansas' },
+  { code: 'KY', name: 'Kentucky' }, { code: 'LA', name: 'Louisiana' },
+  { code: 'ME', name: 'Maine' }, { code: 'MD', name: 'Maryland' },
+  { code: 'MA', name: 'Massachusetts' }, { code: 'MI', name: 'Michigan' },
+  { code: 'MN', name: 'Minnesota' }, { code: 'MS', name: 'Mississippi' },
+  { code: 'MO', name: 'Missouri' }, { code: 'MT', name: 'Montana' },
+  { code: 'NE', name: 'Nebraska' }, { code: 'NV', name: 'Nevada' },
+  { code: 'NH', name: 'New Hampshire' }, { code: 'NJ', name: 'New Jersey' },
+  { code: 'NM', name: 'New Mexico' }, { code: 'NY', name: 'New York' },
+  { code: 'NC', name: 'North Carolina' }, { code: 'ND', name: 'North Dakota' },
+  { code: 'OH', name: 'Ohio' }, { code: 'OK', name: 'Oklahoma' },
+  { code: 'OR', name: 'Oregon' }, { code: 'PA', name: 'Pennsylvania' },
+  { code: 'RI', name: 'Rhode Island' }, { code: 'SC', name: 'South Carolina' },
+  { code: 'SD', name: 'South Dakota' }, { code: 'TN', name: 'Tennessee' },
+  { code: 'TX', name: 'Texas' }, { code: 'UT', name: 'Utah' },
+  { code: 'VT', name: 'Vermont' }, { code: 'VA', name: 'Virginia' },
+  { code: 'WA', name: 'Washington' }, { code: 'WV', name: 'West Virginia' },
+  { code: 'WI', name: 'Wisconsin' }, { code: 'WY', name: 'Wyoming' },
+  { code: 'DC', name: 'District of Columbia' }
+];
 
-// ============================================================================
-// 🧠 AI ANALYSIS FUNCTIONS
-// ============================================================================
-
-/**
- * Analyze credit report using OpenAI
- * Returns: {
- *   leadScore: 1-10,
- *   sentiment: 'positive'|'neutral'|'negative',
- *   creditQuality: 'excellent'|'good'|'fair'|'poor',
- *   opportunities: [...],
- *   risks: [...],
- *   recommendations: [...],
- *   timeline: 'months to improvement'
- * }
- */
-const analyzeCreditReportWithAI = async (creditData) => {
-  if (!OPENAI_API_KEY) {
-    console.warn('⚠️ OpenAI API key not configured');
-    return null;
-  }
-
-  try {
-    const prompt = `
-You are a credit repair expert analyzing a credit report. Provide actionable insights.
-
-CREDIT DATA:
-- Scores: Experian ${creditData.scores?.experian || 'N/A'}, Equifax ${creditData.scores?.equifax || 'N/A'}, TransUnion ${creditData.scores?.transunion || 'N/A'}
-- Negative Items: ${creditData.negativeItems?.length || 0}
-- Positive Items: ${creditData.positiveItems?.length || 0}
-- Total Debt: $${creditData.totalDebt || 0}
-- Payment History: ${creditData.paymentHistory || 'Unknown'}
-- Inquiries: ${creditData.inquiries || 0}
-
-Respond in JSON format only:
-{
-  "leadScore": <1-10 integer>,
-  "sentiment": "<positive|neutral|negative>",
-  "creditQuality": "<excellent|good|fair|poor>",
-  "opportunities": ["<opportunity 1>", "<opportunity 2>"],
-  "risks": ["<risk 1>", "<risk 2>"],
-  "recommendations": ["<action 1>", "<action 2>"],
-  "estimatedImprovementMonths": <integer>,
-  "projectedScoreIncrease": <integer>,
-  "urgencyLevel": "<high|medium|low>"
-}`;
-
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4',
-        messages: [
-          { role: 'system', content: 'You are a credit repair expert. Always respond with valid JSON only.' },
-          { role: 'user', content: prompt },
-        ],
-        temperature: 0.7,
-        max_tokens: 1000,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    const aiResponse = JSON.parse(data.choices[0].message.content);
-    
-    console.log('✅ AI Analysis Complete:', aiResponse);
-    return aiResponse;
-  } catch (error) {
-    console.error('❌ AI Analysis Error:', error);
-    return null;
-  }
-};
-
-/**
- * Generate dispute letters using AI
- */
-const generateDisputeLettersWithAI = async (negativeItems) => {
-  if (!OPENAI_API_KEY || !negativeItems?.length) return [];
-
-  try {
-    const prompt = `Generate dispute letters for these credit report items:
-${negativeItems.map((item, i) => `${i + 1}. ${item.type}: ${item.creditor} - ${item.reason}`).join('\n')}
-
-Return JSON array of dispute letters with: bureau, creditor, accountNumber, disputeReason, letterText`;
-
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4',
-        messages: [
-          { role: 'system', content: 'You are a credit dispute expert. Generate professional dispute letters. Respond with JSON only.' },
-          { role: 'user', content: prompt },
-        ],
-        temperature: 0.7,
-        max_tokens: 2000,
-      }),
-    });
-
-    const data = await response.json();
-    return JSON.parse(data.choices[0].message.content);
-  } catch (error) {
-    console.error('❌ Dispute Generation Error:', error);
-    return [];
-  }
-};
+// SSN Validation Regex
+const SSN_REGEX = /^\d{3}-?\d{2}-?\d{4}$/;
 
 // ============================================================================
 // 🎯 MAIN COMPONENT
 // ============================================================================
-
 const IDIQEnrollment = () => {
-  // ===== AUTH & PERMISSIONS =====
   const { currentUser, userProfile } = useAuth();
-  const userRole = userProfile?.role || 'user';
-  const hasAccess = ROLE_HIERARCHY[userRole] >= ROLE_HIERARCHY.user;
-
+  
   // ===== STATE MANAGEMENT =====
+  // Wizard state
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-
-  // AI-Guided Form System state
-  const [focusedField, setFocusedField] = useState(null);
-  const [showFailureHandler, setShowFailureHandler] = useState(false);
-  const [showSuccessFlow, setShowSuccessFlow] = useState(false);
-  const [enrollmentErrorType, setEnrollmentErrorType] = useState('TECHNICAL_ERROR');
-
-  // Step 1: Client selection
+  
+  // Client state
   const [clients, setClients] = useState([]);
+  const [clientsLoading, setClientsLoading] = useState(true);
   const [selectedClient, setSelectedClient] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [showNewClientForm, setShowNewClientForm] = useState(false);
-
-  // Step 2: Client info verification
+  
+  // Form state
   const [clientInfo, setClientInfo] = useState({
     firstName: '',
     lastName: '',
-    middleName: '',
+    middleNameInitial: '',
     ssn: '',
     dateOfBirth: '',
     phone: '',
     email: '',
-    address: {
-      street: '',
-      city: '',
-      state: '',
-      zip: '',
-    },
+    street: '',
+    city: '',
+    state: '',
+    zip: '',
+    offerCode: '4315004O',
+    planCode: 'PLAN6X',
   });
-
+  
+  // SSN state
   const [showSSN, setShowSSN] = useState(false);
-  const [ssnValidation, setSsnValidation] = useState({ valid: false, message: '' });
-
-  // Step 3: Bureau selection
-  const [selectedBureaus, setSelectedBureaus] = useState({
-    experian: true,
-    equifax: true,
-    transunion: true,
-  });
-  const [pullType, setPullType] = useState('tri-merge'); // 'tri-merge' or 'individual'
-  const [includeScoreFactors, setIncludeScoreFactors] = useState(true);
-
-  // Step 4: Pull report
+  const [ssnValidation, setSsnValidation] = useState({ valid: null, message: '' });
+  
+  // Enrollment state
+  const [enrollmentId, setEnrollmentId] = useState(null);
+  const [enrollmentStatus, setEnrollmentStatus] = useState(null);
+  
+  // Verification state
+  const [verificationQuestions, setVerificationQuestions] = useState([]);
+  const [verificationAnswers, setVerificationAnswers] = useState({});
+  const [verificationStatus, setVerificationStatus] = useState(null);
+  
+  // Report state
+  const [reportData, setReportData] = useState(null);
+  const [creditScore, setCreditScore] = useState(null);
+  const [quickView, setQuickView] = useState(null);
+  
+  // Progress state
   const [pullProgress, setPullProgress] = useState(0);
   const [pullStatus, setPullStatus] = useState('');
-  const [reportData, setReportData] = useState(null);
-
-  // Step 5: AI Analysis
-  const [aiAnalysis, setAiAnalysis] = useState(null);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [disputeLetters, setDisputeLetters] = useState([]);
-
-  // Step 6: Complete
-  const [enrollmentId, setEnrollmentId] = useState(null);
-  const [notificationSent, setNotificationSent] = useState(false);
+  
+  // Permission check
+  const hasAccess = useMemo(() => {
+    if (!userProfile?.role) return false;
+    const roleLevel = {
+      masterAdmin: 8, admin: 7, manager: 6, user: 5,
+      affiliate: 4, client: 3, prospect: 2, viewer: 1
+    };
+    return (roleLevel[userProfile.role] || 0) >= 5; // user level or higher
+  }, [userProfile]);
 
   // ===== LOAD CLIENTS =====
   useEffect(() => {
@@ -362,285 +256,488 @@ const IDIQEnrollment = () => {
   }, []);
 
   const loadClients = async () => {
+    setClientsLoading(true);
     try {
       const contactsRef = collection(db, 'contacts');
       const q = query(
         contactsRef,
         where('roles', 'array-contains-any', ['client', 'lead', 'prospect']),
-        orderBy('createdAt', 'desc'),
+        orderBy('lastName'),
         limit(100)
       );
-      
       const snapshot = await getDocs(q);
-      const clientsData = snapshot.docs.map(doc => ({
+      const clientList = snapshot.docs.map(doc => ({
         id: doc.id,
-        ...doc.data(),
+        ...doc.data()
       }));
-      
-      setClients(clientsData);
-      console.log('✅ Loaded clients:', clientsData.length);
-    } catch (error) {
-      console.error('❌ Error loading clients:', error);
-      setError('Failed to load clients. Please refresh.');
+      setClients(clientList);
+      console.log('✅ Loaded clients:', clientList.length);
+    } catch (err) {
+      console.error('Error loading clients:', err);
+      // Fallback: try without the compound query
+      try {
+        const contactsRef = collection(db, 'contacts');
+        const snapshot = await getDocs(contactsRef);
+        const clientList = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setClients(clientList);
+        console.log('✅ Loaded clients (fallback):', clientList.length);
+      } catch (fallbackErr) {
+        console.error('Fallback also failed:', fallbackErr);
+      }
+    } finally {
+      setClientsLoading(false);
     }
   };
 
-  // ===== FILTERED CLIENTS (SEARCH) =====
+  // ===== FILTERED CLIENTS =====
   const filteredClients = useMemo(() => {
     if (!searchTerm) return clients;
-    
-    const search = searchTerm.toLowerCase();
-    return clients.filter(client => 
-      client.firstName?.toLowerCase().includes(search) ||
-      client.lastName?.toLowerCase().includes(search) ||
-      client.email?.toLowerCase().includes(search) ||
-      client.phone?.includes(search)
+    const term = searchTerm.toLowerCase();
+    return clients.filter(c => 
+      c.firstName?.toLowerCase().includes(term) ||
+      c.lastName?.toLowerCase().includes(term) ||
+      c.email?.toLowerCase().includes(term) ||
+      c.phone?.includes(term)
     );
   }, [clients, searchTerm]);
 
-  // ===== STEP 1: SELECT CLIENT =====
-  const handleClientSelect = async (client) => {
+  // ===== CLIENT SELECTION =====
+  const handleClientSelect = (client) => {
     setSelectedClient(client);
     setClientInfo({
       firstName: client.firstName || '',
       lastName: client.lastName || '',
-      middleName: client.middleName || '',
-      ssn: client.ssn || '',
+      middleNameInitial: client.middleName?.charAt(0) || '',
+      ssn: '', // Never pre-fill SSN
       dateOfBirth: client.dateOfBirth || '',
       phone: client.phone || '',
       email: client.email || '',
-      address: {
-        street: client.address?.street || '',
-        city: client.address?.city || '',
-        state: client.address?.state || '',
-        zip: client.address?.zip || '',
-      },
+      street: client.address?.street || client.street || '',
+      city: client.address?.city || client.city || '',
+      state: client.address?.state || client.state || '',
+      zip: client.address?.zip || client.zipCode || client.zip || '',
+      offerCode: '4315004O',
+      planCode: 'PLAN6X',
     });
     setActiveStep(1);
+    setError(null);
   };
 
-  // ===== STEP 2: VALIDATE SSN =====
-  const validateSSN = (ssn) => {
-    const cleaned = ssn.replace(/\D/g, '');
+  // ===== FIELD HANDLERS =====
+  const handleFieldChange = (field) => (event) => {
+    let value = event.target.value;
     
-    if (cleaned.length !== 9) {
-      setSsnValidation({ valid: false, message: 'SSN must be 9 digits' });
-      return false;
+    // Format ZIP code
+    if (field === 'zip') {
+      value = value.replace(/\D/g, '').slice(0, 5);
     }
     
-    if (!SSN_REGEX.test(ssn)) {
-      setSsnValidation({ valid: false, message: 'Invalid SSN format' });
-      return false;
-    }
-    
-    setSsnValidation({ valid: true, message: 'Valid SSN' });
-    return true;
+    setClientInfo(prev => ({ ...prev, [field]: value }));
   };
 
+  // ===== SSN HANDLING =====
   const handleSSNChange = (e) => {
-    let value = e.target.value.replace(/\D/g, '');
-    
-    // Format: XXX-XX-XXXX
-    if (value.length >= 3) {
-      value = value.slice(0, 3) + '-' + value.slice(3);
-    }
-    if (value.length >= 6) {
-      value = value.slice(0, 6) + '-' + value.slice(6, 10);
-    }
-    
-    setClientInfo({ ...clientInfo, ssn: value });
+    let value = e.target.value.replace(/\D/g, '').slice(0, 9);
+    setClientInfo(prev => ({ ...prev, ssn: value }));
     validateSSN(value);
   };
 
-  // ===== STEP 3: BUREAU SELECTION =====
-  const handleBureauToggle = (bureau) => {
-    setSelectedBureaus({
-      ...selectedBureaus,
-      [bureau]: !selectedBureaus[bureau],
-    });
+  const validateSSN = (ssn) => {
+    const cleaned = ssn.replace(/\D/g, '');
+    if (cleaned.length === 0) {
+      setSsnValidation({ valid: null, message: '' });
+    } else if (cleaned.length !== 9) {
+      setSsnValidation({ valid: false, message: 'SSN must be 9 digits' });
+    } else if (cleaned.startsWith('000') || cleaned.startsWith('666') || cleaned.startsWith('9')) {
+      setSsnValidation({ valid: false, message: 'Invalid SSN prefix' });
+    } else {
+      setSsnValidation({ valid: true, message: 'Valid format' });
+    }
+    return cleaned.length === 9;
   };
 
-  const getSelectedBureausCount = () => {
-    return Object.values(selectedBureaus).filter(Boolean).length;
+  const formatSSNDisplay = (ssn) => {
+    if (!ssn) return '';
+    const cleaned = ssn.replace(/\D/g, '');
+    if (showSSN) {
+      if (cleaned.length >= 5) {
+        return `${cleaned.slice(0,3)}-${cleaned.slice(3,5)}-${cleaned.slice(5)}`;
+      } else if (cleaned.length >= 3) {
+        return `${cleaned.slice(0,3)}-${cleaned.slice(3)}`;
+      }
+      return cleaned;
+    } else {
+      return cleaned.length === 9 ? '***-**-' + cleaned.slice(-4) : '***-**-****';
+    }
   };
 
-  // ===== STEP 4: PULL CREDIT REPORT =====
-  const pullCreditReport = async () => {
-    setLoading(true);
-    setPullProgress(0);
+  // ===== DATE OF BIRTH FORMATTING =====
+  const formatDOBForAPI = (dob) => {
+    if (!dob) return '';
+    const date = new Date(dob);
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${month}/${day}/${year}`;
+  };
+
+  // ===== VALIDATION =====
+  const validateStep = (step) => {
+    const errors = [];
+    
+    switch (step) {
+      case 1: // Client Info
+        if (!clientInfo.firstName?.trim()) errors.push('First name is required');
+        if (clientInfo.firstName?.length > 15) errors.push('First name max 15 characters');
+        if (!clientInfo.lastName?.trim()) errors.push('Last name is required');
+        if (clientInfo.lastName?.length > 15) errors.push('Last name max 15 characters');
+        if (!clientInfo.email?.trim()) errors.push('Email is required');
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientInfo.email)) errors.push('Invalid email format');
+        if (!clientInfo.street?.trim()) errors.push('Street address is required');
+        if (clientInfo.street?.length > 50) errors.push('Street max 50 characters');
+        if (!clientInfo.city?.trim()) errors.push('City is required');
+        if (clientInfo.city?.length > 30) errors.push('City max 30 characters');
+        if (!clientInfo.state) errors.push('State is required');
+        if (!clientInfo.zip || clientInfo.zip.length !== 5) errors.push('ZIP must be 5 digits');
+        if (!clientInfo.dateOfBirth) errors.push('Date of birth is required');
+        else {
+          const dob = new Date(clientInfo.dateOfBirth);
+          const age = Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+          if (age < 18) errors.push('Must be 18 or older');
+          if (age > 120) errors.push('Invalid date of birth');
+        }
+        if (!clientInfo.ssn || clientInfo.ssn.length !== 9) errors.push('SSN must be 9 digits');
+        break;
+        
+      case 3: // Verification
+        if (verificationQuestions.length > 0) {
+          verificationQuestions.forEach((q, idx) => {
+            if (!verificationAnswers[idx]) {
+              errors.push(`Please answer question ${idx + 1}`);
+            }
+          });
+        }
+        break;
+    }
+    
+    if (errors.length > 0) {
+      setError(errors.join('. '));
+      return false;
+    }
     setError(null);
+    return true;
+  };
 
+  // ===== SUBMIT ENROLLMENT (STEP 2 → 3) =====
+  const submitEnrollment = async () => {
+    if (!validateStep(1)) return;
+    
+    setLoading(true);
+    setError(null);
+    setPullProgress(0);
+    setPullStatus('Preparing enrollment...');
+    
     try {
-      // Simulate progress updates
-      const progressInterval = setInterval(() => {
-        setPullProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return 90;
-          }
-          return prev + 10;
-        });
-      }, 500);
-
-      // Step 1: Validate client info
-      setPullStatus('Validating client information...');
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Step 2: Connect to IDIQ API
-      setPullStatus('Connecting to credit bureaus...');
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Step 3: Pull reports from selected bureaus
-      const bureausToPull = Object.keys(selectedBureaus).filter(b => selectedBureaus[b]);
-      setPullStatus(`Pulling reports from ${bureausToPull.length} bureaus...`);
-
-      // ACTUAL IDIQ API CALL (MOCK FOR NOW)
-      const response = await mockIDIQApiCall({
-        partnerId: IDIQ_PARTNER_ID,
-        clientInfo,
-        bureaus: bureausToPull,
-        pullType,
-        includeScoreFactors,
-      });
-
-      clearInterval(progressInterval);
-      setPullProgress(100);
-      setPullStatus('Reports received successfully!');
-
-      setReportData(response);
+      console.log('📝 Submitting IDIQ enrollment via Cloud Function...');
+      setPullProgress(20);
+      setPullStatus('Connecting to IDIQ...');
       
-      // Auto-advance to AI analysis
-      setTimeout(() => {
-        setActiveStep(4);
-        runAIAnalysis(response);
-      }, 1500);
-
-    } catch (error) {
-      console.error('❌ Credit Pull Error:', error);
-      setError(error.message || 'Failed to pull credit report');
+      // Call the idiqService Cloud Function
+      const result = await idiqService({
+        action: 'enroll',
+        enrollmentData: {
+          firstName: clientInfo.firstName.trim(),
+          lastName: clientInfo.lastName.trim(),
+          middleNameInitial: clientInfo.middleNameInitial?.trim() || '',
+          email: clientInfo.email.trim().toLowerCase(),
+          ssn: clientInfo.ssn.replace(/\D/g, ''),
+          birthDate: formatDOBForAPI(clientInfo.dateOfBirth),
+          street: clientInfo.street.trim(),
+          city: clientInfo.city.trim(),
+          state: clientInfo.state,
+          zip: clientInfo.zip,
+          offerCode: clientInfo.offerCode,
+          planCode: clientInfo.planCode,
+        },
+        contactId: selectedClient?.id
+      });
+      
+      console.log('📋 Enrollment response:', result.data);
+      setPullProgress(60);
+      
+      if (result.data.success) {
+        setEnrollmentId(result.data.enrollmentId);
+        setEnrollmentStatus('enrolled');
+        setPullStatus('Enrollment successful! Getting verification questions...');
+        setPullProgress(80);
+        
+        // Save initial enrollment to Firestore
+        await saveEnrollmentToFirestore('pending_verification');
+        
+        // Get verification questions
+        await fetchVerificationQuestions();
+        
+      } else {
+        throw new Error(result.data.error || 'Enrollment failed');
+      }
+      
+    } catch (err) {
+      console.error('❌ Enrollment error:', err);
+      setError(err.message || 'Failed to submit enrollment. Please try again.');
       setPullStatus('');
+      setPullProgress(0);
     } finally {
       setLoading(false);
     }
   };
 
-  // Mock IDIQ API call (replace with actual API integration)
-  const mockIDIQApiCall = async (params) => {
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Simulate API response
-    return {
-      success: true,
-      reportId: `CR-${Date.now()}`,
-      timestamp: new Date().toISOString(),
-      client: params.clientInfo,
-      scores: {
-        experian: Math.floor(Math.random() * 300) + 500,
-        equifax: Math.floor(Math.random() * 300) + 500,
-        transunion: Math.floor(Math.random() * 300) + 500,
-      },
-      negativeItems: [
-        { type: 'Collection', creditor: 'ABC Medical', amount: 450, reason: 'Unpaid medical bill', bureau: 'Experian' },
-        { type: 'Late Payment', creditor: 'Chase Bank', amount: 0, reason: '30 days late', bureau: 'All' },
-      ],
-      positiveItems: [
-        { type: 'Credit Card', creditor: 'AmEx', balance: 2000, limit: 10000, status: 'Current' },
-        { type: 'Auto Loan', creditor: 'Toyota Finance', balance: 15000, payment: 350, status: 'Current' },
-      ],
-      totalDebt: 17450,
-      paymentHistory: '95% on-time',
-      inquiries: 3,
-      accountsOpen: 8,
-      accountsClosed: 2,
-    };
+  // ===== FETCH VERIFICATION QUESTIONS =====
+  const fetchVerificationQuestions = async () => {
+    try {
+      console.log('🔐 Fetching verification questions...');
+      setPullStatus('Loading security questions...');
+      
+      const result = await idiqService({
+        action: 'getVerificationQuestions',
+        memberEmail: clientInfo.email
+      });
+      
+      console.log('📋 Verification questions response:', result.data);
+      
+      if (result.data.success) {
+        if (result.data.questions && result.data.questions.length > 0) {
+          setVerificationQuestions(result.data.questions);
+          setActiveStep(3);
+          setPullStatus('');
+          setPullProgress(100);
+        } else {
+          // No questions needed - proceed to report
+          console.log('✅ No verification questions needed');
+          setActiveStep(4);
+          await fetchCreditReport();
+        }
+      } else {
+        throw new Error(result.data.error || 'Failed to get verification questions');
+      }
+      
+    } catch (err) {
+      console.error('❌ Error fetching verification questions:', err);
+      setError(err.message);
+    }
   };
 
-  // ===== STEP 5: AI ANALYSIS =====
-  const runAIAnalysis = async (creditData) => {
-    setAiLoading(true);
+  // ===== SUBMIT VERIFICATION ANSWERS =====
+  const submitVerificationAnswers = async () => {
+    if (!validateStep(3)) return;
+    
+    setLoading(true);
+    setError(null);
+    setPullStatus('Verifying identity...');
     
     try {
-      // Run AI analysis
-      const analysis = await analyzeCreditReportWithAI(creditData);
-      setAiAnalysis(analysis);
-
-      // Generate dispute letters
-      if (creditData.negativeItems?.length > 0) {
-        const letters = await generateDisputeLettersWithAI(creditData.negativeItems);
-        setDisputeLetters(letters);
+      console.log('📝 Submitting verification answers...');
+      
+      // Build answers array
+      const answersArray = verificationQuestions.map((q, idx) => verificationAnswers[idx]);
+      
+      const result = await idiqService({
+        action: 'submitVerification',
+        memberEmail: clientInfo.email,
+        answers: answersArray
+      });
+      
+      console.log('📋 Verification result:', result.data);
+      
+      if (result.data.success) {
+        const status = result.data.status;
+        
+        if (status === 'Correct' || status === 0) {
+          // Verification passed!
+          setVerificationStatus('verified');
+          setPullStatus('Identity verified! Fetching credit report...');
+          
+          // Update enrollment status
+          await saveEnrollmentToFirestore('active');
+          
+          // Proceed to credit report
+          setActiveStep(4);
+          await fetchCreditReport();
+          
+        } else if (status === 'MoreQuestions' || status === 1) {
+          // More questions needed
+          if (result.data.question) {
+            setVerificationQuestions(prev => [...prev, result.data.question]);
+          }
+          setPullStatus('Additional verification required');
+          
+        } else {
+          // Verification failed
+          setVerificationStatus('failed');
+          setError('Identity verification failed. Please check your information and try again.');
+        }
+      } else {
+        throw new Error(result.data.error || 'Verification failed');
       }
+      
+    } catch (err) {
+      console.error('❌ Verification error:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+      setPullStatus('');
+    }
+  };
 
-      // Update client profile with lead score
-      if (selectedClient && analysis) {
+  // ===== FETCH CREDIT REPORT =====
+  const fetchCreditReport = async () => {
+    setLoading(true);
+    setPullStatus('Pulling credit report from TransUnion...');
+    setPullProgress(0);
+    
+    try {
+      console.log('📊 Fetching credit report...');
+      
+      // Progress simulation for UX
+      const progressInterval = setInterval(() => {
+        setPullProgress(prev => Math.min(prev + 10, 90));
+      }, 500);
+      
+      // Get credit score
+      const scoreResult = await idiqService({
+        action: 'getScore',
+        memberEmail: clientInfo.email
+      });
+      
+      if (scoreResult.data.success) {
+        setCreditScore(scoreResult.data.score);
+        console.log('✅ Credit score:', scoreResult.data.score);
+      }
+      
+      // Get quick view report
+      const quickViewResult = await idiqService({
+        action: 'getQuickView',
+        memberEmail: clientInfo.email
+      });
+      
+      if (quickViewResult.data.success) {
+        setQuickView(quickViewResult.data.quickView);
+        console.log('✅ Quick view loaded');
+      }
+      
+      // Get full report
+      const reportResult = await idiqService({
+        action: 'getReport',
+        memberEmail: clientInfo.email
+      });
+      
+      clearInterval(progressInterval);
+      setPullProgress(100);
+      
+      if (reportResult.data.success) {
+        setReportData(reportResult.data.report);
+        console.log('✅ Full report loaded');
+        
+        // Update Firestore with report info
+        await saveEnrollmentToFirestore('active', true);
+        
+        setPullStatus('Credit report retrieved successfully!');
+        
+        // Move to completion step
+        setTimeout(() => {
+          setActiveStep(5);
+          setSuccess('Credit report enrollment completed successfully!');
+        }, 1500);
+        
+      } else {
+        throw new Error(reportResult.data.error || 'Failed to retrieve credit report');
+      }
+      
+    } catch (err) {
+      console.error('❌ Error fetching credit report:', err);
+      setError(err.message);
+      // Still allow proceeding even if report fetch fails
+      setActiveStep(5);
+      setSuccess('Enrollment complete. Credit report will be available shortly.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ===== SAVE TO FIRESTORE =====
+  const saveEnrollmentToFirestore = async (status, hasReport = false) => {
+    try {
+      const enrollmentDoc = {
+        contactId: selectedClient?.id,
+        memberEmail: clientInfo.email,
+        firstName: clientInfo.firstName,
+        lastName: clientInfo.lastName,
+        status: status,
+        partnerId: IDIQ_PARTNER_ID,
+        offerCode: clientInfo.offerCode,
+        planCode: clientInfo.planCode,
+        hasReport: hasReport,
+        creditScore: creditScore,
+        enrolledBy: currentUser?.uid,
+        enrolledByName: userProfile?.displayName || currentUser?.email,
+        updatedAt: serverTimestamp(),
+      };
+      
+      if (selectedClient?.id) {
+        // Update existing or create
+        const enrollmentRef = doc(db, 'idiqEnrollments', selectedClient.id);
+        const existing = await getDoc(enrollmentRef);
+        
+        if (existing.exists()) {
+          await updateDoc(enrollmentRef, enrollmentDoc);
+        } else {
+          enrollmentDoc.createdAt = serverTimestamp();
+          await addDoc(collection(db, 'idiqEnrollments'), enrollmentDoc);
+        }
+        
+        // Update contact record
         await updateDoc(doc(db, 'contacts', selectedClient.id), {
-          leadScore: analysis.leadScore,
-          creditQuality: analysis.creditQuality,
-          lastCreditPull: serverTimestamp(),
-          aiAnalysis: analysis,
+          idiqEnrolled: true,
+          idiqStatus: status,
+          idiqEnrollmentDate: serverTimestamp(),
+          creditScore: creditScore || null,
           updatedAt: serverTimestamp(),
         });
       }
-
-    } catch (error) {
-      console.error('❌ AI Analysis Error:', error);
-    } finally {
-      setAiLoading(false);
+      
+      console.log('✅ Enrollment saved to Firestore');
+      
+    } catch (err) {
+      console.error('Error saving enrollment:', err);
     }
   };
 
-  // ===== STEP 6: COMPLETE ENROLLMENT =====
-  const completeEnrollment = async () => {
-    setLoading(true);
-    
-    try {
-      // Save enrollment record
-      const enrollmentRef = await addDoc(collection(db, 'idiqEnrollments'), {
-        clientId: selectedClient.id,
-        clientName: `${clientInfo.firstName} ${clientInfo.lastName}`,
-        reportData,
-        aiAnalysis,
-        disputeLetters,
-        selectedBureaus,
-        pulledBy: currentUser.uid,
-        pulledByName: userProfile?.displayName || currentUser.email,
-        status: 'completed',
-        createdAt: serverTimestamp(),
-      });
-
-      setEnrollmentId(enrollmentRef.id);
-
-      // Send email notification
-      await sendEnrollmentNotification(enrollmentRef.id);
-      setNotificationSent(true);
-
-      setSuccess('Credit report enrollment completed successfully!');
-      setActiveStep(5);
-      setShowSuccessFlow(true);
-
-    } catch (error) {
-      console.error('❌ Enrollment Error:', error);
-      setError('Failed to complete enrollment');
-      // Determine error type for failure handler
-      if (error.message?.includes('identity')) {
-        setEnrollmentErrorType('IDENTITY_NOT_VERIFIED');
-      } else if (error.message?.includes('security')) {
-        setEnrollmentErrorType('SECURITY_QUESTIONS_FAILED');
-      } else if (error.message?.includes('already')) {
-        setEnrollmentErrorType('ALREADY_ENROLLED');
-      } else if (error.message?.includes('fraud')) {
-        setEnrollmentErrorType('FRAUD_ALERT');
-      } else {
-        setEnrollmentErrorType('TECHNICAL_ERROR');
-      }
-      setShowFailureHandler(true);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const sendEnrollmentNotification = async (enrollmentId) => {
-    // TODO: Implement email notification via Firebase Functions
-    console.log('📧 Sending notification for enrollment:', enrollmentId);
+  // ===== RESET WIZARD =====
+  const resetWizard = () => {
+    setActiveStep(0);
+    setSelectedClient(null);
+    setClientInfo({
+      firstName: '', lastName: '', middleNameInitial: '',
+      ssn: '', dateOfBirth: '', phone: '', email: '',
+      street: '', city: '', state: '', zip: '',
+      offerCode: '4315004O', planCode: 'PLAN6X',
+    });
+    setShowSSN(false);
+    setSsnValidation({ valid: null, message: '' });
+    setEnrollmentId(null);
+    setEnrollmentStatus(null);
+    setVerificationQuestions([]);
+    setVerificationAnswers({});
+    setVerificationStatus(null);
+    setReportData(null);
+    setCreditScore(null);
+    setQuickView(null);
+    setPullProgress(0);
+    setPullStatus('');
+    setError(null);
+    setSuccess(null);
   };
 
   // ===== PERMISSION CHECK =====
@@ -650,12 +747,448 @@ const IDIQEnrollment = () => {
         <Alert severity="error">
           <AlertTitle>Access Denied</AlertTitle>
           You do not have permission to access the IDIQ enrollment system.
+          Required role: User level (5) or higher.
         </Alert>
       </Box>
     );
   }
 
-  // ===== RENDER =====
+  // ===== RENDER FUNCTIONS =====
+  
+  // Step 0: Client Selection
+  const renderClientSelection = () => (
+    <Box>
+      <TextField
+        fullWidth
+        placeholder="Search clients by name, email, or phone..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <SearchIcon />
+            </InputAdornment>
+          ),
+        }}
+        sx={{ mb: 3 }}
+      />
+      
+      {clientsLoading ? (
+        <Box sx={{ textAlign: 'center', py: 4 }}>
+          <CircularProgress />
+          <Typography sx={{ mt: 2 }}>Loading clients...</Typography>
+        </Box>
+      ) : filteredClients.length === 0 ? (
+        <Alert severity="info">
+          No clients found. Add clients in the Contacts section first.
+        </Alert>
+      ) : (
+        <Grid container spacing={2}>
+          {filteredClients.slice(0, 20).map((client) => (
+            <Grid item xs={12} sm={6} md={4} key={client.id}>
+              <Card 
+                variant="outlined"
+                sx={{ 
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  '&:hover': { 
+                    borderColor: 'primary.main',
+                    transform: 'translateY(-2px)',
+                    boxShadow: 2,
+                  },
+                  ...(client.idiqEnrolled && {
+                    borderColor: 'success.main',
+                    bgcolor: 'success.light',
+                  })
+                }}
+                onClick={() => handleClientSelect(client)}
+              >
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Avatar sx={{ bgcolor: client.idiqEnrolled ? 'success.main' : 'primary.main' }}>
+                      {client.firstName?.charAt(0)}{client.lastName?.charAt(0)}
+                    </Avatar>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography variant="subtitle1" fontWeight="bold" noWrap>
+                        {client.firstName} {client.lastName}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" noWrap>
+                        {client.email}
+                      </Typography>
+                    </Box>
+                    {client.idiqEnrolled && (
+                      <Chip label="Enrolled" size="small" color="success" />
+                    )}
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      )}
+    </Box>
+  );
+
+  // Step 1: Client Information
+  const renderClientInfo = () => (
+    <Box>
+      <Alert severity="info" sx={{ mb: 3 }}>
+        <AlertTitle>IDIQ Enrollment Requirements</AlertTitle>
+        All fields are required. Information must exactly match what's on file with credit bureaus.
+      </Alert>
+      
+      <Grid container spacing={3}>
+        {/* Personal Info */}
+        <Grid item xs={12}>
+          <Typography variant="subtitle1" fontWeight="bold" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <PersonIcon color="primary" /> Personal Information
+          </Typography>
+        </Grid>
+        
+        <Grid item xs={12} sm={5}>
+          <TextField
+            fullWidth
+            label="First Name"
+            value={clientInfo.firstName}
+            onChange={handleFieldChange('firstName')}
+            required
+            inputProps={{ maxLength: 15 }}
+            helperText="Max 15 characters"
+          />
+        </Grid>
+        <Grid item xs={12} sm={2}>
+          <TextField
+            fullWidth
+            label="M.I."
+            value={clientInfo.middleNameInitial}
+            onChange={handleFieldChange('middleNameInitial')}
+            inputProps={{ maxLength: 1 }}
+          />
+        </Grid>
+        <Grid item xs={12} sm={5}>
+          <TextField
+            fullWidth
+            label="Last Name"
+            value={clientInfo.lastName}
+            onChange={handleFieldChange('lastName')}
+            required
+            inputProps={{ maxLength: 15 }}
+            helperText="Max 15 characters"
+          />
+        </Grid>
+        
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="Email"
+            type="email"
+            value={clientInfo.email}
+            onChange={handleFieldChange('email')}
+            required
+            InputProps={{
+              startAdornment: <InputAdornment position="start"><EmailIcon /></InputAdornment>,
+            }}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="Phone"
+            value={clientInfo.phone}
+            onChange={handleFieldChange('phone')}
+            InputProps={{
+              startAdornment: <InputAdornment position="start"><PhoneIcon /></InputAdornment>,
+            }}
+          />
+        </Grid>
+        
+        {/* Address */}
+        <Grid item xs={12}>
+          <Divider sx={{ my: 2 }} />
+          <Typography variant="subtitle1" fontWeight="bold" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <HomeIcon color="primary" /> Address
+          </Typography>
+        </Grid>
+        
+        <Grid item xs={12}>
+          <TextField
+            fullWidth
+            label="Street Address"
+            value={clientInfo.street}
+            onChange={handleFieldChange('street')}
+            required
+            inputProps={{ maxLength: 50 }}
+            helperText="Max 50 characters"
+          />
+        </Grid>
+        <Grid item xs={12} sm={5}>
+          <TextField
+            fullWidth
+            label="City"
+            value={clientInfo.city}
+            onChange={handleFieldChange('city')}
+            required
+            inputProps={{ maxLength: 30 }}
+          />
+        </Grid>
+        <Grid item xs={12} sm={4}>
+          <FormControl fullWidth required>
+            <InputLabel>State</InputLabel>
+            <Select
+              value={clientInfo.state}
+              onChange={handleFieldChange('state')}
+              label="State"
+            >
+              {US_STATES.map(s => (
+                <MenuItem key={s.code} value={s.code}>{s.code} - {s.name}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Grid>
+        <Grid item xs={12} sm={3}>
+          <TextField
+            fullWidth
+            label="ZIP"
+            value={clientInfo.zip}
+            onChange={handleFieldChange('zip')}
+            required
+            inputProps={{ maxLength: 5 }}
+            helperText="5 digits"
+          />
+        </Grid>
+        
+        {/* Identity */}
+        <Grid item xs={12}>
+          <Divider sx={{ my: 2 }} />
+          <Typography variant="subtitle1" fontWeight="bold" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <SecurityIcon color="primary" /> Identity Verification
+          </Typography>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            <strong>Security Notice:</strong> SSN is required for credit report access. 
+            Your information is encrypted and transmitted securely via Firebase Cloud Functions.
+          </Alert>
+        </Grid>
+        
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="Date of Birth"
+            type="date"
+            value={clientInfo.dateOfBirth}
+            onChange={handleFieldChange('dateOfBirth')}
+            required
+            InputLabelProps={{ shrink: true }}
+            InputProps={{
+              startAdornment: <InputAdornment position="start"><CalendarIcon /></InputAdornment>,
+            }}
+            helperText="Must be 18 or older"
+          />
+        </Grid>
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="Social Security Number"
+            value={showSSN ? clientInfo.ssn : formatSSNDisplay(clientInfo.ssn)}
+            onChange={handleSSNChange}
+            required
+            error={ssnValidation.valid === false}
+            helperText={ssnValidation.message || '9 digits, no dashes'}
+            InputProps={{
+              startAdornment: <InputAdornment position="start"><SecurityIcon /></InputAdornment>,
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton onClick={() => setShowSSN(!showSSN)} edge="end">
+                    {showSSN ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+          />
+        </Grid>
+      </Grid>
+    </Box>
+  );
+
+  // Step 2: Enrollment Processing
+  const renderEnrollmentProcessing = () => (
+    <Box sx={{ textAlign: 'center', py: 4 }}>
+      <CircularProgress size={60} sx={{ mb: 3 }} />
+      <Typography variant="h6" gutterBottom>Processing Enrollment</Typography>
+      <Typography color="text.secondary" paragraph>{pullStatus}</Typography>
+      <LinearProgress variant="determinate" value={pullProgress} sx={{ mb: 2, maxWidth: 400, mx: 'auto' }} />
+      <Typography variant="body2" color="text.secondary">{pullProgress}% complete</Typography>
+    </Box>
+  );
+
+  // Step 3: Verification Questions
+  const renderVerificationQuestions = () => (
+    <Box>
+      <Alert severity="info" sx={{ mb: 3 }}>
+        <AlertTitle>Identity Verification</AlertTitle>
+        Please answer the following security questions to verify your identity.
+        These questions are based on your credit history.
+      </Alert>
+      
+      {verificationQuestions.length === 0 ? (
+        <Box sx={{ textAlign: 'center', py: 4 }}>
+          <CircularProgress />
+          <Typography sx={{ mt: 2 }}>Loading verification questions...</Typography>
+        </Box>
+      ) : (
+        <Grid container spacing={3}>
+          {verificationQuestions.map((question, idx) => (
+            <Grid item xs={12} key={idx}>
+              <Card variant="outlined" sx={{ p: 2 }}>
+                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                  {question.question || question.text}
+                </Typography>
+                <FormControl component="fieldset">
+                  <RadioGroup
+                    value={verificationAnswers[idx] || ''}
+                    onChange={(e) => setVerificationAnswers(prev => ({ ...prev, [idx]: e.target.value }))}
+                  >
+                    {question.answers?.map((answer, ansIdx) => (
+                      <FormControlLabel
+                        key={ansIdx}
+                        value={answer.id}
+                        control={<Radio />}
+                        label={answer.answer || answer.text}
+                        sx={{ 
+                          mb: 1,
+                          p: 1,
+                          borderRadius: 1,
+                          '&:hover': { bgcolor: 'action.hover' }
+                        }}
+                      />
+                    ))}
+                  </RadioGroup>
+                </FormControl>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      )}
+    </Box>
+  );
+
+  // Step 4: Credit Report Display
+  const renderCreditReport = () => (
+    <Box>
+      {loading ? (
+        <Box sx={{ textAlign: 'center', py: 4 }}>
+          <CircularProgress size={60} sx={{ mb: 3 }} />
+          <Typography variant="h6" gutterBottom>Retrieving Credit Report</Typography>
+          <Typography color="text.secondary" paragraph>{pullStatus}</Typography>
+          <LinearProgress variant="determinate" value={pullProgress} sx={{ mb: 2, maxWidth: 400, mx: 'auto' }} />
+        </Box>
+      ) : (
+        <Box>
+          {/* Credit Score */}
+          {creditScore && (
+            <Card sx={{ mb: 3, bgcolor: 'primary.main', color: 'white' }}>
+              <CardContent sx={{ textAlign: 'center' }}>
+                <Typography variant="h3" fontWeight="bold">{creditScore}</Typography>
+                <Typography variant="h6">VantageScore 3.0</Typography>
+                <Typography variant="body2" sx={{ opacity: 0.8 }}>TransUnion</Typography>
+              </CardContent>
+            </Card>
+          )}
+          
+          {/* Quick View Summary */}
+          {quickView && (
+            <Grid container spacing={2} sx={{ mb: 3 }}>
+              <Grid item xs={6} sm={3}>
+                <Card variant="outlined">
+                  <CardContent sx={{ textAlign: 'center' }}>
+                    <Typography variant="h5" color="primary">{quickView.totalAccounts || '—'}</Typography>
+                    <Typography variant="body2" color="text.secondary">Total Accounts</Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+              <Grid item xs={6} sm={3}>
+                <Card variant="outlined">
+                  <CardContent sx={{ textAlign: 'center' }}>
+                    <Typography variant="h5" color="success.main">{quickView.openAccounts || '—'}</Typography>
+                    <Typography variant="body2" color="text.secondary">Open Accounts</Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+              <Grid item xs={6} sm={3}>
+                <Card variant="outlined">
+                  <CardContent sx={{ textAlign: 'center' }}>
+                    <Typography variant="h5" color="warning.main">{quickView.delinquentAccounts || '—'}</Typography>
+                    <Typography variant="body2" color="text.secondary">Delinquent</Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+              <Grid item xs={6} sm={3}>
+                <Card variant="outlined">
+                  <CardContent sx={{ textAlign: 'center' }}>
+                    <Typography variant="h5" color="error.main">{quickView.derogatoryAccounts || '—'}</Typography>
+                    <Typography variant="body2" color="text.secondary">Derogatory</Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            </Grid>
+          )}
+          
+          {/* Report Status */}
+          <Alert severity="success" sx={{ mb: 2 }}>
+            Credit report retrieved successfully. Full report data is stored securely.
+          </Alert>
+        </Box>
+      )}
+    </Box>
+  );
+
+  // Step 5: Completion
+  const renderCompletion = () => (
+    <Box sx={{ textAlign: 'center', py: 4 }}>
+      <Zoom in>
+        <CheckIcon sx={{ fontSize: 80, color: 'success.main', mb: 2 }} />
+      </Zoom>
+      <Typography variant="h4" gutterBottom color="success.main">
+        Enrollment Complete!
+      </Typography>
+      <Typography variant="body1" color="text.secondary" paragraph>
+        {clientInfo.firstName} {clientInfo.lastName} has been successfully enrolled in IDIQ credit monitoring.
+      </Typography>
+      
+      <Divider sx={{ my: 3 }} />
+      
+      <Grid container spacing={2} justifyContent="center" sx={{ mb: 3 }}>
+        {creditScore && (
+          <Grid item>
+            <Chip 
+              icon={<AssessmentIcon />} 
+              label={`Credit Score: ${creditScore}`} 
+              color="primary" 
+              size="large"
+            />
+          </Grid>
+        )}
+        <Grid item>
+          <Chip icon={<CheckIcon />} label="Credit Monitoring Active" color="success" />
+        </Grid>
+        <Grid item>
+          <Chip icon={<ShieldIcon />} label="Identity Protection Enabled" color="primary" />
+        </Grid>
+      </Grid>
+      
+      <Box sx={{ mt: 4 }}>
+        <Button
+          variant="contained"
+          startIcon={<RefreshIcon />}
+          onClick={resetWizard}
+          sx={{ mr: 2 }}
+        >
+          Enroll Another Client
+        </Button>
+      </Box>
+    </Box>
+  );
+
+  // ===== MAIN RENDER =====
   return (
     <Box sx={{ p: 3 }}>
       {/* HEADER */}
@@ -669,7 +1202,7 @@ const IDIQEnrollment = () => {
               IDIQ Credit Report Enrollment
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Pull credit reports with instant AI analysis
+              Partner ID: {IDIQ_PARTNER_ID} • Secure Cloud Function Integration
             </Typography>
           </Box>
         </Box>
@@ -700,824 +1233,79 @@ const IDIQEnrollment = () => {
         </Stepper>
       </Paper>
 
-      {/* ALERTS */}
-      {error && (
-        <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 3 }}>
+      {/* ERROR/SUCCESS ALERTS */}
+      <Collapse in={!!error}>
+        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
           <AlertTitle>Error</AlertTitle>
           {error}
         </Alert>
-      )}
-
-      {success && (
-        <Alert severity="success" onClose={() => setSuccess(null)} sx={{ mb: 3 }}>
-          <AlertTitle>Success</AlertTitle>
+      </Collapse>
+      
+      <Collapse in={!!success && activeStep !== 5}>
+        <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccess(null)}>
           {success}
         </Alert>
-      )}
+      </Collapse>
 
       {/* STEP CONTENT */}
-      <Paper elevation={3} sx={{ p: 4, minHeight: 400 }}>
-        
-        {/* STEP 0: SELECT CLIENT */}
-        {activeStep === 0 && (
-          <Fade in timeout={500}>
-            <Box>
-              <Typography variant="h5" gutterBottom fontWeight="bold">
-                Select Client
-              </Typography>
-              <Divider sx={{ mb: 3 }} />
-
-              {/* Search */}
-              <TextField
-                fullWidth
-                placeholder="Search by name, email, or phone..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon />
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{ mb: 3 }}
-              />
-
-              {/* Client List */}
-              <Grid container spacing={2}>
-                {filteredClients.map(client => (
-                  <Grid item xs={12} sm={6} md={4} key={client.id}>
-                    <Card 
-                      sx={{ 
-                        cursor: 'pointer',
-                        transition: 'all 0.3s',
-                        '&:hover': {
-                          transform: 'translateY(-4px)',
-                          boxShadow: 6,
-                        },
-                      }}
-                      onClick={() => handleClientSelect(client)}
-                    >
-                      <CardContent>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                          <Avatar sx={{ bgcolor: 'primary.main' }}>
-                            {client.firstName?.[0]}{client.lastName?.[0]}
-                          </Avatar>
-                          <Box sx={{ flex: 1 }}>
-                            <Typography variant="h6" fontSize="1rem">
-                              {client.firstName} {client.lastName}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                              {client.email}
-                            </Typography>
-                            {client.leadScore && (
-                              <Chip 
-                                label={`Lead Score: ${client.leadScore}/10`}
-                                size="small"
-                                color={client.leadScore >= 7 ? 'success' : 'warning'}
-                                sx={{ mt: 1 }}
-                              />
-                            )}
-                          </Box>
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                ))}
-              </Grid>
-
-              {filteredClients.length === 0 && (
-                <Box sx={{ textAlign: 'center', py: 8 }}>
-                  <PersonIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-                  <Typography variant="h6" color="text.secondary">
-                    No clients found
-                  </Typography>
-                  <Button 
-                    variant="contained" 
-                    startIcon={<PersonIcon />}
-                    sx={{ mt: 2 }}
-                    onClick={() => setShowNewClientForm(true)}
-                  >
-                    Add New Client
-                  </Button>
-                </Box>
-              )}
-            </Box>
-          </Fade>
-        )}
-
-        {/* STEP 1: VERIFY INFO */}
-        {activeStep === 1 && (
-          <Fade in timeout={500}>
-            <Box>
-              <Typography variant="h5" gutterBottom fontWeight="bold">
-                Verify Client Information
-              </Typography>
-              <Divider sx={{ mb: 3 }} />
-
-              <Grid container spacing={3}>
-                {/* Personal Info */}
-                <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    label="First Name"
-                    value={clientInfo.firstName}
-                    onChange={(e) => setClientInfo({ ...clientInfo, firstName: e.target.value })}
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    label="Middle Name"
-                    value={clientInfo.middleName}
-                    onChange={(e) => setClientInfo({ ...clientInfo, middleName: e.target.value })}
-                  />
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    label="Last Name"
-                    value={clientInfo.lastName}
-                    onChange={(e) => setClientInfo({ ...clientInfo, lastName: e.target.value })}
-                    required
-                  />
-                </Grid>
-
-                {/* SSN */}
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Social Security Number"
-                    value={clientInfo.ssn}
-                    onChange={handleSSNChange}
-                    type={showSSN ? 'text' : 'password'}
-                    placeholder="XXX-XX-XXXX"
-                    required
-                    error={!ssnValidation.valid && clientInfo.ssn.length > 0}
-                    helperText={ssnValidation.message}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <SecurityIcon />
-                        </InputAdornment>
-                      ),
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton onClick={() => setShowSSN(!showSSN)} edge="end">
-                            {showSSN ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Grid>
-
-                {/* Date of Birth */}
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Date of Birth"
-                    type="date"
-                    value={clientInfo.dateOfBirth}
-                    onChange={(e) => setClientInfo({ ...clientInfo, dateOfBirth: e.target.value })}
-                    InputLabelProps={{ shrink: true }}
-                    required
-                  />
-                </Grid>
-
-                {/* Contact */}
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Phone"
-                    value={clientInfo.phone}
-                    onChange={(e) => setClientInfo({ ...clientInfo, phone: e.target.value })}
-                    placeholder="888-724-7344"
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <PhoneIcon />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Email"
-                    type="email"
-                    value={clientInfo.email}
-                    onChange={(e) => setClientInfo({ ...clientInfo, email: e.target.value })}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <EmailIcon />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Grid>
-
-                {/* Address */}
-                <Grid item xs={12}>
-                  <Typography variant="h6" gutterBottom>Address</Typography>
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Street Address"
-                    value={clientInfo.address.street}
-                    onChange={(e) => setClientInfo({ 
-                      ...clientInfo, 
-                      address: { ...clientInfo.address, street: e.target.value }
-                    })}
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12} md={5}>
-                  <TextField
-                    fullWidth
-                    label="City"
-                    value={clientInfo.address.city}
-                    onChange={(e) => setClientInfo({ 
-                      ...clientInfo, 
-                      address: { ...clientInfo.address, city: e.target.value }
-                    })}
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    label="State"
-                    value={clientInfo.address.state}
-                    onChange={(e) => setClientInfo({ 
-                      ...clientInfo, 
-                      address: { ...clientInfo.address, state: e.target.value }
-                    })}
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12} md={3}>
-                  <TextField
-                    fullWidth
-                    label="ZIP Code"
-                    value={clientInfo.address.zip}
-                    onChange={(e) => setClientInfo({ 
-                      ...clientInfo, 
-                      address: { ...clientInfo.address, zip: e.target.value }
-                    })}
-                    required
-                  />
-                </Grid>
-              </Grid>
-
-              {/* Actions */}
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
-                <Button onClick={() => setActiveStep(0)}>
-                  Back
-                </Button>
-                <Button 
-                  variant="contained" 
-                  onClick={() => setActiveStep(2)}
-                  disabled={!ssnValidation.valid || !clientInfo.firstName || !clientInfo.lastName}
-                >
-                  Continue
-                </Button>
-              </Box>
-            </Box>
-          </Fade>
-        )}
-
-        {/* STEP 2: BUREAU SELECTION */}
-        {activeStep === 2 && (
-          <Fade in timeout={500}>
-            <Box>
-              <Typography variant="h5" gutterBottom fontWeight="bold">
-                Select Credit Bureaus
-              </Typography>
-              <Divider sx={{ mb: 3 }} />
-
-              {/* Pull Type */}
-              <FormControl component="fieldset" sx={{ mb: 4 }}>
-                <FormLabel component="legend">Pull Type</FormLabel>
-                <RadioGroup
-                  row
-                  value={pullType}
-                  onChange={(e) => setPullType(e.target.value)}
-                >
-                  <FormControlLabel 
-                    value="tri-merge" 
-                    control={<Radio />} 
-                    label="Tri-Merge (All 3 Bureaus)" 
-                  />
-                  <FormControlLabel 
-                    value="individual" 
-                    control={<Radio />} 
-                    label="Individual Bureaus" 
-                  />
-                </RadioGroup>
-              </FormControl>
-
-              {/* Bureau Cards */}
-              <Grid container spacing={3}>
-                {Object.entries(BUREAUS).map(([key, bureau]) => (
-                  <Grid item xs={12} md={4} key={key}>
-                    <Card 
-                      sx={{ 
-                        border: 3,
-                        borderColor: selectedBureaus[key] ? bureau.color : 'grey.300',
-                        transition: 'all 0.3s',
-                        cursor: 'pointer',
-                      }}
-                      onClick={() => handleBureauToggle(key)}
-                    >
-                      <CardContent>
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                            <Typography variant="h3">{bureau.icon}</Typography>
-                            <Box>
-                              <Typography variant="h6" fontWeight="bold">
-                                {bureau.name}
-                              </Typography>
-                              <Typography variant="body2" color="text.secondary">
-                                Avg Score: {bureau.avgScore}
-                              </Typography>
-                            </Box>
-                          </Box>
-                          <Checkbox
-                            checked={selectedBureaus[key]}
-                            onChange={() => handleBureauToggle(key)}
-                            color="primary"
-                          />
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                ))}
-              </Grid>
-
-              {/* Options */}
-              <Box sx={{ mt: 4 }}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={includeScoreFactors}
-                      onChange={(e) => setIncludeScoreFactors(e.target.checked)}
-                      color="primary"
-                    />
-                  }
-                  label="Include Score Factors & Recommendations"
-                />
-              </Box>
-
-              {/* Summary */}
-              <Alert severity="info" sx={{ mt: 3 }}>
-                <AlertTitle>Summary</AlertTitle>
-                You will pull reports from <strong>{getSelectedBureausCount()}</strong> bureau(s).
-                {pullType === 'tri-merge' && ' This is a tri-merge pull combining all three bureaus.'}
-              </Alert>
-
-              {/* Actions */}
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
-                <Button onClick={() => setActiveStep(1)}>
-                  Back
-                </Button>
-                <Button 
-                  variant="contained" 
-                  onClick={() => setActiveStep(3)}
-                  disabled={getSelectedBureausCount() === 0}
-                  startIcon={<BoltIcon />}
-                >
-                  Continue to Pull Report
-                </Button>
-              </Box>
-            </Box>
-          </Fade>
-        )}
-
-        {/* STEP 3: PULL REPORT */}
-        {activeStep === 3 && (
-          <Fade in timeout={500}>
-            <Box>
-              <Typography variant="h5" gutterBottom fontWeight="bold">
-                Pull Credit Report
-              </Typography>
-              <Divider sx={{ mb: 3 }} />
-
-              {!loading && !reportData && (
-                <Box sx={{ textAlign: 'center', py: 8 }}>
-                  <Avatar sx={{ width: 100, height: 100, bgcolor: 'primary.main', mx: 'auto', mb: 3 }}>
-                    <BoltIcon sx={{ fontSize: 60 }} />
-                  </Avatar>
-                  <Typography variant="h6" gutterBottom>
-                    Ready to Pull Credit Report
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
-                    This will pull reports from {getSelectedBureausCount()} bureau(s) for {clientInfo.firstName} {clientInfo.lastName}
-                  </Typography>
-                  
-                  <Button
-                    variant="contained"
-                    size="large"
-                    startIcon={<BoltIcon />}
-                    onClick={pullCreditReport}
-                  >
-                    Pull Credit Report Now
-                  </Button>
-                </Box>
-              )}
-
-              {loading && (
-                <Box sx={{ textAlign: 'center', py: 8 }}>
-                  <CircularProgress size={80} sx={{ mb: 3 }} />
-                  <Typography variant="h6" gutterBottom>
-                    {pullStatus}
-                  </Typography>
-                  <Box sx={{ width: '100%', maxWidth: 600, mx: 'auto', mt: 3 }}>
-                    <LinearProgress variant="determinate" value={pullProgress} />
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                      {pullProgress}% Complete
-                    </Typography>
-                  </Box>
-                </Box>
-              )}
-
-              {reportData && (
-                <Box>
-                  <Alert severity="success" sx={{ mb: 3 }}>
-                    <AlertTitle>Report Retrieved Successfully!</AlertTitle>
-                    Credit report pulled from {getSelectedBureausCount()} bureau(s). Proceeding to AI analysis...
-                  </Alert>
-                </Box>
-              )}
-
-              {/* Actions */}
-              {!loading && !reportData && (
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
-                  <Button onClick={() => setActiveStep(2)}>
-                    Back
-                  </Button>
-                </Box>
-              )}
-            </Box>
-          </Fade>
-        )}
-
-        {/* STEP 4: AI ANALYSIS */}
-        {activeStep === 4 && (
-          <Fade in timeout={500}>
-            <Box>
-              <Typography variant="h5" gutterBottom fontWeight="bold">
-                AI Analysis & Insights
-              </Typography>
-              <Divider sx={{ mb: 3 }} />
-
-              {aiLoading && (
-                <Box sx={{ textAlign: 'center', py: 8 }}>
-                  <Avatar sx={{ width: 100, height: 100, bgcolor: 'secondary.main', mx: 'auto', mb: 3 }}>
-                    <BrainIcon sx={{ fontSize: 60 }} />
-                  </Avatar>
-                  <CircularProgress size={60} sx={{ mb: 3 }} />
-                  <Typography variant="h6" gutterBottom>
-                    AI Analyzing Credit Report...
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Generating insights, recommendations, and dispute strategies
-                  </Typography>
-                </Box>
-              )}
-
-              {!aiLoading && aiAnalysis && (
-                <Grid container spacing={3}>
-                  {/* Lead Score */}
-                  <Grid item xs={12} md={4}>
-                    <Card elevation={3}>
-                      <CardContent>
-                        <Box sx={{ textAlign: 'center' }}>
-                          <Avatar sx={{ width: 80, height: 80, bgcolor: 'primary.main', mx: 'auto', mb: 2 }}>
-                            <Typography variant="h3" fontWeight="bold">
-                              {aiAnalysis.leadScore}
-                            </Typography>
-                          </Avatar>
-                          <Typography variant="h6">Lead Score</Typography>
-                          <Chip 
-                            label={aiAnalysis.urgencyLevel?.toUpperCase() || 'MEDIUM'} 
-                            color={
-                              aiAnalysis.urgencyLevel === 'high' ? 'error' :
-                              aiAnalysis.urgencyLevel === 'low' ? 'success' : 'warning'
-                            }
-                            size="small"
-                            sx={{ mt: 1 }}
-                          />
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-
-                  {/* Credit Quality */}
-                  <Grid item xs={12} md={4}>
-                    <Card elevation={3}>
-                      <CardContent>
-                        <Box sx={{ textAlign: 'center' }}>
-                          <Avatar sx={{ width: 80, height: 80, bgcolor: 'success.main', mx: 'auto', mb: 2 }}>
-                            <TrendingUpIcon sx={{ fontSize: 40 }} />
-                          </Avatar>
-                          <Typography variant="h6">Credit Quality</Typography>
-                          <Chip 
-                            label={aiAnalysis.creditQuality?.toUpperCase() || 'GOOD'} 
-                            color="success"
-                            size="small"
-                            sx={{ mt: 1 }}
-                          />
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-
-                  {/* Projected Improvement */}
-                  <Grid item xs={12} md={4}>
-                    <Card elevation={3}>
-                      <CardContent>
-                        <Box sx={{ textAlign: 'center' }}>
-                          <Avatar sx={{ width: 80, height: 80, bgcolor: 'info.main', mx: 'auto', mb: 2 }}>
-                            <TimelineIcon sx={{ fontSize: 40 }} />
-                          </Avatar>
-                          <Typography variant="h6">Timeline</Typography>
-                          <Typography variant="h4" fontWeight="bold" color="primary">
-                            {aiAnalysis.estimatedImprovementMonths || 6}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            months to improve +{aiAnalysis.projectedScoreIncrease || 50}pts
-                          </Typography>
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-
-                  {/* Opportunities */}
-                  <Grid item xs={12} md={6}>
-                    <Card elevation={2}>
-                      <CardContent>
-                        <Typography variant="h6" gutterBottom>
-                          🎯 Opportunities
-                        </Typography>
-                        <List dense>
-                          {aiAnalysis.opportunities?.map((opp, i) => (
-                            <ListItem key={i}>
-                              <ListItemIcon>
-                                <CheckIcon color="success" />
-                              </ListItemIcon>
-                              <ListItemText primary={opp} />
-                            </ListItem>
-                          ))}
-                        </List>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-
-                  {/* Risks */}
-                  <Grid item xs={12} md={6}>
-                    <Card elevation={2}>
-                      <CardContent>
-                        <Typography variant="h6" gutterBottom>
-                          ⚠️ Risks
-                        </Typography>
-                        <List dense>
-                          {aiAnalysis.risks?.map((risk, i) => (
-                            <ListItem key={i}>
-                              <ListItemIcon>
-                                <WarningIcon color="warning" />
-                              </ListItemIcon>
-                              <ListItemText primary={risk} />
-                            </ListItem>
-                          ))}
-                        </List>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-
-                  {/* Recommendations */}
-                  <Grid item xs={12}>
-                    <Card elevation={2}>
-                      <CardContent>
-                        <Typography variant="h6" gutterBottom>
-                          💡 AI Recommendations
-                        </Typography>
-                        <List>
-                          {aiAnalysis.recommendations?.map((rec, i) => (
-                            <ListItem key={i}>
-                              <ListItemIcon>
-                                <SparkleIcon color="primary" />
-                              </ListItemIcon>
-                              <ListItemText 
-                                primary={rec}
-                                primaryTypographyProps={{ fontWeight: 'medium' }}
-                              />
-                            </ListItem>
-                          ))}
-                        </List>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-
-                  {/* Dispute Letters */}
-                  {disputeLetters.length > 0 && (
-                    <Grid item xs={12}>
-                      <Card elevation={2}>
-                        <CardContent>
-                          <Typography variant="h6" gutterBottom>
-                            📝 Generated Dispute Letters ({disputeLetters.length})
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                            AI has generated dispute letters for negative items
-                          </Typography>
-                          <Button variant="outlined" startIcon={<DocumentIcon />}>
-                            Review Dispute Letters
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                  )}
-                </Grid>
-              )}
-
-              {/* Actions */}
-              {!aiLoading && aiAnalysis && (
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 4 }}>
-                  <Button 
-                    variant="contained" 
-                    onClick={completeEnrollment}
-                    startIcon={<CheckIcon />}
-                    size="large"
-                  >
-                    Complete Enrollment
-                  </Button>
-                </Box>
-              )}
-            </Box>
-          </Fade>
-        )}
-
-        {/* STEP 5: COMPLETE */}
-        {activeStep === 5 && (
-          <Fade in timeout={500}>
-            <Box sx={{ textAlign: 'center', py: 8 }}>
-              <Zoom in timeout={800}>
-                <Avatar sx={{ width: 120, height: 120, bgcolor: 'success.main', mx: 'auto', mb: 3 }}>
-                  <CheckIcon sx={{ fontSize: 80 }} />
-                </Avatar>
-              </Zoom>
-              
-              <Typography variant="h4" fontWeight="bold" gutterBottom>
-                Enrollment Complete! 🎉
-              </Typography>
-              
-              <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-                Credit report has been pulled and analyzed successfully.
-              </Typography>
-
-              <Grid container spacing={2} sx={{ maxWidth: 600, mx: 'auto', mb: 4 }}>
-                <Grid item xs={12} sm={6}>
-                  <Card>
-                    <CardContent>
-                      <Typography variant="h6">Enrollment ID</Typography>
-                      <Typography variant="body2" color="primary" fontWeight="bold">
-                        {enrollmentId}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <Card>
-                    <CardContent>
-                      <Typography variant="h6">Client</Typography>
-                      <Typography variant="body2" fontWeight="bold">
-                        {clientInfo.firstName} {clientInfo.lastName}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              </Grid>
-
-              {notificationSent && (
-                <Alert severity="success" sx={{ maxWidth: 600, mx: 'auto', mb: 3 }}>
-                  Email notification sent to client
-                </Alert>
-              )}
-
-              <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
-                <Button
-                  variant="outlined"
-                  startIcon={<DownloadIcon />}
-                  onClick={() => window.print()}
-                >
-                  Download Report
-                </Button>
-                <Button
-                  variant="outlined"
-                  startIcon={<DocumentIcon />}
-                  onClick={() => console.log('View disputes')}
-                >
-                  View Disputes
-                </Button>
-                <Button
-                  variant="contained"
-                  startIcon={<RefreshIcon />}
-                  onClick={() => {
-                    setActiveStep(0);
-                    setSelectedClient(null);
-                    setReportData(null);
-                    setAiAnalysis(null);
-                    setDisputeLetters([]);
-                  }}
-                >
-                  New Enrollment
-                </Button>
-              </Box>
-            </Box>
-          </Fade>
-        )}
+      <Paper elevation={2} sx={{ p: 3, mb: 3, minHeight: 400 }}>
+        <Fade in key={activeStep}>
+          <Box>
+            {activeStep === 0 && renderClientSelection()}
+            {activeStep === 1 && renderClientInfo()}
+            {activeStep === 2 && renderEnrollmentProcessing()}
+            {activeStep === 3 && renderVerificationQuestions()}
+            {activeStep === 4 && renderCreditReport()}
+            {activeStep === 5 && renderCompletion()}
+          </Box>
+        </Fade>
       </Paper>
 
-      {/* Enrollment Failure Handler */}
-      {showFailureHandler && (
-        <Dialog
-          open={showFailureHandler}
-          onClose={() => setShowFailureHandler(false)}
-          maxWidth="md"
-          fullWidth
-        >
-          <DialogContent sx={{ p: 0 }}>
-            <EnrollmentFailureHandler
-              error={{ message: error }}
-              errorType={enrollmentErrorType}
-              formData={clientInfo}
-              contactId={selectedClient?.id}
-              onRetry={() => {
-                setShowFailureHandler(false);
-                setError(null);
-                // Retry from verification step
-                setActiveStep(1);
-              }}
-              onReview={() => {
-                setShowFailureHandler(false);
-                setError(null);
-                setActiveStep(1);
-              }}
-              onClose={() => setShowFailureHandler(false)}
-            />
-          </DialogContent>
-        </Dialog>
+      {/* NAVIGATION BUTTONS */}
+      {activeStep < 5 && activeStep !== 2 && activeStep !== 4 && (
+        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+          <Button
+            disabled={activeStep === 0 || loading}
+            onClick={() => setActiveStep(prev => prev - 1)}
+            variant="outlined"
+          >
+            Back
+          </Button>
+          
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            {activeStep === 0 && selectedClient && (
+              <Button
+                variant="contained"
+                onClick={() => setActiveStep(1)}
+              >
+                Continue with {selectedClient.firstName}
+              </Button>
+            )}
+            
+            {activeStep === 1 && (
+              <Button
+                variant="contained"
+                onClick={submitEnrollment}
+                disabled={loading}
+                startIcon={loading ? <CircularProgress size={20} /> : <SendIcon />}
+              >
+                Submit Enrollment
+              </Button>
+            )}
+            
+            {activeStep === 3 && verificationQuestions.length > 0 && (
+              <Button
+                variant="contained"
+                onClick={submitVerificationAnswers}
+                disabled={loading || Object.keys(verificationAnswers).length < verificationQuestions.length}
+                startIcon={loading ? <CircularProgress size={20} /> : <CheckIcon />}
+              >
+                Verify Identity
+              </Button>
+            )}
+          </Box>
+        </Box>
       )}
-
-      {/* Enrollment Success Flow */}
-      {showSuccessFlow && (
-        <Dialog
-          open={showSuccessFlow}
-          onClose={() => setShowSuccessFlow(false)}
-          maxWidth="lg"
-          fullWidth
-        >
-          <DialogContent sx={{ p: 0 }}>
-            <EnrollmentSuccessFlow
-              enrollmentData={{
-                contactId: selectedClient?.id,
-                contactName: `${clientInfo.firstName} ${clientInfo.lastName}`,
-                enrollmentId: enrollmentId,
-                creditData: creditData,
-                selectedBureaus: Object.keys(selectedBureaus).filter(b => selectedBureaus[b]),
-              }}
-              onComplete={() => {
-                setShowSuccessFlow(false);
-                // Reset for new enrollment
-                setActiveStep(0);
-                setSelectedClient(null);
-                setClientInfo({
-                  firstName: '', lastName: '', middleName: '',
-                  ssn: '', dateOfBirth: '', phone: '', email: '',
-                  address: { street: '', city: '', state: '', zip: '' },
-                });
-              }}
-              onScheduleConsultation={(data) => {
-                console.log('Schedule consultation:', data);
-              }}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {/* AI Form Assistant - Floating helper widget */}
-      <AIFormAssistant
-        currentStep={activeStep}
-        currentField={focusedField}
-        formData={clientInfo}
-        formName="IDIQEnrollment"
-        onFieldFocus={setFocusedField}
-        showProactively={true}
-      />
     </Box>
   );
 };

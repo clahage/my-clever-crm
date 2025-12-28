@@ -161,7 +161,7 @@ const ClientRow = ({ client, type, onContact, onAddToCampaign }) => (
   </TableRow>
 );
 
-const AutoOpportunityDashboard = () => {
+  const AutoOpportunityDashboard = () => {
   const { userProfile } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -175,8 +175,10 @@ const AutoOpportunityDashboard = () => {
     setLoading(true);
     setError(null);
     try {
-      const scan = httpsCallable(functions, 'scanAutoOpportunities');
-      const result = await scan({});
+      const operationsManager = httpsCallable(functions, 'operationsManager');
+      const result = await operationsManager({
+        action: 'scanAutoOpportunities'
+      });
       if (result.data.success) {
         setData(result.data);
       }

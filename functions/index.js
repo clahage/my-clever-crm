@@ -402,142 +402,243 @@ exports.onContactCreated = onDocumentCreated(
 console.log('✅ Function 4/10: onContactCreated loaded');
 
 // ============================================
-// FUNCTION 5: IDIQ SERVICE (Consolidated)
+// FUNCTION 5: IDIQ SERVICE (PRODUCTION)
 // ============================================
-// Handles: ALL IDIQ operations
-// Replaces: enrollIDIQ, checkIDIQApplications, getIDIQCreditReport, getIDIQCreditScore, getIDIQPartnerToken
-// Savings: 5 functions → 1 function = $18/month saved
+// Handles: ALL IDIQ operations via Partner Integration Framework
+// PRODUCTION URL: https://api.identityiq.com/pif-service/
+// Partner ID: 11981 (Speedy Credit Repair Inc.)
+// © 1995-2025 Speedy Credit Repair Inc. | Chris Lahage | All Rights Reserved
 
 exports.idiqService = onCall(
   {
     ...defaultConfig,
+    memory: '512MiB',
+    timeoutSeconds: 120,
     secrets: [idiqPartnerId, idiqPartnerSecret, idiqApiKey, idiqEnvironment, idiqPlanCode, idiqOfferCode]
   },
   async (request) => {
     const { action, ...params } = request.data;
     
-    console.log('💳 IDIQ Service:', action);
+    console.log('💳 IDIQ Service (PRODUCTION):', action);
     
-    const IDIQ_BASE_URL = idiqEnvironment.value() === 'production' 
-      ? 'https://api.idiq.com' 
-      : 'https://sandbox-api.idiq.com';
+    // PRODUCTION ONLY - Per IDIQ Partner Integration Framework docs
+    const IDIQ_BASE_URL = 'https://api.identityiq.com/pif-service/';
+    
+    // Helper: Get Partner Token
+    const getPartnerToken = async () => {
+      const response = await fetch(`${IDIQ_BASE_URL}v1/partner-token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({
+          partnerId: idiqPartnerId.value(),
+          partnerSecret: idiqPartnerSecret.value()
+        })
+      });
+      if (!response.ok) throw new Error(`Partner auth failed: ${response.status}`);
+      const data = await response.json();
+      return data.accessToken;
+    };
+    
+    // Helper: Get Member Token
+    const getMemberToken = async (email, partnerToken) => {
+      const response = await fetch(`${IDIQ_BASE_URL}v1/member-token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${partnerToken}`
+        },
+        body: JSON.stringify({ memberEmail: email })
+      });
+      if (!response.ok) throw new Error(`Member token failed: ${response.status}`);
+      const data = await response.json();
+      return data.accessToken;
+    };
+    
+    // Helper: Format date to MM/DD/YYYY per IDIQ spec
+    const formatDate = (dateStr) => {
+      const d = new Date(dateStr);
+      return `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${d.getFullYear()}`;
+    };
     
     try {
       switch (action) {
         case 'enroll': {
-          const { firstName, lastName, email, ssn, dob, address, city, state, zip } = params;
+          const { firstName, lastName, email, ssn, dob, address, city, state, zip, middleInitial, contactId } = params;
+          const partnerToken = await getPartnerToken();
           
-          const enrollResponse = await fetch(`${IDIQ_BASE_URL}/partner/enroll`, {
+          const payload = {
+            birthDate: formatDate(dob),
+            email: email.trim().toLowerCase(),
+            firstName: firstName.trim().substring(0, 15),
+            lastName: lastName.trim().substring(0, 15),
+            middleNameInitial: middleInitial?.substring(0, 1) || '',
+            ssn: ssn.replace(/\D/g, ''),
+            offerCode: idiqOfferCode.value() || '4312869N',
+            planCode: idiqPlanCode.value() || 'PLAN03B',
+            street: address.trim().substring(0, 50),
+            city: city.trim().substring(0, 30),
+            state: state.toUpperCase().substring(0, 2),
+            zip: zip.toString().replace(/\D/g, '').substring(0, 5)
+          };
+          
+          const enrollResponse = await fetch(`${IDIQ_BASE_URL}v1/enrollment/enroll`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'X-Partner-ID': idiqPartnerId.value(),
-              'X-API-Key': idiqApiKey.value()
+              'Accept': 'application/json',
+              'Authorization': `Bearer ${partnerToken}`
             },
-            body: JSON.stringify({
-              firstName,
-              lastName,
-              email,
-              ssn,
-              dateOfBirth: dob,
-              address: {
-                street: address,
-                city,
-                state,
-                zip
-              },
-              planCode: idiqPlanCode.value(),
-              offerCode: idiqOfferCode.value()
-            })
+            body: JSON.stringify(payload)
           });
           
-          const enrollData = await enrollResponse.json();
-          
           if (!enrollResponse.ok) {
-            throw new Error(enrollData.message || 'Enrollment failed');
+            const err = await enrollResponse.json().catch(() => ({}));
+            throw new Error(err.message || `Enrollment failed: ${enrollResponse.status}`);
           }
           
-          console.log('✅ IDIQ enrollment successful:', enrollData.applicationId);
-          return { success: true, data: enrollData };
+          const enrollData = await enrollResponse.json();
+          let memberToken = null;
+          try { memberToken = await getMemberToken(email, partnerToken); } catch (e) { /* needs verification */ }
+          
+          const enrollDoc = await db.collection('idiqEnrollments').add({
+            email: email.toLowerCase(), firstName, lastName, memberToken,
+            status: memberToken ? 'active' : 'pending_verification',
+            enrolledAt: FieldValue.serverTimestamp(),
+            enrolledBy: request.auth?.uid || 'system', contactId: contactId || null
+          });
+          
+          if (contactId) {
+            await db.collection('contacts').doc(contactId).update({
+              'idiq.enrolled': true, 'idiq.enrollmentId': enrollDoc.id,
+              'idiq.memberToken': memberToken, 'idiq.email': email.toLowerCase(),
+              'idiq.enrolledAt': FieldValue.serverTimestamp()
+            });
+          }
+          
+          console.log('✅ IDIQ enrollment successful:', enrollDoc.id);
+          return { success: true, enrollmentId: enrollDoc.id, memberToken, needsVerification: !memberToken };
         }
         
         case 'checkStatus': {
-          const { applicationId } = params;
+          const { email, membershipNumber } = params;
+          const partnerToken = await getPartnerToken();
+          const qp = email ? `email=${encodeURIComponent(email)}` : `membership-number=${membershipNumber}`;
           
-          const statusResponse = await fetch(`${IDIQ_BASE_URL}/partner/applications/${applicationId}`, {
-            headers: {
-              'X-Partner-ID': idiqPartnerId.value(),
-              'X-API-Key': idiqApiKey.value()
-            }
+          const response = await fetch(`${IDIQ_BASE_URL}v1/enrollment/member-status?${qp}`, {
+            headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${partnerToken}` }
           });
           
-          const statusData = await statusResponse.json();
+          if (response.status === 404) return { success: true, found: false };
+          if (!response.ok) throw new Error(`Status check failed: ${response.status}`);
           
-          console.log('📊 Application status:', statusData.status);
-          return { success: true, status: statusData.status, data: statusData };
+          const data = await response.json();
+          console.log('📊 Member status:', data.currentStatus);
+          return { success: true, found: true, data };
         }
         
         case 'getReport': {
-          const { memberId } = params;
+          const { email } = params;
+          const partnerToken = await getPartnerToken();
+          const memberToken = await getMemberToken(email, partnerToken);
           
-          const reportResponse = await fetch(`${IDIQ_BASE_URL}/partner/members/${memberId}/report`, {
-            headers: {
-              'X-Partner-ID': idiqPartnerId.value(),
-              'X-API-Key': idiqApiKey.value()
-            }
+          const response = await fetch(`${IDIQ_BASE_URL}v1/credit-report`, {
+            headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${memberToken}` }
           });
+          if (!response.ok) throw new Error(`Report failed: ${response.status}`);
           
-          const reportData = await reportResponse.json();
-          
-          console.log('📋 Credit report retrieved for member:', memberId);
-          return { success: true, report: reportData };
+          const report = await response.json();
+          console.log('📋 Credit report retrieved');
+          return { success: true, report };
         }
         
         case 'getScore': {
-          const { memberId } = params;
+          const { email } = params;
+          const partnerToken = await getPartnerToken();
+          const memberToken = await getMemberToken(email, partnerToken);
           
-          const scoreResponse = await fetch(`${IDIQ_BASE_URL}/partner/members/${memberId}/score`, {
-            headers: {
-              'X-Partner-ID': idiqPartnerId.value(),
-              'X-API-Key': idiqApiKey.value()
-            }
+          const response = await fetch(`${IDIQ_BASE_URL}v1/credit-score`, {
+            headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${memberToken}` }
           });
+          if (!response.ok) throw new Error(`Score failed: ${response.status}`);
           
-          const scoreData = await scoreResponse.json();
+          const data = await response.json();
+          console.log('💯 Credit score:', data.score);
+          return { success: true, score: data.score, date: data.date };
+        }
+        
+        case 'getQuickView': {
+          const { email } = params;
+          const partnerToken = await getPartnerToken();
+          const memberToken = await getMemberToken(email, partnerToken);
           
-          console.log('💯 Credit score:', scoreData.score);
-          return { success: true, score: scoreData.score, data: scoreData };
+          const response = await fetch(`${IDIQ_BASE_URL}v1/quick-view-report`, {
+            headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${memberToken}` }
+          });
+          if (!response.ok) throw new Error(`Quick view failed: ${response.status}`);
+          
+          const data = await response.json();
+          console.log('📊 Quick view retrieved');
+          return { success: true, quickView: data };
+        }
+        
+        case 'getVerificationQuestions': {
+          const { email } = params;
+          const partnerToken = await getPartnerToken();
+          const memberToken = await getMemberToken(email, partnerToken);
+          
+          const response = await fetch(`${IDIQ_BASE_URL}v1/enrollment/verification-questions`, {
+            headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${memberToken}` }
+          });
+          if (!response.ok) throw new Error(`Questions failed: ${response.status}`);
+          
+          const data = await response.json();
+          console.log(`❓ Got ${data.questions?.length || 0} verification questions`);
+          return { success: true, questions: data.questions, isSuccess: data.isSuccess };
+        }
+        
+        case 'submitVerification': {
+          const { email, answerIds } = params;
+          const partnerToken = await getPartnerToken();
+          const memberToken = await getMemberToken(email, partnerToken);
+          
+          const response = await fetch(`${IDIQ_BASE_URL}v1/enrollment/verification-questions`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Authorization': `Bearer ${memberToken}`
+            },
+            body: JSON.stringify({ answers: answerIds })
+          });
+          if (!response.ok) throw new Error(`Verification failed: ${response.status}`);
+          
+          const data = await response.json();
+          if (data.status === 'Correct') {
+            const q = await db.collection('idiqEnrollments').where('email', '==', email.toLowerCase()).limit(1).get();
+            if (!q.empty) await q.docs[0].ref.update({ status: 'active', verifiedAt: FieldValue.serverTimestamp() });
+          }
+          console.log(`✅ Verification: ${data.status}`);
+          return { success: true, status: data.status, message: data.message, question: data.question };
         }
         
         case 'getToken': {
-          const tokenResponse = await fetch(`${IDIQ_BASE_URL}/partner/auth/token`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              partnerId: idiqPartnerId.value(),
-              partnerSecret: idiqPartnerSecret.value()
-            })
-          });
-          
-          const tokenData = await tokenResponse.json();
-          
+          const token = await getPartnerToken();
           console.log('🔐 Partner token retrieved');
-          return { success: true, token: tokenData.token };
+          return { success: true, token };
         }
         
         default:
-          throw new Error(`Unknown IDIQ action: ${action}`);
+          throw new Error(`Unknown action: ${action}`);
       }
     } catch (error) {
-      console.error('❌ IDIQ service error:', error);
+      console.error('❌ IDIQ error:', error.message);
       return { success: false, error: error.message };
     }
   }
 );
 
-console.log('✅ Function 5/10: idiqService loaded');
+console.log('✅ Function 5/10: idiqService (PRODUCTION) loaded');
 
 // ============================================
 // FUNCTION 6: WORKFLOW PROCESSOR (Scheduled)
