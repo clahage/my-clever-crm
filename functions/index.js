@@ -420,6 +420,7 @@ exports.idiqService = onCall(
     const { action, ...params } = request.data;
     
     console.log('💳 IDIQ Service (PRODUCTION):', action);
+    const db = admin.firestore();
     
     // PRODUCTION ONLY - Per IDIQ Partner Integration Framework docs
     const IDIQ_BASE_URL = 'https://api.identityiq.com/pif-service/';
@@ -627,6 +628,39 @@ exports.idiqService = onCall(
           console.log('🔐 Partner token retrieved');
           return { success: true, token };
         }
+
+        case 'storeReport': {
+          const { email, contactId, reportData } = params;
+  
+        // Store credit report in Firestore
+          const reportRef = await db.collection('creditReports').add({
+          contactId: contactId,
+          email: email.toLowerCase(),
+          reportData: reportData,
+          scores: {
+          equifax: reportData.equifaxScore || null,
+          experian: reportData.experianScore || null,
+          transunion: reportData.transunionScore || null,
+          average: reportData.averageScore || null
+      },
+          retrievedAt: admin.firestore.FieldValue.serverTimestamp(),
+          status: 'pending_review',
+          provider: 'IDIQ'
+  });
+  
+       // Update contact with report status
+      if (contactId) {
+      await db.collection('contacts').doc(contactId).update({
+      'creditReport.lastPulled': admin.firestore.FieldValue.serverTimestamp(),
+      'creditReport.reportId': reportRef.id,
+      'creditReport.status': 'available',
+      'creditReport.averageScore': reportData.averageScore || null
+    });
+  }
+  
+  console.log('📊 Credit report stored:', reportRef.id);
+  return { success: true, reportId: reportRef.id };
+}
         
         default:
           throw new Error(`Unknown action: ${action}`);
@@ -648,7 +682,8 @@ console.log('✅ Function 5/10: idiqService (PRODUCTION) loaded');
 exports.processWorkflowStages = onSchedule(
   {
     schedule: 'every 60 minutes',
-    ...defaultConfig
+    ...defaultConfig,
+    secrets: [idiqPartnerId, idiqPartnerSecret, gmailUser, gmailAppPassword, gmailFromName]
   },
   async (context) => {
     console.log('⏰ Processing workflow stages...');
@@ -656,6 +691,10 @@ exports.processWorkflowStages = onSchedule(
     const db = admin.firestore();
     
     try {
+      // ═══════════════════════════════════════════════════════════════════════
+      // PART 1: EXISTING WORKFLOW STAGE ADVANCEMENT
+      // ═══════════════════════════════════════════════════════════════════════
+      
       const contactsSnapshot = await db.collection('contacts')
         .where('workflowActive', '==', true)
         .where('workflowPaused', '==', false)
@@ -706,13 +745,332 @@ exports.processWorkflowStages = onSchedule(
       }
       
       console.log(`✅ Processed ${processed} workflow stage advancements`);
+      
+      // ═══════════════════════════════════════════════════════════════════════
+      // PART 2: IDIQ TRIAL AUTO-CANCELLATION LOGIC
+      // ═══════════════════════════════════════════════════════════════════════
+      
+      console.log('\n🔍 Checking IDIQ trial subscriptions...');
+      
+      const now = new Date();
+      const nowTimestamp = admin.firestore.Timestamp.fromDate(now);
+      
+      // Get partner token for IDIQ API
+      const getPartnerToken = async () => {
+        const response = await fetch('https://api.identityiq.com/pif-service/v1/partner-token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify({
+            partnerId: idiqPartnerId.value(),
+            partnerSecret: idiqPartnerSecret.value()
+          })
+        });
+        if (!response.ok) throw new Error(`Partner auth failed: ${response.status}`);
+        const data = await response.json();
+        return data.accessToken;
+      };
+      
+      // Cancel IDIQ membership
+      const cancelIDIQMembership = async (email, partnerToken) => {
+        const response = await fetch('https://api.identityiq.com/pif-service/v1/enrollment/cancel-membership', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${partnerToken}`
+          },
+          body: JSON.stringify({ email: email.toLowerCase() })
+        });
+        
+        if (!response.ok) {
+          const error = await response.text();
+          throw new Error(`Cancellation failed: ${response.status} - ${error}`);
+        }
+        
+        return await response.json();
+      };
+      
+      // ─────────────────────────────────────────────────────────────────────
+      // RULE 1: TRIAL EXPIRATION (30 days old, no contract signed)
+      // ─────────────────────────────────────────────────────────────────────
+      
+      const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
+      const thirtyDaysAgoTimestamp = admin.firestore.Timestamp.fromDate(thirtyDaysAgo);
+      
+      const twentySevenDaysAgo = new Date(now.getTime() - (27 * 24 * 60 * 60 * 1000));
+      const twentySevenDaysAgoTimestamp = admin.firestore.Timestamp.fromDate(twentySevenDaysAgo);
+      
+      // Get trials approaching expiration (27+ days old)
+      const expiringTrialsSnapshot = await db.collection('idiqEnrollments')
+        .where('enrolledAt', '<=', twentySevenDaysAgoTimestamp)
+        .where('status', '==', 'active')
+        .get();
+      
+      console.log(`📊 Found ${expiringTrialsSnapshot.size} trials at 27+ days`);
+      
+      for (const enrollDoc of expiringTrialsSnapshot.docs) {
+        const enrollment = enrollDoc.data();
+        const contactId = enrollment.contactId;
+        
+        if (!contactId) continue;
+        
+        // Get contact to check contract status
+        const contactDoc = await db.collection('contacts').doc(contactId).get();
+        
+        if (!contactDoc.exists) continue;
+        
+        const contact = contactDoc.data();
+        
+        // PROTECTED: Don't cancel if contract signed or client status
+        if (contact.contractSigned === true || contact.status === 'client') {
+          console.log(`✅ ${contactId} is protected (contract signed or client)`);
+          
+          // Update subscription status to protected
+          await enrollDoc.ref.update({
+            status: 'protected',
+            protectedAt: admin.firestore.FieldValue.serverTimestamp(),
+            protectedReason: contact.contractSigned ? 'contract_signed' : 'client_status'
+          });
+          
+          continue;
+        }
+        
+        const enrolledAt = enrollment.enrolledAt?.toDate() || new Date(0);
+        const daysOld = Math.floor((now.getTime() - enrolledAt.getTime()) / (1000 * 60 * 60 * 24));
+        
+        // Send warning at 27 days (3 days before expiration)
+        if (daysOld >= 27 && daysOld < 30 && !enrollment.expirationWarningSent) {
+          console.log(`⚠️ Sending 3-day warning for ${contactId}`);
+          
+          // Send warning email to prospect
+          const user = gmailUser.value();
+          const pass = gmailAppPassword.value();
+          
+          const transporter = nodemailer.createTransporter({
+            host: 'smtp.gmail.com',
+            port: 587,
+            secure: false,
+            auth: { user, pass }
+          });
+          
+          await transporter.sendMail({
+            from: `"${gmailFromName.value() || 'Speedy Credit Repair'}" <${user}>`,
+            to: enrollment.email,
+            subject: 'Your Free Credit Monitoring Trial Expires in 3 Days',
+            text: `Hi ${contact.firstName},\n\nYour free IDIQ credit monitoring trial will expire in 3 days. To continue your credit monitoring and dispute services, please contact us to upgrade to a paid plan or sign your service agreement.\n\nCall us at (888) 724-7344 or reply to this email.\n\nThank you,\nChris Lahage\nSpeedy Credit Repair`,
+            html: wrapEmailInHTML(
+              'Trial Expiring Soon',
+              `Hi ${contact.firstName},\n\nYour free IDIQ credit monitoring trial will expire in 3 days.\n\nTo continue your credit monitoring and dispute services, please contact us to upgrade to a paid plan or sign your service agreement.\n\nCall us at (888) 724-7344 or reply to this email.\n\nThank you,\nChris Lahage\nSpeedy Credit Repair`,
+              contact.firstName
+            )
+          });
+          
+          // Send alert to Christopher
+          await transporter.sendMail({
+            from: `"${gmailFromName.value() || 'SpeedyCRM Alerts'}" <${user}>`,
+            to: user, // Send to Christopher's email
+            subject: `⚠️ IDIQ Trial Expiring: ${contact.firstName} ${contact.lastName}`,
+            text: `Trial for ${contact.firstName} ${contact.lastName} (${enrollment.email}) expires in 3 days.\n\nContact ID: ${contactId}\nEnrolled: ${enrolledAt.toLocaleDateString()}\nDays Old: ${daysOld}\n\nAction needed: Contact prospect or trial will auto-cancel in 3 days.`,
+            html: wrapEmailInHTML(
+              'Trial Expiring Alert',
+              `Trial for ${contact.firstName} ${contact.lastName} (${enrollment.email}) expires in 3 days.\n\nContact ID: ${contactId}\nEnrolled: ${enrolledAt.toLocaleDateString()}\nDays Old: ${daysOld}\n\nAction needed: Contact prospect or trial will auto-cancel in 3 days.`,
+              'Chris'
+            )
+          });
+          
+          await enrollDoc.ref.update({
+            expirationWarningSent: true,
+            expirationWarningSentAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+          
+          console.log(`✅ Warning sent for ${contactId}`);
+        }
+        
+        // AUTO-CANCEL at 30+ days
+        if (daysOld >= 30) {
+          console.log(`🚫 AUTO-CANCELLING trial for ${contactId} (${daysOld} days old)`);
+          
+          try {
+            const partnerToken = await getPartnerToken();
+            await cancelIDIQMembership(enrollment.email, partnerToken);
+            
+            // Update enrollment status
+            await enrollDoc.ref.update({
+              status: 'cancelled',
+              cancelledAt: admin.firestore.FieldValue.serverTimestamp(),
+              cancellationReason: 'trial_expired',
+              cancelledBySystem: true
+            });
+            
+            // Update contact
+            await db.collection('contacts').doc(contactId).update({
+              'idiq.subscriptionStatus': 'cancelled',
+              'idiq.cancelledAt': admin.firestore.FieldValue.serverTimestamp(),
+              status: 'inactive'
+            });
+            
+            // Send confirmation to Christopher
+            const user = gmailUser.value();
+            const pass = gmailAppPassword.value();
+            
+            const transporter = nodemailer.createTransporter({
+              host: 'smtp.gmail.com',
+              port: 587,
+              secure: false,
+              auth: { user, pass }
+            });
+            
+            await transporter.sendMail({
+              from: `"${gmailFromName.value() || 'SpeedyCRM Alerts'}" <${user}>`,
+              to: user,
+              subject: `✅ IDIQ Trial Auto-Cancelled: ${contact.firstName} ${contact.lastName}`,
+              text: `Trial for ${contact.firstName} ${contact.lastName} has been automatically cancelled after ${daysOld} days.\n\nContact ID: ${contactId}\nEmail: ${enrollment.email}\nReason: Trial Expired (30 days)`,
+              html: wrapEmailInHTML(
+                'Trial Auto-Cancelled',
+                `Trial for ${contact.firstName} ${contact.lastName} has been automatically cancelled after ${daysOld} days.\n\nContact ID: ${contactId}\nEmail: ${enrollment.email}\nReason: Trial Expired (30 days)`,
+                'Chris'
+              )
+            });
+            
+            console.log(`✅ Trial cancelled successfully for ${contactId}`);
+            
+          } catch (err) {
+            console.error(`❌ Failed to cancel trial for ${contactId}:`, err);
+            
+            // Create admin alert for manual cancellation
+            await db.collection('adminAlerts').add({
+              type: 'CANCELLATION_FAILED',
+              contactId: contactId,
+              enrollmentId: enrollDoc.id,
+              email: enrollment.email,
+              error: err.message,
+              priority: 'high',
+              status: 'unread',
+              message: `Failed to auto-cancel IDIQ trial for ${contact.firstName} ${contact.lastName}. Manual cancellation required.`,
+              createdAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            
+            // Send alert email
+            const user = gmailUser.value();
+            const pass = gmailAppPassword.value();
+            
+            const transporter = nodemailer.createTransporter({
+              host: 'smtp.gmail.com',
+              port: 587,
+              secure: false,
+              auth: { user, pass }
+            });
+            
+            await transporter.sendMail({
+              from: `"${gmailFromName.value() || 'SpeedyCRM Alerts'}" <${user}>`,
+              to: user,
+              subject: `🚨 URGENT: Manual IDIQ Cancellation Needed - ${contact.firstName} ${contact.lastName}`,
+              text: `Auto-cancellation FAILED for ${contact.firstName} ${contact.lastName}.\n\nContact ID: ${contactId}\nEmail: ${enrollment.email}\nError: ${err.message}\n\nACTION REQUIRED: Manually cancel this subscription in IDIQ dashboard.`,
+              html: wrapEmailInHTML(
+                'Manual Cancellation Required',
+                `Auto-cancellation FAILED for ${contact.firstName} ${contact.lastName}.\n\nContact ID: ${contactId}\nEmail: ${enrollment.email}\nError: ${err.message}\n\nACTION REQUIRED: Manually cancel this subscription in IDIQ dashboard.`,
+                'Chris'
+              )
+            });
+          }
+        }
+      }
+      
+      // ─────────────────────────────────────────────────────────────────────
+      // RULE 2: COMPLETE INACTIVITY (14+ days, no portal access)
+      // ─────────────────────────────────────────────────────────────────────
+      
+      const fourteenDaysAgo = new Date(now.getTime() - (14 * 24 * 60 * 60 * 1000));
+      const fourteenDaysAgoTimestamp = admin.firestore.Timestamp.fromDate(fourteenDaysAgo);
+      
+      const inactiveContactsSnapshot = await db.collection('contacts')
+        .where('lastActivityAt', '<=', fourteenDaysAgoTimestamp)
+        .where('status', '==', 'prospect')
+        .where('idiq.subscriptionStatus', '==', 'active')
+        .limit(50) // Process in batches
+        .get();
+      
+      console.log(`📊 Found ${inactiveContactsSnapshot.size} inactive prospects (14+ days)`);
+      
+      for (const contactDoc of inactiveContactsSnapshot.docs) {
+        const contact = contactDoc.data();
+        const contactId = contactDoc.id;
+        
+        // Skip if contract signed or has portal access
+        if (contact.contractSigned === true || (contact.portalAccessCount || 0) > 0) {
+          continue;
+        }
+        
+        const lastActivity = contact.lastActivityAt?.toDate() || new Date(0);
+        const daysSinceActivity = Math.floor((now.getTime() - lastActivity.getTime()) / (1000 * 60 * 60 * 24));
+        
+        // Send reengagement email at 7 days
+        if (daysSinceActivity >= 7 && daysSinceActivity < 14 && !contact.reengagementEmailSent) {
+          console.log(`📧 Sending reengagement email for ${contactId}`);
+          
+          const user = gmailUser.value();
+          const pass = gmailAppPassword.value();
+          
+          const transporter = nodemailer.createTransporter({
+            host: 'smtp.gmail.com',
+            port: 587,
+            secure: false,
+            auth: { user, pass }
+          });
+          
+          await transporter.sendMail({
+            from: `"${gmailFromName.value() || 'Speedy Credit Repair'}" <${user}>`,
+            to: contact.email,
+            subject: `${contact.firstName}, have you seen your credit report?`,
+            text: `Hi ${contact.firstName},\n\nI noticed you haven't logged in to view your credit report yet. It's ready for you!\n\nYour free 3-bureau credit report and analysis are waiting for you. Just click the link in your original email or reply to this message.\n\nI'm here to help answer any questions.\n\nChris Lahage\nSpeedy Credit Repair\n(888) 724-7344`,
+            html: wrapEmailInHTML(
+              'Your Credit Report is Ready',
+              `Hi ${contact.firstName},\n\nI noticed you haven't logged in to view your credit report yet. It's ready for you!\n\nYour free 3-bureau credit report and analysis are waiting for you. Just click the link in your original email or reply to this message.\n\nI'm here to help answer any questions.\n\nChris Lahage\nSpeedy Credit Repair\n(888) 724-7344`,
+              contact.firstName
+            )
+          });
+          
+          await contactDoc.ref.update({
+            reengagementEmailSent: true,
+            reengagementEmailSentAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+          
+          console.log(`✅ Reengagement email sent for ${contactId}`);
+        }
+        
+        // Schedule cancellation at 14+ days
+        if (daysSinceActivity >= 14) {
+          console.log(`📅 Scheduling cancellation for ${contactId} (${daysSinceActivity} days inactive)`);
+          
+          await contactDoc.ref.update({
+            'idiq.subscriptionStatus': 'scheduled_cancel',
+            'idiq.cancellationScheduledFor': admin.firestore.FieldValue.serverTimestamp()
+          });
+          
+          // Create admin alert
+          await db.collection('adminAlerts').add({
+            type: 'INACTIVE_PROSPECT',
+            contactId: contactId,
+            email: contact.email,
+            priority: 'medium',
+            status: 'unread',
+            message: `${contact.firstName} ${contact.lastName} has been inactive for ${daysSinceActivity} days. Trial scheduled for cancellation.`,
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+          
+          console.log(`✅ Cancellation scheduled for ${contactId}`);
+        }
+      }
+      
+      console.log('\n✅ IDIQ trial management complete');
+      
     } catch (error) {
       console.error('❌ Workflow processor error:', error);
     }
   }
 );
 
-console.log('✅ Function 6/10: processWorkflowStages loaded');
+console.log('✅ Function 6/10: processWorkflowStages (ENHANCED with IDIQ auto-cancel) loaded');
 
 // ============================================
 // FUNCTION 7: AI CONTENT GENERATOR (Consolidated)
@@ -761,6 +1119,8 @@ exports.aiContentGenerator = onCall(
                   role: 'user',
                   content: `Analyze this credit report data and provide: 1) Key findings, 2) Negative items to dispute, 3) Positive factors, 4) Recommendations. Data: ${JSON.stringify(params.reportData).substring(0, 3000)}`
                 }];
+
+                
               
               case 'disputeLetter':
                 return [{
@@ -796,6 +1156,15 @@ exports.aiContentGenerator = onCall(
                 }, {
                   role: 'user',
                   content: `Create an ACH authorization form for: ${params.clientName}. Monthly amount: $${params.amount || '99'}. Bank: ${params.bankName || '[Bank Name]'}. Account ending in: ${params.accountLastFour || 'XXXX'}.`
+                }];
+              
+              case 'recommendServicePlan':
+                return [{
+                  role: 'system',
+                  content: 'You are a credit repair expert. Recommend the best service plan based on credit profile. Available plans: Starter ($39/mo - DIY for good credit), Professional ($149/mo - Expert help for fair credit), VIP ($249/mo - Fast track for poor credit). Respond ONLY with valid JSON.'
+                }, {
+                  role: 'user',
+                  content: `Credit Score: ${params.creditScore || 'unknown'}, Negative Items: ${params.negativeItems || 0}, Utilization: ${params.utilization || 0}%. Recommend the best plan and explain why. Format your response as JSON: {"plan": "Professional", "confidence": "high", "reason": "Clear explanation of why this plan fits", "expectedResults": "What the client can expect"}`
                 }];
               
               default:
@@ -969,6 +1338,77 @@ exports.operationsManager = onCall(
           
           console.log('✅ Task updated:', taskId);
           return { success: true, message: 'Task updated', taskId };
+        }
+        
+        case 'createPortalAccount': {
+          const { contactId, email, firstName, lastName } = params;
+          
+          if (!contactId || !email || !firstName || !lastName) {
+            throw new Error('Missing required fields: contactId, email, firstName, lastName');
+          }
+          
+          try {
+            // Create Firebase Auth user
+            const userRecord = await admin.auth().createUser({
+              email: email.toLowerCase(),
+              displayName: `${firstName} ${lastName}`,
+              emailVerified: false,
+              disabled: false
+            });
+            
+            console.log('👤 Firebase Auth user created:', userRecord.uid);
+            
+            // Create userProfile document
+            await db.collection('userProfiles').doc(userRecord.uid).set({
+              contactId: contactId,
+              email: email.toLowerCase(),
+              firstName: firstName,
+              lastName: lastName,
+              role: 'client',
+              roles: ['contact', 'client'],
+              portalAccess: true,
+              createdAt: admin.firestore.FieldValue.serverTimestamp(),
+              lastLogin: null
+            });
+            
+            console.log('📄 userProfile document created');
+            
+            // Update contact document
+            await db.collection('contacts').doc(contactId).update({
+              userId: userRecord.uid,
+              portalAccess: true,
+              roles: admin.firestore.FieldValue.arrayUnion('contact', 'client'),
+              portalCreatedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            
+            console.log('📝 Contact document updated');
+            
+            // Generate password reset link
+            const passwordResetLink = await admin.auth().generatePasswordResetLink(email.toLowerCase());
+            
+            console.log('✅ Portal account created successfully:', userRecord.uid);
+            
+            return { 
+              success: true, 
+              userId: userRecord.uid,
+              passwordResetLink: passwordResetLink,
+              message: 'Portal account created successfully'
+            };
+            
+          } catch (error) {
+            console.error('❌ Portal creation error:', error);
+            
+            // Check if user already exists
+            if (error.code === 'auth/email-already-exists') {
+              return { 
+                success: false, 
+                error: 'Email already exists',
+                message: 'A user with this email already has an account'
+              };
+            }
+            
+            throw new Error(`Portal creation failed: ${error.message}`);
+          }
         }
         
         default:

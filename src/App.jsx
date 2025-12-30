@@ -15,7 +15,7 @@ const ServicePlanRecommenderPage = lazy(() => import('@/pages/ServicePlanRecomme
 // LAST UPDATED: 2025-11-06 - All 18 Hubs Integrated
 import ContractStatusTracker from '@/components/common/ContractStatusTracker';
 import PricingCalculatorCommon from '@/components/common/PricingCalculator';
-import IDIQEnrollmentWizard from './components/IDIQEnrollmentWizard';
+import IDIQEnrollmentWizard from "./components/idiq/IDIQEnrollmentWizard.jsx"
 import FinancialPlanningHub from './pages/hubs/FinancialPlanningHub.jsx';
 
 // ============================================================================
@@ -138,12 +138,14 @@ const ClientDashboard = lazy(() => import('@/pages/ClientPortal/ClientDashboard'
 const ContactDetailPage = lazy(() => import('./pages/ContactDetailPage'));
 const Portal = lazy(() => import('@/pages/Portal'));
 const CreditReportWorkflow = lazy(() => import('@/pages/CreditReportWorkflow'));
+const TestIDIQWorkflow = lazy(() => import('@/pages/TestIDIQWorkflow'));
 const AIReviewDashboard = lazy(() => import('@/pages/AIReviewDashboard'));
 const AIReviewEditor = lazy(() => import('@/components/AIReviewEditor'));
 const CreditAnalysisEngine = lazy(() => import('@/pages/CreditAnalysisEngine'));
 const PredictiveAnalytics = lazy(() => import('@/pages/PredictiveAnalytics'));
 const WorkflowTestingDashboard = lazy(() => import('@/pages/WorkflowTestingDashboard'));
 const IDIQSandboxTester = lazy(() => import('@/components/testing/IDIQSandboxTester'));
+const TestFunctions = lazy(() => import('@/pages/TestFunctions'));
 
 // ===== CONTACT & CRM PAGES =====
 const Contacts = lazy(() => import('@/pages/Contacts'));
@@ -407,6 +409,62 @@ const AppContent = () => {
       <Route path="/register" element={<PublicRoute><Suspense fallback={<LoadingFallback />}><Register /></Suspense></PublicRoute>} />
       <Route path="/forgot-password" element={<PublicRoute><Suspense fallback={<LoadingFallback />}><ForgotPassword /></Suspense></PublicRoute>} />
 
+      {/* ============================================================================ */}
+      {/* PUBLIC IDIQ ENROLLMENT ROUTES - NO LOGIN REQUIRED */}
+      {/* ============================================================================ */}
+      
+      {/* Public enrollment - General (no source tracking) */}
+      <Route 
+        path="get-report" 
+        element={
+          <Suspense fallback={<LoadingFallback />}>
+            <IDIQEnrollmentWizard 
+              publicMode={true}
+              onComplete={(data) => {
+                console.log('✅ Public enrollment completed:', data);
+                // Track conversion in Google Analytics if available
+                if (window.gtag) {
+                  window.gtag('event', 'enrollment_complete', {
+                    source: 'public',
+                    email: data.email,
+                    leadScore: data.leadScore
+                  });
+                }
+              }}
+            />
+          </Suspense>
+        } 
+      />
+
+      {/* Public enrollment with source tracking (for campaign attribution) */}
+      <Route 
+        path="get-report/:source" 
+        element={
+          <Suspense fallback={<LoadingFallback />}>
+            <IDIQEnrollmentWizard 
+              publicMode={true}
+              trackingEnabled={true}
+              onComplete={(data) => {
+                console.log('✅ Public enrollment completed with tracking:', data);
+              }}
+            />
+          </Suspense>
+        } 
+      />
+
+      {/* Public enrollment with contact ID (for AI Receptionist follow-ups) */}
+      <Route 
+        path="get-report/contact/:contactId" 
+        element={
+          <Suspense fallback={<LoadingFallback />}>
+            <IDIQEnrollmentWizard 
+              publicMode={true}
+              trackingEnabled={true}
+            />
+          </Suspense>
+        } 
+      />
+
       {/* PROTECTED ROUTES */}
       <Route path="/" element={<ProtectedRoute><ProtectedLayout /></ProtectedRoute>}>
         <Route index element={<SmartRedirect />} />
@@ -427,6 +485,7 @@ const AppContent = () => {
         <Route path="admin/ai-reviews" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><AIReviewDashboard /></Suspense></ProtectedRoute>} />
         <Route path="admin/ai-reviews/:reviewId" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><AIReviewEditor /></Suspense></ProtectedRoute>} />
         <Route path="credit-analysis" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><CreditAnalysisEngine /></Suspense></ProtectedRoute>} />
+        <Route path="test-idiq-workflow" element={<Suspense fallback={<LoadingFallback />}><TestIDIQWorkflow /></Suspense>} />
         <Route path="predictive-analytics" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><PredictiveAnalytics /></Suspense></ProtectedRoute>} />
 
         {/* ============================================================================ */}
@@ -1349,7 +1408,25 @@ const AppContent = () => {
   }
 />
 
-        <Route path="financial-planning-hub" element={<ProtectedRoute requiredRole="user"><Suspense fallback={<LoadingFallback />}><FinancialPlanningHub /></Suspense></ProtectedRoute>} />
+{/* TEST FUNCTIONS - TEMPORARY */}
+<Route
+  path="test-functions"
+  element={
+    <ProtectedRoute requiredRole="admin">
+      <Suspense fallback={<LoadingFallback />}>
+        <TestFunctions />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+<Route path="financial-planning-hub" element={
+  <ProtectedRoute requiredRole="user">
+    <Suspense fallback={<LoadingFallback />}>
+      <FinancialPlanningHub />
+    </Suspense>
+  </ProtectedRoute>
+} />
 
   {/* 404 - NOT FOUND */}
         <Route path="*" element={

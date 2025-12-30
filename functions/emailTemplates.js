@@ -56,8 +56,7 @@ class AITemplateSelector {
       daysSinceLastEngagement: this.calculateDaysSince(engagementHistory.lastEngagement),
       timeZone: contactData.timeZone || 'America/Los_Angeles',
       deviceType: engagementHistory.lastDeviceType || 'desktop'
-    };
-    
+      };    
     // Select variant based on factors
     let variant = 'standard';
     
@@ -1844,8 +1843,404 @@ const TEMPLATES = Object.freeze({
       <p>Want to learn more? Check out our blog: <a href="https://speedycreditrepair.com/blog">speedycreditrepair.com/blog</a></p>
       <p style="margin: 40px 0 0 0;"><strong>Chris Lahage</strong></p>
     `, `Credit Tip: ${data.tipTitle}`)
-  }
+  },
 
+// ═══════════════════════════════════════════════════════════════════════
+  // IDIQ ENROLLMENT WORKFLOW TEMPLATES
+  // ═══════════════════════════════════════════════════════════════════════
+  
+  'idiq-enrollment-success': {
+    subject: (data) => `Welcome ${data.firstName}! Your credit report enrollment is complete`,
+    html: (data) => BASE_WRAPPER(`
+      <h1>Welcome to Speedy Credit Repair, ${data.firstName}!</h1>
+      
+      <p style="font-size: 18px; color: #059669; font-weight: 600;">
+        ✅ Your IDIQ credit monitoring enrollment is complete!
+      </p>
+      
+      <p>
+        Thank you for enrolling with us. We're now retrieving your 3-bureau credit report 
+        from Experian, TransUnion, and Equifax. This process typically takes 30-45 seconds.
+      </p>
+      
+      <div class="highlight-box">
+        <p class="highlight-box-title">🎯 What Happens Next</p>
+        <ul style="margin: 10px 0; padding-left: 20px;">
+          <li><strong>Step 1:</strong> We're pulling your credit report (in progress)</li>
+          <li><strong>Step 2:</strong> Our AI will analyze your credit</li>
+          <li><strong>Step 3:</strong> You'll receive a personalized action plan</li>
+          <li><strong>Step 4:</strong> We'll call you to discuss your results</li>
+        </ul>
+      </div>
+      
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="https://myclevercrm.com/client-portal?id=${data.contactId}" 
+           class="cta-button">
+          Track Your Progress
+        </a>
+      </div>
+      
+      <div class="trust-badges">
+        <div class="badge">
+          <span class="badge-icon">🔒</span>
+          <span class="badge-text">Secure</span>
+          <span class="badge-subtitle">Bank-Level Encryption</span>
+        </div>
+        <div class="badge">
+          <span class="badge-icon">⚡</span>
+          <span class="badge-text">Fast</span>
+          <span class="badge-subtitle">30-90 Day Results</span>
+        </div>
+        <div class="badge">
+          <span class="badge-icon">🏆</span>
+          <span class="badge-text">30 Years</span>
+          <span class="badge-subtitle">Experience</span>
+        </div>
+      </div>
+      
+      <p style="margin: 30px 0 15px 0;">
+        You'll receive another email within the next few minutes with your complete credit report 
+        and AI-powered analysis.
+      </p>
+      
+      <p style="margin: 40px 0 0 0;">
+        Questions? Call me anytime at <strong>(888) 724-7344</strong>
+      </p>
+      
+      <p style="margin: 20px 0 0 0;">
+        <strong>Chris Lahage</strong><br>
+        Owner & Credit Expert<br>
+        Speedy Credit Repair
+      </p>
+    `, `Welcome ${data.firstName}! Your credit report enrollment is complete`)
+  },
+  
+  'idiq-credit-report-ready': {
+    subject: (data) => `${data.firstName}, Your Credit Report is Ready! Score: ${data.creditScore}`,
+    html: (data) => BASE_WRAPPER(`
+      <h1>Your Credit Report is Ready, ${data.firstName}!</h1>
+      
+      <div style="text-align: center; background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); padding: 40px; border-radius: 12px; margin: 30px 0;">
+        <p style="color: rgba(255,255,255,0.9); font-size: 16px; margin: 0 0 10px 0;">Your Current Credit Score</p>
+        <h1 style="color: #ffffff; font-size: 72px; margin: 0; font-weight: bold;">${data.creditScore}</h1>
+        <p style="color: rgba(255,255,255,0.9); font-size: 14px; margin: 10px 0 0 0;">
+          ${data.creditScore >= 740 ? 'Excellent' : data.creditScore >= 670 ? 'Good' : data.creditScore >= 580 ? 'Fair' : 'Needs Improvement'}
+        </p>
+      </div>
+      
+      <p style="font-size: 18px; color: #059669; font-weight: 600;">
+        ✅ Your complete 3-bureau credit report is ready to view!
+      </p>
+      
+      <p>
+        I've personally reviewed your credit report and our AI has created a customized action plan 
+        specifically for your situation. Here's what we found:
+      </p>
+      
+      <div class="highlight-box">
+        <p class="highlight-box-title">📊 Quick Summary</p>
+        <p style="margin: 0;">
+          Your credit report has been analyzed across all 3 bureaus (Experian, TransUnion, and Equifax). 
+          We've identified the key factors affecting your score and created a personalized roadmap to help you improve.
+        </p>
+      </div>
+      
+      <h2>View Your Complete Analysis:</h2>
+      
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${data.dashboardUrl}" 
+           class="cta-button">
+          View My Credit Report & Analysis
+        </a>
+      </div>
+      
+      <h2>What's Included:</h2>
+      <ul>
+        <li><strong>Complete 3-Bureau Report</strong> - See exactly what lenders see</li>
+        <li><strong>AI-Powered Analysis</strong> - Identify what's hurting your score most</li>
+        <li><strong>30-Day Action Plan</strong> - Step-by-step improvement strategy</li>
+        <li><strong>90-Day Projection</strong> - See your potential score improvement</li>
+        <li><strong>Recommended Service Plan</strong> - Best option for your situation</li>
+      </ul>
+      
+      <div style="background-color: #FEF3C7; border-left: 4px solid #F59E0B; padding: 20px; margin: 30px 0; border-radius: 4px;">
+        <p style="margin: 0; color: #92400E;">
+          <strong>⏰ Time-Sensitive:</strong> Your free credit monitoring trial is active for 30 days. 
+          Let's schedule a call this week to discuss your results and create your custom credit repair plan.
+        </p>
+      </div>
+      
+      <h2>Next Steps:</h2>
+      <ol>
+        <li><strong>Review Your Report</strong> - Click the button above to see your full analysis</li>
+        <li><strong>Schedule Your Free Consultation</strong> - I'll call you within 24 hours to discuss</li>
+        <li><strong>Start Your Action Plan</strong> - Begin improving your credit right away</li>
+      </ol>
+      
+      <p style="margin: 40px 0 15px 0;">
+        I'm here to answer any questions. Call me directly at <strong>(888) 724-7344</strong> 
+        or reply to this email.
+      </p>
+      
+      <p style="margin: 20px 0 0 0;">
+        Looking forward to helping you achieve your credit goals!
+      </p>
+      
+      <p style="margin: 20px 0 0 0;">
+        <strong>Chris Lahage</strong><br>
+        Owner & Credit Expert<br>
+        Speedy Credit Repair<br>
+        (888) 724-7344
+      </p>
+      
+      <div style="background-color: #F3F4F6; padding: 20px; margin: 30px 0; border-radius: 8px; text-align: center;">
+        <p style="margin: 0 0 10px 0; font-size: 12px; color: #6B7280;">
+          <strong>30-Year Track Record</strong>
+        </p>
+        <div style="display: flex; justify-content: center; gap: 30px; flex-wrap: wrap;">
+          <div>
+            <p style="margin: 0; font-size: 24px; font-weight: bold; color: #1F2937;">10,000+</p>
+            <p style="margin: 0; font-size: 12px; color: #6B7280;">Clients Helped</p>
+          </div>
+          <div>
+            <p style="margin: 0; font-size: 24px; font-weight: bold; color: #1F2937;">4.9★</p>
+            <p style="margin: 0; font-size: 12px; color: #6B7280;">Google Rating</p>
+          </div>
+          <div>
+            <p style="margin: 0; font-size: 24px; font-weight: bold; color: #1F2937;">A+</p>
+            <p style="margin: 0; font-size: 12px; color: #6B7280;">BBB Rating</p>
+          </div>
+        </div>
+      </div>
+    `, `${data.firstName}, Your Credit Report is Ready! Score: ${data.creditScore}`)
+  },
+  
+  'idiq-trial-expiring-warning': {
+    subject: (data) => `${data.firstName}, Your Free Credit Monitoring Trial Expires in 3 Days`,
+    html: (data) => BASE_WRAPPER(`
+      <h1>Important Notice, ${data.firstName}</h1>
+      
+      <div style="background-color: #FEF3C7; border-left: 4px solid #F59E0B; padding: 20px; margin: 30px 0; border-radius: 4px;">
+        <p style="margin: 0; color: #92400E; font-size: 18px; font-weight: 600;">
+          ⏰ Your free IDIQ credit monitoring trial expires in 3 days
+        </p>
+      </div>
+      
+      <p>
+        I wanted to give you a heads up that your free 30-day credit monitoring trial will expire 
+        on <strong>${data.expirationDate}</strong>.
+      </p>
+      
+      <div class="highlight-box">
+        <p class="highlight-box-title">🎯 What This Means</p>
+        <p style="margin: 0;">
+          To continue receiving credit monitoring updates and dispute assistance, you'll need to either:
+        </p>
+        <ul style="margin: 10px 0; padding-left: 20px;">
+          <li>Sign up for our credit repair services, OR</li>
+          <li>Upgrade to a paid credit monitoring plan</li>
+        </ul>
+      </div>
+      
+      <h2>Your Options:</h2>
+      
+      <div style="background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); padding: 30px; border-radius: 12px; margin: 20px 0; color: white;">
+        <h3 style="margin: 0 0 15px 0; color: white;">Option 1: Full Credit Repair Service (Recommended)</h3>
+        <p style="margin: 0 0 15px 0; color: rgba(255,255,255,0.9);">
+          Let us handle everything for you. We'll dispute negative items, negotiate with creditors, 
+          and work to improve your score by 50-150 points in 30-90 days.
+        </p>
+        <ul style="margin: 0; padding-left: 20px; color: rgba(255,255,255,0.9);">
+          <li>Starting at $149/month</li>
+          <li>Includes ongoing credit monitoring</li>
+          <li>Dispute management & bureau communications</li>
+          <li>Direct access to Chris (30 years experience)</li>
+        </ul>
+      </div>
+      
+      <div style="background-color: #F3F4F6; padding: 30px; border-radius: 12px; margin: 20px 0;">
+        <h3 style="margin: 0 0 15px 0;">Option 2: DIY Credit Monitoring</h3>
+        <p style="margin: 0 0 15px 0; color: #374151;">
+          Continue monitoring your credit on your own with IDIQ's paid plan.
+        </p>
+        <ul style="margin: 0; padding-left: 20px; color: #374151;">
+          <li>$39/month through IDIQ</li>
+          <li>Credit monitoring only (no repair services)</li>
+          <li>You handle all disputes yourself</li>
+        </ul>
+      </div>
+      
+      <div style="text-align: center; margin: 40px 0;">
+        <a href="tel:+18887247344" 
+           class="cta-button">
+          Call Now: (888) 724-7344
+        </a>
+      </div>
+      
+      <div style="text-align: center; margin: 20px 0;">
+        <a href="https://myclevercrm.com/schedule?contact=${data.contactId}" 
+           style="color: #3b82f6; text-decoration: underline;">
+          Or Schedule a Free Consultation
+        </a>
+      </div>
+      
+      <div style="background-color: #FEE2E2; border-left: 4px solid #EF4444; padding: 20px; margin: 30px 0; border-radius: 4px;">
+        <p style="margin: 0; color: #991B1B;">
+          <strong>⚠️ What Happens If You Don't Act:</strong><br>
+          If we don't hear from you by ${data.expirationDate}, your trial will automatically expire 
+          and you'll lose access to your credit monitoring. You'll need to re-enroll if you want to continue later.
+        </p>
+      </div>
+      
+      <p style="margin: 40px 0 15px 0;">
+        Questions? I'm here to help! Call me at <strong>(888) 724-7344</strong> or reply to this email.
+      </p>
+      
+      <p style="margin: 20px 0 0 0;">
+        <strong>Chris Lahage</strong><br>
+        Owner & Credit Expert<br>
+        Speedy Credit Repair<br>
+        (888) 724-7344
+      </p>
+    `, `${data.firstName}, Your Free Credit Monitoring Trial Expires in 3 Days`)
+  },
+  
+  'idiq-reengagement': {
+    subject: (data) => `${data.firstName}, have you seen your credit report yet?`,
+    html: (data) => BASE_WRAPPER(`
+      <h1>Hi ${data.firstName},</h1>
+      
+      <p>
+        I noticed you haven't logged in to view your credit report yet, and I wanted to make sure 
+        you received it.
+      </p>
+      
+      <div class="highlight-box">
+        <p class="highlight-box-title">📊 Your Report is Ready</p>
+        <p style="margin: 0;">
+          Your complete 3-bureau credit report and AI-powered analysis are waiting for you. 
+          It only takes a minute to review, and it could save you thousands of dollars in interest 
+          over time.
+        </p>
+      </div>
+      
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${data.dashboardUrl}" 
+           class="cta-button">
+          View My Credit Report Now
+        </a>
+      </div>
+      
+      <h2>What You'll See:</h2>
+      <ul>
+        <li><strong>Your Current Credit Score</strong> - Across all 3 bureaus</li>
+        <li><strong>Negative Items</strong> - Everything that's hurting your score</li>
+        <li><strong>AI Analysis</strong> - What to fix first for maximum impact</li>
+        <li><strong>30-Day Action Plan</strong> - Specific steps to improve</li>
+        <li><strong>90-Day Projection</strong> - Your potential new score</li>
+      </ul>
+      
+      <div style="background-color: #FEF3C7; border-left: 4px solid #F59E0B; padding: 20px; margin: 30px 0; border-radius: 4px;">
+        <p style="margin: 0; color: #92400E;">
+          <strong>💡 Did you know?</strong> Most people can improve their credit score by 50-150 points 
+          in just 30-90 days with the right strategy. Your personalized plan shows you exactly how.
+        </p>
+      </div>
+      
+      <h2>Common Questions:</h2>
+      
+      <p><strong>Q: Is this really free?</strong></p>
+      <p>A: Yes! Your 3-bureau credit report and analysis are completely free. There's no catch, 
+      no credit card required. This is our way of helping you understand your credit situation.</p>
+      
+      <p><strong>Q: What if I have questions?</strong></p>
+      <p>A: That's what I'm here for! Call me at (888) 724-7344 and I'll walk you through your report 
+      and answer any questions. I've been doing this for 30 years.</p>
+      
+      <p><strong>Q: Will this hurt my credit score?</strong></p>
+      <p>A: Not at all! Viewing your own credit report is a "soft pull" and has zero impact on your score.</p>
+      
+      <div style="text-align: center; margin: 40px 0;">
+        <a href="${data.dashboardUrl}" 
+           class="cta-button">
+          View My Report
+        </a>
+      </div>
+      
+      <p style="margin: 40px 0 15px 0;">
+        If you're having any trouble accessing your report, just reply to this email or call me at 
+        <strong>(888) 724-7344</strong>. I'm here to help!
+      </p>
+      
+      <p style="margin: 20px 0 0 0;">
+        <strong>Chris Lahage</strong><br>
+        Owner & Credit Expert<br>
+        Speedy Credit Repair<br>
+        (888) 724-7344
+      </p>
+    `, `${data.firstName}, have you seen your credit report yet?`)
+  },
+  
+  'idiq-trial-cancelled': {
+    subject: (data) => `${data.firstName}, Your Credit Monitoring Trial Has Ended`,
+    html: (data) => BASE_WRAPPER(`
+      <h1>Hi ${data.firstName},</h1>
+      
+      <p>
+        Your 30-day free credit monitoring trial with IDIQ has ended. Your credit monitoring 
+        access is now cancelled.
+      </p>
+      
+      <div class="highlight-box">
+        <p class="highlight-box-title">🔔 What This Means</p>
+        <p style="margin: 0;">
+          You will no longer receive credit monitoring alerts or updates. However, your credit 
+          report and analysis are still available if you'd like to review them one last time.
+        </p>
+      </div>
+      
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${data.dashboardUrl}" 
+           class="cta-button">
+          View Final Report
+        </a>
+      </div>
+      
+      <h2>Want to Continue?</h2>
+      
+      <p>
+        If you'd like to continue monitoring your credit or start actively improving your score, 
+        I'm here to help. Here are your options:
+      </p>
+      
+      <ol>
+        <li><strong>Full Credit Repair Service</strong> - Let us handle everything ($149/month)</li>
+        <li><strong>DIY Monitoring</strong> - Re-enroll with IDIQ ($39/month)</li>
+        <li><strong>Free Consultation</strong> - Discuss your options with me (no obligation)</li>
+      </ol>
+      
+      <div style="text-align: center; margin: 40px 0;">
+        <a href="tel:+18887247344" 
+           style="display: inline-block; background-color: #3b82f6; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: 600;">
+          Call: (888) 724-7344
+        </a>
+      </div>
+      
+      <p style="margin: 40px 0 15px 0;">
+        Thank you for trying our service. I hope the credit report was helpful!
+      </p>
+      
+      <p style="margin: 20px 0 0 0;">
+        <strong>Chris Lahage</strong><br>
+        Owner & Credit Expert<br>
+        Speedy Credit Repair
+      </p>
+    `, `${data.firstName}, Your Credit Monitoring Trial Has Ended`)
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // END OF IDIQ EMAIL TEMPLATES
+  // ═══════════════════════════════════════════════════════════════════════
 });
 
 /**
