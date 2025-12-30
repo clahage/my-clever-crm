@@ -15,6 +15,11 @@
 // - email-tracking-schema.sql (Database structure)
 // - enrollment-analytics.php (Real-time monitoring)
 //
+// SECURITY:
+// - Admin secret token required for tracking.php endpoint
+// - CSRF protection via session_id
+// - Rate limiting via timestamp checks
+//
 // © 1995-2025 Speedy Credit Repair Inc. | Chris Lahage | All Rights Reserved
 // ============================================================================
 
@@ -30,6 +35,9 @@ const TRACKING_CONFIG = {
   trackingEndpoint: '/api/tracking.php',
   analyticsEndpoint: '/api/enrollment-analytics.php',
 
+  // Admin secret for tracking.php authentication (from environment)
+  adminSecret: import.meta.env.VITE_TRACKING_ADMIN_SECRET || 'speedy_tracking_2025',
+
   // Exit intent discount
   exitIntentDiscount: 50,
   exitIntentPhaseThreshold: 5, // Show exit intent before phase 5
@@ -37,7 +45,25 @@ const TRACKING_CONFIG = {
   // Inactivity timeout for abandoned cart (in milliseconds)
   abandonmentTimeout: 15 * 60 * 1000, // 15 minutes
 
-  // Event types for MySQL tracking
+  // MySQL table column mapping (matches email-tracking-schema.sql)
+  mysqlColumns: {
+    eventType: 'event_type',
+    contactId: 'contact_id',
+    email: 'email',
+    phone: 'phone',
+    firstName: 'first_name',
+    currentPhase: 'current_phase',
+    timestamp: 'created_at',
+    userAgent: 'user_agent',
+    referrer: 'referrer',
+    pageUrl: 'page_url',
+    sessionId: 'session_id',
+    metadata: 'metadata',
+    deviceType: 'device_type',
+    timeOnPage: 'time_on_page',
+  },
+
+  // Event types for MySQL tracking (matches tracking.js)
   eventTypes: {
     FORM_STARTED: 'form_started',
     STEP_COMPLETE: 'step_complete',
@@ -51,8 +77,21 @@ const TRACKING_CONFIG = {
     PAYMENT_COMPLETED: 'payment_completed',
     RECOVERY_SMS_SENT: 'recovery_sms_sent',
     RECOVERY_CLICKED: 'recovery_clicked',
+    PAGE_VIEW: 'page_view',
+    BUTTON_CLICK: 'button_click',
+  },
+
+  // Recovery sequence timing (matches EMAIL_RECOVERY_SYSTEM_PLAN)
+  recoverySequence: {
+    sms: { delayMinutes: 15, channel: 'sms' },
+    email1: { delayMinutes: 60, channel: 'email', template: 'abandoned_cart_1' },
+    email2: { delayMinutes: 1440, channel: 'email', template: 'abandoned_cart_2' }, // 24 hours
+    email3: { delayMinutes: 4320, channel: 'email', template: 'final_reminder' }, // 72 hours
   },
 };
+
+// Page load timestamp for time-on-page calculation
+const PAGE_LOAD_TIME = Date.now();
 
 // ============================================================================
 // TRACKING EVENT INTERFACE
@@ -61,6 +100,11 @@ const TRACKING_CONFIG = {
 /**
  * Track enrollment event to MySQL via PHP endpoint
  * Compatible with tracking.php and tracking.js structure
+ *
+ * MySQL Schema (email_followups / enrollment_events):
+ * - id, event_type, contact_id, email, phone, first_name
+ * - current_phase, device_type, time_on_page, user_agent
+ * - referrer, page_url, session_id, metadata, created_at
  */
 export const trackEvent = async ({
   eventType,
@@ -73,50 +117,84 @@ export const trackEvent = async ({
 }) => {
   console.log('📊 Tracking event:', eventType, { contactId, phase, metadata });
 
+  const timeOnPage = Math.round((Date.now() - PAGE_LOAD_TIME) / 1000);
+  const deviceType = detectDeviceType();
+
+  // Build payload matching MySQL schema
   const eventData = {
+    // Required fields
     event_type: eventType,
     contact_id: contactId,
     email: email,
     phone: phone,
     first_name: firstName,
     current_phase: phase,
+
+    // Analytics fields (for enrollment-analytics.php dashboard)
+    device_type: deviceType,
+    time_on_page: timeOnPage,
     timestamp: new Date().toISOString(),
     user_agent: navigator.userAgent,
     referrer: document.referrer,
     page_url: window.location.href,
     session_id: getSessionId(),
-    metadata: JSON.stringify(metadata),
+
+    // Extended metadata as JSON
+    metadata: JSON.stringify({
+      ...metadata,
+      utm: getUTMParams(),
+      viewport: {
+        width: window.innerWidth,
+        height: window.innerHeight,
+      },
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    }),
+
+    // Security: Admin secret token
+    admin_secret: TRACKING_CONFIG.adminSecret,
+
+    // CSRF protection
+    csrf_token: getCSRFToken(),
   };
 
   try {
-    // Send to PHP tracking endpoint
+    // Send to PHP tracking endpoint with authentication
     const response = await fetch(TRACKING_CONFIG.trackingEndpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'X-Admin-Secret': TRACKING_CONFIG.adminSecret,
+        'X-Session-ID': getSessionId(),
       },
       body: JSON.stringify(eventData),
+      credentials: 'include', // Include cookies for session
     });
 
     if (!response.ok) {
-      console.warn('⚠️ PHP tracking endpoint returned error:', response.status);
+      const errorText = await response.text();
+      console.warn('⚠️ PHP tracking endpoint returned error:', response.status, errorText);
+    } else {
+      const result = await response.json().catch(() => ({ success: true }));
+      console.log('✅ Event tracked in MySQL:', result);
     }
   } catch (error) {
-    console.warn('⚠️ Failed to send to PHP tracking (will use Firebase fallback):', error);
+    console.warn('⚠️ Failed to send to PHP tracking (using Firebase fallback):', error.message);
   }
 
   // Also log to Firebase for redundancy
   try {
     await addDoc(collection(db, 'enrollmentTracking'), {
       ...eventData,
-      metadata: metadata, // Keep as object in Firebase
+      metadata: { ...metadata, utm: getUTMParams() }, // Keep as object in Firebase
+      admin_secret: undefined, // Don't store secret in Firebase
+      csrf_token: undefined,
       createdAt: serverTimestamp(),
     });
   } catch (firebaseError) {
     console.error('❌ Firebase tracking fallback failed:', firebaseError);
   }
 
-  // If this is an abandonment event, schedule recovery
+  // If this is an abandonment event, schedule recovery sequence
   if (eventType === TRACKING_CONFIG.eventTypes.FORM_ABANDONED && email) {
     await scheduleEmailRecovery({
       email,
@@ -132,6 +210,7 @@ export const trackEvent = async ({
 
 /**
  * Track phase completion milestone
+ * Maps to step[N]_complete events in MySQL
  */
 export const trackPhaseComplete = async ({
   phase,
@@ -141,18 +220,32 @@ export const trackPhaseComplete = async ({
   firstName,
   formData = {},
 }) => {
+  // MySQL event_type mapping for conversion funnel
   const milestoneMap = {
-    1: 'step1_complete', // Lead capture
+    1: 'step1_complete', // Lead capture - email_followups trigger point
     2: 'step2_complete', // Analysis started
-    3: 'step3_complete', // Analysis complete
+    3: 'step3_complete', // Analysis complete - key recovery trigger
     4: 'step4_complete', // Documents uploaded
     5: 'step5_complete', // Signature complete
     6: 'step6_complete', // Plan selected
-    7: 'step7_complete', // Payment started
+    7: 'step7_complete', // Payment started - payment_started event
     8: 'step8_complete', // Payment complete
     9: 'step9_complete', // Portal preview
-    10: 'form_completed', // Enrollment complete
+    10: 'form_completed', // Enrollment complete - conversion!
   };
+
+  // Track payment_started separately for analytics
+  if (phase === 7) {
+    await trackEvent({
+      eventType: TRACKING_CONFIG.eventTypes.PAYMENT_STARTED,
+      contactId,
+      email,
+      phone,
+      firstName,
+      phase,
+      metadata: { plan: formData.selectedPlan },
+    });
+  }
 
   return trackEvent({
     eventType: milestoneMap[phase] || `phase${phase}_complete`,
@@ -163,12 +256,15 @@ export const trackPhaseComplete = async ({
     phase,
     metadata: {
       formData: sanitizeFormData(formData),
+      funnelPosition: phase,
+      funnelTotal: 10,
+      completionPercentage: Math.round((phase / 10) * 100),
     },
   });
 };
 
 /**
- * Track form start
+ * Track form start - first entry into funnel
  */
 export const trackFormStarted = async ({ contactId, email, firstName }) => {
   return trackEvent({
@@ -180,17 +276,25 @@ export const trackFormStarted = async ({ contactId, email, firstName }) => {
     metadata: {
       landingSource: document.referrer || 'direct',
       utmParams: getUTMParams(),
+      entryTime: new Date().toISOString(),
+      deviceType: detectDeviceType(),
     },
   });
 };
 
 // ============================================================================
-// ABANDONED CART RECOVERY
+// ABANDONED CART RECOVERY (email_followups table)
 // ============================================================================
 
 /**
  * Schedule email/SMS recovery for abandoned enrollment
- * Populates email_followups table
+ * Populates email_followups table via tracking.php?action=schedule_recovery
+ *
+ * Recovery Sequence (from EMAIL_RECOVERY_SYSTEM_PLAN):
+ * 1. SMS via carrier gateway: 15 minutes
+ * 2. Email #1 (urgency): 1 hour
+ * 3. Email #2 (value): 24 hours
+ * 4. Email #3 (final): 72 hours
  */
 export const scheduleEmailRecovery = async ({
   email,
@@ -199,63 +303,87 @@ export const scheduleEmailRecovery = async ({
   phase,
   contactId,
 }) => {
-  console.log('📧 Scheduling recovery for abandoned enrollment at phase', phase);
+  console.log('📧 Scheduling recovery sequence for abandoned enrollment at phase', phase);
 
-  const recoveryData = {
+  const recoveryType = getRecoveryType(phase);
+  const now = Date.now();
+
+  // Build recovery sequence entries for email_followups table
+  const recoveryEntries = Object.entries(TRACKING_CONFIG.recoverySequence).map(([key, config]) => ({
     email,
     phone,
     first_name: firstName,
     contact_id: contactId,
     abandoned_phase: phase,
-    recovery_type: getRecoveryType(phase),
-    scheduled_time: new Date(Date.now() + TRACKING_CONFIG.abandonmentTimeout).toISOString(),
+    recovery_type: recoveryType,
+    channel: config.channel,
+    template: config.template || `recovery_${key}`,
+    scheduled_time: new Date(now + config.delayMinutes * 60 * 1000).toISOString(),
     status: 'pending',
     created_at: new Date().toISOString(),
-  };
+    sequence_order: key,
+  }));
 
   try {
     // Send to PHP endpoint to populate email_followups table
-    await fetch(`${TRACKING_CONFIG.trackingEndpoint}?action=schedule_recovery`, {
+    const response = await fetch(`${TRACKING_CONFIG.trackingEndpoint}?action=schedule_recovery`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'X-Admin-Secret': TRACKING_CONFIG.adminSecret,
       },
-      body: JSON.stringify(recoveryData),
+      body: JSON.stringify({
+        admin_secret: TRACKING_CONFIG.adminSecret,
+        entries: recoveryEntries,
+        contact_id: contactId,
+        email: email,
+        phone: phone,
+        abandoned_phase: phase,
+        recovery_type: recoveryType,
+      }),
     });
+
+    if (response.ok) {
+      console.log('✅ Recovery sequence scheduled in MySQL email_followups');
+    }
   } catch (error) {
     console.warn('⚠️ Failed to schedule PHP recovery:', error);
   }
 
-  // Also store in Firebase
+  // Also store in Firebase as backup
   try {
-    await addDoc(collection(db, 'emailFollowups'), {
-      ...recoveryData,
-      createdAt: serverTimestamp(),
-    });
+    for (const entry of recoveryEntries) {
+      await addDoc(collection(db, 'emailFollowups'), {
+        ...entry,
+        createdAt: serverTimestamp(),
+      });
+    }
   } catch (error) {
     console.error('❌ Failed to store recovery in Firebase:', error);
   }
 
-  return recoveryData;
+  return recoveryEntries;
 };
 
 /**
  * Determine recovery type based on abandoned phase
+ * Different recovery templates for different funnel positions
  */
 const getRecoveryType = (phase) => {
-  if (phase <= 2) return 'early_abandon'; // Just started
-  if (phase <= 4) return 'mid_funnel'; // Got through analysis
-  if (phase <= 6) return 'late_funnel'; // Almost completed
-  return 'payment_abandon'; // Abandoned at payment
+  if (phase <= 2) return 'early_abandon'; // Just started - aggressive recovery
+  if (phase <= 4) return 'mid_funnel'; // Got through analysis - show value
+  if (phase <= 6) return 'late_funnel'; // Almost completed - urgency
+  return 'payment_abandon'; // Abandoned at payment - highest value recovery
 };
 
 // ============================================================================
-// EXIT INTENT TRACKING
+// EXIT INTENT TRACKING (exit-intent-popup.js integration)
 // ============================================================================
 
 /**
  * Initialize exit intent detection
  * Compatible with exit-intent-popup.js logic
+ * Shows popup before Phase 5 with $50 discount
  */
 export const initExitIntent = ({
   currentPhase,
@@ -264,27 +392,44 @@ export const initExitIntent = ({
   email,
 }) => {
   let exitIntentTriggered = false;
+  let scrollDepth = 0;
+
+  // Track scroll depth for analytics
+  const handleScroll = () => {
+    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    scrollDepth = Math.round((window.scrollY / docHeight) * 100) || 0;
+  };
 
   const handleMouseLeave = (e) => {
     // Only trigger if mouse moves to top of screen (leaving)
     if (e.clientY <= 0 && !exitIntentTriggered) {
-      // Only show before phase threshold
+      // Only show before phase threshold (Phase 5)
       if (currentPhase < TRACKING_CONFIG.exitIntentPhaseThreshold) {
         exitIntentTriggered = true;
 
-        // Track the event
+        // Track the event in MySQL
         trackEvent({
           eventType: TRACKING_CONFIG.eventTypes.EXIT_INTENT_SHOWN,
           contactId,
           email,
           phase: currentPhase,
+          metadata: {
+            device: 'desktop',
+            scrollDepth,
+            timeOnPage: Math.round((Date.now() - PAGE_LOAD_TIME) / 1000),
+          },
         });
 
-        // Call the callback to show popup
+        // Call the callback to show popup with discount
         onExitIntent({
           discount: TRACKING_CONFIG.exitIntentDiscount,
           message: "Wait! Don't Leave Empty-Handed",
           subMessage: `Complete your enrollment now and get $${TRACKING_CONFIG.exitIntentDiscount} OFF your first month!`,
+          features: [
+            'FREE Credit Analysis',
+            'No Hidden Fees',
+            'Cancel Anytime',
+          ],
         });
       }
     }
@@ -300,20 +445,47 @@ export const initExitIntent = ({
         contactId,
         email,
         phase: currentPhase,
-        metadata: { device: 'mobile' },
+        metadata: {
+          device: 'mobile',
+          trigger: 'back_button',
+          scrollDepth,
+        },
       });
 
       onExitIntent({
         discount: TRACKING_CONFIG.exitIntentDiscount,
         message: "Wait! Don't Leave Empty-Handed",
         subMessage: `Complete your enrollment now and get $${TRACKING_CONFIG.exitIntentDiscount} OFF your first month!`,
+        features: [
+          'FREE Credit Analysis',
+          'No Hidden Fees',
+          'Cancel Anytime',
+        ],
       });
+    }
+  };
+
+  // Visibility change (tab switch on mobile)
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === 'hidden' && !exitIntentTriggered) {
+      if (currentPhase < TRACKING_CONFIG.exitIntentPhaseThreshold) {
+        // Don't show popup, but track the intent
+        trackEvent({
+          eventType: 'tab_switch_intent',
+          contactId,
+          email,
+          phase: currentPhase,
+          metadata: { scrollDepth },
+        });
+      }
     }
   };
 
   // Add listeners
   document.addEventListener('mouseleave', handleMouseLeave);
   window.addEventListener('popstate', handlePopState);
+  window.addEventListener('scroll', handleScroll, { passive: true });
+  document.addEventListener('visibilitychange', handleVisibilityChange);
 
   // Push a state so we can detect back button
   window.history.pushState({ enrollmentInProgress: true }, '');
@@ -322,11 +494,14 @@ export const initExitIntent = ({
   return () => {
     document.removeEventListener('mouseleave', handleMouseLeave);
     window.removeEventListener('popstate', handlePopState);
+    window.removeEventListener('scroll', handleScroll);
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
   };
 };
 
 /**
  * Track exit intent response (accepted or dismissed)
+ * When accepted, discount should flow to Phase 7 payment
  */
 export const trackExitIntentResponse = async ({
   accepted,
@@ -335,26 +510,44 @@ export const trackExitIntentResponse = async ({
   phase,
   discountApplied = false,
 }) => {
+  const eventType = accepted
+    ? TRACKING_CONFIG.eventTypes.EXIT_INTENT_ACCEPTED
+    : TRACKING_CONFIG.eventTypes.EXIT_INTENT_DISMISSED;
+
+  // If accepted, also track discount applied
+  if (accepted && discountApplied) {
+    await trackEvent({
+      eventType: TRACKING_CONFIG.eventTypes.DISCOUNT_APPLIED,
+      contactId,
+      email,
+      phase,
+      metadata: {
+        discountAmount: TRACKING_CONFIG.exitIntentDiscount,
+        discountSource: 'exit_intent',
+      },
+    });
+  }
+
   return trackEvent({
-    eventType: accepted
-      ? TRACKING_CONFIG.eventTypes.EXIT_INTENT_ACCEPTED
-      : TRACKING_CONFIG.eventTypes.EXIT_INTENT_DISMISSED,
+    eventType,
     contactId,
     email,
     phase,
     metadata: {
       discountApplied,
       discountAmount: discountApplied ? TRACKING_CONFIG.exitIntentDiscount : 0,
+      responseTime: Math.round((Date.now() - PAGE_LOAD_TIME) / 1000),
     },
   });
 };
 
 // ============================================================================
-// INACTIVITY DETECTION
+// INACTIVITY DETECTION (15-minute SMS trigger)
 // ============================================================================
 
 /**
  * Initialize inactivity timer for abandoned cart detection
+ * Triggers SMS recovery via carrier gateway after 15 minutes
  */
 export const initInactivityTimer = ({
   onInactive,
@@ -368,6 +561,7 @@ export const initInactivityTimer = ({
 }) => {
   let inactivityTimer = null;
   let lastActivityTime = Date.now();
+  let warningShown = false;
 
   const resetTimer = () => {
     lastActivityTime = Date.now();
@@ -376,11 +570,20 @@ export const initInactivityTimer = ({
       clearTimeout(inactivityTimer);
     }
 
-    inactivityTimer = setTimeout(() => {
-      // User has been inactive - trigger abandonment
-      console.log('⏰ User inactive for', timeoutMs / 1000, 'seconds');
+    // Show warning at 12 minutes (3 minutes before trigger)
+    const warningTimeout = setTimeout(() => {
+      if (!warningShown && currentPhase < 8) {
+        warningShown = true;
+        console.log('⚠️ User inactive for 12 minutes - warning');
+      }
+    }, timeoutMs - 180000);
 
-      trackEvent({
+    inactivityTimer = setTimeout(async () => {
+      // User has been inactive - trigger abandonment
+      console.log('⏰ User inactive for', timeoutMs / 1000, 'seconds - triggering recovery');
+
+      // Track abandonment in MySQL
+      await trackEvent({
         eventType: TRACKING_CONFIG.eventTypes.FORM_ABANDONED,
         contactId,
         email,
@@ -390,20 +593,28 @@ export const initInactivityTimer = ({
         metadata: {
           inactiveMinutes: timeoutMs / 60000,
           formData: sanitizeFormData(formData),
+          triggerType: 'inactivity_timeout',
         },
       });
 
+      // Call the callback to trigger SMS recovery
       if (onInactive) {
         onInactive({
           phase: currentPhase,
           inactiveMinutes: timeoutMs / 60000,
+          contactId,
+          email,
+          phone,
+          firstName,
         });
       }
     }, timeoutMs);
+
+    return () => clearTimeout(warningTimeout);
   };
 
   // Track user activity
-  const activityEvents = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart'];
+  const activityEvents = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
 
   activityEvents.forEach((event) => {
     document.addEventListener(event, resetTimer, { passive: true });
@@ -424,11 +635,12 @@ export const initInactivityTimer = ({
 };
 
 // ============================================================================
-// ANALYTICS SYNC
+// ANALYTICS SYNC (enrollment-analytics.php dashboard)
 // ============================================================================
 
 /**
  * Sync enrollment analytics to PHP dashboard
+ * Data points: conversion funnel, device type, time-on-page
  */
 export const syncAnalytics = async ({
   contactId,
@@ -446,6 +658,10 @@ export const syncAnalytics = async ({
     timestamp: new Date().toISOString(),
     conversion_source: getConversionSource(),
     utm_params: getUTMParams(),
+    device_type: detectDeviceType(),
+    time_on_page: Math.round((Date.now() - PAGE_LOAD_TIME) / 1000),
+    browser: getBrowserInfo(),
+    admin_secret: TRACKING_CONFIG.adminSecret,
   };
 
   try {
@@ -453,9 +669,11 @@ export const syncAnalytics = async ({
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'X-Admin-Secret': TRACKING_CONFIG.adminSecret,
       },
       body: JSON.stringify(analyticsData),
     });
+    console.log('✅ Analytics synced to dashboard');
   } catch (error) {
     console.warn('⚠️ Failed to sync analytics:', error);
   }
@@ -465,6 +683,7 @@ export const syncAnalytics = async ({
 
 /**
  * Log conversion for ROI tracking
+ * Called when payment is completed
  */
 export const logConversion = async ({
   contactId,
@@ -473,16 +692,22 @@ export const logConversion = async ({
   planPrice,
   discountApplied = 0,
 }) => {
+  const finalRevenue = planPrice - discountApplied;
+
   const conversionData = {
     contact_id: contactId,
     email,
     plan_id: planId,
     plan_price: planPrice,
     discount: discountApplied,
-    final_revenue: planPrice - discountApplied,
+    discount_source: discountApplied > 0 ? 'exit_intent' : null,
+    final_revenue: finalRevenue,
     timestamp: new Date().toISOString(),
     conversion_source: getConversionSource(),
     utm_params: getUTMParams(),
+    device_type: detectDeviceType(),
+    time_to_conversion: Math.round((Date.now() - PAGE_LOAD_TIME) / 1000),
+    session_id: getSessionId(),
   };
 
   // Track as completed event
@@ -500,8 +725,10 @@ export const logConversion = async ({
     email,
     phase: 10,
     completed: true,
-    revenue: planPrice - discountApplied,
+    revenue: finalRevenue,
   });
+
+  console.log('💰 Conversion logged:', { planId, finalRevenue, discountApplied });
 
   return conversionData;
 };
@@ -525,6 +752,20 @@ const getSessionId = () => {
 };
 
 /**
+ * Get CSRF token (generate if not exists)
+ */
+const getCSRFToken = () => {
+  let token = sessionStorage.getItem('csrf_token');
+
+  if (!token) {
+    token = `csrf_${Date.now()}_${Math.random().toString(36).substr(2, 16)}`;
+    sessionStorage.setItem('csrf_token', token);
+  }
+
+  return token;
+};
+
+/**
  * Get UTM parameters from URL
  */
 const getUTMParams = () => {
@@ -536,7 +777,39 @@ const getUTMParams = () => {
     utm_campaign: params.get('utm_campaign') || '',
     utm_term: params.get('utm_term') || '',
     utm_content: params.get('utm_content') || '',
+    gclid: params.get('gclid') || '', // Google Ads
+    fbclid: params.get('fbclid') || '', // Facebook Ads
   };
+};
+
+/**
+ * Detect device type for analytics
+ */
+const detectDeviceType = () => {
+  const ua = navigator.userAgent;
+
+  if (/tablet|ipad|playbook|silk/i.test(ua)) {
+    return 'tablet';
+  }
+  if (/mobile|iphone|ipod|android|blackberry|opera mini|iemobile/i.test(ua)) {
+    return 'mobile';
+  }
+  return 'desktop';
+};
+
+/**
+ * Get browser info for analytics
+ */
+const getBrowserInfo = () => {
+  const ua = navigator.userAgent;
+  let browser = 'unknown';
+
+  if (ua.includes('Chrome')) browser = 'Chrome';
+  else if (ua.includes('Safari')) browser = 'Safari';
+  else if (ua.includes('Firefox')) browser = 'Firefox';
+  else if (ua.includes('Edge')) browser = 'Edge';
+
+  return browser;
 };
 
 /**
@@ -546,6 +819,8 @@ const getConversionSource = () => {
   const utm = getUTMParams();
   const referrer = document.referrer;
 
+  if (utm.gclid) return 'google_ads';
+  if (utm.fbclid) return 'facebook_ads';
   if (utm.utm_source) {
     return `${utm.utm_source}/${utm.utm_medium || 'unknown'}`;
   }
@@ -568,10 +843,18 @@ const sanitizeFormData = (formData) => {
   // Remove sensitive fields
   delete sanitized.ssn;
   delete sanitized.password;
+  delete sanitized.creditCard;
+  delete sanitized.cvv;
 
   // Mask phone partially
   if (sanitized.phone) {
     sanitized.phone = sanitized.phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2');
+  }
+
+  // Mask email partially
+  if (sanitized.email) {
+    const [local, domain] = sanitized.email.split('@');
+    sanitized.email = `${local.slice(0, 2)}***@${domain}`;
   }
 
   return sanitized;
@@ -580,6 +863,8 @@ const sanitizeFormData = (formData) => {
 // ============================================================================
 // EXPORTS
 // ============================================================================
+
+export { TRACKING_CONFIG };
 
 export default {
   trackEvent,
