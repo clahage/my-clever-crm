@@ -139,6 +139,7 @@ const ContactDetailPage = lazy(() => import('./pages/ContactDetailPage'));
 const Portal = lazy(() => import('@/pages/Portal'));
 const CreditReportWorkflow = lazy(() => import('@/pages/CreditReportWorkflow'));
 const TestIDIQWorkflow = lazy(() => import('@/pages/TestIDIQWorkflow'));
+const CompleteEnrollmentFlow = lazy(() => import('@/components/idiq/CompleteEnrollmentFlow'));
 const AIReviewDashboard = lazy(() => import('@/pages/AIReviewDashboard'));
 const AIReviewEditor = lazy(() => import('@/components/AIReviewEditor'));
 const CreditAnalysisEngine = lazy(() => import('@/pages/CreditAnalysisEngine'));
@@ -486,6 +487,7 @@ const AppContent = () => {
         <Route path="admin/ai-reviews/:reviewId" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><AIReviewEditor /></Suspense></ProtectedRoute>} />
         <Route path="credit-analysis" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><CreditAnalysisEngine /></Suspense></ProtectedRoute>} />
         <Route path="test-idiq-workflow" element={<Suspense fallback={<LoadingFallback />}><TestIDIQWorkflow /></Suspense>} />
+        <Route path="complete-enrollment" element={<Suspense fallback={<LoadingFallback />}><CompleteEnrollmentFlow /></Suspense>} />
         <Route path="predictive-analytics" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><PredictiveAnalytics /></Suspense></ProtectedRoute>} />
 
         {/* ============================================================================ */}
