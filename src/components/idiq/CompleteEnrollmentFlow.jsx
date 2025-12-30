@@ -415,9 +415,11 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
   const [contactId, setContactId] = useState(null);
   const [formData, setFormData] = useState({
     firstName: '',
+    middleName: '',
     lastName: '',
     email: '',
     phone: '',
+    password: '',
     carrier: '',
     street: '',
     city: '',
@@ -785,8 +787,11 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
         action: 'pullReport',
         memberData: {
           firstName: formData.firstName,
+          middleName: formData.middleName,
           lastName: formData.lastName,
           email: formData.email,
+          phone: formData.phone,
+          password: formData.password,
           dateOfBirth: formData.dateOfBirth,
           ssn: formData.ssn,
           address: {
@@ -906,20 +911,35 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
     try {
       const plan = SERVICE_PLANS.find((p) => p.id === selectedPlan);
 
+      // Calculate final amount with discount applied (in cents for Stripe)
+      const discountedPrice = plan.price - appliedDiscount;
+      const amountInCents = Math.round(discountedPrice * 100);
+
+      // Validate Stripe key
+      const stripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+      if (!stripeKey) {
+        throw new Error('Stripe publishable key is not configured');
+      }
+
       // Create Stripe checkout session via Cloud Function
       const response = await createStripeCheckout({
         productId: plan.id,
         productName: `Speedy Credit Repair - ${plan.name}`,
-        amount: plan.price * 100, // Stripe uses cents
+        amount: amountInCents,
         currency: 'usd',
         contactId: contactId,
         billingDay: formData.billingDay,
+        discountApplied: appliedDiscount,
+        originalPrice: plan.price,
         successUrl: `${window.location.origin}/enrollment/success?session_id={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${window.location.origin}/enrollment?phase=6`,
       });
 
       // Redirect to Stripe
-      const stripe = await loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+      const stripe = await loadStripe(stripeKey);
+      if (!stripe) {
+        throw new Error('Failed to initialize Stripe');
+      }
       await stripe.redirectToCheckout({ sessionId: response.data.sessionId });
 
     } catch (err) {
