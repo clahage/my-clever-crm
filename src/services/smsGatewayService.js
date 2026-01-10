@@ -168,7 +168,7 @@ export const SMS_TEMPLATES = {
   SPIN_TAX_RECOVERY: {
     id: 'spin_tax_recovery',
     name: 'Spin-Tax Recovery',
-    template: `Hi {{firstName}}, Christopher here. I have your analysis ready! {{link}}`,
+    template: 'Hi {{firstName}}, Christopher here. I have your analysis ready! {{link}}',
     maxLength: 140, // Leave room for link
     triggerEvent: 'enrollment_abandoned',
     delayMinutes: 15
@@ -178,7 +178,7 @@ export const SMS_TEMPLATES = {
   WELCOME: {
     id: 'welcome',
     name: 'Welcome Message',
-    template: `Welcome to Speedy Credit Repair, {{firstName}}! Your journey to better credit starts now. Login: {{portalLink}}`,
+    template: 'Welcome to Speedy Credit Repair, {{firstName}}! Your journey to better credit starts now. Login: {{portalLink}}',
     maxLength: 140,
     triggerEvent: 'enrollment_complete'
   },
@@ -187,7 +187,7 @@ export const SMS_TEMPLATES = {
   REPORT_READY: {
     id: 'report_ready',
     name: 'Credit Report Ready',
-    template: `{{firstName}}, your credit analysis is ready! View it now: {{link}}`,
+    template: '{{firstName}}, your credit analysis is ready! View it now: {{link}}',
     maxLength: 140,
     triggerEvent: 'report_pulled'
   },
@@ -196,7 +196,7 @@ export const SMS_TEMPLATES = {
   PAYMENT_REMINDER: {
     id: 'payment_reminder',
     name: 'Payment Reminder',
-    template: `Hi {{firstName}}, friendly reminder: your payment of ${{amount}} is due on {{dueDate}}. Questions? Reply to this text!`,
+    template: 'Hi {{firstName}}, friendly reminder: your payment of ${{amount}} is due on {{dueDate}}. Questions? Reply to this text!',
     maxLength: 140,
     triggerEvent: 'payment_due'
   },
@@ -205,7 +205,7 @@ export const SMS_TEMPLATES = {
   DISPUTE_UPDATE: {
     id: 'dispute_update',
     name: 'Dispute Update',
-    template: `Great news {{firstName}}! {{updateCount}} item(s) removed from your report. Check your portal: {{link}}`,
+    template: 'Great news {{firstName}}! {{updateCount}} item(s) removed from your report. Check your portal: {{link}}',
     maxLength: 140,
     triggerEvent: 'dispute_resolved'
   },
@@ -214,7 +214,7 @@ export const SMS_TEMPLATES = {
   APPOINTMENT_REMINDER: {
     id: 'appointment_reminder',
     name: 'Appointment Reminder',
-    template: `Reminder: Your call with Speedy Credit Repair is {{dateTime}}. Reply 1 to confirm or 2 to reschedule.`,
+    template: 'Reminder: Your call with Speedy Credit Repair is {{dateTime}}. Reply 1 to confirm or 2 to reschedule.',
     maxLength: 140,
     triggerEvent: 'appointment_reminder'
   }

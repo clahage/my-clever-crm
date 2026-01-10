@@ -68,6 +68,7 @@ import {
   ListItemText,
   ListItemIcon,
   Avatar,
+  Link,
   Badge,
   Fade,
   Zoom,
@@ -415,8 +416,10 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
   const [contactId, setContactId] = useState(null);
   const [formData, setFormData] = useState({
     firstName: '',
+    middleName: '',
     lastName: '',
     email: '',
+    password: '',          // ← ADD THIS (for IDIQ portal)
     phone: '',
     carrier: '',
     street: '',
@@ -429,6 +432,7 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
     income: '',
     billingDay: 1,
     agreeToTerms: false,
+    agreeToAddress: false, // ← ADD THIS (for "6 months at address" checkbox)
   });
 
   // Analysis state
@@ -455,6 +459,9 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
 
   // SSN visibility
   const [showSSN, setShowSSN] = useState(false);
+  
+  // Password visibility (for IDIQ portal password field)
+  const [showPassword, setShowPassword] = useState(false);
 
   // Exit intent popup state
   const [showExitIntent, setShowExitIntent] = useState(false);
@@ -480,8 +487,10 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
       setFormData((prev) => ({
         ...prev,
         firstName: data.firstName || prev.firstName,
+        middleName: data.middleName || prev.middleName,
         lastName: data.lastName || prev.lastName,
         email: data.email || prev.email,
+        // Do NOT populate password from landing page (security)
         phone: data.phone || prev.phone,
         carrier: data.carrier || prev.carrier,
         street: data.street || prev.street,
@@ -560,6 +569,7 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
           contactId,
           email: formData.email,
           firstName: formData.firstName,
+          middleName: formData.middleName,
           phone: formData.phone,
           phase: currentPhase,
         });
@@ -570,21 +580,31 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [contactId, currentPhase, formData]);
 
-  // Initialize exit intent tracking
+// Initialize exit intent tracking (30 second delay, once per session)
   useEffect(() => {
     if (!trackingInitialized || currentPhase >= 5) return;
 
-    const cleanup = initExitIntent({
-      currentPhase,
-      contactId,
-      email: formData.email,
-      onExitIntent: (data) => {
-        setExitIntentData(data);
-        setShowExitIntent(true);
-      },
-    });
+    // Only show exit intent ONCE per session
+    const exitIntentShown = sessionStorage.getItem('exitIntentShown');
+    if (exitIntentShown) return;
 
-    return cleanup;
+    // Wait 30 seconds before enabling exit intent
+    const delayTimer = setTimeout(() => {
+      const cleanup = initExitIntent({
+        currentPhase,
+        contactId,
+        email: formData.email,
+        onExitIntent: (data) => {
+          sessionStorage.setItem('exitIntentShown', 'true');
+          setExitIntentData(data);
+          setShowExitIntent(true);
+        },
+      });
+
+      return cleanup;
+    }, 30000); // 30 seconds
+
+    return () => clearTimeout(delayTimer);
   }, [trackingInitialized, currentPhase, contactId, formData.email]);
 
   // Initialize inactivity timer for abandoned cart recovery
@@ -595,6 +615,7 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
       contactId,
       email: formData.email,
       firstName: formData.firstName,
+          middleName: formData.middleName,
       phone: formData.phone,
       currentPhase,
       formData,
@@ -632,6 +653,7 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
         email: formData.email,
         phone: formData.phone,
         firstName: formData.firstName,
+          middleName: formData.middleName,
         formData,
       });
     }
@@ -699,6 +721,7 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
         contactId: null,
         email: formData.email,
         firstName: formData.firstName,
+          middleName: formData.middleName,
       });
 
       // Process enrollment (creates/updates contact)
@@ -723,6 +746,7 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
         email: formData.email,
         phone: formData.phone,
         firstName: formData.firstName,
+          middleName: formData.middleName,
         formData,
       });
 
@@ -785,8 +809,11 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
         action: 'pullReport',
         memberData: {
           firstName: formData.firstName,
+          middleName: formData.middleName,  // ← ADD THIS
           lastName: formData.lastName,
           email: formData.email,
+          phone: formData.phone,            // ← ADD THIS (IDIQ requires it)
+          password: formData.password,      // ← ADD THIS (for portal access)
           dateOfBirth: formData.dateOfBirth,
           ssn: formData.ssn,
           address: {
@@ -807,15 +834,36 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
       animateScore(targetScore);
 
     } catch (err) {
-      console.error('Credit analysis error:', err);
-      // Use mock data if API fails (for demo purposes)
-      const mockReport = generateMockCreditReport();
-      setCreditReport(mockReport);
-      setAnalysisComplete(true);
-      setCurrentPhase(3);
-      animateScore(mockReport.vantageScore);
+      console.error('❌ IDIQ CREDIT REPORT PULL FAILED:', err);
+      console.error('Error details:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+        sentData: {
+          firstName: formData.firstName,
+          middleName: formData.middleName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+          ssn: '***-**-' + formData.ssn.slice(-4), // Last 4 only for security
+        }
+      });
+      
+      setLoading(false);
+      setError(
+        `Failed to pull credit report from IDIQ API. ` +
+        `Error: ${err.message || 'Unknown error'}. ` +
+        `Status: ${err.response?.status || 'N/A'}. ` +
+        `\n\nPlease check:` +
+        `\n1. IDIQ Partner ID 11981 credentials` +
+        `\n2. API endpoint configuration` +
+        `\n3. SSN format (XXX-XX-XXXX)` +
+        `\n4. All required fields (name, phone, email, password)` +
+        `\n\nContact IDIQ Support: 877-875-4347`
+      );
+      
+      // NO MOCK DATA IN PRODUCTION - Must see real errors to fix them!
     }
-  };
 
   const animateScore = (targetScore) => {
     const duration = 2000;
@@ -986,6 +1034,7 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
         `,
         variables: {
           firstName: formData.firstName,
+          middleName: formData.middleName,
           lastName: formData.lastName,
         },
         contactId: contactId,
@@ -1181,7 +1230,7 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
         {renderChristopherCard()}
 
         <Grid container spacing={3}>
-          <Grid item xs={12} sm={6}>
+          <Grid item xs={12} sm={5}>
             <TextField
               fullWidth
               label="First Name"
@@ -1197,7 +1246,18 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
               }}
             />
           </Grid>
-          <Grid item xs={12} sm={6}>
+          <Grid item xs={12} sm={2}>
+            <TextField
+              fullWidth
+              label="Middle Initial"
+              value={formData.middleName}
+              onChange={handleFormChange('middleName')}
+              inputProps={{ maxLength: 1 }}
+              placeholder="M"
+              helperText="Optional"
+            />
+          </Grid>
+          <Grid item xs={12} sm={5}>
             <TextField
               fullWidth
               label="Last Name"
@@ -1218,6 +1278,33 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
                 startAdornment: (
                   <InputAdornment position="start">
                     <EmailIcon color="action" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              label="Password"
+              type={showPassword ? 'text' : 'password'}
+              value={formData.password}
+              onChange={handleFormChange('password')}
+              required
+              autoComplete="new-password"
+              placeholder="Create portal password"
+              helperText="For your IDIQ credit monitoring portal"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SecurityIcon color="action" />
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                      {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                    </IconButton>
                   </InputAdornment>
                 ),
               }}
@@ -1288,12 +1375,29 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
           </Grid>
           <Grid item xs={12} sm={4}>
             <FormControl fullWidth>
-              <InputLabel>State</InputLabel>
+              <InputLabel id="state-select-label">State</InputLabel>
               <Select
+                labelId="state-select-label"
                 value={formData.state}
                 onChange={handleFormChange('state')}
                 label="State"
+                displayEmpty
+                renderValue={(selected) => {
+                  if (!selected) {
+                    return <em style={{ color: '#9e9e9e' }}>Select State</em>;
+                  }
+                  const stateObj = US_STATES.find(s => s.code === selected);
+                  return stateObj ? stateObj.name : selected;
+                }}
+                sx={{
+                  '& .MuiSelect-select': {
+                    py: 1.75,
+                  },
+                }}
               >
+                <MenuItem value="" disabled>
+                  <em>Select State</em>
+                </MenuItem>
                 {US_STATES.map((state) => (
                   <MenuItem key={state.code} value={state.code}>
                     {state.name}
@@ -1331,7 +1435,9 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
             <TextField
               fullWidth
               label="Social Security Number"
-              type={showSSN ? 'text' : 'password'}
+              type="text"
+              autoComplete="off"
+              name="ssn-field"
               value={formData.ssn}
               onChange={handleFormChange('ssn')}
               placeholder="XXX-XX-XXXX"
@@ -1348,6 +1454,12 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
                     </IconButton>
                   </InputAdornment>
                 ),
+                sx: {
+                  '& input': {
+                    textSecurity: showSSN ? 'none' : 'disc',
+                    WebkitTextSecurity: showSSN ? 'none' : 'disc',
+                  },
+                },
               }}
             />
             <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
@@ -1356,14 +1468,62 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
             </Typography>
           </Grid>
         </Grid>
+          
+          {/* ===== DISCLOSURE CHECKBOXES ===== */}
+          <Grid item xs={12}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={formData.agreeToAddress}
+                  onChange={(e) => setFormData({ ...formData, agreeToAddress: e.target.checked })}
+                  required
+                />
+              }
+              label={
+                <Typography variant="body2">
+                  I have been at my current address for six months or more.
+                </Typography>
+              }
+            />
+          </Grid>
+          <Grid item xs={12}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={formData.agreeToTerms}
+                  onChange={(e) => setFormData({ ...formData, agreeToTerms: e.target.checked })}
+                  required
+                />
+              }
+              label={
+                <Typography variant="body2">
+                  By checking this box and clicking 'AGREE & NEXT' you agree to be bound by the{' '}
+                  <Link href="https://www.idiq.com/terms-of-service" target="_blank" rel="noopener">Terms of Service</Link>,{' '}
+                  <Link href="https://www.idiq.com/privacy-policy" target="_blank" rel="noopener">Privacy Policy</Link>, and to receive important{' '}
+                  <Link href="https://www.idiq.com/electronic-communications" target="_blank" rel="noopener">notices and other communications electronically</Link>.
+                </Typography>
+              }
+            />
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1, pl: 4 }}>
+              You are providing express written consent for IDIQ, parties calling on behalf of IDIQ, network partners, or any authorized 
+              third party on their behalf to e-mail, or to call or text you (including through automated means, e.g., through an automatic 
+              telephone dialing system or through the use of pre-recorded or artificial voice messages), to any telephone number you provide, 
+              even if your telephone number is listed on any internal, corporate, state, federal, or national Do-Not-Call (DNC) list, for 
+              any purpose, including marketing. Texts include SMS and MMS - charges may apply. This consent to such communications is not 
+              required as a condition to obtain any goods or services, and you may choose to speak with an individual customer service 
+              representative by contacting 877-875-4347.
+            </Typography>
+          </Grid>
+        </Grid>
 
-        <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-end' }}>
+        <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
           <GlowingButton
             onClick={handlePhase1Submit}
-            disabled={loading}
+            disabled={loading || !formData.agreeToAddress || !formData.agreeToTerms}
             endIcon={loading ? <CircularProgress size={20} color="inherit" /> : <ArrowForwardIcon />}
+            sx={{ px: 6, py: 2 }}
           >
-            {loading ? 'Processing...' : 'Get My Free Analysis'}
+            {loading ? 'Processing...' : 'AGREE & NEXT'}
           </GlowingButton>
         </Box>
       </Box>
