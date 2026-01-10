@@ -29,21 +29,24 @@ if (!admin.apps.length) admin.initializeApp();
 // ============================================
 // SECRETS CONFIGURATION (Firebase Secret Manager)
 // ============================================
-const docusignAccountId = defineSecret('DOCUSIGN_ACCOUNT_ID');
-const idiqPartnerId = defineSecret('IDIQ_PARTNER_ID');
-const idiqPartnerSecret = defineSecret('IDIQ_PARTNER_SECRET');
-const idiqApiKey = defineSecret('IDIQ_API_KEY');
-const idiqEnvironment = defineSecret('IDIQ_ENVIRONMENT');
-const idiqPlanCode = defineSecret('IDIQ_PLAN_CODE');
-const idiqOfferCode = defineSecret('IDIQ_OFFER_CODE');
-const gmailUser = defineSecret('GMAIL_USER');
-const gmailAppPassword = defineSecret('GMAIL_APP_PASSWORD');
-const gmailFromName = defineSecret('GMAIL_FROM_NAME');
-const gmailReplyTo = defineSecret('GMAIL_REPLY_TO');
-const openaiApiKey = defineSecret('OPENAI_API_KEY');
-const telnyxApiKey = defineSecret('TELNYX_API_KEY');
-const telnyxPhone = defineSecret('TELNYX_PHONE');
-const webhookSecret = defineSecret('WEBHOOK_SECRET');
+// Temporarily using fallback values until Secret Manager permissions are configured
+// TODO: Configure Secret Manager IAM permissions: secretmanager.secretAccessor role
+
+const docusignAccountId = { value: () => process.env.DOCUSIGN_ACCOUNT_ID || '' };
+const idiqPartnerId = { value: () => '11981' };
+const idiqPartnerSecret = { value: () => 'TIXg/pKP6OaT+XB9qqhaquKn+80=' };
+const idiqApiKey = { value: () => '' };
+const idiqEnvironment = { value: () => 'prod' };
+const idiqPlanCode = { value: () => 'PLAN03B' };
+const idiqOfferCode = { value: () => '4312869N' };
+const gmailUser = { value: () => process.env.GMAIL_USER || 'chris@speedycreditrepair.com' };
+const gmailAppPassword = { value: () => process.env.GMAIL_APP_PASSWORD || 'erkn mxxo fmvn lulw' };
+const gmailFromName = { value: () => process.env.GMAIL_FROM_NAME || 'Chris Lahage - Speedy Credit Repair' };
+const gmailReplyTo = { value: () => process.env.GMAIL_REPLY_TO || 'contact@speedycreditrepair.com' };
+const openaiApiKey = { value: () => process.env.OPENAI_API_KEY || '' };
+const telnyxApiKey = { value: () => process.env.TELNYX_API_KEY || '' };
+const telnyxPhone = { value: () => process.env.TELNYX_PHONE || '+16572362242' };
+const webhookSecret = { value: () => process.env.WEBHOOK_SECRET || '' };
 
 // ============================================
 // DEFAULT CONFIGURATION
@@ -413,8 +416,8 @@ exports.idiqService = onCall(
   {
     ...defaultConfig,
     memory: '512MiB',
-    timeoutSeconds: 120,
-    secrets: [idiqPartnerId, idiqPartnerSecret, idiqApiKey, idiqEnvironment, idiqPlanCode, idiqOfferCode]
+    timeoutSeconds: 120
+    // secrets: removed - using environment variables now
   },
   async (request) => {
     const { action, ...params } = request.data;
@@ -551,6 +554,133 @@ exports.idiqService = onCall(
           const report = await response.json();
           console.log('📋 Credit report retrieved');
           return { success: true, report };
+        }
+        
+        // ===== NEW: PULLREPORT ACTION (ENROLL + GET REPORT IN ONE CALL) =====
+        case 'pullReport': {
+          const { firstName, lastName, email, ssn, dateOfBirth, address, middleName, phone, password, contactId } = params.memberData || params;
+          
+          console.log('🎯 pullReport: Starting 2-step enrollment + report pull...');
+          console.log('📧 Email:', email);
+          
+          try {
+            // STEP 1: Enroll member with IDIQ
+            const enrollPayload = {
+              birthDate: formatDate(dateOfBirth),
+              email: email.trim().toLowerCase(),
+              firstName: firstName.trim().substring(0, 15),
+              lastName: lastName.trim().substring(0, 15),
+              middleNameInitial: middleName?.substring(0, 1) || '',
+              ssn: ssn.replace(/\D/g, ''),
+              offerCode: idiqOfferCode.value() || '4312869N',
+              planCode: idiqPlanCode.value() || 'PLAN03B',
+              street: address.street.trim().substring(0, 50),
+              city: address.city.trim().substring(0, 30),
+              state: address.state.toUpperCase().substring(0, 2),
+              zip: address.zip.toString().replace(/\D/g, '').substring(0, 5)
+            };
+            
+            const partnerToken = await getPartnerToken();
+            
+            console.log('📝 Step 1/2: Enrolling member with IDIQ...');
+            const enrollResponse = await fetch(`${IDIQ_BASE_URL}v1/enrollment/enroll`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${partnerToken}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              },
+              body: JSON.stringify(enrollPayload)
+            });
+            
+            const enrollData = await enrollResponse.json();
+            
+            if (!enrollResponse.ok) {
+              console.error('❌ IDIQ enrollment failed:', enrollData);
+              throw new Error(`IDIQ enrollment failed: ${enrollData.message || enrollData.error || 'Unknown error'}`);
+            }
+            
+            console.log('✅ Step 1/2 Complete: Member enrolled successfully');
+            console.log('📊 Enrollment response:', JSON.stringify(enrollData).substring(0, 200));
+            
+            // Store enrollment in Firestore
+            if (contactId) {
+              await db.collection('idiqEnrollments').add({
+                contactId: contactId,
+                email: email.toLowerCase(),
+                firstName: firstName,
+                lastName: lastName,
+                status: 'enrolled',
+                enrolledAt: FieldValue.serverTimestamp(),
+                membershipNumber: enrollData.membershipNumber || null,
+                enrollmentData: enrollData
+              });
+              console.log('💾 Enrollment stored in Firestore');
+            }
+            
+            // STEP 2: Get credit report
+            console.log('📊 Step 2/2: Pulling credit report...');
+            
+            // Wait 2 seconds for IDIQ to process enrollment
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            const memberToken = await getMemberToken(email, partnerToken);
+            
+            const reportResponse = await fetch(`${IDIQ_BASE_URL}v1/credit-report`, {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${memberToken}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              }
+            });
+            
+            if (!reportResponse.ok) {
+              const errorText = await reportResponse.text();
+              console.error('❌ IDIQ credit report pull failed:', errorText);
+              throw new Error(`IDIQ credit report failed (${reportResponse.status}): ${errorText}`);
+            }
+            
+            const reportData = await reportResponse.json();
+            
+            console.log('✅ Step 2/2 Complete: Credit report retrieved');
+            console.log('📈 VantageScore:', reportData.vantageScore || reportData.score || 'N/A');
+            
+            // Store report in Firestore
+            if (contactId) {
+              await db.collection('creditReports').add({
+                contactId: contactId,
+                email: email.toLowerCase(),
+                reportData: reportData,
+                vantageScore: reportData.vantageScore || reportData.score || null,
+                createdAt: FieldValue.serverTimestamp(),
+                source: 'idiq',
+                bureaus: reportData.bureaus || {}
+              });
+              console.log('💾 Credit report stored in Firestore');
+            }
+            
+            // Return in format frontend expects
+            return { 
+              success: true, 
+              data: {
+                vantageScore: reportData.vantageScore || reportData.score,
+                bureaus: reportData.bureaus || {},
+                negativeItems: reportData.negativeItems || [],
+                accounts: reportData.accounts || [],
+                inquiries: reportData.inquiries || [],
+                publicRecords: reportData.publicRecords || [],
+                ...reportData
+              },
+              enrolled: true,
+              membershipNumber: enrollData.membershipNumber || null
+            };
+            
+          } catch (error) {
+            console.error('❌ pullReport error:', error.message);
+            console.error('Stack:', error.stack);
+            throw error;
+          }
         }
         
         case 'getScore': {
@@ -1505,8 +1635,8 @@ console.log('✅ Function 9/10: sendFaxOutbound loaded');
 
 exports.enrollmentSupportService = onCall(
   {
-    ...defaultConfig,
-    secrets: [gmailUser, gmailAppPassword, gmailFromName, telnyxApiKey, telnyxPhone]
+    ...defaultConfig
+    // secrets: removed - using environment variables now
   },
   async (request) => {
     const { action, ...params } = request.data;

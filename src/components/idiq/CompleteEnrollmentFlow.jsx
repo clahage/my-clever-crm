@@ -706,6 +706,11 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
       setError('Please enter a valid email address');
       return false;
     }
+    // Added production check for the 6-month address requirement
+    if (!formData.agreeToAddress) {
+      setError('You must confirm you have been at your address for at least 6 months.');
+      return false;
+    }
     return true;
   };
 
@@ -715,13 +720,17 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
     setLoading(true);
     setError(null);
 
+    // Sanitize phone number (removes dashes/dots/spaces) for API compatibility
+    const cleanPhone = formData.phone.replace(/\D/g, '');
+    const submissionData = { ...formData, phone: cleanPhone };
+
     try {
       // Track form start
       await trackFormStarted({
         contactId: null,
         email: formData.email,
         firstName: formData.firstName,
-          middleName: formData.middleName,
+        middleName: formData.middleName,
       });
 
       // Process enrollment (creates/updates contact)
@@ -746,7 +755,7 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
         email: formData.email,
         phone: formData.phone,
         firstName: formData.firstName,
-          middleName: formData.middleName,
+        middleName: formData.middleName,
         formData,
       });
 
@@ -793,6 +802,9 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
   };
 
   const startCreditAnalysis = async () => {
+    const cleanSSN = formData.ssn.replace(/\D/g, '');
+    const cleanPhone = formData.phone.replace(/\D/g, '');
+    
     setAnalysisProgress(0);
     setCurrentAnalysisStep(0);
 
@@ -805,17 +817,18 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
 
     // Actually call IDIQ service
     try {
+      console.log("🚀 Calling IDIQ API...");
       const response = await idiqService({
         action: 'pullReport',
         memberData: {
           firstName: formData.firstName,
-          middleName: formData.middleName,  // ← ADD THIS
+          middleName: formData.middleName,
           lastName: formData.lastName,
           email: formData.email,
-          phone: formData.phone,            // ← ADD THIS (IDIQ requires it)
-          password: formData.password,      // ← ADD THIS (for portal access)
+          phone: cleanPhone,
+          password: formData.password,
           dateOfBirth: formData.dateOfBirth,
-          ssn: formData.ssn,
+          ssn: cleanSSN,
           address: {
             street: formData.street,
             city: formData.city,
@@ -825,45 +838,32 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
         },
       });
 
+      console.log("✅ IDIQ Response:", response);
+      console.log("📊 VantageScore:", response.data?.vantageScore);
+
+      if (!response.data || !response.data.vantageScore) {
+        throw new Error("IDIQ returned empty data - check API configuration");
+      }
       setCreditReport(response.data);
       setAnalysisComplete(true);
       setCurrentPhase(3);
 
       // Animate score counter
-      const targetScore = response.data?.vantageScore || 650;
+      const targetScore = response.data.vantageScore; // NO FALLBACK - must have real data!
       animateScore(targetScore);
 
     } catch (err) {
       console.error('❌ IDIQ CREDIT REPORT PULL FAILED:', err);
-      console.error('Error details:', {
-        message: err.message,
-        response: err.response?.data,
-        status: err.response?.status,
-        sentData: {
-          firstName: formData.firstName,
-          middleName: formData.middleName,
-          lastName: formData.lastName,
-          email: formData.email,
-          phone: formData.phone,
-          ssn: '***-**-' + formData.ssn.slice(-4), // Last 4 only for security
-        }
-      });
-      
       setLoading(false);
       setError(
         `Failed to pull credit report from IDIQ API. ` +
         `Error: ${err.message || 'Unknown error'}. ` +
-        `Status: ${err.response?.status || 'N/A'}. ` +
-        `\n\nPlease check:` +
-        `\n1. IDIQ Partner ID 11981 credentials` +
-        `\n2. API endpoint configuration` +
-        `\n3. SSN format (XXX-XX-XXXX)` +
-        `\n4. All required fields (name, phone, email, password)` +
-        `\n\nContact IDIQ Support: 877-875-4347`
+        `\n\nPlease check your credentials and SSN format.`
       );
-      
-      // NO MOCK DATA IN PRODUCTION - Must see real errors to fix them!
+    } finally {
+      setLoading(false);
     }
+  }; // This correctly closes startCreditAnalysis
 
   const animateScore = (targetScore) => {
     const duration = 2000;
@@ -872,14 +872,13 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
     const animate = (currentTime) => {
       const elapsed = currentTime - start;
       const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
       setDisplayedScore(Math.round(300 + (targetScore - 300) * eased));
 
       if (progress < 1) {
         requestAnimationFrame(animate);
       }
     };
-
     requestAnimationFrame(animate);
   };
 
@@ -929,19 +928,28 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
     }
   };
 
-  const handleSignatureSave = () => {
-    if (signatureRef.current) {
-      const dataUrl = signatureRef.current.toDataURL();
-      setSignatureData(dataUrl);
+  const handleSignatureSave = async () => {
+    if (signatureRef.current && !signatureRef.current.isEmpty()) {
+      setLoading(true);
+      try {
+        const dataUrl = signatureRef.current.toDataURL();
+        setSignatureData(dataUrl);
 
-      // Save signature to contact
-      updateDoc(doc(db, 'contacts', contactId), {
-        signature: dataUrl,
-        signedAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
+        // We use 'await' here to ensure it saves before moving forward
+        await updateDoc(doc(db, 'contacts', contactId), {
+          signature: dataUrl,
+          signedAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
 
-      setCurrentPhase(6);
+        setCurrentPhase(6);
+      } catch (err) {
+        setError('Failed to save signature. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      setError('Please provide a signature before continuing.');
     }
   };
 
@@ -950,15 +958,30 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
   };
 
   const handlePayment = async () => {
+    const plan = SERVICE_PLANS.find((p) => p.id === selectedPlan);
+    const finalPrice = Math.max(plan.price - appliedDiscount, 0);
+
+    // SKIP STRIPE IF PRICE IS $0 (Trial Mode or Full Discount)
+    if (finalPrice <= 0) {
+      setLoading(true);
+      try {
+        await finalizeEnrollment();
+        return;
+      } catch (err) {
+        console.error('Trial activation error:', err);
+        setError('Error activating trial account. Please contact support.');
+        setLoading(false);
+        return;
+      }
+    }
+
     setLoading(true);
     try {
-      const plan = SERVICE_PLANS.find((p) => p.id === selectedPlan);
-
       // Create Stripe checkout session via Cloud Function
       const response = await createStripeCheckout({
         productId: plan.id,
         productName: `Speedy Credit Repair - ${plan.name}`,
-        amount: plan.price * 100, // Stripe uses cents
+        amount: finalPrice * 100, // Stripe uses cents
         currency: 'usd',
         contactId: contactId,
         billingDay: formData.billingDay,
@@ -968,23 +991,25 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
 
       // Redirect to Stripe
       const stripe = await loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
-      await stripe.redirectToCheckout({ sessionId: response.data.sessionId });
+      const { error } = await stripe.redirectToCheckout({ sessionId: response.data.sessionId });
+      
+      if (error) throw error;
 
     } catch (err) {
       console.error('Payment error:', err);
-      // For demo, simulate success
-      simulatePaymentSuccess();
+      setError('Payment failed or was cancelled. Please try again to activate your account.');
+      setLoading(false);
     }
   };
 
-  const simulatePaymentSuccess = async () => {
+  const finalizeEnrollment = async () => {
     setPaymentComplete(true);
     setCurrentPhase(8);
 
     const selectedPlanData = SERVICE_PLANS.find((p) => p.id === selectedPlan) || SERVICE_PLANS[1];
-
-    // Trigger account creation via operations manager
+    
     try {
+      // Trigger backend account creation
       await operationsManager({
         action: 'createClientAccount',
         contactId: contactId,
@@ -992,24 +1017,28 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
         billingDay: formData.billingDay,
         discountApplied: appliedDiscount,
       });
+
+      // Log conversion for analytics and ROI tracking
+      await logConversion({
+        contactId,
+        email: formData.email,
+        planId: selectedPlan,
+        planPrice: selectedPlanData.price,
+        discountApplied: appliedDiscount,
+      });
+
+      // Send automated welcome sequence
+      await sendWelcomeEmail();
+
+      // Trigger celebration effects
+      triggerCelebration();
+
     } catch (err) {
-      console.warn('Operations manager call failed:', err);
+      console.warn('Backend sync partial failure:', err);
+      // We don't block the user here as payment/signature is already done
+    } finally {
+      setLoading(false);
     }
-
-    // Log conversion for analytics and ROI tracking
-    await logConversion({
-      contactId,
-      email: formData.email,
-      planId: selectedPlan,
-      planPrice: selectedPlanData.price,
-      discountApplied: appliedDiscount,
-    });
-
-    // Send welcome email
-    await sendWelcomeEmail();
-
-    // Trigger celebration
-    triggerCelebration();
   };
 
   const sendWelcomeEmail = async () => {
@@ -1019,18 +1048,17 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
         type: 'WELCOME_NEW_CLIENT',
         subject: `Welcome to Speedy Credit Repair, ${formData.firstName}!`,
         html: `
-          <h1>Welcome to the Speedy Credit Repair Family!</h1>
+          <h1>Welcome to the Family!</h1>
           <p>Hi ${formData.firstName},</p>
-          <p>Congratulations on taking the first step toward better credit! Your account is now active and we're ready to start working on your credit today.</p>
-          <p><strong>What happens next:</strong></p>
+          <p>Congratulations! Your account is now active and we are ready to start working for you today.</p>
+          <p><strong>Next Steps:</strong></p>
           <ul>
-            <li>Your dedicated credit analyst will review your report within 24 hours</li>
-            <li>We'll prepare your first round of dispute letters</li>
-            <li>You'll receive access to your client portal to track progress</li>
+            <li>Analyst Review: 24-48 Hours</li>
+            <li>First Dispute Round: Starting Immediately</li>
+            <li>Portal Access: Enabled</li>
           </ul>
-          <p>Log in to your portal: <a href="https://myclevercrm.com/client-portal">Client Portal</a></p>
-          <p>Questions? Reply to this email or call us at (888) 724-7344.</p>
-          <p>Best regards,<br/>Christopher Lahage<br/>Speedy Credit Repair</p>
+          <p>Access your portal here: <a href="https://myclevercrm.com/client-portal">Client Portal</a></p>
+          <p>Best,<br/>Christopher Lahage</p>
         `,
         variables: {
           firstName: formData.firstName,
@@ -1045,29 +1073,20 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
   };
 
   const triggerCelebration = () => {
-    // Fire confetti!
     const duration = 3000;
     const animationEnd = Date.now() + duration;
-
     const randomInRange = (min, max) => Math.random() * (max - min) + min;
 
     const interval = setInterval(() => {
       const timeLeft = animationEnd - Date.now();
-
-      if (timeLeft <= 0) {
-        return clearInterval(interval);
-      }
+      if (timeLeft <= 0) return clearInterval(interval);
 
       const particleCount = 50 * (timeLeft / duration);
-
       confetti({
         particleCount,
         startVelocity: 30,
         spread: 360,
-        origin: {
-          x: randomInRange(0.1, 0.9),
-          y: Math.random() - 0.2,
-        },
+        origin: { x: randomInRange(0.1, 0.9), y: Math.random() - 0.2 },
         colors: ['#2196F3', '#4CAF50', '#FFC107', '#E91E63', '#9C27B0'],
       });
     }, 250);
@@ -1076,8 +1095,6 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
   const handleDownloadPDF = async () => {
     setLoading(true);
     try {
-      // Generate PDF via Cloud Function or create client-side
-      // For now, show success message
       setSuccess('Your Credit Health Summary is being generated. Check your email!');
     } catch (err) {
       setError('Failed to generate PDF. Please try again.');
@@ -1470,7 +1487,7 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
         </Grid>
           
           {/* ===== DISCLOSURE CHECKBOXES ===== */}
-          <Grid item xs={12}>
+          <Box>
             <FormControlLabel
               control={
                 <Checkbox
@@ -1485,8 +1502,8 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
                 </Typography>
               }
             />
-          </Grid>
-          <Grid item xs={12}>
+          </Box>
+          <Box>
             <FormControlLabel
               control={
                 <Checkbox
@@ -1513,8 +1530,7 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
               required as a condition to obtain any goods or services, and you may choose to speak with an individual customer service 
               representative by contacting 877-875-4347.
             </Typography>
-          </Grid>
-        </Grid>
+          </Box>
 
         <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
           <GlowingButton
