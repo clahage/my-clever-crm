@@ -29,24 +29,29 @@ if (!admin.apps.length) admin.initializeApp();
 // ============================================
 // SECRETS CONFIGURATION (Firebase Secret Manager)
 // ============================================
-// Temporarily using fallback values until Secret Manager permissions are configured
-// TODO: Configure Secret Manager IAM permissions: secretmanager.secretAccessor role
 
-const docusignAccountId = { value: () => process.env.DOCUSIGN_ACCOUNT_ID || '' };
-const idiqPartnerId = { value: () => '11981' };
-const idiqPartnerSecret = { value: () => 'TIXg/pKP6OaT+XB9qqhaquKn+80=' };
-const idiqApiKey = { value: () => '' };
-const idiqEnvironment = { value: () => 'prod' };
-const idiqPlanCode = { value: () => 'PLAN03B' };
-const idiqOfferCode = { value: () => '4312869N' };
-const gmailUser = { value: () => process.env.GMAIL_USER || 'chris@speedycreditrepair.com' };
-const gmailAppPassword = { value: () => process.env.GMAIL_APP_PASSWORD || 'erkn mxxo fmvn lulw' };
-const gmailFromName = { value: () => process.env.GMAIL_FROM_NAME || 'Chris Lahage - Speedy Credit Repair' };
-const gmailReplyTo = { value: () => process.env.GMAIL_REPLY_TO || 'contact@speedycreditrepair.com' };
-const openaiApiKey = { value: () => process.env.OPENAI_API_KEY || '' };
-const telnyxApiKey = { value: () => process.env.TELNYX_API_KEY || '' };
-const telnyxPhone = { value: () => process.env.TELNYX_PHONE || '+16572362242' };
-const webhookSecret = { value: () => process.env.WEBHOOK_SECRET || '' };
+// IDIQ Partner Credentials - Now using Firebase Secret Manager
+const idiqPartnerId = defineSecret('IDIQ_PARTNER_ID');
+const idiqPartnerSecret = defineSecret('IDIQ_PARTNER_SECRET');
+const idiqEnvironment = defineSecret('IDIQ_ENVIRONMENT');
+const idiqPlanCode = defineSecret('IDIQ_PLAN_CODE');
+const idiqOfferCode = defineSecret('IDIQ_OFFER_CODE');
+const idiqApiKey = { value: () => '' };  // Not used, kept for compatibility
+
+// Gmail Credentials - Using Firebase Secret Manager
+const gmailUser = defineSecret('GMAIL_USER');
+const gmailAppPassword = defineSecret('GMAIL_APP_PASSWORD');
+const gmailFromName = defineSecret('GMAIL_FROM_NAME');
+const gmailReplyTo = defineSecret('GMAIL_REPLY_TO');
+
+// API Keys - Using Firebase Secret Manager
+const openaiApiKey = defineSecret('OPENAI_API_KEY');
+const telnyxApiKey = defineSecret('TELNYX_API_KEY');
+const telnyxPhone = defineSecret('TELNYX_PHONE');
+
+// Other Secrets
+const docusignAccountId = defineSecret('DOCUSIGN_ACCOUNT_ID');
+const webhookSecret = defineSecret('WEBHOOK_SECRET');
 
 // ============================================
 // DEFAULT CONFIGURATION
