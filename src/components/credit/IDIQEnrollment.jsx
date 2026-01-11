@@ -141,8 +141,8 @@ const BUREAUS = {
 
 // Enrollment steps
 const STEPS = [
-  { id: 'client', label: 'Select Client', icon: PersonIcon },
-  { id: 'info', label: 'Client Info', icon: DocumentIcon },
+  { id: 'client', label: 'Select Contact', icon: PersonIcon },
+  { id: 'info', label: 'Contact Info', icon: DocumentIcon },
   { id: 'enroll', label: 'Enrollment', icon: CreditIcon },
   { id: 'verify', label: 'Verification', icon: SecurityIcon },
   { id: 'report', label: 'Credit Report', icon: AssessmentIcon },
@@ -760,7 +760,7 @@ const IDIQEnrollment = () => {
     <Box>
       <TextField
         fullWidth
-        placeholder="Search clients by name, email, or phone..."
+        placeholder="Search contacts by name, email, or phone..."
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
         InputProps={{
@@ -776,11 +776,11 @@ const IDIQEnrollment = () => {
       {clientsLoading ? (
         <Box sx={{ textAlign: 'center', py: 4 }}>
           <CircularProgress />
-          <Typography sx={{ mt: 2 }}>Loading clients...</Typography>
+          <Typography sx={{ mt: 2 }}>Loading contacts...</Typography>
         </Box>
       ) : filteredClients.length === 0 ? (
         <Alert severity="info">
-          No clients found. Add clients in the Contacts section first.
+          No clients found. Add clients in the Clients section first.
         </Alert>
       ) : (
         <Grid container spacing={2}>

@@ -1196,7 +1196,7 @@ Format as JSON:
               startIcon={<Plus />}
               onClick={() => navigate('/idiq/enroll')}
             >
-              Enroll Client
+              Enroll Contact
             </Button>
           </Box>
         </Box>
@@ -2593,7 +2593,7 @@ Format as JSON:
         >
           <SpeedDialAction
             icon={<Plus />}
-            tooltipTitle="Enroll Client"
+            tooltipTitle="Enroll Contact"
             onClick={() => navigate('/idiq/enroll')}
           />
           <SpeedDialAction
