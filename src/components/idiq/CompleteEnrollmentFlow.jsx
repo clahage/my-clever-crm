@@ -461,7 +461,17 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
   const [showSSN, setShowSSN] = useState(false);
   
   // Password visibility (for IDIQ portal password field)
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);  
+
+  // ===== VERIFICATION STATE =====
+  const [verificationRequired, setVerificationRequired] = useState(false);
+  const [verificationQuestions, setVerificationQuestions] = useState([]);
+  const [verificationAnswers, setVerificationAnswers] = useState({});
+  const [verificationAttempts, setVerificationAttempts] = useState(0);
+  const [maxVerificationAttempts] = useState(3);
+  const [enrollmentId, setEnrollmentId] = useState(null);
+  const [membershipNumber, setMembershipNumber] = useState(null);
+  const [verificationError, setVerificationError] = useState(null);
 
   // Exit intent popup state
   const [showExitIntent, setShowExitIntent] = useState(false);
@@ -801,7 +811,7 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
     });
   };
 
-  const startCreditAnalysis = async () => {
+    const startCreditAnalysis = async () => {
     const cleanSSN = formData.ssn.replace(/\D/g, '');
     const cleanPhone = formData.phone.replace(/\D/g, '');
     
@@ -836,20 +846,40 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
             zip: formData.zip,
           },
         },
+        contactId: savedContact?.id || null
       });
 
-      console.log("✅ IDIQ Response:", response);
-      console.log("📊 VantageScore:", response.data?.vantageScore);
+      console.log("✅ IDIQ Response:", response.data);
 
-      if (!response.data || !response.data.vantageScore) {
+      // Check if verification is required
+      if (response.data.verificationRequired) {
+        console.log("🔐 Verification required - showing security questions");
+        
+        setVerificationRequired(true);
+        setVerificationQuestions(response.data.questions || []);
+        setEnrollmentId(response.data.enrollmentId);
+        setMembershipNumber(response.data.membershipNumber);
+        setAnalysisComplete(true);
+        setLoading(false);
+        
+        // Move to verification phase (stay in phase 2 but show questions)
+        return;
+      }
+
+      // No verification needed - proceed with credit report
+      console.log("📊 VantageScore:", response.data.data?.vantageScore);
+
+      if (!response.data.data || !response.data.data.vantageScore) {
         throw new Error("IDIQ returned empty data - check API configuration");
       }
-      setCreditReport(response.data);
+      
+      setCreditReport(response.data.data);
+      setMembershipNumber(response.data.membershipNumber);
       setAnalysisComplete(true);
       setCurrentPhase(3);
 
       // Animate score counter
-      const targetScore = response.data.vantageScore; // NO FALLBACK - must have real data!
+      const targetScore = response.data.data.vantageScore;
       animateScore(targetScore);
 
     } catch (err) {
@@ -863,9 +893,85 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
     } finally {
       setLoading(false);
     }
-  }; // This correctly closes startCreditAnalysis
+  };
+  
+    // ===== SUBMIT VERIFICATION ANSWERS =====
+  const submitVerificationAnswers = async () => {
+    setLoading(true);
+    setVerificationError(null);
 
-  const animateScore = (targetScore) => {
+    try {
+      console.log("📝 Submitting verification answers...");
+
+      // Build answers array - IDIQ expects answer IDs
+      const answerIds = verificationQuestions.map((q, idx) => {
+        const selectedAnswer = verificationAnswers[idx];
+        if (!selectedAnswer) {
+          throw new Error(`Please answer question ${idx + 1}`);
+        }
+        // Find the answer object and return its ID
+        const answer = q.answer.find(a => a.choice === selectedAnswer);
+        return answer ? answer.id : selectedAnswer;
+      });
+
+      console.log("🔐 Submitting answers for enrollment:", enrollmentId);
+
+      const response = await idiqService({
+        action: 'submitVerification',
+        email: formData.email,
+        answerIds: answerIds,
+        enrollmentId: enrollmentId
+      });
+
+      console.log("✅ Verification response:", response.data);
+
+      if (response.data.success && response.data.verified) {
+        // SUCCESS - Got credit report!
+        console.log("🎉 Verification successful!");
+        
+        setCreditReport(response.data.data);
+        setVerificationRequired(false);
+        setCurrentPhase(3);
+        
+        // Animate score counter
+        const targetScore = response.data.data.vantageScore;
+        animateScore(targetScore);
+        
+      } else if (response.data.locked) {
+        // LOCKED OUT - 3 attempts failed
+        setVerificationError({
+          type: 'locked',
+          message: response.data.message,
+          attemptsRemaining: 0
+        });
+        
+      } else {
+        // INCORRECT - Still have attempts
+        setVerificationAttempts(response.data.attempts || 0);
+        setVerificationError({
+          type: 'incorrect',
+          message: response.data.message,
+          attemptsRemaining: response.data.attemptsRemaining,
+          attempts: response.data.attempts,
+          maxAttempts: response.data.maxAttempts
+        });
+        
+        // Clear answers for retry
+        setVerificationAnswers({});
+      }
+
+    } catch (err) {
+      console.error('❌ Verification submission failed:', err);
+      setVerificationError({
+        type: 'error',
+        message: err.message || 'Failed to submit verification answers'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+    const animateScore = (targetScore) => {
     const duration = 2000;
     const start = performance.now();
 
@@ -1546,57 +1652,266 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
     </Fade>
   );
 
-  const renderPhase2 = () => (
-    <Fade in timeout={500}>
-      <Box sx={{ textAlign: 'center', py: 4 }}>
-        <Typography variant="h4" fontWeight={700} gutterBottom>
-          Analyzing Your Credit Profile
-        </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-          Please wait while we securely analyze your credit across all three bureaus...
-        </Typography>
-
-        <Box sx={{ maxWidth: 500, mx: 'auto', mb: 4 }}>
-          <LinearProgress
-            variant="determinate"
-            value={analysisProgress}
-            sx={{
-              height: 10,
-              borderRadius: 5,
-              '& .MuiLinearProgress-bar': {
-                background: 'linear-gradient(45deg, #2196F3, #4CAF50)',
-              },
-            }}
-          />
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            {Math.round(analysisProgress)}% Complete
-          </Typography>
-        </Box>
-
-        <List sx={{ maxWidth: 500, mx: 'auto' }}>
-          {ANALYSIS_STEPS.map((step, index) => (
-            <ListItem key={step.id}>
-              <ListItemIcon>
-                {index < currentAnalysisStep ? (
-                  <CheckIcon color="success" />
-                ) : index === currentAnalysisStep ? (
-                  <CircularProgress size={24} />
-                ) : (
-                  <Box sx={{ width: 24, height: 24, borderRadius: '50%', bgcolor: 'grey.300' }} />
-                )}
-              </ListItemIcon>
-              <ListItemText
-                primary={step.text}
-                sx={{
-                  color: index <= currentAnalysisStep ? 'text.primary' : 'text.disabled',
-                }}
+  const renderPhase2 = () => {
+    // Show verification questions if required
+    if (verificationRequired) {
+      return (
+        <Fade in timeout={500}>
+          <Box sx={{ maxWidth: 700, mx: 'auto', py: 4 }}>
+            <Box sx={{ textAlign: 'center', mb: 4 }}>
+              <SecurityIcon sx={{ fontSize: 60, color: 'primary.main', mb: 2 }} />
+              <Typography variant="h4" fontWeight={700} gutterBottom>
+                Identity Verification
+              </Typography>
+              <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+                To protect your identity, please answer these security questions based on your credit history.
+              </Typography>
+              <Chip 
+                label={`Attempt ${verificationAttempts + 1} of ${maxVerificationAttempts}`}
+                color={verificationAttempts === 0 ? 'primary' : verificationAttempts === 1 ? 'warning' : 'error'}
+                sx={{ fontWeight: 600 }}
               />
-            </ListItem>
-          ))}
-        </List>
-      </Box>
-    </Fade>
-  );
+            </Box>
+
+            {/* Show error messages */}
+            {verificationError && (
+              <Alert 
+                severity={verificationError.type === 'locked' ? 'error' : 'warning'}
+                sx={{ mb: 3 }}
+              >
+                <AlertTitle>
+                  {verificationError.type === 'locked' ? '🚫 Verification Locked' : 
+                   verificationError.type === 'incorrect' ? '❌ Incorrect Answers' : 
+                   '⚠️ Error'}
+                </AlertTitle>
+                {verificationError.message}
+                
+                {/* First failure - Show credit report tip */}
+                {verificationError.type === 'incorrect' && verificationError.attempts === 1 && (
+                  <Box sx={{ mt: 2, p: 2, bgcolor: 'info.lighter', borderRadius: 1 }}>
+                    <Typography variant="body2" fontWeight={600} gutterBottom>
+                      💡 Helpful Tip:
+                    </Typography>
+                    <Typography variant="body2">
+                      These questions come from your credit history. Having a copy of a recent credit report 
+                      from any bureau (Experian, Equifax, or TransUnion) may help you answer more accurately.
+                    </Typography>
+                    <Typography variant="body2" sx={{ mt: 1 }}>
+                      <strong>Already have your credit report?</strong> ✅<br />
+                      <strong>Need to get one?</strong> Visit <Link href="https://www.annualcreditreport.com" target="_blank">AnnualCreditReport.com</Link> (free)
+                    </Typography>
+                  </Box>
+                )}
+
+                {/* Second failure - Escalate to support */}
+                {verificationError.type === 'incorrect' && verificationError.attempts === 2 && (
+                  <Box sx={{ mt: 2, p: 2, bgcolor: 'warning.lighter', borderRadius: 1 }}>
+                    <Typography variant="body2" fontWeight={600} gutterBottom>
+                      ⚠️ Still having trouble? You have 1 attempt remaining.
+                    </Typography>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      We're here to help you complete this process:
+                    </Typography>
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      href="tel:888-724-7344"
+                      startIcon={<PhoneIcon />}
+                      sx={{ mr: 1, mb: 1 }}
+                    >
+                      Call 888-724-7344 (24/7)
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      color="primary"
+                      href="sms:657-332-9833"
+                      startIcon={<PhoneIcon />}
+                      sx={{ mb: 1 }}
+                    >
+                      Text Laurie: 657-332-9833
+                    </Button>
+                    <Typography variant="caption" display="block" sx={{ mt: 1 }}>
+                      Our 24/7 AI assistant can connect you to live agents during business hours
+                    </Typography>
+                  </Box>
+                )}
+
+                {/* Third failure - Full support intervention */}
+                {verificationError.type === 'locked' && (
+                  <Box sx={{ mt: 2, p: 2, bgcolor: 'error.lighter', borderRadius: 1 }}>
+                    <Typography variant="body2" fontWeight={600} gutterBottom>
+                      Don't worry - Laurie from Speedy Credit Repair is standing by to help!
+                    </Typography>
+                    
+                    <Box sx={{ my: 2 }}>
+                      <Button
+                        variant="contained"
+                        color="error"
+                        href="sms:657-332-9833?body=Hi Laurie, I need help with IDIQ verification"
+                        startIcon={<PhoneIcon />}
+                        fullWidth
+                        sx={{ mb: 1 }}
+                      >
+                        TEXT LAURIE DIRECTLY: 657-332-9833
+                      </Button>
+                      <Typography variant="caption" display="block" sx={{ textAlign: 'center', mb: 2 }}>
+                        ✅ Fastest response during business hours (Mon-Thu, Sat 7:30am-3pm PT)
+                      </Typography>
+
+                      <Button
+                        variant="outlined"
+                        href="mailto:Laurie@speedycreditrepair.com"
+                        startIcon={<EmailIcon />}
+                        fullWidth
+                        sx={{ mb: 1 }}
+                      >
+                        EMAIL: Laurie@speedycreditrepair.com
+                      </Button>
+
+                      <Button
+                        variant="outlined"
+                        href="tel:888-724-7344"
+                        startIcon={<PhoneIcon />}
+                        fullWidth
+                        sx={{ mb: 2 }}
+                      >
+                        CALL 24/7: 888-724-7344
+                      </Button>
+                      
+                      <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
+                        We've alerted our team - expect contact during business hours.
+                      </Typography>
+                    </Box>
+
+                    <Divider sx={{ my: 2 }} />
+
+                    <Typography variant="body2" fontWeight={600} gutterBottom>
+                      Alternative: Call IDIQ directly
+                    </Typography>
+                    <Button
+                      variant="outlined"
+                      color="primary"
+                      href="tel:877-875-4347"
+                      startIcon={<PhoneIcon />}
+                      fullWidth
+                    >
+                      IDIQ: 877-875-4347
+                    </Button>
+                    <Typography variant="caption" display="block" sx={{ mt: 1 }}>
+                      Hours: Mon-Fri 5am-4pm PT | Sat 6:30am-3pm PT
+                    </Typography>
+                  </Box>
+                )}
+              </Alert>
+            )}
+
+            {/* Verification Questions */}
+            {!verificationError?.locked && (
+              <>
+                <Paper sx={{ p: 3, mb: 3 }}>
+                  {verificationQuestions.map((question, index) => (
+                    <Box key={index} sx={{ mb: 3 }}>
+                      <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+                        Question {index + 1} of {verificationQuestions.length}
+                      </Typography>
+                      <Typography variant="body1" sx={{ mb: 2 }}>
+                        {question.question}
+                      </Typography>
+                      
+                      <RadioGroup
+                        value={verificationAnswers[index] || ''}
+                        onChange={(e) => {
+                          setVerificationAnswers(prev => ({
+                            ...prev,
+                            [index]: e.target.value
+                          }));
+                        }}
+                      >
+                        {question.answer.map((answer, answerIdx) => (
+                          <FormControlLabel
+                            key={answerIdx}
+                            value={answer.choice}
+                            control={<Radio />}
+                            label={answer.choice}
+                            sx={{ mb: 1 }}
+                          />
+                        ))}
+                      </RadioGroup>
+                    </Box>
+                  ))}
+                </Paper>
+
+                <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
+                  <Button
+                    variant="contained"
+                    size="large"
+                    onClick={submitVerificationAnswers}
+                    disabled={loading || Object.keys(verificationAnswers).length !== verificationQuestions.length}
+                    startIcon={loading ? <CircularProgress size={20} /> : <CheckIcon />}
+                  >
+                    {loading ? 'Verifying...' : 'Submit Answers'}
+                  </Button>
+                </Box>
+              </>
+            )}
+          </Box>
+        </Fade>
+      );
+    }
+
+    // Show normal analysis animation
+    return (
+      <Fade in timeout={500}>
+        <Box sx={{ textAlign: 'center', py: 4 }}>
+          <Typography variant="h4" fontWeight={700} gutterBottom>
+            Analyzing Your Credit Profile
+          </Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+            Please wait while we securely analyze your credit across all three bureaus...
+          </Typography>
+
+          <Box sx={{ maxWidth: 500, mx: 'auto', mb: 4 }}>
+            <LinearProgress
+              variant="determinate"
+              value={analysisProgress}
+              sx={{
+                height: 10,
+                borderRadius: 5,
+                '& .MuiLinearProgress-bar': {
+                  background: 'linear-gradient(45deg, #2196F3, #4CAF50)',
+                },
+              }}
+            />
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              {Math.round(analysisProgress)}% Complete
+            </Typography>
+          </Box>
+
+          <List sx={{ maxWidth: 500, mx: 'auto' }}>
+            {ANALYSIS_STEPS.map((step, index) => (
+              <ListItem key={step.id}>
+                <ListItemIcon>
+                  {index < currentAnalysisStep ? (
+                    <CheckIcon color="success" />
+                  ) : index === currentAnalysisStep ? (
+                    <CircularProgress size={24} />
+                  ) : (
+                    <Box sx={{ width: 24, height: 24, borderRadius: '50%', bgcolor: 'grey.300' }} />
+                  )}
+                </ListItemIcon>
+                <ListItemText
+                  primary={step.text}
+                  sx={{
+                    color: index <= currentAnalysisStep ? 'text.primary' : 'text.disabled',
+                  }}
+                />
+              </ListItem>
+            ))}
+          </List>
+        </Box>
+      </Fade>
+    );
+  };
 
   const renderPhase3 = () => (
     <Fade in timeout={500}>

@@ -608,29 +608,70 @@ exports.idiqService = onCall(
             console.log('✅ Step 1/2 Complete: Member enrolled successfully');
             console.log('📊 Enrollment response:', JSON.stringify(enrollData).substring(0, 200));
             
-            // Store enrollment in Firestore
-            if (contactId) {
-              await db.collection('idiqEnrollments').add({
-                contactId: contactId,
-                email: email.toLowerCase(),
-                firstName: firstName,
-                lastName: lastName,
-                status: 'enrolled',
-                enrolledAt: FieldValue.serverTimestamp(),
-                membershipNumber: enrollData.membershipNumber || null,
-                enrollmentData: enrollData
-              });
-              console.log('💾 Enrollment stored in Firestore');
-            }
+            const membershipNumber = enrollData.membershipNumber || enrollData.membershipNo;
             
-            // STEP 2: Get credit report
-            console.log('📊 Step 2/2: Pulling credit report...');
+            // Store enrollment in Firestore with verification tracking
+            const enrollmentRef = await db.collection('idiqEnrollments').add({
+              contactId: contactId || null,
+              email: email.toLowerCase(),
+              firstName: firstName,
+              lastName: lastName,
+              membershipNumber: membershipNumber,
+              enrollmentStep: 'enrolled',
+              verificationStatus: 'pending',
+              verificationAttempts: 0,
+              maxAttempts: 3,
+              enrolledAt: FieldValue.serverTimestamp(),
+              lastActivity: FieldValue.serverTimestamp(),
+              enrollmentData: enrollData
+            });
+            console.log('💾 Enrollment stored in Firestore:', enrollmentRef.id);
+            
+            // STEP 2: Try to get verification questions first
+            console.log('📊 Step 2/2: Checking if verification is required...');
             
             // Wait 2 seconds for IDIQ to process enrollment
             await new Promise(resolve => setTimeout(resolve, 2000));
             
             const memberToken = await getMemberToken(email, partnerToken);
             
+            // Try to get verification questions
+            const questionsResponse = await fetch(`${IDIQ_BASE_URL}v1/enrollment/verification-questions`, {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${memberToken}`,
+                'Accept': 'application/json'
+              }
+            });
+            
+            if (questionsResponse.ok) {
+              const questionsData = await questionsResponse.json();
+              
+              if (questionsData.questions && questionsData.questions.length > 0) {
+                // Verification required - store questions and return to frontend
+                console.log('🔐 Verification required - returning questions to frontend');
+                
+                await enrollmentRef.update({
+                  enrollmentStep: 'verification_pending',
+                  verificationQuestions: questionsData.questions,
+                  lastActivity: FieldValue.serverTimestamp()
+                });
+                
+                return {
+                  success: true,
+                  verificationRequired: true,
+                  membershipNumber: membershipNumber,
+                  questions: questionsData.questions,
+                  enrollmentId: enrollmentRef.id,
+                  message: 'Please answer the security questions to verify your identity'
+                };
+              } else {
+                console.log('✅ No verification required - proceeding to pull report');
+              }
+            }
+            
+            // No verification needed or already verified - pull credit report
+            console.log('📊 Pulling credit report (no verification required)...');
             const reportResponse = await fetch(`${IDIQ_BASE_URL}v1/credit-report`, {
               method: 'GET',
               headers: {
@@ -643,6 +684,14 @@ exports.idiqService = onCall(
             if (!reportResponse.ok) {
               const errorText = await reportResponse.text();
               console.error('❌ IDIQ credit report pull failed:', errorText);
+              
+              // Update enrollment status
+              await enrollmentRef.update({
+                enrollmentStep: 'report_failed',
+                lastError: errorText,
+                lastActivity: FieldValue.serverTimestamp()
+              });
+              
               throw new Error(`IDIQ credit report failed (${reportResponse.status}): ${errorText}`);
             }
             
@@ -656,6 +705,7 @@ exports.idiqService = onCall(
               await db.collection('creditReports').add({
                 contactId: contactId,
                 email: email.toLowerCase(),
+                membershipNumber: membershipNumber,
                 reportData: reportData,
                 vantageScore: reportData.vantageScore || reportData.score || null,
                 createdAt: FieldValue.serverTimestamp(),
@@ -665,9 +715,17 @@ exports.idiqService = onCall(
               console.log('💾 Credit report stored in Firestore');
             }
             
+            // Update enrollment as complete
+            await enrollmentRef.update({
+              enrollmentStep: 'completed',
+              verificationStatus: 'verified',
+              lastActivity: FieldValue.serverTimestamp()
+            });
+            
             // Return in format frontend expects
             return { 
-              success: true, 
+              success: true,
+              verificationRequired: false,
               data: {
                 vantageScore: reportData.vantageScore || reportData.score,
                 bureaus: reportData.bureaus || {},
@@ -678,7 +736,7 @@ exports.idiqService = onCall(
                 ...reportData
               },
               enrolled: true,
-              membershipNumber: enrollData.membershipNumber || null
+              membershipNumber: membershipNumber
             };
             
           } catch (error) {
@@ -734,28 +792,234 @@ exports.idiqService = onCall(
         }
         
         case 'submitVerification': {
-          const { email, answerIds } = params;
-          const partnerToken = await getPartnerToken();
-          const memberToken = await getMemberToken(email, partnerToken);
-          
-          const response = await fetch(`${IDIQ_BASE_URL}v1/enrollment/verification-questions`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-              'Authorization': `Bearer ${memberToken}`
-            },
-            body: JSON.stringify({ answers: answerIds })
-          });
-          if (!response.ok) throw new Error(`Verification failed: ${response.status}`);
-          
-          const data = await response.json();
-          if (data.status === 'Correct') {
-            const q = await db.collection('idiqEnrollments').where('email', '==', email.toLowerCase()).limit(1).get();
-            if (!q.empty) await q.docs[0].ref.update({ status: 'active', verifiedAt: FieldValue.serverTimestamp() });
+          try {
+            const { email, answerIds, enrollmentId } = params;
+            console.log('📝 submitVerification: Processing answers...');
+            
+            // Get enrollment record
+            const enrollmentDoc = await db.collection('idiqEnrollments')
+              .doc(enrollmentId)
+              .get();
+            
+            if (!enrollmentDoc.exists) {
+              throw new Error('Enrollment not found');
+            }
+            
+            const enrollment = enrollmentDoc.data();
+            const currentAttempts = enrollment.verificationAttempts || 0;
+            
+            // Check if already locked out
+            if (currentAttempts >= enrollment.maxAttempts) {
+              return {
+                success: false,
+                locked: true,
+                message: 'Verification attempts exceeded. Please contact support.',
+                attemptsRemaining: 0
+              };
+            }
+            
+            // Submit answers to IDIQ
+            const partnerToken = await getPartnerToken();
+            const memberToken = await getMemberToken(email, partnerToken);
+            
+            const response = await fetch(`${IDIQ_BASE_URL}v1/enrollment/verification-questions`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${memberToken}`
+              },
+              body: JSON.stringify({ answers: answerIds })
+            });
+            
+            if (!response.ok) {
+              throw new Error(`Verification request failed: ${response.status}`);
+            }
+            
+            const verificationResult = await response.json();
+            const isCorrect = verificationResult.status === 'Correct' || verificationResult.status === 0;
+            const newAttempts = currentAttempts + 1;
+            const attemptsRemaining = enrollment.maxAttempts - newAttempts;
+            
+            console.log(`✅ Verification result: ${verificationResult.status} (Attempt ${newAttempts}/${enrollment.maxAttempts})`);
+            
+            if (isCorrect) {
+              // SUCCESS - Update enrollment and pull credit report
+              await enrollmentDoc.ref.update({
+                verificationStatus: 'verified',
+                verificationAttempts: newAttempts,
+                verifiedAt: FieldValue.serverTimestamp(),
+                enrollmentStep: 'verified',
+                lastActivity: FieldValue.serverTimestamp()
+              });
+              
+              // Pull credit report now that identity is verified
+              console.log('📊 Pulling credit report after successful verification...');
+              
+              const reportResponse = await fetch(`${IDIQ_BASE_URL}v1/credit-report`, {
+                method: 'GET',
+                headers: {
+                  'Authorization': `Bearer ${memberToken}`,
+                  'Content-Type': 'application/json',
+                  'Accept': 'application/json'
+                }
+              });
+              
+              if (!reportResponse.ok) {
+                const errorText = await reportResponse.text();
+                console.error('❌ Credit report pull failed after verification:', errorText);
+                
+                await enrollmentDoc.ref.update({
+                  enrollmentStep: 'report_failed',
+                  lastError: errorText,
+                  lastActivity: FieldValue.serverTimestamp()
+                });
+                
+                throw new Error(`Credit report failed: ${errorText}`);
+              }
+              
+              const reportData = await reportResponse.json();
+              console.log('✅ Credit report retrieved successfully');
+              
+              // Store report
+              if (enrollment.contactId) {
+                await db.collection('creditReports').add({
+                  contactId: enrollment.contactId,
+                  email: email.toLowerCase(),
+                  membershipNumber: enrollment.membershipNumber,
+                  reportData: reportData,
+                  vantageScore: reportData.vantageScore || reportData.score || null,
+                  createdAt: FieldValue.serverTimestamp(),
+                  source: 'idiq',
+                  bureaus: reportData.bureaus || {}
+                });
+                console.log('💾 Credit report stored');
+              }
+              
+              // Update enrollment as complete
+              await enrollmentDoc.ref.update({
+                enrollmentStep: 'completed',
+                lastActivity: FieldValue.serverTimestamp()
+              });
+              
+              return {
+                success: true,
+                verified: true,
+                message: 'Identity verified successfully!',
+                data: {
+                  vantageScore: reportData.vantageScore || reportData.score,
+                  bureaus: reportData.bureaus || {},
+                  negativeItems: reportData.negativeItems || [],
+                  accounts: reportData.accounts || [],
+                  inquiries: reportData.inquiries || [],
+                  publicRecords: reportData.publicRecords || [],
+                  ...reportData
+                }
+              };
+              
+            } else {
+              // FAILED - Update attempt count
+              await enrollmentDoc.ref.update({
+                verificationAttempts: newAttempts,
+                lastAttemptAt: FieldValue.serverTimestamp(),
+                lastActivity: FieldValue.serverTimestamp()
+              });
+              
+              // If 3rd failure, send alert to Laurie
+              if (newAttempts >= enrollment.maxAttempts) {
+                console.log('🚨 3rd verification attempt failed - alerting team');
+                
+                await enrollmentDoc.ref.update({
+                  verificationStatus: 'locked',
+                  enrollmentStep: 'verification_locked'
+                });
+                
+                // Send email alert to Laurie
+                try {
+                  const user = gmailUser.value();
+                  const pass = gmailAppPassword.value();
+                  
+                  const transporter = nodemailer.createTransporter({
+                    host: 'smtp.gmail.com',
+                    port: 587,
+                    secure: false,
+                    auth: { user, pass }
+                  });
+                  
+                  const now = new Date();
+                  const subject = `🚨 URGENT: IDIQ Verification Failed (3 attempts) - ${enrollment.firstName} ${enrollment.lastName}`;
+                  
+                  const body = `
+IDIQ VERIFICATION FAILURE ALERT
+
+Client Information:
+- Name: ${enrollment.firstName} ${enrollment.lastName}
+- Email: ${email}
+- Membership #: ${enrollment.membershipNumber}
+- Contact ID: ${enrollment.contactId || 'N/A'}
+
+Status:
+- Verification attempts: ${newAttempts}/${enrollment.maxAttempts}
+- All attempts failed
+- Account now LOCKED
+
+Action Required:
+1. Client may need assistance answering security questions
+2. Consider calling client to help verify identity
+3. May need to cancel IDIQ account and re-enroll (30-min window)
+
+IDIQ Support: 877-875-4347
+Hours: Mon-Fri 5am-4pm PST | Sat 6:30am-3pm PST
+
+Client was shown:
+- Option to call IDIQ directly
+- Option to contact Speedy Credit Repair
+- Your contact info: 657-332-9833
+
+---
+Alert Time: ${now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })} PST
+Enrollment ID: ${enrollmentId}
+                  `.trim();
+                  
+                  await transporter.sendMail({
+                    from: `"SpeedyCRM Alerts" <${user}>`,
+                    to: 'Laurie@speedycreditrepair.com',
+                    cc: 'chris@speedycreditrepair.com',
+                    subject,
+                    text: body
+                  });
+                  
+                  console.log('✅ Alert email sent to Laurie');
+                } catch (emailErr) {
+                  console.error('❌ Failed to send alert email:', emailErr);
+                  // Don't throw - we still need to return the failure to user
+                }
+                
+                return {
+                  success: false,
+                  locked: true,
+                  attemptsRemaining: 0,
+                  message: 'Verification limit reached. Our team has been notified and will contact you shortly.'
+                };
+              }
+              
+              // Still have attempts remaining
+              return {
+                success: false,
+                verified: false,
+                locked: false,
+                attemptsRemaining: attemptsRemaining,
+                attempts: newAttempts,
+                maxAttempts: enrollment.maxAttempts,
+                message: `Some answers were incorrect. You have ${attemptsRemaining} attempt${attemptsRemaining === 1 ? '' : 's'} remaining.`
+              };
+            }
+            
+          } catch (err) {
+            console.error('❌ submitVerification error:', err.message);
+            console.error('Stack:', err.stack);
+            throw new functions.https.HttpsError('internal', err.message);
           }
-          console.log(`✅ Verification: ${data.status}`);
-          return { success: true, status: data.status, message: data.message, question: data.question };
         }
         
         case 'getToken': {
