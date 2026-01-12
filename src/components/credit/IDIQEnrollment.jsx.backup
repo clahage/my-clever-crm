@@ -99,7 +99,6 @@ import {
   Speed as SpeedIcon,
   HelpOutline as HelpIcon,
   Close as CloseIcon,
-  Save as SaveIcon,
 } from '@mui/icons-material';
 import { 
   collection, 
@@ -241,75 +240,6 @@ const IDIQEnrollment = () => {
   const [pullProgress, setPullProgress] = useState(0);
   const [pullStatus, setPullStatus] = useState('');
   
-  // ===== ENHANCEMENT STATES =====
-  
-  // 1. Field-level validation errors
-  const [fieldErrors, setFieldErrors] = useState({
-    firstName: '', 
-    lastName: '', 
-    email: '', 
-    ssn: '',
-    dateOfBirth: '', 
-    street: '', 
-    city: '', 
-    state: '', 
-    zip: ''
-  });
-  
-  // 2. Verification attempt tracking
-  const [verificationAttempts, setVerificationAttempts] = useState({
-    current: 0, 
-    max: 3, 
-    remaining: 3
-  });
-  
-  // 3. Auto-save state
-  const [lastSaved, setLastSaved] = useState(null);
-  const [isDraft, setIsDraft] = useState(false);
-  
-  // 4. Enrollment timeline
-  const [enrollmentTimeline, setEnrollmentTimeline] = useState({
-    started: null, 
-    contactSelected: null, 
-    infoCompleted: null,
-    enrollmentStarted: null, 
-    verificationStarted: null,
-    reportReceived: null, 
-    completed: null
-  });
-  
-  // 5. Document upload status
-  const [documents, setDocuments] = useState({
-    photoId: { 
-      uploaded: false, 
-      url: null, 
-      filename: null, 
-      uploadedAt: null, 
-      progress: 0 
-    },
-    utilityBill: { 
-      uploaded: false, 
-      url: null, 
-      filename: null, 
-      uploadedAt: null, 
-      progress: 0 
-    }
-  });
-  
-  // 6. Recent clients cache
-  const [recentClients, setRecentClients] = useState([]);
-  
-  // 7. Enrollment notes
-  const [enrollmentNotes, setEnrollmentNotes] = useState([]);
-  const [currentNote, setCurrentNote] = useState('');
-  
-  // 8. Connection status
-  const [connectionStatus, setConnectionStatus] = useState({
-    online: navigator.onLine,
-    apiReachable: true,
-    lastChecked: new Date()
-  });
-  
   // Permission check
   const hasAccess = useMemo(() => {
     if (!userProfile?.role) return false;
@@ -319,104 +249,6 @@ const IDIQEnrollment = () => {
     };
     return (roleLevel[userProfile.role] || 0) >= 5; // user level or higher
   }, [userProfile]);
-
-  // ===== LOAD RECENT CLIENTS =====
-  useEffect(() => {
-    try {
-      const recent = JSON.parse(localStorage.getItem('recent-enrollments') || '[]');
-      setRecentClients(recent.slice(0, 5));
-      console.log('✅ Loaded recent clients:', recent.length);
-    } catch (err) {
-      console.error('❌ Failed to load recent clients:', err);
-    }
-  }, []);
-
-  // ===== CONNECTION STATUS MONITORING =====
-  useEffect(() => {
-    const handleOnline = () => {
-      setConnectionStatus(prev => ({ 
-        ...prev, 
-        online: true, 
-        lastChecked: new Date() 
-      }));
-      console.log('✅ Connection restored');
-    };
-    
-    const handleOffline = () => {
-      setConnectionStatus(prev => ({ 
-        ...prev, 
-        online: false, 
-        lastChecked: new Date() 
-      }));
-      console.warn('⚠️ Connection lost');
-    };
-    
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
-
-  // ===== AUTO-SAVE EFFECT =====
-  useEffect(() => {
-    // Only auto-save if:
-    // 1. User is past step 0 (not just browsing)
-    // 2. Has entered an email (meaningful data)
-    // 3. Not currently loading (avoid race conditions)
-    if (activeStep > 0 && clientInfo.email && !loading) {
-      const timer = setTimeout(() => {
-        try {
-          const draftData = {
-            clientInfo, 
-            activeStep, 
-            selectedClient,
-            verificationAnswers, 
-            enrollmentTimeline,
-            fieldErrors,
-            timestamp: new Date().toISOString(),
-            version: '1.0'
-          };
-          
-          localStorage.setItem('idiq-draft', JSON.stringify(draftData));
-          setLastSaved(new Date());
-          setIsDraft(true);
-          
-          console.log('✅ Auto-saved draft at', new Date().toLocaleTimeString());
-        } catch (err) {
-          console.error('❌ Auto-save failed:', err);
-        }
-      }, 30000); // Save every 30 seconds
-      
-      return () => clearTimeout(timer);
-    }
-  }, [clientInfo, activeStep, selectedClient, verificationAnswers, loading]);
-
-  // ===== DRAFT RECOVERY =====
-  useEffect(() => {
-    // Check for saved draft on mount
-    try {
-      const draft = localStorage.getItem('idiq-draft');
-      if (draft && !selectedClient) {
-        const draftData = JSON.parse(draft);
-        const draftAge = Date.now() - new Date(draftData.timestamp).getTime();
-        
-        // Only offer recovery if draft is less than 24 hours old
-        if (draftAge < 24 * 60 * 60 * 1000) {
-          console.log('💾 Found saved draft from', new Date(draftData.timestamp).toLocaleString());
-          // You could add a dialog here to ask if user wants to resume
-          // For now, just log it
-        } else {
-          // Clean up old draft
-          localStorage.removeItem('idiq-draft');
-        }
-      }
-    } catch (err) {
-      console.error('Failed to check for draft:', err);
-    }
-  }, []);
 
   // ===== LOAD CLIENTS =====
   useEffect(() => {
@@ -550,106 +382,6 @@ const IDIQEnrollment = () => {
     const day = String(date.getDate()).padStart(2, '0');
     const year = date.getFullYear();
     return `${month}/${day}/${year}`;
-  };
-
-  // ===== FIELD VALIDATION =====
-  const validateField = (fieldName, value) => {
-    let error = '';
-    
-    switch(fieldName) {
-      case 'firstName':
-      case 'lastName':
-        if (!value || value.trim().length < 2) {
-          error = 'Must be at least 2 characters';
-        }
-        break;
-        
-      case 'email':
-        if (!value || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-          error = 'Valid email required';
-        }
-        break;
-        
-      case 'ssn':
-        if (!value || value.replace(/\D/g, '').length !== 9) {
-          error = 'Must be 9 digits';
-        }
-        break;
-        
-      case 'dateOfBirth':
-        if (!value) {
-          error = 'Date of birth required';
-        } else {
-          const age = Math.floor((new Date() - new Date(value)) / 31557600000);
-          if (age < 18) error = 'Must be 18 or older';
-          if (age > 120) error = 'Please enter a valid date';
-        }
-        break;
-        
-      case 'street':
-      case 'city':
-        if (!value || value.trim().length < 3) {
-          error = 'Required field (minimum 3 characters)';
-        }
-        break;
-        
-      case 'state':
-        if (!value || value.length !== 2) {
-          error = 'Please select a state';
-        }
-        break;
-        
-      case 'zip':
-        if (!value || !/^\d{5}(-\d{4})?$/.test(value)) {
-          error = 'Valid ZIP code required (12345 or 12345-6789)';
-        }
-        break;
-        
-      default:
-        break;
-    }
-    
-    setFieldErrors(prev => ({ ...prev, [fieldName]: error }));
-    return error === '';
-  };
-
-  // ===== NOTES MANAGEMENT =====
-  const addNote = () => {
-    if (!currentNote.trim()) return;
-    
-    const note = {
-      text: currentNote.trim(),
-      addedBy: userProfile?.displayName || currentUser?.email || 'Unknown User',
-      addedAt: new Date().toISOString()
-    };
-    
-    setEnrollmentNotes(prev => [...prev, note]);
-    setCurrentNote('');
-    
-    console.log('✅ Note added:', note);
-  };
-
-  // ===== RECENT CLIENTS MANAGEMENT =====
-  const addToRecentClients = (clientId) => {
-    if (!clientId) return;
-    
-    try {
-      const recent = JSON.parse(localStorage.getItem('recent-enrollments') || '[]');
-      const updated = [clientId, ...recent.filter(id => id !== clientId)].slice(0, 5);
-      localStorage.setItem('recent-enrollments', JSON.stringify(updated));
-      setRecentClients(updated);
-      console.log('✅ Updated recent clients:', updated);
-    } catch (err) {
-      console.error('❌ Failed to update recent clients:', err);
-    }
-  };
-
-  // ===== TIMELINE HELPER =====
-  const updateTimeline = (eventName) => {
-    setEnrollmentTimeline(prev => ({
-      ...prev,
-      [eventName]: new Date().toISOString()
-    }));
   };
 
   // ===== VALIDATION =====
@@ -801,12 +533,6 @@ const IDIQEnrollment = () => {
         // Update enrollment status
         await saveEnrollmentToFirestore('active', true);
         
-        // ✅ Update timeline
-        setEnrollmentTimeline(prev => ({
-          ...prev,
-          verificationCompleted: new Date().toISOString()
-        }));
-        
         // Move to report step
         setActiveStep(4);
         setPullStatus('Credit report loaded!');
@@ -838,13 +564,6 @@ const IDIQEnrollment = () => {
             `You have ${attemptsRemaining} attempt${attemptsRemaining !== 1 ? 's' : ''} remaining.\n\n` +
             `Please review your answers carefully.`
           );
-          
-          // ✅ Update attempt tracking for UI display
-          setVerificationAttempts({
-            current: attempts,
-            max: maxAttempts,
-            remaining: attemptsRemaining
-          });
           
           // Clear answers for retry
           setVerificationAnswers({});
@@ -1290,22 +1009,6 @@ const IDIQEnrollment = () => {
   // Step 3: Verification Questions
   const renderVerificationQuestions = () => (
     <Box>
-      {/* VERIFICATION ATTEMPT TRACKER */}
-      {verificationAttempts.current > 0 && (
-        <Alert severity="warning" sx={{ mb: 3 }}>
-          <AlertTitle>
-            Verification Attempt {verificationAttempts.current} of {verificationAttempts.max}
-          </AlertTitle>
-          <LinearProgress 
-            variant="determinate" 
-            value={(verificationAttempts.current / verificationAttempts.max) * 100}
-            sx={{ my: 1 }}
-          />
-          <Typography variant="body2">
-            You have {verificationAttempts.remaining} attempt{verificationAttempts.remaining !== 1 ? 's' : ''} remaining.
-          </Typography>
-        </Alert>
-      )}
       <Alert severity="info" sx={{ mb: 3 }}>
         <AlertTitle>Identity Verification</AlertTitle>
         Please answer the following security questions to verify your identity.
@@ -1471,72 +1174,6 @@ const IDIQEnrollment = () => {
     </Box>
   );
 
-  // ===== NOTES SECTION =====
-  const renderNotesSection = () => (
-    hasAccess && activeStep > 0 && (
-      <Box sx={{ mt: 3, p: 2, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
-        <Typography variant="subtitle1" fontWeight="bold" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <DocumentIcon /> Internal Notes
-        </Typography>
-        <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
-          Visible to staff only - track special circumstances, client requests, or enrollment details
-        </Typography>
-        
-        <TextField
-          fullWidth
-          multiline
-          rows={2}
-          placeholder="Add internal note about this enrollment..."
-          value={currentNote}
-          onChange={(e) => setCurrentNote(e.target.value)}
-          sx={{ mb: 1 }}
-          disabled={loading}
-        />
-        <Button 
-          onClick={addNote}
-          disabled={!currentNote.trim() || loading}
-          variant="outlined"
-          size="small"
-          startIcon={<SendIcon />}
-        >
-          Add Note
-        </Button>
-        
-        {enrollmentNotes.length > 0 && (
-          <Box sx={{ mt: 2 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-              {enrollmentNotes.length} note{enrollmentNotes.length !== 1 ? 's' : ''}
-            </Typography>
-            <List dense>
-              {enrollmentNotes.map((note, idx) => (
-                <ListItem 
-                  key={idx} 
-                  sx={{ 
-                    bgcolor: 'action.hover', 
-                    borderRadius: 1, 
-                    mb: 1,
-                    border: '1px solid',
-                    borderColor: 'divider'
-                  }}
-                >
-                  <ListItemIcon>
-                    <DocumentIcon fontSize="small" color="primary" />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={note.text}
-                    secondary={`${note.addedBy} • ${new Date(note.addedAt).toLocaleString()}`}
-                    primaryTypographyProps={{ variant: 'body2' }}
-                    secondaryTypographyProps={{ variant: 'caption' }}
-                  />
-                </ListItem>
-              ))}
-            </List>
-          </Box>
-        )}
-      </Box>
-    )
-  );
-
   // ===== MAIN RENDER =====
   return (
     <Box sx={{ p: 3 }}>
@@ -1582,14 +1219,6 @@ const IDIQEnrollment = () => {
         </Stepper>
       </Paper>
 
-      {/* CONNECTION STATUS ALERT */}
-      {!connectionStatus.online && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          <AlertTitle>No Internet Connection</AlertTitle>
-          Your changes will not be saved until connection is restored.
-        </Alert>
-      )}
-
       {/* ERROR/SUCCESS ALERTS */}
       <Collapse in={!!error}>
         <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
@@ -1604,19 +1233,6 @@ const IDIQEnrollment = () => {
         </Alert>
       </Collapse>
 
-      {/* AUTO-SAVE INDICATOR */}
-      {lastSaved && isDraft && (
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-          <Chip
-            icon={<SaveIcon />}
-            label={`Auto-saved at ${lastSaved.toLocaleTimeString()}`}
-            size="small"
-            color="success"
-            variant="outlined"
-          />
-        </Box>
-      )}
-
       {/* STEP CONTENT */}
       <Paper elevation={2} sx={{ p: 3, mb: 3, minHeight: 400 }}>
         <Fade in key={activeStep}>
@@ -1630,9 +1246,6 @@ const IDIQEnrollment = () => {
           </Box>
         </Fade>
       </Paper>
-
-      {/* INTERNAL NOTES */}
-      {renderNotesSection()}
 
       {/* NAVIGATION BUTTONS */}
       {activeStep < 5 && activeStep !== 2 && activeStep !== 4 && (

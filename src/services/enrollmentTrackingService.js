@@ -454,12 +454,21 @@ export const scheduleEmailRecovery = async ({
 };
 
 // ============================================================================
-// EXIT INTENT & INACTIVITY Logic (Original Details Preserved)
+// EXIT INTENT & INACTIVITY Logic - PRECISE PRODUCTION VERSION
 // ============================================================================
 
+/**
+ * Initialize exit intent detection
+ * Requirement: Only triggers at Phase 6 (Suggested Service Plan)
+ * Requirement: Only triggers after 60 seconds on page
+ * Requirement: Only triggers on precise proximity to the exit "X" (top right)
+ */
 export const initExitIntent = ({ currentPhase, onExitIntent, contactId, email }) => {
   let exitIntentTriggered = false;
   let scrollDepth = 0;
+  
+  // Track time spent specifically for exit intent qualification
+  const pageEntryTime = Date.now();
 
   const handleScroll = () => {
     const docHeight = document.documentElement.scrollHeight - window.innerHeight;
@@ -467,26 +476,53 @@ export const initExitIntent = ({ currentPhase, onExitIntent, contactId, email })
   };
 
   const handleMouseLeave = (e) => {
-    if (e.clientY <= 0 && !exitIntentTriggered) {
-      if (currentPhase < TRACKING_CONFIG.exitIntentPhaseThreshold) {
+    const secondsOnPage = (Date.now() - pageEntryTime) / 1000;
+    
+    // Check for Proximity to "X": 
+    // clientY <= 5 (Very top of browser)
+    // clientX >= (window.innerWidth - 100) (Far right side where "X" lives)
+    const isPreciseHover = e.clientY <= 5 && e.clientX >= (window.innerWidth - 100);
+
+    if (isPreciseHover && !exitIntentTriggered) {
+      // ONLY trigger if Phase is 6 (Plan Selection) AND user has been here > 60 seconds
+      if (currentPhase === 6 && secondsOnPage > 60) {
         exitIntentTriggered = true;
+
         trackEvent({
           eventType: TRACKING_CONFIG.eventTypes.EXIT_INTENT_SHOWN,
           contactId, email, phase: currentPhase,
-          metadata: { device: 'desktop', scrollDepth },
+          metadata: { 
+            device: 'desktop', 
+            trigger: 'precise_x_proximity',
+            secondsOnPage,
+            scrollDepth 
+          },
         });
+
         onExitIntent({
           discount: TRACKING_CONFIG.exitIntentDiscount,
-          message: "Wait! Don't Leave Empty-Handed",
+          message: "Wait! Don't Leave Without Your Plan",
+          subMessage: `Take $${TRACKING_CONFIG.exitIntentDiscount} OFF your first month if you sign up right now!`,
+          features: [
+            'Instant Credit Review',
+            'Suggested Service Plan',
+            'Cancel Anytime',
+          ],
         });
       }
     }
   };
 
+  // Keep popstate (back button) only for Phase 6 as well
   const handlePopState = () => {
-    if (!exitIntentTriggered && currentPhase < TRACKING_CONFIG.exitIntentPhaseThreshold) {
+    const secondsOnPage = (Date.now() - pageEntryTime) / 1000;
+    if (!exitIntentTriggered && currentPhase === 6 && secondsOnPage > 60) {
       exitIntentTriggered = true;
-      trackEvent({ eventType: TRACKING_CONFIG.eventTypes.EXIT_INTENT_SHOWN, contactId, email, phase: currentPhase, metadata: { device: 'mobile' } });
+      trackEvent({ 
+        eventType: TRACKING_CONFIG.eventTypes.EXIT_INTENT_SHOWN, 
+        contactId, email, phase: currentPhase, 
+        metadata: { device: 'mobile', trigger: 'back_button_intent' } 
+      });
       onExitIntent({ discount: TRACKING_CONFIG.exitIntentDiscount });
     }
   };
@@ -506,7 +542,11 @@ export const initExitIntent = ({ currentPhase, onExitIntent, contactId, email })
 export const trackExitIntentResponse = async ({ accepted, contactId, email, phase, discountApplied = false }) => {
   const eventType = accepted ? TRACKING_CONFIG.eventTypes.EXIT_INTENT_ACCEPTED : TRACKING_CONFIG.eventTypes.EXIT_INTENT_DISMISSED;
   if (accepted && discountApplied) {
-    await trackEvent({ eventType: TRACKING_CONFIG.eventTypes.DISCOUNT_APPLIED, contactId, email, phase, metadata: { discountAmount: TRACKING_CONFIG.exitIntentDiscount } });
+    await trackEvent({ 
+      eventType: TRACKING_CONFIG.eventTypes.DISCOUNT_APPLIED, 
+      contactId, email, phase, 
+      metadata: { discountAmount: TRACKING_CONFIG.exitIntentDiscount, source: 'exit_intent_popup' } 
+    });
   }
   return trackEvent({ eventType, contactId, email, phase, metadata: { discountApplied } });
 };
