@@ -846,7 +846,7 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
             zip: formData.zip,
           },
         },
-        contactId: savedContact?.id || null
+        contactId: contactId || null
       });
 
       console.log("✅ IDIQ Response:", response.data);
@@ -856,7 +856,15 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
         console.log("🔐 Verification required - showing security questions");
         
         setVerificationRequired(true);
-        setVerificationQuestions(response.data.questions || []);
+        
+        // THE FIX: Redundant extraction to ensure the .map() function receives a valid array
+        const extractedQuestions = 
+          response.data.questions || 
+          response.data.verificationQuestions || 
+          response.data.data?.questions || 
+          [];
+
+        setVerificationQuestions(extractedQuestions);
         setEnrollmentId(response.data.enrollmentId);
         setMembershipNumber(response.data.membershipNumber);
         setAnalysisComplete(true);
@@ -867,19 +875,21 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
       }
 
       // No verification needed - proceed with credit report
-      console.log("📊 VantageScore:", response.data.data?.vantageScore);
+      // Handle both nested and direct data structures
+      const resData = response.data?.data || response.data || {};
+      console.log("📊 VantageScore:", resData.vantageScore);
 
-      if (!response.data.data || !response.data.data.vantageScore) {
+      if (!resData || (!resData.vantageScore && !resData.score)) {
         throw new Error("IDIQ returned empty data - check API configuration");
       }
       
-      setCreditReport(response.data.data);
+      setCreditReport(resData);
       setMembershipNumber(response.data.membershipNumber);
       setAnalysisComplete(true);
       setCurrentPhase(3);
 
-      // Animate score counter
-      const targetScore = response.data.data.vantageScore;
+      // Animate score counter using available mapping
+      const targetScore = resData.vantageScore || resData.score || 300;
       animateScore(targetScore);
 
     } catch (err) {
@@ -895,7 +905,7 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
     }
   };
   
-    // ===== SUBMIT VERIFICATION ANSWERS =====
+  // ===== SUBMIT VERIFICATION ANSWERS - DETAILED PRODUCTION LOGIC =====
   const submitVerificationAnswers = async () => {
     setLoading(true);
     setVerificationError(null);
@@ -909,54 +919,66 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
         if (!selectedAnswer) {
           throw new Error(`Please answer question ${idx + 1}`);
         }
-        // Find the answer object and return its ID
-        const answer = q.answer.find(a => a.choice === selectedAnswer);
-        return answer ? answer.id : selectedAnswer;
+        
+        // FIX: Check both .answers and .answer to prevent the 'find' crash
+        const options = q.answers || q.answer || [];
+        const foundOption = options.find(a => (a.answer || a.choice || a.text) === selectedAnswer);
+        
+        // Return the ID for the API, fallback to text if ID is missing
+        return foundOption ? foundOption.id : selectedAnswer;
       });
 
-      console.log("🔐 Submitting answers for enrollment:", enrollmentId);
+      console.log("🔐 Submitting answer IDs for enrollment:", enrollmentId);
 
       const response = await idiqService({
         action: 'submitVerification',
-        email: formData.email,
-        answerIds: answerIds,
-        enrollmentId: enrollmentId
+        memberData: {
+          email: formData.email,
+          answerIds: answerIds,
+          enrollmentId: enrollmentId
+        }
       });
+
+      // Handle response data whether nested or direct
+      const resData = response.data?.data || response.data || {};
+      const successFlag = response.data?.success && response.data?.verified;
 
       console.log("✅ Verification response:", response.data);
 
-      if (response.data.success && response.data.verified) {
-        // SUCCESS - Got credit report!
+      if (successFlag) {
+        // SUCCESS - Identity confirmed, moving to results
         console.log("🎉 Verification successful!");
         
-        setCreditReport(response.data.data);
+        setCreditReport(resData);
         setVerificationRequired(false);
         setCurrentPhase(3);
         
-        // Animate score counter
-        const targetScore = response.data.data.vantageScore;
+        // Animate score counter using available fallback mapping
+        const targetScore = resData.vantageScore || resData.score || 300;
         animateScore(targetScore);
         
-      } else if (response.data.locked) {
-        // LOCKED OUT - 3 attempts failed
+      } else if (response.data?.locked) {
+        // LOCKED OUT - User failed 3 attempts
+        console.log("🚫 Account locked - notifying support");
         setVerificationError({
           type: 'locked',
-          message: response.data.message,
+          message: response.data.message || 'Account locked. Please contact support.',
           attemptsRemaining: 0
         });
         
       } else {
-        // INCORRECT - Still have attempts
-        setVerificationAttempts(response.data.attempts || 0);
+        // INCORRECT - Update attempt tracking and reset answers
+        console.log("❌ Answer incorrect - tracking attempt statistics");
+        setVerificationAttempts(response.data?.attempts || 0);
         setVerificationError({
           type: 'incorrect',
-          message: response.data.message,
-          attemptsRemaining: response.data.attemptsRemaining,
-          attempts: response.data.attempts,
-          maxAttempts: response.data.maxAttempts
+          message: response.data?.message || 'Verification failed. Please try again.',
+          attemptsRemaining: response.data?.attemptsRemaining,
+          attempts: response.data?.attempts,
+          maxAttempts: response.data?.maxAttempts
         });
         
-        // Clear answers for retry
+        // Clear answers to force user to re-read the questions
         setVerificationAnswers({});
       }
 
@@ -971,7 +993,7 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
     }
   };
 
-    const animateScore = (targetScore) => {
+  const animateScore = (targetScore) => {
     const duration = 2000;
     const start = performance.now();
 
@@ -1805,14 +1827,15 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
               </Alert>
             )}
 
-            {/* Verification Questions */}
+            {/* Verification Questions - BULLETPROOF HANDSHAKE VERSION */}
             {!verificationError?.locked && (
               <>
                 <Paper sx={{ p: 3, mb: 3 }}>
-                  {verificationQuestions.map((question, index) => (
+                  {/* GUARD: Ensure verificationQuestions is an array before mapping */}
+                  {(Array.isArray(verificationQuestions) ? verificationQuestions : []).map((question, index) => (
                     <Box key={index} sx={{ mb: 3 }}>
                       <Typography variant="subtitle1" fontWeight={600} gutterBottom>
-                        Question {index + 1} of {verificationQuestions.length}
+                        Question {index + 1} of {(verificationQuestions?.length || 0)}
                       </Typography>
                       <Typography variant="body1" sx={{ mb: 2 }}>
                         {question.question}
@@ -1827,12 +1850,15 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
                           }));
                         }}
                       >
-                        {question.answer.map((answer, answerIdx) => (
+                        {/* THE FIX: Support every possible IDIQ response field name for choices */}
+                        {(question.answers || question.answer || question.choices || []).map((ans, ansIdx) => (
                           <FormControlLabel
-                            key={answerIdx}
-                            value={answer.choice}
+                            key={ansIdx}
+                            // Use the ID for logic, fallback to text/choice if ID is missing
+                            value={ans.id || ans.choice || ans.answer || ans.text || ""}
                             control={<Radio />}
-                            label={answer.choice}
+                            // Display text to the user regardless of what IDIQ calls the field
+                            label={ans.answer || ans.text || ans.choice || "Select this option"}
                             sx={{ mb: 1 }}
                           />
                         ))}
@@ -1846,7 +1872,7 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
                     variant="contained"
                     size="large"
                     onClick={submitVerificationAnswers}
-                    disabled={loading || Object.keys(verificationAnswers).length !== verificationQuestions.length}
+                    disabled={loading || Object.keys(verificationAnswers).length !== (verificationQuestions?.length || 0)}
                     startIcon={loading ? <CircularProgress size={20} /> : <CheckIcon />}
                   >
                     {loading ? 'Verifying...' : 'Submit Answers'}

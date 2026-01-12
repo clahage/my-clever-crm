@@ -61,7 +61,7 @@ const TABS = [
   { id: 'review', label: 'AI Review', icon: ReviewIcon, component: CreditReviewGenerator, permission: 'user', badge: 'REV' },
   { id: 'auto', label: 'Auto Financing', icon: AutoIcon, component: AutoOpportunityDashboard, permission: 'manager', badge: '$$$' },
   { id: 'affiliates', label: 'Affiliates', icon: AffiliateIcon, component: AffiliateLinkManager, permission: 'admin', badge: 'REV' },
-  { id: 'enroll', label: 'Enroll Client', icon: EnrollIcon, component: IDIQEnrollment, permission: 'user' },
+  { id: 'enroll', label: 'Enroll Contact', icon: EnrollIcon, component: IDIQEnrollment, permission: 'user' },
   { id: 'reports', label: 'View Reports', icon: ReportIcon, component: ClientCreditReport, permission: 'client' },
   { id: 'workflow', label: 'Workflows', icon: WorkflowIcon, component: CreditReportWorkflow, permission: 'user' },
   { id: 'disputes', label: 'Disputes', icon: DisputeIcon, component: AIDisputeGenerator, permission: 'client' },
