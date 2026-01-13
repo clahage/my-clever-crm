@@ -76,6 +76,7 @@ import {
 import { Line, Bar, Doughnut } from 'react-chartjs-2'; 
 import { Line as RechartsLine } from 'recharts';
 import Confetti from 'react-confetti';
+import ViewCreditReportButton from '../components/credit/ViewCreditReportButton';
 
 // Note: Removed redundant import of ZellePaymentOption to fix redeclaration error.
 
@@ -653,7 +654,7 @@ const ACHIEVEMENTS = {
 // MAIN COMPONENT
 // ============================================================================
 
-const ClientPortal = () => {
+  const ClientPortal = () => {
   const { user, userProfile } = useAuth();
   const fileInputRef = useRef(null);
   const messageInputRef = useRef(null);
@@ -1645,6 +1646,18 @@ const ClientPortal = () => {
                 </Typography>
               </Box>
 
+              {/* View Credit Report Button */}
+              <Box sx={{ mb: 4 }}>
+                <ViewCreditReportButton
+                  contactId={user?.uid}
+                  contactEmail={user?.email}
+                  membershipNumber={clientData?.idiqEnrollment?.membershipNumber}
+                  variant="contained"
+                  size="large"
+                  fullWidth
+                  customLabel="View My Credit Report"
+                />
+              </Box>
               <Grid container spacing={3} sx={{ mb: 4 }}>
                 <Grid item xs={12} sm={6} md={3}>
                   <Card sx={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>

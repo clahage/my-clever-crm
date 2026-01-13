@@ -22,6 +22,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
+import ViewCreditReportButton from '../components/credit/ViewCreditReportButton';
 import openaiService from '../services/openAIService';
 
 const ContactDetailPage = () => {
@@ -708,6 +709,20 @@ const ContactDetailPage = () => {
               </Stack>
             )}
           </Paper>
+
+          {/* View Credit Report Button */}
+              {contact?.idiqEnrollment?.membershipNumber && (
+                <Box sx={{ mt: 2 }}>
+                  <ViewCreditReportButton
+                    contactId={contact.id}
+                    contactEmail={contact.email}
+                    membershipNumber={contact.idiqEnrollment.membershipNumber}
+                    variant="contained"
+                    size="medium"
+                    fullWidth
+                  />
+                </Box>
+              )}
 
           {/* Stats Card */}
           {!editMode && (

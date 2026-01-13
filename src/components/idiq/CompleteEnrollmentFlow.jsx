@@ -168,6 +168,7 @@ import {
   initInactivityTimer,
   logConversion
 } from '@/services/enrollmentTrackingService';
+import ViewCreditReportButton from '../components/credit/ViewCreditReportButton';
 
 // ============================================================================
 // STYLED COMPONENTS
@@ -396,7 +397,7 @@ const SOCIAL_PROOF_CITIES = [
 // MAIN COMPONENT
 // ============================================================================
 
-const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) => {
+  const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -3150,6 +3151,8 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
             </Typography>
           </CardContent>
         </Card>
+
+        
 
         <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
           <Button variant="contained" href="/client-portal" startIcon={<DashboardIcon />}>
