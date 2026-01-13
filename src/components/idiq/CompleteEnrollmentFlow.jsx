@@ -140,9 +140,9 @@ import {
   Area,
   AreaChart,
 } from 'recharts';
-import { collection, addDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, doc, updateDoc, serverTimestamp, arrayUnion } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage } from '@/lib/firebase';
+import { db, storage, auth } from '@/lib/firebase';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { loadStripe } from '@stripe/stripe-js';
 
@@ -166,8 +166,7 @@ import {
   initExitIntent,
   trackExitIntentResponse,
   initInactivityTimer,
-  logConversion,
-  TRACKING_CONFIG,
+  logConversion
 } from '@/services/enrollmentTrackingService';
 
 // ============================================================================
@@ -756,8 +755,7 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
       }
 
       setContactId(newContactId);
-      setTrackingInitialized(true);
-
+      
       // Track step 1 complete
       await trackPhaseComplete({
         phase: 1,
@@ -767,6 +765,16 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
         firstName: formData.firstName,
         middleName: formData.middleName,
         formData,
+      });
+      
+      // ✅ Log enrollment start interaction
+      await logInteraction('enrollment_started', {
+        description: 'Started Complete Enrollment Flow',
+        phase: 1,
+        email: formData.email,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        leadSource: 'Website'
       });
 
       setCurrentPhase(2);
@@ -886,6 +894,58 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
       setCreditReport(resData);
       setMembershipNumber(response.data.membershipNumber);
       setAnalysisComplete(true);
+      
+      // ✅ FIX: Update comprehensive IDIQ enrollment status (no verification required)
+      try {
+        await updateDoc(doc(db, 'contacts', contactId), {
+          // Detailed enrollment object
+          idiqEnrollment: {
+            status: 'active',
+            enrollmentId: response.data.enrollmentId || `ENR-${Date.now()}`,
+            membershipNumber: response.data.membershipNumber || null,
+            enrolledAt: serverTimestamp(),
+            verifiedAt: null, // No verification required
+            creditScore: resData.vantageScore || resData.score || null,
+            enrollmentSource: 'website',
+            plan: selectedPlan || 'not_selected_yet',
+            verificationRequired: false
+          },
+          
+          // Update flags
+          enrollmentStatus: 'active',
+          idiqActive: true,
+          status: 'enrolled',
+          
+          // Capture form fields
+          leadSource: formData.leadSource || 'Website - Complete Enrollment',
+          employer: formData.employer || '',
+          income: formData.income || '',
+          
+          // Update existing idiq object
+          'idiq.enrolled': true,
+          'idiq.enrolledAt': serverTimestamp(),
+          'idiq.lastEnrollmentAt': serverTimestamp(),
+          'idiq.membershipNumber': response.data.membershipNumber || null,
+          'idiq.reportRequested': true,
+          
+          updatedAt: serverTimestamp()
+        });
+        
+        // ✅ Log enrollment completion interaction
+        await logInteraction('idiq_enrollment_completed', {
+          description: 'IDIQ enrollment completed successfully without verification',
+          enrollmentId: response.data.enrollmentId,
+          membershipNumber: response.data.membershipNumber,
+          creditScore: resData.vantageScore || resData.score,
+          plan: selectedPlan,
+          verificationRequired: false
+        });
+        
+        console.log('✅ IDIQ enrollment status updated (no verification)');
+      } catch (updateErr) {
+        console.error('❌ Failed to update IDIQ enrollment status:', updateErr);
+      }
+      
       setCurrentPhase(3);
 
       // THE FIX: Exhaustive score detection from the newly authorized report
@@ -959,6 +1019,63 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
         
         setCreditReport(resData);
         setVerificationRequired(false);
+        
+        // ✅ FIX: Update comprehensive IDIQ enrollment status
+        try {
+          await updateDoc(doc(db, 'contacts', contactId), {
+            // Detailed enrollment object
+            idiqEnrollment: {
+              status: 'active',
+              enrollmentId: enrollmentId || `ENR-${Date.now()}`,
+              membershipNumber: membershipNumber || response.data.membershipNumber || null,
+              enrolledAt: serverTimestamp(),
+              verifiedAt: serverTimestamp(),
+              creditScore: resData.vantageScore || resData.score || null,
+              enrollmentSource: 'website',
+              plan: selectedPlan || 'not_selected_yet'
+            },
+            
+            // Update flags
+            enrollmentStatus: 'active',
+            idiqActive: true,
+            status: 'enrolled', // Change from 'abandoned' to 'enrolled'
+            
+            // Capture form fields
+            leadSource: formData.leadSource || 'Website - Complete Enrollment',
+            employer: formData.employer || '',
+            income: formData.income || '',
+            
+            // Update existing idiq object
+            'idiq.enrolled': true,
+            'idiq.enrolledAt': serverTimestamp(),
+            'idiq.lastEnrollmentAt': serverTimestamp(),
+            'idiq.membershipNumber': membershipNumber || response.data.membershipNumber || null,
+            'idiq.reportRequested': true,
+            
+            updatedAt: serverTimestamp()
+          });
+          
+          // ✅ Log enrollment completion interaction
+          await logInteraction('idiq_enrollment_completed', {
+            description: 'IDIQ enrollment completed successfully with verification',
+            enrollmentId: enrollmentId,
+            membershipNumber: membershipNumber || response.data.membershipNumber,
+            creditScore: resData.vantageScore || resData.score,
+            plan: selectedPlan,
+            verificationRequired: true
+          });
+          
+          console.log('✅ IDIQ enrollment status updated:', {
+            status: 'active',
+            enrollmentId,
+            membershipNumber,
+            contactId
+          });
+        } catch (updateErr) {
+          console.error('❌ Failed to update IDIQ enrollment status:', updateErr);
+          // Don't throw - continue enrollment even if status update fails
+        }
+        
         setCurrentPhase(3);
         
         // Animate score counter using available fallback mapping
@@ -1035,6 +1152,46 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
     improvementTimeline: 6,
   });
 
+    // ===== INTERACTION LOGGING HELPER =====
+  const logInteraction = async (type, details) => {
+    if (!contactId) {
+      console.warn('⚠️ Cannot log interaction: no contactId');
+      return;
+    }
+    
+    try {
+      // Add to interactions collection
+      await addDoc(collection(db, 'interactions'), {
+        contactId: contactId,
+        type: type,
+        details: details,
+        createdAt: serverTimestamp(),
+        createdBy: auth.currentUser?.email || 'system',
+        source: 'Complete Enrollment Flow',
+        phase: currentPhase
+      });
+      
+      // Also add to contact's timeline array
+      await updateDoc(doc(db, 'contacts', contactId), {
+        timeline: arrayUnion({
+          type: type,
+          description: details.description || type.replace(/_/g, ' '),
+          timestamp: new Date().toISOString(),
+          id: Date.now(),
+          metadata: {
+            ...details,
+            source: 'enrollment'
+          }
+        })
+      });
+      
+      console.log('✅ Interaction logged:', type, details);
+    } catch (err) {
+      console.error('❌ Failed to log interaction:', err);
+      // Don't throw - interaction logging shouldn't break enrollment
+    }
+  };
+
   const handlePhotoUpload = async (file, type) => {
     if (!file) return;
 
@@ -1070,15 +1227,45 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
         setUtilityPhotoUrl(url);
       }
 
-      // Update contact with document URLs
+      // ✅ FIX: Update contact with document URLs AND checklist
+      const checklistField = type === 'id' ? 'photoId' : 'utilityBill';
+      
       await updateDoc(doc(db, 'contacts', contactId), {
+        // Store document URLs
         [`documents.${type}`]: url,
-        [`documents.${type}Type`]: file.type, // ✅ Store file type
-        [`documents.${type}Name`]: file.name, // ✅ Store file name
+        [`documents.${type}Type`]: file.type,
+        [`documents.${type}Name`]: file.name,
+        
+        // ✅ NEW: Update documents checklist
+        [`documentsChecklist.${checklistField}`]: {
+          checked: true,
+          uploadedAt: serverTimestamp(),
+          uploadedBy: auth.currentUser?.email || 'system',
+          fileName: file.name,
+          fileSize: file.size,
+          fileType: file.type
+        },
+        
         updatedAt: serverTimestamp(),
       });
 
+      // ✅ NEW: Log interaction
+      await logInteraction('document_uploaded', {
+        documentType: type === 'id' ? 'Photo ID' : 'Utility Bill',
+        fileName: file.name,
+        fileSize: file.size,
+        phase: currentPhase
+      });
+
       setSuccess(`${type === 'id' ? 'ID' : 'Utility bill'} uploaded successfully!`);
+      
+      console.log('✅ Document uploaded and checklist updated:', {
+        type,
+        fileName: file.name,
+        checklistField,
+        contactId
+      });
+      
     } catch (err) {
       console.error('Upload error:', err);
       setError('Failed to upload document. Please try again.');
@@ -1101,9 +1288,18 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
           updatedAt: serverTimestamp(),
         });
 
+        // ✅ FIX #3B: Log signature capture interaction
+        await logInteraction('signature_captured', {
+          description: 'Digital signature captured',
+          phase: currentPhase,
+          signatureMethod: 'canvas'
+        });
+
+        console.log('✅ Signature saved and logged');
         setCurrentPhase(6);
       } catch (err) {
         setError('Failed to save signature. Please try again.');
+        console.error('❌ Signature save error:', err);
       } finally {
         setLoading(false);
       }
@@ -1114,20 +1310,35 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
 
   const handlePlanSelect = (planId) => {
     setSelectedPlan(planId);
+    console.log('✅ Plan selected:', planId);
   };
 
   const handlePayment = async () => {
     const plan = SERVICE_PLANS.find((p) => p.id === selectedPlan);
     const finalPrice = Math.max(plan.price - appliedDiscount, 0);
 
+    console.log('💳 Processing payment:', { plan: plan.name, price: finalPrice });
+
     // SKIP STRIPE IF PRICE IS $0 (Trial Mode or Full Discount)
     if (finalPrice <= 0) {
       setLoading(true);
       try {
+        console.log('🎁 Activating free trial/promotional enrollment');
+        
+        // ✅ FIX #3C: Log free trial activation
+        await logInteraction('payment_completed', {
+          description: `Free trial activated - ${plan.name} plan`,
+          plan: plan.name,
+          planId: selectedPlan,
+          amount: 0,
+          paymentMethod: 'free_trial',
+          phase: currentPhase
+        });
+        
         await finalizeEnrollment();
         return;
       } catch (err) {
-        console.error('Trial activation error:', err);
+        console.error('❌ Trial activation error:', err);
         setError('Error activating trial account. Please contact support.');
         setLoading(false);
         return;
@@ -1136,6 +1347,8 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
 
     setLoading(true);
     try {
+      console.log('💳 Creating Stripe checkout session...');
+      
       // Create Stripe checkout session via Cloud Function
       const response = await createStripeCheckout({
         productId: plan.id,
@@ -1163,9 +1376,18 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
 
   const finalizeEnrollment = async () => {
     setPaymentComplete(true);
-    setCurrentPhase(8);
-
+    
+    // ✅ Log payment completion interaction
     const selectedPlanData = SERVICE_PLANS.find((p) => p.id === selectedPlan) || SERVICE_PLANS[1];
+    await logInteraction('payment_completed', {
+      description: `Payment completed - ${selectedPlanData.name} plan`,
+      plan: selectedPlan,
+      planName: selectedPlanData.name,
+      price: selectedPlanData.price,
+      discountApplied: appliedDiscount
+    });
+    
+    setCurrentPhase(8);
     
     try {
       // Trigger backend account creation
@@ -1186,7 +1408,7 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
         discountApplied: appliedDiscount,
       });
 
-      // Send automated welcome sequence
+        // Send automated welcome sequence
       await sendWelcomeEmail();
 
       // Trigger celebration effects
@@ -1266,6 +1488,63 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
     await markEnrollmentCompleted(contactId);
     clearEnrollmentState();
 
+    // ✅ FIX #4: Update comprehensive IDIQ enrollment status
+    try {
+      await updateDoc(doc(db, 'contacts', contactId), {
+        // Detailed enrollment object
+        idiqEnrollment: {
+          status: 'active',
+          enrollmentId: enrollmentId || `ENR-${Date.now()}`,
+          membershipNumber: membershipNumber || null,
+          enrolledAt: serverTimestamp(),
+          completedAt: serverTimestamp(),
+          creditScore: creditReport?.vantageScore || null,
+          enrollmentSource: 'website',
+          plan: selectedPlan
+        },
+        
+        // Update flags
+        enrollmentStatus: 'enrolled',
+        idiqActive: true,
+        status: 'enrolled', // Change from any previous status
+        
+        // Capture form fields if not already set
+        leadSource: formData.leadSource || 'Website - Complete Enrollment',
+        employer: formData.employer || '',
+        income: formData.income || '',
+        
+        // Update existing idiq object
+        'idiq.enrolled': true,
+        'idiq.enrolledAt': serverTimestamp(),
+        'idiq.lastEnrollmentAt': serverTimestamp(),
+        'idiq.membershipNumber': membershipNumber || null,
+        'idiq.reportRequested': true,
+        'idiq.enrollmentCompleted': true,
+        
+        updatedAt: serverTimestamp()
+      });
+
+      // ✅ Log enrollment completion interaction
+      await logInteraction('enrollment_completed', {
+        description: 'Complete enrollment flow finished successfully',
+        enrollmentId: enrollmentId,
+        membershipNumber: membershipNumber,
+        creditScore: creditReport?.vantageScore,
+        plan: selectedPlan,
+        phase: 10
+      });
+
+      console.log('✅ IDIQ enrollment status updated:', {
+        status: 'enrolled',
+        enrollmentId,
+        membershipNumber,
+        contactId
+      });
+    } catch (err) {
+      console.error('❌ Failed to update enrollment status:', err);
+      // Don't block the celebration - user has completed enrollment
+    }
+
     // Populate DisputeHub with negative items
     if (creditReport?.negativeItems) {
       try {
@@ -1282,6 +1561,12 @@ const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) 
             createdAt: serverTimestamp(),
           });
         }
+        
+        // ✅ Log disputes created
+        await logInteraction('disputes_created', {
+          description: `Created ${creditReport.negativeItems.length} dispute items`,
+          count: creditReport.negativeItems.length
+        });
       } catch (err) {
         console.error('Failed to populate disputes:', err);
       }
