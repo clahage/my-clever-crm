@@ -168,7 +168,7 @@ import {
   initInactivityTimer,
   logConversion
 } from '@/services/enrollmentTrackingService';
-import ViewCreditReportButton from '../components/credit/ViewCreditReportButton';
+import ViewCreditReportButton from '../credit/ViewCreditReportButton';
 
 // ============================================================================
 // STYLED COMPONENTS
