@@ -14,13 +14,12 @@
 // ============================================
 const { onRequest, onCall } = require('firebase-functions/v2/https');
 const { onSchedule } = require('firebase-functions/v2/scheduler');
-const { onDocumentCreated, onDocumentUpdated } = require('firebase-functions/v2/firestore');
+const { onDocumentCreated } = require('firebase-functions/v2/firestore');
 const { defineSecret } = require('firebase-functions/params');
 const admin = require('firebase-admin');
 const cors = require('cors')({ origin: true });
 const fetch = require('node-fetch');
 const nodemailer = require('nodemailer');
-const { processEnrollmentCompletion } = require('./enrollmentAutomation');
 
 // ============================================
 // FIREBASE ADMIN INITIALIZATION
@@ -364,122 +363,51 @@ exports.processAICall = onCall(
 console.log('✅ Function 3/10: processAICall loaded');
 
 // ============================================
-// FUNCTION 4: CONTACT LIFECYCLE TRIGGER (ENHANCED)
+// FUNCTION 4: ON CONTACT CREATED TRIGGER
 // ============================================
-// Triggers on: Contact document updates (including enrollment completion)
-// Handles: New contact setup + Enrollment automation when status changes to 'enrolled'
-// Enhanced: Now includes complete enrollment automation workflow
+// Auto-triggers workflows when new contacts are created (must stay separate - Firestore trigger)
 
-exports.onContactUpdated = onDocumentUpdated(
+exports.onContactCreated = onDocumentCreated(
   {
     document: 'contacts/{contactId}',
-    ...defaultConfig,
-    memory: '1GiB',
-    timeoutSeconds: 540  // 9 minutes for enrollment automation
+    ...defaultConfig
   },
   async (event) => {
     const contactId = event.params.contactId;
-    const beforeData = event.data.before?.data();
-    const afterData = event.data.after?.data();
+    const contactData = event.data.data();
     
-    // Skip if document was deleted
-    if (!afterData) {
-      console.log('⏭️ Contact deleted, skipping');
-      return null;
-    }
+    console.log('👤 New contact created:', contactId);
     
     const db = admin.firestore();
     
     try {
-      // ===== SCENARIO 1: NEW CONTACT CREATED =====
-      if (!beforeData) {
-        console.log('👤 New contact created:', contactId);
-        
-        // Auto-assign lead role if not already set
-        if (!afterData.roles || !afterData.roles.includes('lead')) {
-          await event.data.after.ref.update({
-            roles: admin.firestore.FieldValue.arrayUnion('lead'),
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
-          });
-        }
-        
-        // Create welcome task
-        await db.collection('tasks').add({
-          title: `Welcome new ${afterData.source || 'lead'}: ${afterData.firstName} ${afterData.lastName || ''}`.trim(),
-          contactId,
-          type: 'followup',
-          priority: afterData.leadScore >= 8 ? 'high' : 'medium',
-          status: 'pending',
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
-          createdBy: 'system'
+      // Auto-assign lead role if not already set
+      if (!contactData.roles || !contactData.roles.includes('lead')) {
+        await event.data.ref.update({
+          roles: admin.firestore.FieldValue.arrayUnion('lead'),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
         });
-        
-        console.log('✅ Contact initialization complete');
-        return null;
       }
       
-      // ===== SCENARIO 2: ENROLLMENT COMPLETED =====
-      const enrollmentJustCompleted = 
-        afterData.enrollmentStatus === 'enrolled' &&
-        beforeData.enrollmentStatus !== 'enrolled' &&
-        !afterData.automation?.enrollmentProcessed;
-      
-      if (enrollmentJustCompleted) {
-        console.log('🎓 ENROLLMENT COMPLETED - Starting automation workflow...');
-        console.log(`Contact: ${contactId} (${afterData.firstName} ${afterData.lastName})`);
-        console.log(`Previous status: ${beforeData.enrollmentStatus}`);
-        console.log(`New status: ${afterData.enrollmentStatus}`);
-        
-        // Trigger complete enrollment automation
-        const automationResults = await processEnrollmentCompletion(contactId, afterData);
-        
-        if (automationResults.success) {
-          console.log('✅ Enrollment automation completed successfully');
-          console.log(`Duration: ${automationResults.endTime ? 
-            new Date(automationResults.endTime) - new Date(automationResults.startTime) : 'N/A'}ms`);
-        } else {
-          console.error('⚠️ Enrollment automation completed with errors:', automationResults.error);
-          
-          // Create high-priority manual review task
-          await db.collection('tasks').add({
-            title: `Manual Review Required: ${afterData.firstName} ${afterData.lastName}`,
-            description: `Automated enrollment workflow failed. Error: ${automationResults.error}\n\nContact: ${contactId}\nEmail: ${afterData.email}`,
-            contactId,
-            type: 'automation_failure',
-            priority: 'critical',
-            status: 'pending',
-            dueDate: new Date(Date.now() + 2 * 60 * 60 * 1000), // 2 hours from now
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            createdBy: 'system'
-          });
-        }
-        
-        return null;
-      }
-      
-      // ===== SCENARIO 3: OTHER UPDATES =====
-      console.log('📝 Contact updated (no special handling):', contactId);
-      return null;
-      
-    } catch (error) {
-      console.error('❌ onContactUpdated error:', error);
-      
-      // Log error to Firestore for debugging
-      await db.collection('errorLogs').add({
-        type: 'contact_lifecycle_trigger_error',
-        contactId: contactId,
-        error: error.message,
-        stack: error.stack,
-        timestamp: admin.firestore.FieldValue.serverTimestamp()
+      // Create welcome task
+      await db.collection('tasks').add({
+        title: `Welcome new ${contactData.source || 'lead'}: ${contactData.firstName} ${contactData.lastName || ''}`.trim(),
+        contactId,
+        type: 'followup',
+        priority: contactData.leadScore >= 8 ? 'high' : 'medium',
+        status: 'pending',
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        createdBy: 'system'
       });
       
-      // Don't throw - we don't want to retry and cause duplicates
-      return null;
+      console.log('✅ Contact initialization complete');
+    } catch (error) {
+      console.error('❌ onContactCreated error:', error);
     }
   }
 );
 
-console.log('✅ Function 4/10: onContactUpdated loaded (WITH ENROLLMENT AUTOMATION)');
+console.log('✅ Function 4/10: onContactCreated loaded');
 
 // ============================================
 // FUNCTION 5: IDIQ SERVICE (PRODUCTION)
@@ -1741,130 +1669,6 @@ exports.operationsManager = onCall(
           }
         }
         
-        
-        case 'captureWebLead': {
-          const { firstName, lastName, email, phone } = params;
-          
-          console.log('📋 Capturing web lead:', { firstName, lastName, email, phone });
-          
-          // Validate required fields
-          if (!firstName || !lastName || !email || !phone) {
-            throw new Error('Missing required fields: firstName, lastName, email, phone');
-          }
-          
-          // Normalize data
-          const normalizedEmail = email.trim().toLowerCase();
-          const normalizedPhone = phone.trim().replace(/\D/g, ''); // Remove non-digits
-          
-          // Check for existing contact with same email
-          const existingSnapshot = await db.collection('contacts')
-            .where('email', '==', normalizedEmail)
-            .limit(1)
-            .get();
-          
-          if (!existingSnapshot.empty) {
-            const existingContact = existingSnapshot.docs[0];
-            const contactId = existingContact.id;
-            const contactData = existingContact.data();
-            
-            console.log('ℹ️  Contact already exists:', contactId);
-            
-            // Update enrollment status if not already enrolled
-            if (contactData.enrollmentStatus !== 'completed') {
-              await db.collection('contacts').doc(contactId).update({
-                enrollmentStatus: 'started',
-                enrollmentStartedAt: admin.firestore.FieldValue.serverTimestamp(),
-                lastActivityAt: admin.firestore.FieldValue.serverTimestamp(),
-                updatedAt: admin.firestore.FieldValue.serverTimestamp()
-              });
-              
-              console.log('✅ Updated existing contact enrollment status');
-            }
-            
-            return {
-              success: true,
-              contactId: contactId,
-              existed: true,
-              message: 'Existing contact updated'
-            };
-          }
-          
-          // Create new contact in Firestore
-          const contactRef = await db.collection('contacts').add({
-            firstName: firstName.trim(),
-            lastName: lastName.trim(),
-            email: normalizedEmail,
-            phone: normalizedPhone,
-            roles: ['contact', 'lead'],
-            primaryRole: 'lead',
-            leadSource: 'website',
-            leadStatus: 'new',
-            leadScore: 5,
-            enrollmentStatus: 'started',
-            enrollmentStartedAt: admin.firestore.FieldValue.serverTimestamp(),
-            enrollmentCompletedAt: null,
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-            lastActivityAt: admin.firestore.FieldValue.serverTimestamp(),
-            emailOptIn: true,
-            smsOptIn: true,
-            isActive: true,
-            isTest: false,
-            createdBy: 'web-landing-page',
-            createdVia: 'landing-page-form'
-          });
-          
-          const contactId = contactRef.id;
-          console.log('✅ Contact created:', contactId);
-          
-          // Queue welcome email
-          try {
-            await db.collection('emailQueue').add({
-              to: normalizedEmail,
-              template: 'welcome-lead',
-              data: { firstName: firstName.trim(), lastName: lastName.trim(), contactId },
-              status: 'pending',
-              priority: 'high',
-              createdAt: admin.firestore.FieldValue.serverTimestamp(),
-              attempts: 0
-            });
-            console.log('📧 Welcome email queued');
-          } catch (emailErr) {
-            console.error('⚠️  Email queue failed (non-blocking):', emailErr);
-          }
-          
-          // Create follow-up task
-          try {
-            await db.collection('tasks').add({
-              title: `Follow up with new lead: ${firstName} ${lastName}`,
-              description: `New lead captured from website. Email: ${normalizedEmail}, Phone: ${normalizedPhone}`,
-              assignedTo: null,
-              assignedBy: 'system',
-              priority: 'high',
-              status: 'pending',
-              category: 'auto_lead',
-              contactId: contactId,
-              tags: ['web-lead', 'new-lead', 'follow-up'],
-              dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
-              createdAt: admin.firestore.FieldValue.serverTimestamp(),
-              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-              completedAt: null,
-              completedBy: null,
-              comments: [],
-              attachments: []
-            });
-            console.log('✅ Follow-up task created');
-          } catch (taskErr) {
-            console.error('⚠️  Task creation failed (non-blocking):', taskErr);
-          }
-          
-          return {
-            success: true,
-            contactId: contactId,
-            existed: false,
-            message: 'Lead captured successfully'
-          };
-        }
         default:
           throw new Error(`Unknown operations action: ${action}`);
       }

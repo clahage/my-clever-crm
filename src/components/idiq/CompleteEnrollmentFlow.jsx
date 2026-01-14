@@ -513,6 +513,50 @@ const SOCIAL_PROOF_CITIES = [
     return cleanup;
   }, []);
 
+  // ===== Window postMessage listener (for popup windows) =====
+useEffect(() => {
+  const handleMessage = (event) => {
+    console.log('📨 Received postMessage:', event.data);
+    
+    // Check if it's enrollment data
+    if (event.data.type === 'ENROLLMENT_DATA' && event.data.data) {
+      const data = event.data.data;
+      console.log('✅ Processing enrollment data:', data);
+      
+      setFormData((prev) => ({
+        ...prev,
+        firstName: data.firstName || prev.firstName,
+        middleName: data.middleName || prev.middleName,
+        lastName: data.lastName || prev.lastName,
+        email: data.email || prev.email,
+        phone: data.phone || prev.phone,
+        carrier: data.carrier || prev.carrier,
+        street: data.street || prev.street,
+        city: data.city || prev.city,
+        state: data.state || prev.state,
+        zip: data.zip || prev.zip,
+      }));
+      
+      console.log('✅ Form data pre-populated from landing page!');
+      
+      // Send confirmation back to landing page
+      if (event.source) {
+        event.source.postMessage({
+          type: 'DATA_RECEIVED'
+        }, '*');
+      }
+    }
+  };
+  
+  // Add listener
+  window.addEventListener('message', handleMessage);
+  
+  // Cleanup
+  return () => {
+    window.removeEventListener('message', handleMessage);
+  };
+}, []);
+
   // Load saved state from localStorage
   useEffect(() => {
     const savedState = loadEnrollmentState();
