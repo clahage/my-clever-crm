@@ -1968,13 +1968,23 @@ useEffect(() => {
           </Grid>
           <Grid item xs={12} sm={4}>
             <FormControl fullWidth>
-              <InputLabel id="state-select-label">State</InputLabel>
+              <InputLabel
+                id="state-select-label"
+                shrink={true}
+                sx={{
+                  backgroundColor: 'white',
+                  px: 0.5,
+                }}
+              >
+                State
+              </InputLabel>
               <Select
                 labelId="state-select-label"
                 value={formData.state}
                 onChange={handleFormChange('state')}
                 label="State"
                 displayEmpty
+                notched={true}
                 renderValue={(selected) => {
                   if (!selected) {
                     return <em style={{ color: '#9e9e9e' }}>Select State</em>;

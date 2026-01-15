@@ -2201,6 +2201,123 @@ exports.operationsManager = onCall(
           };
         }
 
+        // ===== CREATE LANDING PAGE CONTACT =====
+        // Creates a new contact from speedycreditrepair.com landing page form
+        case 'createLandingPageContact': {
+          const {
+            firstName,
+            lastName,
+            email,
+            phone,
+            source,
+            landingPage,
+            utmSource,
+            utmMedium,
+            utmCampaign,
+            utmContent,
+            apiKey
+          } = params;
+
+          // Validate API key for landing page integration
+          const validApiKey = process.env.LANDING_PAGE_API_KEY || 'speedy-landing-2024-secure';
+          if (apiKey !== validApiKey) {
+            console.error('❌ Invalid API key for landing page contact creation');
+            throw new Error('Unauthorized: Invalid API key');
+          }
+
+          // Validate required fields
+          if (!firstName || !lastName || !email || !phone) {
+            throw new Error('Missing required fields: firstName, lastName, email, phone');
+          }
+
+          console.log(`🌐 Creating landing page contact: ${firstName} ${lastName} from ${source || 'website'}`);
+
+          // Check for existing contact by email
+          const existingContact = await db.collection('contacts')
+            .where('email', '==', email.toLowerCase().trim())
+            .limit(1)
+            .get();
+
+          if (!existingContact.empty) {
+            const existingDoc = existingContact.docs[0];
+            console.log(`📋 Contact already exists: ${existingDoc.id}`);
+
+            // Update with new landing page visit
+            await existingDoc.ref.update({
+              lastLandingPageVisit: admin.firestore.FieldValue.serverTimestamp(),
+              landingPageVisits: admin.firestore.FieldValue.increment(1),
+              source: source || existingDoc.data().source,
+              updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+
+            return {
+              success: true,
+              contactId: existingDoc.id,
+              isNew: false,
+              message: 'Existing contact updated with new landing page visit'
+            };
+          }
+
+          // Create new contact
+          const contactData = {
+            firstName: firstName.trim(),
+            lastName: lastName.trim(),
+            email: email.toLowerCase().trim(),
+            phone: phone.replace(/\D/g, ''),
+            role: 'prospect',
+            status: 'new',
+            source: source || 'landing-page',
+            landingPage: landingPage || 'speedycreditrepair.com',
+            utm: {
+              source: utmSource || null,
+              medium: utmMedium || null,
+              campaign: utmCampaign || null,
+              content: utmContent || null
+            },
+            landingPageVisits: 1,
+            lastLandingPageVisit: admin.firestore.FieldValue.serverTimestamp(),
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            workflow: {
+              currentStage: 'web-lead-capture',
+              lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+              leadScoreAdjusted: false
+            },
+            enrollmentTracking: {
+              startedAt: admin.firestore.FieldValue.serverTimestamp(),
+              lastStepCompletedAt: admin.firestore.FieldValue.serverTimestamp(),
+              currentStep: 'contact_captured',
+              stepHistory: [{
+                step: 'contact_captured',
+                timestamp: new Date().toISOString(),
+                source: 'landing_page'
+              }]
+            }
+          };
+
+          const newContact = await db.collection('contacts').add(contactData);
+          console.log(`✅ Created new contact from landing page: ${newContact.id}`);
+
+          // Track in analytics
+          try {
+            const { trackEnrollmentStep } = require('./enrollmentAnalytics');
+            await trackEnrollmentStep(newContact.id, 'contact_captured', {
+              source: 'landing_page',
+              landingPage: landingPage
+            });
+          } catch (analyticsError) {
+            console.warn('⚠️ Analytics tracking failed:', analyticsError.message);
+          }
+
+          return {
+            success: true,
+            contactId: newContact.id,
+            isNew: true,
+            message: 'New contact created from landing page',
+            enrollmentUrl: `https://myclevercrm.com/enrollment?contactId=${newContact.id}`
+          };
+        }
+
         default:
           throw new Error(`Unknown operations action: ${action}`);
       }
