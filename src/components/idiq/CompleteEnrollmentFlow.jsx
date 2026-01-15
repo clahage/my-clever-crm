@@ -569,6 +569,93 @@ useEffect(() => {
     }
   }, []);
 
+  // ===== PRE-POPULATE FROM URL PARAMETER (contactId) =====
+  // When user comes from landing page with ?contactId=xxx, load their data
+  useEffect(() => {
+    const loadContactFromUrl = async () => {
+      try {
+        // Get contactId from URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlContactId = urlParams.get('contactId');
+
+        // Skip if no contactId in URL or already have resumeContactId prop
+        if (!urlContactId || resumeContactId) {
+          return;
+        }
+
+        console.log('📨 Loading contact data from URL parameter:', urlContactId);
+        setLoading(true);
+
+        // Import Firestore functions
+        const { doc, getDoc } = await import('firebase/firestore');
+
+        // Fetch contact document from Firestore
+        const contactDoc = await getDoc(doc(db, 'contacts', urlContactId));
+
+        if (!contactDoc.exists()) {
+          console.warn('⚠️ Contact not found for ID:', urlContactId);
+          setLoading(false);
+          return;
+        }
+
+        const contactData = contactDoc.data();
+        console.log('✅ Contact data loaded for pre-population:', contactData);
+
+        // Set the contactId
+        setContactId(urlContactId);
+
+        // Pre-populate form data from contact
+        // Handle both flat fields and nested emails/phones arrays
+        const primaryEmail = contactData.email ||
+          (contactData.emails && contactData.emails[0]?.address) || '';
+        const primaryPhone = contactData.phone ||
+          (contactData.phones && contactData.phones[0]?.number) || '';
+
+        setFormData((prev) => ({
+          ...prev,
+          // Basic info (from landing page)
+          firstName: contactData.firstName || prev.firstName,
+          middleName: contactData.middleName || prev.middleName,
+          lastName: contactData.lastName || prev.lastName,
+          email: primaryEmail || prev.email,
+          phone: primaryPhone || prev.phone,
+          carrier: contactData.carrier || prev.carrier,
+
+          // Address info (may be from landing page or previous attempt)
+          street: contactData.street || contactData.address?.street || prev.street,
+          city: contactData.city || contactData.address?.city || prev.city,
+          state: contactData.state || contactData.address?.state || prev.state,
+          zip: contactData.zip || contactData.address?.zip || prev.zip,
+
+          // Leave sensitive fields empty for user to fill
+          // ssn: '' (never pre-populate)
+          // password: '' (never pre-populate)
+          // dateOfBirth: '' (only pre-populate if exists and user wants)
+        }));
+
+        // Track that we loaded from recovery/landing page
+        trackEvent({
+          eventType: 'form_prepopulated',
+          contactId: urlContactId,
+          email: primaryEmail,
+          firstName: contactData.firstName,
+          source: urlParams.get('source') || 'url_parameter',
+        });
+
+        setSuccess('Your information has been loaded! Please review and continue.');
+        console.log('✅ Form data pre-populated from contact');
+
+      } catch (error) {
+        console.error('❌ Error loading contact data:', error);
+        // Don't show error to user - just let them fill form manually
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadContactFromUrl();
+  }, []); // Run once on mount
+
   // Resume from recovery link
   useEffect(() => {
     if (resumeContactId) {

@@ -22,6 +22,19 @@ const fetch = require('node-fetch');
 const nodemailer = require('nodemailer');
 const { processEnrollmentCompletion } = require('./enrollmentAutomation');
 
+// ===== ENROLLMENT RECOVERY SYSTEM IMPORTS =====
+const { getRecoveryTemplate, RECOVERY_TEMPLATES } = require('./enrollmentRecoveryTemplates');
+const {
+  trackEnrollmentStep,
+  trackRecoveryEmailSent,
+  getFailedEnrollmentsForRecovery,
+  getAbandonedEnrollmentsForRecovery,
+  getDripSequenceContacts,
+  selectEmailVariant,
+  trackABTestEvent,
+  FUNNEL_STEPS
+} = require('./enrollmentAnalytics');
+
 // ============================================
 // FIREBASE ADMIN INITIALIZATION
 // ============================================
@@ -164,33 +177,61 @@ exports.emailService = onCall(
         }
         
         case 'trackOpen': {
-          const { emailId, contactId } = params;
-          
+          const { emailId, contactId, templateId, variant } = params;
+
           if (contactId && emailId) {
             await db.collection('emailLog').doc(emailId).update({
               opened: true,
               openedAt: admin.firestore.FieldValue.serverTimestamp()
             });
-            
+
             console.log('📖 Email opened:', emailId);
           }
-          
+
+          // Track recovery email opens for A/B testing and analytics
+          if (contactId && templateId) {
+            try {
+              const { trackRecoveryEmailOpened, trackABTestEvent } = require('./enrollmentAnalytics');
+              await trackRecoveryEmailOpened(contactId);
+              if (variant) {
+                await trackABTestEvent(templateId, variant, 'open');
+              }
+              console.log('📊 Recovery email open tracked');
+            } catch (analyticsErr) {
+              console.warn('⚠️ Analytics tracking failed (non-blocking):', analyticsErr.message);
+            }
+          }
+
           return { success: true };
         }
-        
+
         case 'trackClick': {
-          const { emailId, contactId, url } = params;
-          
+          const { emailId, contactId, url, templateId, variant } = params;
+
           if (contactId && emailId) {
             await db.collection('emailLog').doc(emailId).update({
               clicked: true,
               clickedAt: admin.firestore.FieldValue.serverTimestamp(),
               clickedUrl: url
             });
-            
+
             console.log('🔗 Email link clicked:', url);
           }
-          
+
+          // Track recovery email clicks for A/B testing and analytics
+          if (contactId && templateId) {
+            try {
+              const { trackRecoveryEmailClicked, trackABTestEvent } = require('./enrollmentAnalytics');
+              await trackRecoveryEmailClicked(contactId);
+              if (variant) {
+                await trackABTestEvent(templateId, variant, 'click');
+              }
+              console.log('📊 Recovery email click tracked');
+            } catch (analyticsErr) {
+              console.warn('⚠️ Analytics tracking failed (non-blocking):', analyticsErr.message);
+            }
+          }
+
           return { success: true };
         }
         
@@ -394,15 +435,39 @@ exports.onContactUpdated = onDocumentUpdated(
       // ===== SCENARIO 1: NEW CONTACT CREATED =====
       if (!beforeData) {
         console.log('👤 New contact created:', contactId);
-        
-        // Auto-assign lead role if not already set
+
+        // ===== AUTO-LEAD QUALIFICATION =====
+        // Automatically assign lead role, primaryRole, and leadStatus for new contacts
+        const roleUpdates = {};
+
+        // Check if roles need updating
         if (!afterData.roles || !afterData.roles.includes('lead')) {
-          await event.data.after.ref.update({
-            roles: admin.firestore.FieldValue.arrayUnion('lead'),
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
-          });
+          roleUpdates.roles = admin.firestore.FieldValue.arrayUnion('lead');
         }
-        
+
+        // Always ensure primaryRole is set for new contacts
+        if (!afterData.primaryRole) {
+          roleUpdates.primaryRole = 'lead';
+        }
+
+        // Set leadStatus to 'new' if not already set
+        if (!afterData.leadStatus) {
+          roleUpdates.leadStatus = 'new';
+        }
+
+        // Set enrollmentStatus to 'started' if coming from website/landing page
+        if (!afterData.enrollmentStatus) {
+          roleUpdates.enrollmentStatus = 'started';
+          roleUpdates['enrollment.startedAt'] = admin.firestore.FieldValue.serverTimestamp();
+        }
+
+        // Apply updates if any
+        if (Object.keys(roleUpdates).length > 0) {
+          roleUpdates.updatedAt = admin.firestore.FieldValue.serverTimestamp();
+          await event.data.after.ref.update(roleUpdates);
+          console.log('✅ Auto-lead qualification applied:', Object.keys(roleUpdates));
+        }
+
         // Create welcome task
         await db.collection('tasks').add({
           title: `Welcome new ${afterData.source || 'lead'}: ${afterData.firstName} ${afterData.lastName || ''}`.trim(),
@@ -1009,16 +1074,17 @@ console.log('✅ Function 5/10: idiqService (PRODUCTION) loaded');
 // ============================================
 // FUNCTION 6: WORKFLOW PROCESSOR (Scheduled)
 // ============================================
-// Processes workflow stages every hour (must stay separate - scheduled trigger)
+// Processes workflow stages + enrollment recovery every 5 minutes
+// ENHANCED: Includes failed/abandoned enrollment recovery + drip sequences
 
 exports.processWorkflowStages = onSchedule(
   {
-    schedule: 'every 60 minutes',
+    schedule: 'every 5 minutes',
     ...defaultConfig,
     secrets: [idiqPartnerId, idiqPartnerSecret, gmailUser, gmailAppPassword, gmailFromName]
   },
   async (context) => {
-    console.log('⏰ Processing workflow stages...');
+    console.log('⏰ Processing workflow stages + enrollment recovery...');
     const db = admin.firestore();
     try {
       // ═══════════════════════════════════════════════════════════════════════
@@ -1393,14 +1459,230 @@ exports.processWorkflowStages = onSchedule(
       }
       
       console.log('\n✅ IDIQ trial management complete');
-      
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // PART 3: ENROLLMENT RECOVERY EMAIL SYSTEM
+      // ═══════════════════════════════════════════════════════════════════════
+      // Triggers:
+      // - Failed enrollment → 5 min recovery email
+      // - Abandoned enrollment → 30 min recovery email
+      // - Drip sequences → Day 1, 3, 7, 14
+
+      console.log('\n📧 Processing enrollment recovery emails...');
+
+      // Setup email transporter
+      const user = gmailUser.value();
+      const pass = gmailAppPassword.value();
+      const fromName = gmailFromName.value() || 'Chris Lahage - Speedy Credit Repair';
+
+      const transporter = nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 587,
+        secure: false,
+        auth: { user, pass }
+      });
+
+      let recoverySent = 0;
+
+      // ─────────────────────────────────────────────────────────────────────
+      // RECOVERY 1: Failed Enrollments (5 min trigger)
+      // ─────────────────────────────────────────────────────────────────────
+
+      try {
+        const failedEnrollments = await getFailedEnrollmentsForRecovery();
+        console.log(`📊 Found ${failedEnrollments.length} failed enrollments needing recovery`);
+
+        for (const contact of failedEnrollments) {
+          try {
+            // Select A/B variant for subject line testing
+            const variant = await selectEmailVariant('recovery-failed-enrollment');
+
+            // Get the template with contact data
+            const templateData = {
+              firstName: contact.firstName || 'Friend',
+              lastName: contact.lastName || '',
+              email: contact.email || contact.emails?.[0]?.address || '',
+              contactId: contact.contactId,
+              variant: variant
+            };
+
+            const template = getRecoveryTemplate('recovery-failed-enrollment', templateData);
+
+            if (!template || !templateData.email) {
+              console.warn(`⚠️ Skipping ${contact.contactId}: Missing template or email`);
+              continue;
+            }
+
+            // Send the recovery email
+            await transporter.sendMail({
+              from: `"${fromName}" <${user}>`,
+              to: templateData.email,
+              replyTo: user,
+              subject: template.subject,
+              html: template.html,
+              text: template.text
+            });
+
+            // Track the email sent
+            await trackRecoveryEmailSent(contact.contactId, {
+              templateId: 'recovery-failed-enrollment',
+              subject: template.subject,
+              variant: variant
+            });
+
+            // Track A/B test send
+            await trackABTestEvent('recovery-failed-enrollment', variant, 'send');
+
+            // Update contact document
+            await db.collection('contacts').doc(contact.contactId).update({
+              'enrollment.lastRecoveryEmailAt': admin.firestore.FieldValue.serverTimestamp(),
+              'enrollment.recoveryEmailsSent': admin.firestore.FieldValue.increment(1)
+            });
+
+            console.log(`✅ Recovery email sent to ${templateData.email} (failed enrollment)`);
+            recoverySent++;
+
+          } catch (emailError) {
+            console.error(`❌ Failed to send recovery email for ${contact.contactId}:`, emailError.message);
+          }
+        }
+      } catch (failedError) {
+        console.error('❌ Error processing failed enrollments:', failedError.message);
+      }
+
+      // ─────────────────────────────────────────────────────────────────────
+      // RECOVERY 2: Abandoned Enrollments (30 min trigger)
+      // ─────────────────────────────────────────────────────────────────────
+
+      try {
+        const abandonedEnrollments = await getAbandonedEnrollmentsForRecovery();
+        console.log(`📊 Found ${abandonedEnrollments.length} abandoned enrollments needing recovery`);
+
+        for (const contact of abandonedEnrollments) {
+          try {
+            const variant = await selectEmailVariant('recovery-abandoned-30min');
+
+            const templateData = {
+              firstName: contact.firstName || 'Friend',
+              lastName: contact.lastName || '',
+              email: contact.email || contact.emails?.[0]?.address || '',
+              contactId: contact.contactId,
+              variant: variant
+            };
+
+            const template = getRecoveryTemplate('recovery-abandoned-30min', templateData);
+
+            if (!template || !templateData.email) {
+              continue;
+            }
+
+            await transporter.sendMail({
+              from: `"${fromName}" <${user}>`,
+              to: templateData.email,
+              replyTo: user,
+              subject: template.subject,
+              html: template.html,
+              text: template.text
+            });
+
+            await trackRecoveryEmailSent(contact.contactId, {
+              templateId: 'recovery-abandoned-30min',
+              subject: template.subject,
+              variant: variant
+            });
+
+            await trackABTestEvent('recovery-abandoned-30min', variant, 'send');
+
+            await db.collection('contacts').doc(contact.contactId).update({
+              'enrollment.lastRecoveryEmailAt': admin.firestore.FieldValue.serverTimestamp(),
+              'enrollment.recoveryEmailsSent': admin.firestore.FieldValue.increment(1)
+            });
+
+            console.log(`✅ Recovery email sent to ${templateData.email} (abandoned enrollment)`);
+            recoverySent++;
+
+          } catch (emailError) {
+            console.error(`❌ Failed to send abandonment email for ${contact.contactId}:`, emailError.message);
+          }
+        }
+      } catch (abandonedError) {
+        console.error('❌ Error processing abandoned enrollments:', abandonedError.message);
+      }
+
+      // ─────────────────────────────────────────────────────────────────────
+      // RECOVERY 3: Drip Sequence Emails (Day 1, 3, 7, 14)
+      // ─────────────────────────────────────────────────────────────────────
+
+      const dripDays = [1, 3, 7, 14];
+
+      for (const dripDay of dripDays) {
+        try {
+          const dripContacts = await getDripSequenceContacts(dripDay);
+          console.log(`📊 Found ${dripContacts.length} contacts for drip day ${dripDay}`);
+
+          for (const contact of dripContacts) {
+            try {
+              const templateId = contact.dripTemplateId || `drip-day-${dripDay}`;
+              const variant = await selectEmailVariant(templateId);
+
+              const templateData = {
+                firstName: contact.firstName || 'Friend',
+                lastName: contact.lastName || '',
+                email: contact.email || contact.emails?.[0]?.address || '',
+                contactId: contact.contactId,
+                variant: variant
+              };
+
+              const template = getRecoveryTemplate(templateId, templateData);
+
+              if (!template || !templateData.email) {
+                continue;
+              }
+
+              await transporter.sendMail({
+                from: `"${fromName}" <${user}>`,
+                to: templateData.email,
+                replyTo: user,
+                subject: template.subject,
+                html: template.html,
+                text: template.text
+              });
+
+              await trackRecoveryEmailSent(contact.contactId, {
+                templateId: templateId,
+                subject: template.subject,
+                variant: variant
+              });
+
+              await trackABTestEvent(templateId, variant, 'send');
+
+              await db.collection('contacts').doc(contact.contactId).update({
+                'enrollment.lastRecoveryEmailAt': admin.firestore.FieldValue.serverTimestamp(),
+                'enrollment.recoveryEmailsSent': admin.firestore.FieldValue.increment(1),
+                [`enrollment.dripDay${dripDay}SentAt`]: admin.firestore.FieldValue.serverTimestamp()
+              });
+
+              console.log(`✅ Drip day ${dripDay} email sent to ${templateData.email}`);
+              recoverySent++;
+
+            } catch (emailError) {
+              console.error(`❌ Failed to send drip day ${dripDay} email for ${contact.contactId}:`, emailError.message);
+            }
+          }
+        } catch (dripError) {
+          console.error(`❌ Error processing drip day ${dripDay}:`, dripError.message);
+        }
+      }
+
+      console.log(`\n✅ Enrollment recovery complete: ${recoverySent} emails sent`);
+
     } catch (error) {
       console.error('❌ Workflow processor error:', error);
     }
   }
 );
 
-console.log('✅ Function 6/10: processWorkflowStages (ENHANCED with IDIQ auto-cancel) loaded');
+console.log('✅ Function 6/10: processWorkflowStages (ENHANCED with IDIQ + Recovery) loaded');
 
 // ============================================
 // FUNCTION 7: AI CONTENT GENERATOR (Consolidated)
@@ -1865,6 +2147,60 @@ exports.operationsManager = onCall(
             message: 'Lead captured successfully'
           };
         }
+
+        // ===== ENROLLMENT ANALYTICS TRACKING =====
+        // Tracks enrollment funnel steps for analytics and recovery targeting
+        case 'trackEnrollment': {
+          const { contactId, step, metadata } = params;
+
+          console.log(`📊 Tracking enrollment step: ${step} for contact: ${contactId}`);
+
+          if (!contactId || !step) {
+            throw new Error('Missing required fields: contactId, step');
+          }
+
+          // Import analytics helper
+          const { trackEnrollmentStep, markEnrollmentRecovered } = require('./enrollmentAnalytics');
+
+          // Track the step
+          const result = await trackEnrollmentStep(contactId, step, metadata || {});
+
+          // If this is a completion step after recovery, mark as recovered
+          if (step === 'enrollment_complete' && metadata?.source?.includes('recovery')) {
+            await markEnrollmentRecovered(contactId, 'email');
+          }
+
+          console.log(`✅ Enrollment step tracked: ${step}`);
+
+          return {
+            success: true,
+            step: step,
+            contactId: contactId,
+            tracked: true
+          };
+        }
+
+        // ===== ENROLLMENT FUNNEL REPORT =====
+        // Generates funnel analytics report
+        case 'getFunnelReport': {
+          const { days } = params;
+
+          console.log(`📊 Generating funnel report for last ${days || 7} days`);
+
+          const { generateFunnelReport, analyzeDropoffPoints } = require('./enrollmentAnalytics');
+
+          const [funnelReport, dropoffAnalysis] = await Promise.all([
+            generateFunnelReport(days || 7),
+            analyzeDropoffPoints(days || 30)
+          ]);
+
+          return {
+            success: true,
+            funnelReport,
+            dropoffAnalysis
+          };
+        }
+
         default:
           throw new Error(`Unknown operations action: ${action}`);
       }
