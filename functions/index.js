@@ -1741,6 +1741,107 @@ exports.operationsManager = onCall(
           }
         }
         
+        // ============================================
+        // CREATE LANDING PAGE CONTACT
+        // ============================================
+        case 'createLandingPageContact': {
+          const { firstName, lastName, email, phone, state, source, utm, apiKey } = params;
+
+          // Validate API key (simple auth for public endpoint)
+          // For now, skip API key validation - you can add it later in config
+          // const expectedKey = await db.collection('config').doc('api').get();
+          // if (!expectedKey.exists || apiKey !== expectedKey.data().landingPageKey) {
+          //   throw new functions.https.HttpsError('unauthenticated', 'Invalid API key');
+          // }
+
+          // Validate required fields
+          if (!firstName || !lastName || !email || !phone) {
+            throw new functions.https.HttpsError('invalid-argument', 'Missing required fields');
+          }
+
+          try {
+            // Check for duplicate contact (by email)
+            const existingContact = await db
+              .collection('contacts')
+              .where('email', '==', email.toLowerCase())
+              .limit(1)
+              .get();
+
+            let contactId;
+
+            if (!existingContact.empty) {
+              // Update existing contact
+              contactId = existingContact.docs[0].id;
+              await db.collection('contacts').doc(contactId).update({
+                firstName,
+                lastName,
+                phone,
+                state: state || existingContact.docs[0].data().state,
+                'utm.latest': utm || {},
+                'metadata.landingPageSubmissions': admin.firestore.FieldValue.increment(1),
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+              });
+
+              console.log(`✅ Updated existing contact: ${contactId}`);
+            } else {
+              // Create new contact
+              const contactRef = await db.collection('contacts').add({
+                firstName,
+                lastName,
+                email: email.toLowerCase(),
+                phone,
+                state: state || '',
+                source: source || 'landing_page',
+                utm: utm || {},
+                roles: ['contact', 'lead'],
+                primaryRole: 'lead',
+                leadStatus: 'new',
+                leadScore: 5, // Default medium score
+                enrollmentStatus: 'not_started',
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                metadata: {
+                  landingPageSubmissions: 1,
+                  source: source || 'landing_page'
+                }
+              });
+
+              contactId = contactRef.id;
+              console.log(`✅ Created new contact: ${contactId}`);
+            }
+
+            // Track in analytics
+            await db.collection('enrollmentAnalytics').add({
+              contactId,
+              sessionId: `landing_${Date.now()}`,
+              steps: [{
+                step: 'landing_page_submit',
+                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                metadata: { 
+                  source: source || 'landing_page',
+                  utm: utm || {}
+                }
+              }],
+              createdAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+
+            // Return enrollment URL
+            const enrollmentUrl = `https://myclevercrm.com/complete-enrollment?contactId=${contactId}&source=${source || 'landing_page'}`;
+
+            console.log(`✅ Landing page contact processed: ${contactId}`);
+
+            return {
+              success: true,
+              contactId,
+              enrollmentUrl,
+              message: existingContact.empty ? 'Contact created successfully' : 'Contact updated successfully'
+            };
+
+          } catch (innerError) {
+            console.error('❌ Error creating landing page contact:', innerError);
+            throw new functions.https.HttpsError('internal', innerError.message);
+          }
+        }
         
         case 'captureWebLead': {
           const { firstName, lastName, email, phone } = params;
