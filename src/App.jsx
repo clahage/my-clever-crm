@@ -197,7 +197,6 @@ const CollectionList = lazy(() => import('@/pages/Payments/CollectionList'));
 const PaymentReconciliation = lazy(() => import('@/pages/Payments/PaymentReconciliation'));
 
 // ===== DOCUMENTS =====
-const Documents = lazy(() => import('@/pages/Documents'));
 const EContracts = lazy(() => import('@/pages/EContracts'));
 const Forms = lazy(() => import('@/pages/Forms'));
 const FullAgreement = lazy(() => import('@/pages/FullAgreement'));
@@ -205,7 +204,6 @@ const InformationSheet = lazy(() => import('@/pages/InformationSheet'));
 const PowerOfAttorney = lazy(() => import('@/pages/PowerOfAttorney'));
 const ACHAuthorization = lazy(() => import('@/pages/ACHAuthorization'));
 const Addendums = lazy(() => import('@/pages/Addendums'));
-const DocumentStorage = lazy(() => import('@/pages/DocumentStorage'));
 
 // ===== BUSINESS TOOLS =====
 const Companies = lazy(() => import('@/pages/Companies'));
@@ -216,9 +214,7 @@ const Affiliates = lazy(() => import('@/pages/Affiliates'));
 const Billing = lazy(() => import('@/pages/BillingPage'));
 
 // ===== SCHEDULING =====
-const Calendar = lazy(() => import('@/pages/Calendar'));
 const Appointments = lazy(() => import('@/pages/Appointments'));
-const Tasks = lazy(() => import('@/pages/Tasks'));
 const Reminders = lazy(() => import('@/pages/Reminders'));
 
 // ===== ANALYTICS & REPORTING =====
@@ -232,7 +228,6 @@ const AppsClient = lazy(() => import('@/pages/apps/Client'));
 const AppsAffiliate = lazy(() => import('@/pages/apps/Affiliate'));
 const Settings = lazy(() => import('@/pages/Settings'));
 const Team = lazy(() => import('@/pages/Team'));
-const DocumentCenter = lazy(() => import('@/pages/DocumentCenter'));
 const Roles = lazy(() => import('@/pages/Roles'));
 const UserRoles = lazy(() => import('@/pages/UserRoles'));
 const Integrations = lazy(() => import('@/pages/Integrations'));
@@ -304,7 +299,6 @@ const PaymentHealthMonitor = lazy(() => import('@/components/dashboard/PaymentHe
 const TeamTaskManager = lazy(() => import('@/components/operations/TeamTaskManager'));
 const ComplianceCalendar = lazy(() => import('@/components/operations/ComplianceCalendar'));
 const DocumentVault = lazy(() => import('@/components/operations/DocumentVault'));
-const CommunicationCenter = lazy(() => import('@/components/communications/CommunicationCenter'));
 const ClientOnboardingWizard = lazy(() => import('@/components/onboarding/ClientOnboardingWizard'));
 const ReferralManager = lazy(() => import('@/components/sales/ReferralManager'));
 const AutoOpportunityDashboard = lazy(() => import('@/components/revenue/AutoOpportunityDashboard'));
@@ -566,7 +560,6 @@ const AppContent = () => {
         <Route path="certificates" element={<Navigate to="/learning-hub" replace />} />
 
         {/* Documents Hub redirects */}
-        <Route path="documents" element={<Navigate to="/documents-hub" replace />} />
         <Route path="econtracts" element={<Navigate to="/documents-hub" replace />} />
         <Route path="forms" element={<Navigate to="/documents-hub" replace />} />
         <Route path="full-agreement" element={<Navigate to="/documents-hub" replace />} />
@@ -574,9 +567,7 @@ const AppContent = () => {
         <Route path="power-of-attorney" element={<Navigate to="/documents-hub" replace />} />
         <Route path="ach-authorization" element={<Navigate to="/documents-hub" replace />} />
         <Route path="addendums" element={<Navigate to="/documents-hub" replace />} />
-        <Route path="document-storage" element={<Navigate to="/documents-hub" replace />} />
-        <Route path="document-center" element={<Navigate to="/documents-hub" replace />} />
-
+                
         {/* Settings Hub redirects */}
         <Route path="companies" element={<Navigate to="/settings-hub" replace />} />
         <Route path="location" element={<Navigate to="/settings-hub" replace />} />
@@ -601,9 +592,7 @@ const AppContent = () => {
   <Route path="payments/history" element={<ProtectedRoute requiredRoles={["admin", "masterAdmin", "client"]}><Suspense fallback={<LoadingFallback />}><PaymentHistory /></Suspense></ProtectedRoute>} />
   <Route path="payments/collections" element={<ProtectedRoute requiredRoles={["admin", "masterAdmin"]}><Suspense fallback={<LoadingFallback />}><CollectionList /></Suspense></ProtectedRoute>} />
   <Route path="payments/reconciliation" element={<ProtectedRoute requiredRoles={["admin", "masterAdmin"]}><Suspense fallback={<LoadingFallback />}><PaymentReconciliation /></Suspense></ProtectedRoute>} />
-  <Route path="calendar" element={<Suspense fallback={<LoadingFallback />}><Calendar /></Suspense>} />
   <Route path="appointments" element={<Suspense fallback={<LoadingFallback />}><Appointments /></Suspense>} />
-  <Route path="tasks" element={<Suspense fallback={<LoadingFallback />}><Tasks /></Suspense>} />
   <Route path="reminders" element={<Suspense fallback={<LoadingFallback />}><Reminders /></Suspense>} />
   <Route path="analytics" element={<Navigate to="/analytics-hub" replace />} />
   <Route path="reports" element={<Navigate to="/reports-hub" replace />} />
