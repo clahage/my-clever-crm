@@ -148,6 +148,13 @@ const WorkflowTestingDashboard = lazy(() => import('@/pages/WorkflowTestingDashb
 const IDIQSandboxTester = lazy(() => import('@/components/testing/IDIQSandboxTester'));
 const TestFunctions = lazy(() => import('@/pages/TestFunctions'));
 
+// ===== MASSIVE PRODUCTION HUBS (9,597 lines total) =====
+const CommunicationsHub = lazy(() => import('@/pages/hubs/CommunicationsHub'));
+const DocumentsHub = lazy(() => import('@/pages/hubs/DocumentsHub'));
+const ReferralPartnerHub = lazy(() => import('@/pages/hubs/ReferralPartnerHub'));
+const TasksSchedulingHub = lazy(() => import('@/pages/hubs/TasksSchedulingHub'));
+// ===== END PRODUCTION HUBS =====
+
 // ===== CONTACT & CRM PAGES =====
 const Contacts = lazy(() => import('@/pages/Contacts'));
 const DuplicateManager = lazy(() => import('@/components/DuplicateManager'));
@@ -252,7 +259,6 @@ const CertificationSystem = lazy(() => import('@/pages/CertificationSystem')); /
 const ClientSuccessRetentionHub = lazy(() => import('@/pages/hubs/ClientSuccessRetentionHub'));
 const ContactsPipelineHub = lazy(() => import('@/pages/hubs/ContactsPipelineHub'));
 const CollectionsARHub = lazy(() => import('@/pages/hubs/CollectionsARHub'));
-const CommunicationsHub = lazy(() => import('@/pages/hubs/CommunicationsHub'));
 const ComplianceHub = lazy(() => import('@/pages/hubs/ComplianceHub'));
 const ContentCreatorSEOHub = lazy(() => import('@/pages/hubs/ContentCreatorSEOHub'));
 const ContractManagementHub = lazy(() => import('@/pages/hubs/ContractManagementHub'));
@@ -260,7 +266,6 @@ const CreditReportsHub = lazy(() => import('@/pages/hubs/CreditReportsHub'));
 // DashboardHub removed - consolidated into SmartDashboard
 const DisputeAdminPanel = lazy(() => import('@/pages/hubs/DisputeAdminPanel'));
 const DisputeHub = lazy(() => import('@/pages/hubs/DisputeHub'));
-const DocumentsHub = lazy(() => import('@/pages/hubs/DocumentsHub'));
 const DripCampaignsHub = lazy(() => import('@/pages/hubs/DripCampaignsHub'));
 const LearningHub = lazy(() => import('@/pages/hubs/LearningHub'));
 const MarketingHub = lazy(() => import('@/pages/hubs/MarketingHub'));
@@ -268,7 +273,6 @@ const MobileAppHub = lazy(() => import('@/pages/hubs/MobileAppHub'));
 const OnboardingWelcomeHub = lazy(() => import('@/pages/hubs/OnboardingWelcomeHub'));
 const ProgressPortalHub = lazy(() => import('@/pages/hubs/ProgressPortalHub'));
 const ReferralEngineHub = lazy(() => import('@/pages/hubs/ReferralEngineHub'));
-const ReferralPartnerHub = lazy(() => import('@/pages/hubs/ReferralPartnerHub'));
 const ReportsHub = lazy(() => import('@/pages/hubs/ReportsHub'));
 const ResourceLibraryHub = lazy(() => import('@/pages/hubs/ResourceLibraryHub'));
 const RevenueHub = lazy(() => import('@/pages/hubs/RevenueHub'));
@@ -277,7 +281,6 @@ const ReviewsReputationHub = lazy(() => import('@/pages/hubs/ReviewsReputationHu
 const SettingsHub = lazy(() => import('@/pages/hubs/SettingsHub'));
 const SocialMediaHub = lazy(() => import('@/pages/hubs/SocialMediaHub'));
 const SupportHub = lazy(() => import('@/pages/hubs/SupportHub'));
-const TasksSchedulingHub = lazy(() => import('@/pages/hubs/TasksSchedulingHub'));
 const TaxServicesHub = lazy(() => import('@/pages/hubs/TaxServicesHub'));
 const TrainingHub = lazy(() => import('@/pages/hubs/TrainingHub'));
 const WebsiteLandingPagesHub = lazy(() => import('@/pages/hubs/WebsiteLandingPagesHub'));
@@ -903,7 +906,7 @@ const AppContent = () => {
 <Route
   path="tasks-hub"
   element={
-    <ProtectedRoute requiredRole="prospect">
+    <ProtectedRoute requiredRole="user">
       <Suspense fallback={<LoadingFallback />}>
         <TasksSchedulingHub />
       </Suspense>
@@ -1429,6 +1432,61 @@ const AppContent = () => {
     </Suspense>
   </ProtectedRoute>
 } />
+  {/* ========================================== */}
+{/* MASSIVE PRODUCTION HUBS - 9,597 LINES     */}
+{/* ========================================== */}
+
+{/* Communications Hub - Email, SMS, Campaigns, Automation */}
+<Route
+  path="communications-hub"
+  element={
+    <ProtectedRoute requiredRole="user">
+      <Suspense fallback={<LoadingFallback />}>
+        <CommunicationsHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Documents Hub - Document Management, E-Signatures, AI Generation */}
+<Route
+  path="documents-hub"
+  element={
+    <ProtectedRoute requiredRole="user">
+      <Suspense fallback={<LoadingFallback />}>
+        <DocumentsHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Referral Partner Hub - Partner Network, Commissions, Revenue Growth */}
+<Route
+  path="referral-partner-hub"
+  element={
+    <ProtectedRoute requiredRole="user">
+      <Suspense fallback={<LoadingFallback />}>
+        <ReferralPartnerHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Tasks & Scheduling Hub - Smart Task Management, Calendar, Team Scheduling */}
+<Route
+  path="tasks-scheduling-hub"
+  element={
+    <ProtectedRoute requiredRole="user">
+      <Suspense fallback={<LoadingFallback />}>
+        <TasksSchedulingHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* ========================================== */}
+{/* END MASSIVE PRODUCTION HUBS                */}
+{/* ========================================== */}
 
   {/* 404 - NOT FOUND */}
         <Route path="*" element={

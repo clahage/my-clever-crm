@@ -382,15 +382,15 @@ export const navigationItems = [
 
       // HUB 6: TASKS & PRODUCTIVITY
       {
-        id: 'tasks-productivity-hub',
-        title: 'Tasks & Productivity',
-        path: '/tasks-hub',
-        icon: Calendar,
-        permission: 'user',
-        badge: 'AI',
-        description: 'Calendar, tasks, scheduling, reminders, goals, team management',
-        consolidated: ['TasksSchedulingHub', 'Calendar', 'Tasks', 'Reminders', 'Goals', 'CalendarSchedulingHub']
-      },
+  id: 'tasks-productivity-hub',
+  title: 'Tasks & Productivity',
+  path: '/tasks-hub',
+  icon: Calendar, // or CheckSquare
+  permission: 'user',
+  badge: 'AI',
+  description: 'Task management, calendar, team schedule, automation - 2,735 lines, 8 tabs, 45+ AI features',
+  consolidated: ['TasksSchedulingHub', 'Calendar', 'Tasks', 'Reminders', 'Goals']
+},
 
       // HUB 7: AUTOMATION
       {
@@ -476,6 +476,28 @@ export const navigationItems = [
         description: 'Referral engine, partner management, affiliate program (8 tabs, 50+ AI features)',
         consolidated: ['ReferralEngineHub', 'ReferralPartnerHub', 'UnifiedReferralHub', 'AffiliatesHub', 'RevenuePartnershipsHub']
       },
+
+      {
+  id: 'referral-engine-hub',
+  title: 'Client Referral Program',
+  path: '/referral-engine-hub',
+  icon: Award, // Make sure Award is imported from lucide-react
+  permission: 'user',
+  badge: 'AI',
+  description: 'Client referral program with gamification, rewards, social sharing (9 tabs, 45+ AI features)',
+  consolidated: ['ReferralEngine', 'Rewards', 'Leaderboard', 'ReferralCampaigns']
+},
+
+      {
+  id: 'referral-engine-hub',
+  title: 'Client Referral Program',
+  path: '/referral-engine-hub',
+  icon: Award, // Make sure Award is imported from lucide-react
+  permission: 'user',
+  badge: 'AI',
+  description: 'Client referral program with gamification, rewards, social sharing (9 tabs, 45+ AI features)',
+  consolidated: ['ReferralEngine', 'Rewards', 'Leaderboard', 'ReferralCampaigns']
+},
 
       {
         id: 'reviews-reputation-hub',

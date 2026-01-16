@@ -390,7 +390,8 @@ exports.onContactUpdated = onDocumentUpdated(
     document: 'contacts/{contactId}',
     ...defaultConfig,
     memory: '1GiB',
-    timeoutSeconds: 540  // 9 minutes for enrollment automation
+    timeoutSeconds: 540,  // 9 minutes for enrollment automation
+    secrets: [gmailUser, gmailAppPassword, gmailFromName, gmailReplyTo]
   },
   async (event) => {
     const contactId = event.params.contactId;
@@ -406,7 +407,9 @@ exports.onContactUpdated = onDocumentUpdated(
     const db = admin.firestore();
     
     try {
-      // ===== SCENARIO 1: NEW CONTACT CREATED =====
+      // ═══════════════════════════════════════════════════════════════════════
+      // SCENARIO 1: NEW CONTACT CREATED
+      // ═══════════════════════════════════════════════════════════════════════
       if (!beforeData) {
         console.log('👤 New contact created:', contactId);
         
@@ -433,46 +436,132 @@ exports.onContactUpdated = onDocumentUpdated(
         return null;
       }
       
-      // ===== SCENARIO 2: ENROLLMENT COMPLETED =====
+      // ═══════════════════════════════════════════════════════════════════════
+      // SCENARIO 2: ENROLLMENT JUST COMPLETED (enrolled status)
+      // ═══════════════════════════════════════════════════════════════════════
       const enrollmentJustCompleted = 
-        afterData.enrollmentStatus === 'enrolled' &&
+        (afterData.enrollmentStatus === 'enrolled' || afterData.enrollmentStatus === 'completed') &&
         beforeData.enrollmentStatus !== 'enrolled' &&
-        !afterData.automation?.enrollmentProcessed;
+        beforeData.enrollmentStatus !== 'completed' &&
+        !afterData.welcomeEmailSent;  // Prevent duplicate emails
       
       if (enrollmentJustCompleted) {
-        console.log('🎓 ENROLLMENT COMPLETED - Starting automation workflow...');
+        console.log('🎓 ENROLLMENT COMPLETED - Sending welcome email...');
         console.log(`Contact: ${contactId} (${afterData.firstName} ${afterData.lastName})`);
         console.log(`Previous status: ${beforeData.enrollmentStatus}`);
         console.log(`New status: ${afterData.enrollmentStatus}`);
         
-        // Trigger complete enrollment automation
-        const automationResults = await processEnrollmentCompletion(contactId, afterData);
-        
-        if (automationResults.success) {
-          console.log('✅ Enrollment automation completed successfully');
-          console.log(`Duration: ${automationResults.endTime ? 
-            new Date(automationResults.endTime) - new Date(automationResults.startTime) : 'N/A'}ms`);
-        } else {
-          console.error('⚠️ Enrollment automation completed with errors:', automationResults.error);
+        // ─────────────────────────────────────────────────────────────────────
+        // STEP 1: Send Welcome Client Email
+        // ─────────────────────────────────────────────────────────────────────
+        try {
+          const user = gmailUser.value();
+          const pass = gmailAppPassword.value();
+          const fromName = gmailFromName.value() || 'Chris Lahage - Speedy Credit Repair';
+          const replyTo = gmailReplyTo.value() || 'contact@speedycreditrepair.com';
           
-          // Create high-priority manual review task
-          await db.collection('tasks').add({
-            title: `Manual Review Required: ${afterData.firstName} ${afterData.lastName}`,
-            description: `Automated enrollment workflow failed. Error: ${automationResults.error}\n\nContact: ${contactId}\nEmail: ${afterData.email}`,
+          const transporter = nodemailer.createTransport({
+            host: 'smtp.gmail.com',
+            port: 587,
+            secure: false,
+            auth: { user, pass }
+          });
+          
+          const emailConfig = {
+            fromEmail: user,
+            fromName: fromName,
+            replyTo: replyTo
+          };
+          
+          // Use the helper function from operations.js
+          const emailResult = await operations.sendWelcomeClientEmail(
             contactId,
-            type: 'automation_failure',
-            priority: 'critical',
+            afterData,
+            transporter,
+            emailConfig
+          );
+          
+          if (emailResult.success) {
+            console.log('✅ Welcome client email sent successfully');
+          } else {
+            console.error('⚠️ Welcome email failed:', emailResult.error);
+          }
+        } catch (emailError) {
+          console.error('❌ Failed to send welcome email:', emailError);
+          
+          // Create task for manual follow-up
+          await db.collection('tasks').add({
+            title: `Welcome email failed: ${afterData.firstName} ${afterData.lastName}`,
+            description: `Automatic welcome email failed. Please send manually.\n\nEmail: ${afterData.email}\nError: ${emailError.message}`,
+            contactId,
+            type: 'email_failure',
+            priority: 'high',
             status: 'pending',
-            dueDate: new Date(Date.now() + 2 * 60 * 60 * 1000), // 2 hours from now
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
             createdBy: 'system'
           });
         }
         
+        // ─────────────────────────────────────────────────────────────────────
+        // STEP 2: Cancel any pending abandonment workflow
+        // ─────────────────────────────────────────────────────────────────────
+        await event.data.after.ref.update({
+          abandonmentCancelled: true,
+          enrollmentCompletedAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        
+        console.log('✅ Abandonment workflow cancelled');
+        
+        // ─────────────────────────────────────────────────────────────────────
+        // STEP 3: Run existing enrollment automation (if configured)
+        // ─────────────────────────────────────────────────────────────────────
+        if (!afterData.automation?.enrollmentProcessed) {
+          try {
+            const automationResults = await processEnrollmentCompletion(contactId, afterData);
+            
+            if (automationResults.success) {
+              console.log('✅ Enrollment automation completed successfully');
+            } else {
+              console.error('⚠️ Enrollment automation completed with errors:', automationResults.error);
+              
+              // Create high-priority manual review task
+              await db.collection('tasks').add({
+                title: `Manual Review Required: ${afterData.firstName} ${afterData.lastName}`,
+                description: `Automated enrollment workflow failed. Error: ${automationResults.error}\n\nContact: ${contactId}\nEmail: ${afterData.email}`,
+                contactId,
+                type: 'automation_failure',
+                priority: 'critical',
+                status: 'pending',
+                dueDate: new Date(Date.now() + 2 * 60 * 60 * 1000), // 2 hours from now
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                createdBy: 'system'
+              });
+            }
+          } catch (automationError) {
+            console.error('❌ Enrollment automation error:', automationError);
+          }
+        }
+        
+        // Log completion activity
+        await db.collection('activityLogs').add({
+          type: 'enrollment_completed',
+          contactId: contactId,
+          action: 'enrollment_workflow_complete',
+          details: {
+            email: afterData.email,
+            welcomeEmailSent: true
+          },
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          createdBy: 'system'
+        });
+        
         return null;
       }
       
-      // ===== SCENARIO 3: OTHER UPDATES =====
+      // ═══════════════════════════════════════════════════════════════════════
+      // SCENARIO 3: OTHER UPDATES (no special handling)
+      // ═══════════════════════════════════════════════════════════════════════
       console.log('📝 Contact updated (no special handling):', contactId);
       return null;
       
@@ -494,7 +583,7 @@ exports.onContactUpdated = onDocumentUpdated(
   }
 );
 
-console.log('✅ Function 4/10: onContactUpdated loaded (WITH ENROLLMENT AUTOMATION)');
+console.log('✅ Function 4/11: onContactUpdated loaded (WITH ENROLLMENT + EMAIL AUTOMATION)');
 
 // ============================================
 // FUNCTION 5: IDIQ SERVICE (PRODUCTION)
@@ -1416,6 +1505,179 @@ exports.processWorkflowStages = onSchedule(
 );
 
 console.log('✅ Function 6/10: processWorkflowStages (ENHANCED with IDIQ auto-cancel) loaded');
+
+// ═══════════════════════════════════════════════════════════════════════════
+// NEW FUNCTION 6B: PROCESS ABANDONMENT EMAILS
+// ═══════════════════════════════════════════════════════════════════════════
+// Add this AFTER processWorkflowStages (Function 6)
+// Runs every 5 minutes to check for abandoned enrollments
+// ═══════════════════════════════════════════════════════════════════════════
+
+exports.processAbandonmentEmails = onSchedule(
+  {
+    schedule: 'every 5 minutes',
+    ...defaultConfig,
+    memory: '512MiB',
+    timeoutSeconds: 120,
+    secrets: [gmailUser, gmailAppPassword, gmailFromName, gmailReplyTo]
+  },
+  async (context) => {
+    console.log('⏰ Processing abandonment emails...');
+    const db = admin.firestore();
+    
+    try {
+      const now = new Date();
+      const nowTimestamp = admin.firestore.Timestamp.fromDate(now);
+      
+      // ─────────────────────────────────────────────────────────────────────
+      // FIND CONTACTS WHERE:
+      // 1. enrollmentStatus = 'started' (not completed)
+      // 2. abandonmentCheckAt < NOW (5 minutes have passed)
+      // 3. abandonmentEmailSent = false (not already sent)
+      // 4. abandonmentCancelled = false (enrollment didn't complete)
+      // ─────────────────────────────────────────────────────────────────────
+      
+      const abandonedContactsSnapshot = await db.collection('contacts')
+        .where('enrollmentStatus', '==', 'started')
+        .where('abandonmentEmailSent', '==', false)
+        .where('abandonmentCancelled', '==', false)
+        .where('abandonmentCheckAt', '<=', nowTimestamp)
+        .limit(50)  // Process max 50 per run to avoid timeout
+        .get();
+      
+      console.log(`📊 Found ${abandonedContactsSnapshot.size} abandoned enrollments to process`);
+      
+      if (abandonedContactsSnapshot.empty) {
+        console.log('✅ No abandoned enrollments to process');
+        return null;
+      }
+      
+      // ─────────────────────────────────────────────────────────────────────
+      // SET UP EMAIL TRANSPORTER
+      // ─────────────────────────────────────────────────────────────────────
+      
+      const user = gmailUser.value();
+      const pass = gmailAppPassword.value();
+      const fromName = gmailFromName.value() || 'Chris Lahage - Speedy Credit Repair';
+      const replyTo = gmailReplyTo.value() || 'contact@speedycreditrepair.com';
+      
+      const transporter = nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 587,
+        secure: false,
+        auth: { user, pass }
+      });
+      
+      const emailConfig = {
+        fromEmail: user,
+        fromName: fromName,
+        replyTo: replyTo
+      };
+      
+      // ─────────────────────────────────────────────────────────────────────
+      // PROCESS EACH ABANDONED CONTACT
+      // ─────────────────────────────────────────────────────────────────────
+      
+      let processed = 0;
+      let sent = 0;
+      let failed = 0;
+      
+      for (const doc of abandonedContactsSnapshot.docs) {
+        const contactId = doc.id;
+        const contactData = doc.data();
+        
+        processed++;
+        console.log(`📧 Processing ${processed}/${abandonedContactsSnapshot.size}: ${contactData.email}`);
+        
+        // Skip if no email
+        if (!contactData.email) {
+          console.log(`⏭️ Skipping ${contactId} - no email address`);
+          continue;
+        }
+        
+        // Skip if email opt-out
+        if (contactData.emailOptIn === false) {
+          console.log(`⏭️ Skipping ${contactId} - email opt-out`);
+          await doc.ref.update({
+            abandonmentEmailSent: true,  // Mark as "sent" to skip next time
+            abandonmentSkipReason: 'email_opt_out',
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+          continue;
+        }
+        
+        // Send abandonment email using helper function
+        try {
+          const result = await operations.sendAbandonmentEmail(
+            contactId,
+            contactData,
+            transporter,
+            emailConfig
+          );
+          
+          if (result.success) {
+            sent++;
+            console.log(`✅ Sent abandonment email to ${contactData.email}`);
+          } else {
+            failed++;
+            console.error(`❌ Failed for ${contactData.email}: ${result.error}`);
+          }
+        } catch (emailError) {
+          failed++;
+          console.error(`❌ Error sending to ${contactData.email}:`, emailError.message);
+          
+          // Mark as sent to prevent retry loop, but log the error
+          await doc.ref.update({
+            abandonmentEmailSent: true,
+            abandonmentEmailError: emailError.message,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+        }
+        
+        // Small delay between emails to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      
+      // ─────────────────────────────────────────────────────────────────────
+      // LOG SUMMARY
+      // ─────────────────────────────────────────────────────────────────────
+      
+      console.log('\n═══════════════════════════════════════════════════════════════');
+      console.log('📊 ABANDONMENT EMAIL SUMMARY');
+      console.log('═══════════════════════════════════════════════════════════════');
+      console.log(`Total processed: ${processed}`);
+      console.log(`Successfully sent: ${sent}`);
+      console.log(`Failed: ${failed}`);
+      console.log('═══════════════════════════════════════════════════════════════\n');
+      
+      // Log to analytics
+      await db.collection('analyticsLogs').add({
+        type: 'abandonment_email_batch',
+        processed: processed,
+        sent: sent,
+        failed: failed,
+        runAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+      
+      return null;
+      
+    } catch (error) {
+      console.error('❌ Abandonment email processor error:', error);
+      
+      // Log error
+      await db.collection('errorLogs').add({
+        type: 'abandonment_email_processor_error',
+        error: error.message,
+        stack: error.stack,
+        timestamp: admin.firestore.FieldValue.serverTimestamp()
+      });
+      
+      return null;
+    }
+  }
+);
+
+      console.log('✅ Function 6B/11: processAbandonmentEmails loaded (5-minute check)');
 
 // ============================================
 // FUNCTION 7: AI CONTENT GENERATOR (Consolidated)
