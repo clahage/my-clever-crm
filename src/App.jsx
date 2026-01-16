@@ -301,7 +301,7 @@ const PaymentHealthMonitor = lazy(() => import('@/components/dashboard/PaymentHe
 const TeamTaskManager = lazy(() => import('@/components/operations/TeamTaskManager'));
 const ComplianceCalendar = lazy(() => import('@/components/operations/ComplianceCalendar'));
 const DocumentVault = lazy(() => import('@/components/operations/DocumentVault'));
-const CommunicationCenter = lazy(() => import('@/components/communication/CommunicationCenter'));
+const CommunicationCenter = lazy(() => import('@/components/communications/CommunicationCenter'));
 const ClientOnboardingWizard = lazy(() => import('@/components/onboarding/ClientOnboardingWizard'));
 const ReferralManager = lazy(() => import('@/components/sales/ReferralManager'));
 const AutoOpportunityDashboard = lazy(() => import('@/components/revenue/AutoOpportunityDashboard'));
