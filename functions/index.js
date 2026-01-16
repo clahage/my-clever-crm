@@ -2019,7 +2019,6 @@ exports.enrollmentSupportService = onCall(
     
     console.log('🆘 Enrollment Support:', action);
     
-    const db = admin.firestore();
     
     try {
       switch (action) {
