@@ -1845,8 +1845,127 @@ exports.operationsManager = onCall(
         }
         
         case 'captureWebLead': {
-          // Delegate to operations.js helper function
-          return await operations.captureWebLead(params, request.auth?.uid || 'system');
+          const { firstName, lastName, email, phone } = params;
+          
+          console.log('📋 Capturing web lead:', { firstName, lastName, email, phone });
+          
+          // Validate required fields
+          if (!firstName || !lastName || !email || !phone) {
+            throw new Error('Missing required fields: firstName, lastName, email, phone');
+          }
+          
+          // Normalize data
+          const normalizedEmail = email.trim().toLowerCase();
+          const normalizedPhone = phone.trim().replace(/\D/g, ''); // Remove non-digits
+          
+          // Check for existing contact with same email
+          const existingSnapshot = await db.collection('contacts')
+            .where('email', '==', normalizedEmail)
+            .limit(1)
+            .get();
+          
+          if (!existingSnapshot.empty) {
+            const existingContact = existingSnapshot.docs[0];
+            const contactId = existingContact.id;
+            const contactData = existingContact.data();
+            
+            console.log('ℹ️  Contact already exists:', contactId);
+            
+            // Update enrollment status if not already enrolled
+            if (contactData.enrollmentStatus !== 'completed') {
+              await db.collection('contacts').doc(contactId).update({
+                enrollmentStatus: 'started',
+                enrollmentStartedAt: admin.firestore.FieldValue.serverTimestamp(),
+                lastActivityAt: admin.firestore.FieldValue.serverTimestamp(),
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+              });
+              
+              console.log('✅ Updated existing contact enrollment status');
+            }
+            
+            return {
+              success: true,
+              contactId: contactId,
+              existed: true,
+              message: 'Existing contact updated'
+            };
+          }
+          
+          // Create new contact in Firestore
+          const contactRef = await db.collection('contacts').add({
+            firstName: firstName.trim(),
+            lastName: lastName.trim(),
+            email: normalizedEmail,
+            phone: normalizedPhone,
+            roles: ['contact', 'lead'],
+            primaryRole: 'lead',
+            leadSource: 'website',
+            leadStatus: 'new',
+            leadScore: 5,
+            enrollmentStatus: 'started',
+            enrollmentStartedAt: admin.firestore.FieldValue.serverTimestamp(),
+            enrollmentCompletedAt: null,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            lastActivityAt: admin.firestore.FieldValue.serverTimestamp(),
+            emailOptIn: true,
+            smsOptIn: true,
+            isActive: true,
+            isTest: false,
+            createdBy: 'web-landing-page',
+            createdVia: 'landing-page-form'
+          });
+          
+          const contactId = contactRef.id;
+          console.log('✅ Contact created:', contactId);
+          
+          // Queue welcome email
+          try {
+            await db.collection('emailQueue').add({
+              to: normalizedEmail,
+              template: 'welcome-lead',
+              data: { firstName: firstName.trim(), lastName: lastName.trim(), contactId },
+              status: 'pending',
+              priority: 'high',
+              createdAt: admin.firestore.FieldValue.serverTimestamp(),
+              attempts: 0
+            });
+            console.log('📧 Welcome email queued');
+          } catch (emailErr) {
+            console.error('⚠️  Email queue failed (non-blocking):', emailErr);
+          }
+          
+          // Create follow-up task
+          try {
+            await db.collection('tasks').add({
+              title: `Follow up with new lead: ${firstName} ${lastName}`,
+              description: `New lead captured from website. Email: ${normalizedEmail}, Phone: ${normalizedPhone}`,
+              assignedTo: null,
+              assignedBy: 'system',
+              priority: 'high',
+              status: 'pending',
+              category: 'auto_lead',
+              contactId: contactId,
+              tags: ['web-lead', 'new-lead', 'follow-up'],
+              dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
+              createdAt: admin.firestore.FieldValue.serverTimestamp(),
+              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+              completedAt: null,
+              completedBy: null,
+              comments: [],
+              attachments: []
+            });
+            console.log('✅ Follow-up task created');
+          } catch (taskErr) {
+            console.error('⚠️  Task creation failed (non-blocking):', taskErr);
+          }
+          
+          return {
+            success: true,
+            contactId: contactId,
+            existed: false,
+            message: 'Lead captured successfully'
+          };
         }
         default:
           throw new Error(`Unknown operations action: ${action}`);
