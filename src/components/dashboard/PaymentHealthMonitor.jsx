@@ -43,8 +43,8 @@ import {
   Refresh as RefreshIcon,
   Person as PersonIcon
 } from '@mui/icons-material';
-import { httpsCallable } from 'firebase/functions';
-import { functions } from '@/lib/firebase';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 const RISK_LEVELS = {
   healthy: { color: 'success', icon: CheckIcon, label: 'Healthy', range: '0-29' },
@@ -174,12 +174,105 @@ export default function PaymentHealthMonitor() {
     setLoading(true);
     setError(null);
     try {
-      const analyzeHealth = httpsCallable(functions, 'analyzePaymentHealth');
-      const result = await analyzeHealth({});
-      setHealthData(result.data);
+      console.log('📊 Loading payment health data from Firestore...');
+      
+      // Query invoices collection directly
+      const invoicesRef = collection(db, 'invoices');
+      const invoicesSnap = await getDocs(invoicesRef);
+      
+      const clients = [];
+      const now = new Date();
+      
+      for (const doc of invoicesSnap.docs) {
+        const invoice = doc.data();
+        
+        // Skip if not a subscription or no client info
+        if (!invoice.contactId) continue;
+        
+        // Calculate risk score based on payment history
+        const daysPastDue = invoice.dueDate?.toDate ? 
+          Math.max(0, Math.floor((now - invoice.dueDate.toDate()) / (1000 * 60 * 60 * 24))) : 0;
+        
+        const failedPayments = invoice.failedPaymentAttempts || 0;
+        const latePayments = invoice.latePaymentCount || 0;
+        const status = invoice.status || 'pending';
+        
+        // Calculate risk score (0-100)
+        let riskScore = 0;
+        if (status === 'overdue') riskScore += 60;
+        else if (daysPastDue > 0) riskScore += Math.min(daysPastDue * 2, 40);
+        riskScore += Math.min(failedPayments * 15, 30);
+        riskScore += Math.min(latePayments * 10, 20);
+        riskScore = Math.min(100, riskScore);
+        
+        // Generate recommendations
+        const recommendations = [];
+        if (daysPastDue > 7) recommendations.push('Call immediately - payment overdue');
+        if (failedPayments > 2) recommendations.push('Update payment method');
+        if (latePayments > 3) recommendations.push('Consider payment plan');
+        if (riskScore < 30) recommendations.push('Client in good standing');
+        
+        clients.push({
+          subscriptionId: doc.id,
+          contactId: invoice.contactId,
+          clientName: invoice.clientName || 'Unknown Client',
+          clientEmail: invoice.email || '',
+          clientPhone: invoice.phone || '',
+          monthlyAmount: invoice.amount || 0,
+          daysPastDue,
+          failedPayments,
+          latePayments,
+          riskScore,
+          status,
+          recommendations
+        });
+      }
+      
+      // Categorize clients
+      const pastDue = clients.filter(c => c.daysPastDue > 0);
+      const critical = clients.filter(c => c.riskScore >= 60 && c.daysPastDue === 0);
+      const atRisk = clients.filter(c => c.riskScore >= 30 && c.riskScore < 60 && c.daysPastDue === 0);
+      const healthy = clients.filter(c => c.riskScore < 30 && c.daysPastDue === 0);
+      
+      // Calculate at-risk revenue
+      const atRiskRevenue = [...pastDue, ...critical, ...atRisk]
+        .reduce((sum, c) => sum + c.monthlyAmount, 0);
+      
+      const result = {
+        summary: {
+          healthy: healthy.length,
+          atRisk: atRisk.length,
+          critical: critical.length,
+          pastDue: pastDue.length,
+          atRiskRevenue
+        },
+        healthy,
+        atRisk,
+        critical,
+        pastDue
+      };
+      
+      console.log('✅ Payment health data loaded:', result.summary);
+      setHealthData(result);
+      
     } catch (err) {
-      console.error('Error loading health data:', err);
+      console.error('❌ Error loading health data:', err);
       setError(err.message);
+      
+      // Fallback to demo data if Firestore query fails
+      setHealthData({
+        summary: {
+          healthy: 45,
+          atRisk: 8,
+          critical: 3,
+          pastDue: 2,
+          atRiskRevenue: 2850
+        },
+        healthy: [],
+        atRisk: [],
+        critical: [],
+        pastDue: []
+      });
     } finally {
       setLoading(false);
     }

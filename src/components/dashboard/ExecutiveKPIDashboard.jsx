@@ -35,8 +35,8 @@ import {
   Speed as SpeedIcon,
   Refresh as RefreshIcon
 } from '@mui/icons-material';
-import { httpsCallable } from 'firebase/functions';
-import { functions } from '@/lib/firebase';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 const KPICard = ({ title, value, subtitle, icon: Icon, trend, trendValue, color = 'primary', onClick }) => {
   const theme = useTheme();
@@ -138,22 +138,11 @@ export default function ExecutiveKPIDashboard() {
     setLoading(true);
     setError(null);
     try {
-      const getExecutiveKPIs = httpsCallable(functions, 'getExecutiveKPIs');
-      const getRevenueForecast = httpsCallable(functions, 'getRevenueForecast');
-
-      const [kpiResult, forecastResult] = await Promise.all([
-        getExecutiveKPIs({ period }),
-        getRevenueForecast({})
-      ]);
-
-      setKpis(kpiResult.data);
-      setForecast(forecastResult.data);
-    } catch (err) {
+      // Query Firestore directly - removed old Cloud Function calls
       console.error('Error loading KPIs from Cloud Functions, using fallback data:', err);
       // Fallback: Load data directly from Firestore collections
       try {
-        const { collection, getDocs, query, where, orderBy, limit } = await import('firebase/firestore');
-        const { db } = await import('@/lib/firebase');
+        // Using imports from top of file
 
         // Get contacts data
         const contactsSnap = await getDocs(collection(db, 'contacts'));

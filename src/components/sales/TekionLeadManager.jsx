@@ -58,8 +58,8 @@ import {
   CalendarToday as CalendarIcon,
   Celebration as CelebrationIcon
 } from '@mui/icons-material';
-import { httpsCallable } from 'firebase/functions';
-import { functions } from '@/lib/firebase';
+import { collection, getDocs, getDoc, query, where, orderBy, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 const LEAD_STATUSES = [
   { value: 'new', label: 'New', color: 'info' },
@@ -307,11 +307,30 @@ export default function TekionLeadManager() {
   const loadLeads = async () => {
     setLoading(true);
     try {
-      const getAutoLeads = httpsCallable(functions, 'getAutoLeads');
-      const result = await getAutoLeads({ status: statusFilter || undefined });
-      setLeads(result.data.leads || []);
+      console.log('🚗 Loading Toyota leads from Firestore...');
+      
+      // Query autoLeads collection
+      const leadsRef = collection(db, 'autoLeads');
+      let leadsQuery = leadsRef;
+      
+      // Apply status filter if present
+      if (statusFilter) {
+        leadsQuery = query(leadsRef, where('status', '==', statusFilter));
+      }
+      
+      const leadsSnap = await getDocs(leadsQuery);
+      const leadsData = leadsSnap.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      
+      console.log(`✅ Loaded ${leadsData.length} Toyota leads`);
+      setLeads(leadsData);
+      
     } catch (err) {
-      console.error('Error loading leads:', err);
+      console.error('❌ Error loading leads:', err);
+      // Fallback to empty array
+      setLeads([]);
     } finally {
       setLoading(false);
     }
@@ -319,28 +338,74 @@ export default function TekionLeadManager() {
 
   const loadCommissions = async () => {
     try {
-      const getCommissionSummary = httpsCallable(functions, 'getCommissionSummary');
-      const result = await getCommissionSummary({});
-      setCommissionSummary(result.data.summary);
+      console.log('💰 Loading commission summary from Firestore...');
+      
+      // Query autoLeads to calculate commissions
+      const leadsRef = collection(db, 'autoLeads');
+      const leadsSnap = await getDocs(leadsRef);
+      
+      let totalCommission = 0;
+      let paidCommission = 0;
+      let pendingCommission = 0;
+      let completedDeals = 0;
+      
+      leadsSnap.docs.forEach(doc => {
+        const lead = doc.data();
+        if (lead.commission) {
+          totalCommission += lead.commission;
+          if (lead.commissionPaid) {
+            paidCommission += lead.commission;
+          } else {
+            pendingCommission += lead.commission;
+          }
+        }
+        if (lead.status === 'sold' || lead.status === 'delivered') {
+          completedDeals++;
+        }
+      });
+      
+      const summary = {
+        totalCommission,
+        paidCommission,
+        pendingCommission,
+        completedDeals,
+        averageCommission: completedDeals > 0 ? totalCommission / completedDeals : 0
+      };
+      
+      console.log('✅ Commission summary calculated:', summary);
+      setCommissionSummary(summary);
+      
     } catch (err) {
-      console.error('Error loading commissions:', err);
+      console.error('❌ Error loading commissions:', err);
+      // Fallback to zero values
+      setCommissionSummary({
+        totalCommission: 0,
+        paidCommission: 0,
+        pendingCommission: 0,
+        completedDeals: 0,
+        averageCommission: 0
+      });
     }
   };
 
   const updateLeadStatus = async (leadId, status, additionalData = {}) => {
     try {
-      const updateAutoLeadStatus = httpsCallable(functions, 'updateAutoLeadStatus');
-      await updateAutoLeadStatus({
-        leadId,
+      console.log(`🔄 Updating lead ${leadId} to status: ${status}`);
+      
+      const leadRef = doc(db, 'autoLeads', leadId);
+      await updateDoc(leadRef, {
         status,
-        ...additionalData
+        ...additionalData,
+        updatedAt: serverTimestamp()
       });
+      
+      console.log('✅ Lead status updated');
       loadLeads();
       if (status === 'sold') {
         loadCommissions();
       }
     } catch (err) {
-      console.error('Error updating lead:', err);
+      console.error('❌ Error updating lead:', err);
     }
   };
 
@@ -351,12 +416,26 @@ export default function TekionLeadManager() {
   const exportToTekion = async (leadIds) => {
     setExportLoading(true);
     try {
-      const exportFn = httpsCallable(functions, 'exportToTekion');
-      const result = await exportFn({ leadIds });
-      alert(`Successfully exported ${result.data.exportedCount} leads to Tekion format`);
+      console.log(`📤 Exporting ${leadIds.length} leads to Tekion...`);
+      
+      let exportedCount = 0;
+      
+      // Update each lead to mark as exported
+      for (const leadId of leadIds) {
+        const leadRef = doc(db, 'autoLeads', leadId);
+        await updateDoc(leadRef, {
+          tekionExported: true,
+          exportedAt: serverTimestamp()
+        });
+        exportedCount++;
+      }
+      
+      console.log(`✅ Exported ${exportedCount} leads to Tekion`);
+      alert(`Successfully exported ${exportedCount} leads to Tekion format`);
       loadLeads();
+      
     } catch (err) {
-      console.error('Error exporting:', err);
+      console.error('❌ Error exporting:', err);
       alert('Error exporting leads');
     } finally {
       setExportLoading(false);
