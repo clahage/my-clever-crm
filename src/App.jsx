@@ -1327,18 +1327,6 @@ const AppContent = () => {
   }
 />
 
-{/* AI Communication Center */}
-<Route
-  path="communication-center"
-  element={
-    <ProtectedRoute requiredRole="user">
-      <Suspense fallback={<LoadingFallback />}>
-        <CommunicationCenter />
-      </Suspense>
-    </ProtectedRoute>
-  }
-/>
-
 {/* Client Onboarding Wizard */}
 <Route
   path="client-onboarding"
