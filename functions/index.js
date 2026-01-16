@@ -117,11 +117,25 @@ exports.emailService = onCall(
     secrets: [gmailUser, gmailAppPassword, gmailFromName, gmailReplyTo]
   },
   async (request) => {
-    const { action, ...params } = request.data;
+    const { action, ...params } = request.body;
+    
+    console.log('⚙️ Operations Manager:', action, params);
+    
+    // Validate action
+    if (!action) {
+      response.status(400).json({
+        success: false,
+        error: 'Missing required parameter: action'
+      });
+      return;
+    }
+    
+    const db = admin.firestore();
+    
+    let result;
     
     console.log('📧 Email Service:', action);
     
-    const db = admin.firestore();
     const user = gmailUser.value();
     const pass = gmailAppPassword.value();
     
@@ -1539,14 +1553,39 @@ console.log('✅ Function 7/10: aiContentGenerator loaded');
 // Replaces: getContactWorkflowStatus, pauseWorkflowForContact, resumeWorkflowForContact, createTask, getTasks, updateTask
 // Savings: 6 functions → 1 function = $22.50/month saved
 
-exports.operationsManager = onCall(
-  defaultConfig,
-  async (request) => {
-    const { action, ...params } = request.data;
+exports.operationsManager = onRequest(
+  {
+    ...defaultConfig,
+    cors: true
+  },
+  async (request, response) => {
+    // Enable CORS
+    response.set('Access-Control-Allow-Origin', '*');
+    response.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    response.set('Access-Control-Allow-Headers', 'Content-Type');
     
-    console.log('⚙️ Operations Manager:', action);
+    // Handle preflight requests
+    if (request.method === 'OPTIONS') {
+      response.status(204).send('');
+      return;
+    }
+    const { action, ...params } = request.body;
+    
+    console.log('⚙️ Operations Manager:', action, params);
+    
+    // Validate action
+    if (!action) {
+      response.status(400).json({
+        success: false,
+        error: 'Missing required parameter: action'
+      });
+      return;
+    }
     
     const db = admin.firestore();
+    
+    let result;
+
     
     try {
       switch (action) {
@@ -1846,14 +1885,22 @@ exports.operationsManager = onCall(
         
         case 'captureWebLead': {
           // Delegate to operations.js helper function
-          return await operations.captureWebLead(params, request.auth?.uid || 'system');
+          result = await operations.captureWebLead(params, 'system');
+          break;
         }
         default:
           throw new Error(`Unknown operations action: ${action}`);
       }
+      
+      // Send success response
+      response.status(200).json(result);
+      
     } catch (error) {
       console.error('❌ Operations manager error:', error);
-      return { success: false, error: error.message };
+      response.status(500).json({ 
+        success: false, 
+        error: error.message || 'Internal server error'
+      });
     }
   }
 );
@@ -1953,7 +2000,22 @@ exports.enrollmentSupportService = onCall(
     ]
   },
   async (request) => {
-    const { action, ...params } = request.data;
+    const { action, ...params } = request.body;
+    
+    console.log('⚙️ Operations Manager:', action, params);
+    
+    // Validate action
+    if (!action) {
+      response.status(400).json({
+        success: false,
+        error: 'Missing required parameter: action'
+      });
+      return;
+    }
+    
+    const db = admin.firestore();
+    
+    let result;
     
     console.log('🆘 Enrollment Support:', action);
     

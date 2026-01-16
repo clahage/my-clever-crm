@@ -1,20 +1,19 @@
 /**
  * Path: /functions/operations.js
  * Operations Helper Functions
- * Team Task Manager, Document Vault, and Compliance Calendar
  * 
  * NOTE: These are HELPER FUNCTIONS, not Cloud Functions
  * They are called by operationsManager in index.js
  * 
- * © 1995-2026 Speedy Credit Repair Inc. | Chris Lahage | All Rights Reserved
+ * © 1995-2026 Speedy Credit Repair Inc. | Christopher Lahage | All Rights Reserved
+ * Trademark: Speedy Credit Repair® - USPTO Registered
  */
 
 const { getFirestore, FieldValue } = require('firebase-admin/firestore');
-const { getStorage } = require('firebase-admin/storage');
 
 // ============================================
 // WEB LEAD CAPTURE HELPER
-// Added: January 13, 2026
+// Added: January 16, 2026
 // ============================================
 
 /**
