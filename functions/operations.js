@@ -19,6 +19,10 @@ const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 /**
  * Capture web lead from landing page
  * Creates contact immediately, triggers email workflow, enables drip campaigns
+ * 
+ * @param {Object} data - Lead data (firstName, lastName, email, phone)
+ * @param {string} userId - User ID (defaults to 'system')
+ * @returns {Promise<Object>} - Result with success, contactId, existed, message
  */
 async function captureWebLead(data, userId = 'system') {
   const db = getFirestore();
