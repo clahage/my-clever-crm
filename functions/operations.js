@@ -39,10 +39,10 @@ const ABANDONMENT_DELAY_MINUTES = 5;  // Send abandonment email after 5 minutes
  */
 async function captureWebLead(data, userId = 'system') {
   const db = getFirestore();
-  
-  const { firstName, lastName, email, phone } = data;
-  
-  console.log('📋 Capturing web lead:', { firstName, lastName, email, phone });
+
+  const { firstName, lastName, email, phone, servicePlan } = data;
+
+  console.log('📋 Capturing web lead:', { firstName, lastName, email, phone, servicePlan });
   
   // Validate required fields
   if (!firstName || !lastName || !email || !phone) {
@@ -75,17 +75,20 @@ async function captureWebLead(data, userId = 'system') {
         // Enrollment tracking
         enrollmentStatus: 'started',
         enrollmentStartedAt: FieldValue.serverTimestamp(),
-        
+
+        // Service plan preference (v2.0)
+        servicePlanPreference: servicePlan || contactData.servicePlanPreference || 'standard',
+
         // Abandonment tracking - reset timer
         abandonmentCheckAt: Timestamp.fromDate(abandonmentCheckAt),
         abandonmentEmailSent: false,
         abandonmentCancelled: false,
-        
+
         // Activity
         lastActivityAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp()
       });
-      
+
       console.log('✅ Updated existing contact - enrollment restarted, abandonment timer reset');
     }
     
@@ -119,6 +122,13 @@ async function captureWebLead(data, userId = 'system') {
     enrollmentStatus: 'started',
     enrollmentStartedAt: FieldValue.serverTimestamp(),
     enrollmentCompletedAt: null,
+
+    // ===== SERVICE PLAN PREFERENCE (v2.0) =====
+    servicePlanPreference: servicePlan || 'standard',
+    servicePlan: null, // Set when enrollment completes
+    servicePlanId: null,
+    servicePlanName: null,
+    servicePlanPrice: null,
     
     // ===== ABANDONMENT TRACKING (NEW) =====
     abandonmentCheckAt: Timestamp.fromDate(abandonmentCheckAt),

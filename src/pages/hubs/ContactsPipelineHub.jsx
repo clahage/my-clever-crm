@@ -202,6 +202,12 @@ import {
   Treemap,
 } from 'recharts';
 
+// Service Plans v2.0 - Import for plan badges
+import { getPlanById } from '../../constants/servicePlans';
+
+// Cancellation Manager for admin tool
+import CancellationManager from '../../components/admin/CancellationManager';
+
 // ================================================================================
 // CONSTANTS & CONFIGURATION
 // ================================================================================
@@ -225,18 +231,38 @@ const calculateTemperature = (leadScore = 0, engagementScore = 0) => {
   const normalizedLeadScore = (leadScore / 10) * 100;
   // Combined score: 60% lead score, 40% engagement
   const combinedScore = (normalizedLeadScore * 0.6) + (engagementScore * 0.4);
-  
+
   if (combinedScore >= 80) {
-    return { label: '🔥 Hot', color: '#D32F2F', priority: 1, score: combinedScore };
+    return { label: 'Hot', color: '#D32F2F', priority: 1, score: combinedScore };
   } else if (combinedScore >= 60) {
-    return { label: '🌡️ Warm', color: '#F57C00', priority: 2, score: combinedScore };
+    return { label: 'Warm', color: '#F57C00', priority: 2, score: combinedScore };
   } else if (combinedScore >= 40) {
-    return { label: '😐 Lukewarm', color: '#FFC107', priority: 3, score: combinedScore };
+    return { label: 'Lukewarm', color: '#FFC107', priority: 3, score: combinedScore };
   } else if (combinedScore >= 20) {
-    return { label: '❄️ Cool', color: '#03A9F4', priority: 4, score: combinedScore };
+    return { label: 'Cool', color: '#03A9F4', priority: 4, score: combinedScore };
   } else {
-    return { label: '🧊 Cold', color: '#90A4AE', priority: 5, score: combinedScore };
+    return { label: 'Cold', color: '#90A4AE', priority: 5, score: combinedScore };
   }
+};
+
+// ===== SERVICE PLAN BADGE HELPER (v2.0) =====
+// Returns badge info for displaying plan in contact list
+const getPlanBadgeInfo = (contact) => {
+  const planId = contact.servicePlanId || contact.servicePlan || contact.servicePlanPreference;
+  if (!planId) return null;
+
+  const plan = getPlanById(planId);
+  if (!plan) return { label: planId, color: '#6b7280', badgeColor: 'default' };
+
+  return {
+    label: plan.name,
+    color: plan.highlightColor || '#3b82f6',
+    badgeColor: plan.badgeColor || 'primary',
+    hasMinimumTerm: plan.hasMinimumTerm,
+    monthsCompleted: contact.monthsCompleted || 0,
+    minimumTermMonths: plan.minimumTermMonths || 0,
+    status: contact.status
+  };
 };
 
 const LEAD_SOURCES = [
@@ -678,6 +704,10 @@ const ContactsPipelineHub = () => {
   const [documents, setDocuments] = useState([]);
   const [notes, setNotes] = useState([]);
   const [tasks, setTasks] = useState([]);
+
+  // Cancellation Manager State (v2.0)
+  const [cancellationDialogOpen, setCancellationDialogOpen] = useState(false);
+  const [clientToCancel, setClientToCancel] = useState(null);
   const [contactStats, setContactStats] = useState({
     totalContacts: 0,
     lastContact: null,
@@ -3130,6 +3160,36 @@ const ContactsPipelineHub = () => {
                             >
                               {contact.firstName} {contact.lastName}
                             </Typography>
+                            {/* Service Plan Badge (v2.0) */}
+                            {(() => {
+                              const planBadge = getPlanBadgeInfo(contact);
+                              if (!planBadge) return null;
+                              return (
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
+                                  <Chip
+                                    label={planBadge.label}
+                                    size="small"
+                                    sx={{
+                                      height: 18,
+                                      fontSize: 10,
+                                      bgcolor: planBadge.color,
+                                      color: 'white',
+                                      fontWeight: 'bold'
+                                    }}
+                                  />
+                                  {planBadge.hasMinimumTerm && planBadge.status === 'active' && (
+                                    <Tooltip title={`${planBadge.monthsCompleted}/${planBadge.minimumTermMonths} months completed`}>
+                                      <Chip
+                                        label={`${planBadge.monthsCompleted}/${planBadge.minimumTermMonths}m`}
+                                        size="small"
+                                        variant="outlined"
+                                        sx={{ height: 18, fontSize: 9 }}
+                                      />
+                                    </Tooltip>
+                                  )}
+                                </Box>
+                              );
+                            })()}
                             {contact.tags && contact.tags.length > 0 && (
                               <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5 }}>
                                 {contact.tags.slice(0, 2).map(tag => (
@@ -3208,6 +3268,21 @@ const ContactsPipelineHub = () => {
                         <IconButton size="small" onClick={() => handleEditContact(contact)}>
                           <Edit size={16} />
                         </IconButton>
+                        {/* Cancel Service Button - Only for active clients with service plan */}
+                        {(contact.status === 'active' || contact.primaryRole === 'client') && contact.servicePlanId && (
+                          <Tooltip title="Cancel Service">
+                            <IconButton
+                              size="small"
+                              onClick={() => {
+                                setClientToCancel(contact);
+                                setCancellationDialogOpen(true);
+                              }}
+                              color="warning"
+                            >
+                              <XCircle size={16} />
+                            </IconButton>
+                          </Tooltip>
+                        )}
                         <IconButton size="small" onClick={() => handleDeleteContact(contact.id)} color="error">
                           <Delete size={16} />
                         </IconButton>
@@ -5411,6 +5486,44 @@ const renderAddEditContact = () => (
         onFieldFocus={setFocusedField}
         showProactively={true}
       />
+
+      {/* Cancellation Manager Dialog (v2.0 Service Plans) */}
+      <Dialog
+        open={cancellationDialogOpen}
+        onClose={() => {
+          setCancellationDialogOpen(false);
+          setClientToCancel(null);
+        }}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogContent sx={{ p: 0 }}>
+          {clientToCancel && (
+            <CancellationManager
+              client={clientToCancel}
+              onComplete={(result) => {
+                if (result?.success) {
+                  // Refresh the contact list
+                  setSnackbar({
+                    open: true,
+                    message: 'Client cancellation processed successfully',
+                    severity: 'success'
+                  });
+                  // Close dialog
+                  setCancellationDialogOpen(false);
+                  setClientToCancel(null);
+                  // Reload contacts
+                  // Note: Implement a reload function if needed
+                }
+              }}
+              onClose={() => {
+                setCancellationDialogOpen(false);
+                setClientToCancel(null);
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 };

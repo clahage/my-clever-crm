@@ -348,32 +348,16 @@ const US_STATES = [
   { code: 'DC', name: 'District of Columbia' },
 ];
 
-const SERVICE_PLANS = [
-  {
-    id: 'essential',
-    name: 'Essential',
-    price: 99,
-    description: 'Great for minor credit issues',
-    features: ['3 Bureau Monitoring', '3 Disputes/Month', 'Email Support', 'Monthly Reports'],
-    popular: false,
-  },
-  {
-    id: 'professional',
-    name: 'Professional',
-    price: 149,
-    description: 'Our most popular plan',
-    features: ['Everything in Essential', '6 Disputes/Month', 'Priority Support', 'Weekly Reports', 'AI Recommendations'],
-    popular: true,
-  },
-  {
-    id: 'vip',
-    name: 'VIP Platinum',
-    price: 199,
-    description: 'Maximum results, fastest timeline',
-    features: ['Everything in Professional', 'Unlimited Disputes', '24/7 Phone Support', 'Daily Monitoring', 'Personal Advisor', 'Credit Building Tools'],
-    popular: false,
-  },
-];
+// Import service plans from constants (4 optimized plans with business terms)
+import {
+  SERVICE_PLANS as IMPORTED_PLANS,
+  getPlansForDisplay,
+  getPlanById,
+  getPlanTermRequirements
+} from '../../constants/servicePlans';
+
+// Use imported plans for display
+const SERVICE_PLANS = getPlansForDisplay();
 
 const ANALYSIS_STEPS = [
   { id: 1, text: 'Connecting to credit bureaus...', duration: 2000 },
@@ -447,8 +431,13 @@ const SOCIAL_PROOF_CITIES = [
   const [signatureData, setSignatureData] = useState(null);
 
   // Plan & Payment
-  const [selectedPlan, setSelectedPlan] = useState('professional');
+  const [selectedPlan, setSelectedPlan] = useState('standard');
   const [paymentComplete, setPaymentComplete] = useState(false);
+
+  // NEW: Terms Acceptance State (v2.0)
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [termsDialogOpen, setTermsDialogOpen] = useState(false);
+  const [termsData, setTermsData] = useState(null);
 
   // Social proof
   const [showSocialProof, setShowSocialProof] = useState(false);
@@ -2733,112 +2722,316 @@ useEffect(() => {
     );
   };
 
-  const renderPhase6 = () => (
-    <Fade in timeout={500}>
-      <Box>
-        <Typography variant="h4" fontWeight={700} gutterBottom>
-          Choose Your Plan
-        </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-          Select the credit repair program that best fits your needs.
-        </Typography>
+  // Handler for terms acceptance
+  const handleTermsAccept = (data) => {
+    setTermsData(data);
+    setTermsAccepted(true);
+    setTermsDialogOpen(false);
+    // Proceed to payment after terms accepted
+    setCurrentPhase(7);
+  };
 
-        <Grid container spacing={3}>
-          {SERVICE_PLANS.map((plan) => (
-            <Grid item xs={12} md={4} key={plan.id}>
-              <Card
-                sx={{
-                  height: '100%',
-                  cursor: 'pointer',
-                  border: selectedPlan === plan.id ? '3px solid #2196F3' : '1px solid #ddd',
-                  boxShadow: selectedPlan === plan.id ? '0 8px 24px rgba(33, 150, 243, 0.3)' : 1,
-                  position: 'relative',
-                  transition: 'all 0.3s ease',
-                  '&:hover': { transform: 'translateY(-4px)' },
-                }}
-                onClick={() => handlePlanSelect(plan.id)}
-              >
-                {plan.popular && (
-                  <Chip
-                    label="Most Popular"
-                    color="primary"
+  // Handler for continuing to payment (with terms check)
+  const handleContinueToPayment = () => {
+    const plan = getPlanById(selectedPlan);
+    const termReqs = getPlanTermRequirements(selectedPlan);
+
+    // If plan has special terms, show dialog first
+    if (termReqs.hasSpecialTerms && !termsAccepted) {
+      setTermsDialogOpen(true);
+    } else {
+      // No special terms or already accepted, proceed to payment
+      setCurrentPhase(7);
+    }
+  };
+
+  const renderPhase6 = () => {
+    const selectedPlanData = getPlanById(selectedPlan) || SERVICE_PLANS.find(p => p.popular);
+    const termReqs = getPlanTermRequirements(selectedPlan);
+
+    return (
+      <Fade in timeout={500}>
+        <Box>
+          <Typography variant="h4" fontWeight={700} gutterBottom>
+            Choose Your Plan
+          </Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+            Select the credit repair program that best fits your needs.
+          </Typography>
+
+          <Grid container spacing={3}>
+            {SERVICE_PLANS.map((plan) => {
+              const hasSpecialTerms = plan.hasMinimumTerm || plan.setupFee > 0 || plan.postCancellationAccessDays > 0;
+
+              return (
+                <Grid item xs={12} sm={6} md={3} key={plan.id}>
+                  <Card
                     sx={{
-                      position: 'absolute',
-                      top: -12,
-                      left: '50%',
-                      transform: 'translateX(-50%)',
+                      height: '100%',
+                      cursor: 'pointer',
+                      border: selectedPlan === plan.id ? '3px solid #2196F3' : '1px solid #ddd',
+                      boxShadow: selectedPlan === plan.id ? '0 8px 24px rgba(33, 150, 243, 0.3)' : 1,
+                      position: 'relative',
+                      transition: 'all 0.3s ease',
+                      '&:hover': { transform: 'translateY(-4px)' },
                     }}
-                  />
-                )}
-                <CardContent sx={{ textAlign: 'center', pt: plan.popular ? 4 : 3 }}>
-                  <Typography variant="h5" fontWeight={700}>
-                    {plan.name}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    {plan.description}
-                  </Typography>
-                  <Typography variant="h3" fontWeight={700} color="primary">
-                    ${plan.price}
-                    <Typography component="span" variant="body1" color="text.secondary">
-                      /mo
-                    </Typography>
-                  </Typography>
-                  <Divider sx={{ my: 2 }} />
-                  <List dense>
-                    {plan.features.map((feature, index) => (
-                      <ListItem key={index} sx={{ py: 0.5 }}>
-                        <ListItemIcon sx={{ minWidth: 32 }}>
-                          <CheckIcon color="success" fontSize="small" />
-                        </ListItemIcon>
-                        <ListItemText primary={feature} />
-                      </ListItem>
-                    ))}
-                  </List>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
+                    onClick={() => {
+                      setSelectedPlan(plan.id);
+                      setTermsAccepted(false); // Reset terms when plan changes
+                    }}
+                  >
+                    {plan.badge && (
+                      <Chip
+                        label={plan.badge}
+                        color={plan.badgeColor || 'primary'}
+                        size="small"
+                        sx={{
+                          position: 'absolute',
+                          top: -12,
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          fontWeight: 'bold',
+                        }}
+                      />
+                    )}
+                    <CardContent sx={{ textAlign: 'center', pt: plan.badge ? 4 : 3 }}>
+                      <Typography variant="h5" fontWeight={700}>
+                        {plan.name}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2, minHeight: 40 }}>
+                        {plan.tagline || plan.description}
+                      </Typography>
 
-        {/* Billing Day Selection */}
-        <Card sx={{ mt: 4, p: 3 }}>
-          <Typography variant="h6" gutterBottom>
-            Preferred Billing Day
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Select which day of the month you'd like to be billed
-          </Typography>
-          <Slider
-            value={formData.billingDay || 1}
-            onChange={(e, value) => setFormData((prev) => ({ ...prev, billingDay: value }))}
-            min={1}
-            max={28}
-            marks={[
-              { value: 1, label: '1st' },
-              { value: 7, label: '7th' },
-              { value: 15, label: '15th' },
-              { value: 21, label: '21st' },
-              { value: 28, label: '28th' },
-            ]}
-            valueLabelDisplay="on"
-            sx={{ maxWidth: 500, mx: 'auto', display: 'block' }}
-          />
-        </Card>
+                      {/* Price Display */}
+                      {plan.id === 'pay-for-delete' ? (
+                        <Box>
+                          <Typography variant="h3" fontWeight={700} color="primary">
+                            $0
+                            <Typography component="span" variant="body1" color="text.secondary">
+                              /mo
+                            </Typography>
+                          </Typography>
+                          <Typography variant="body2" color="primary.main" fontWeight="medium">
+                            + {plan.perDeleteDisplay}/deletion
+                          </Typography>
+                          {plan.setupFee > 0 && (
+                            <Chip label={`${plan.setupFeeDisplay} setup`} size="small" color="warning" sx={{ mt: 1 }} />
+                          )}
+                        </Box>
+                      ) : (
+                        <Box>
+                          <Typography variant="h3" fontWeight={700} color="primary">
+                            {plan.priceDisplay}
+                            <Typography component="span" variant="body1" color="text.secondary">
+                              /mo
+                            </Typography>
+                          </Typography>
+                          {plan.setupFee > 0 && (
+                            <Chip label={`+ ${plan.setupFeeDisplay} setup`} size="small" color="warning" sx={{ mt: 1 }} />
+                          )}
+                        </Box>
+                      )}
 
-        <Box sx={{ mt: 4, display: 'flex', justifyContent: 'space-between' }}>
-          <Button onClick={() => setCurrentPhase(5)} startIcon={<ArrowBackIcon />}>
-            Back
-          </Button>
-          <GlowingButton
-            onClick={() => setCurrentPhase(7)}
-            endIcon={<ArrowForwardIcon />}
+                      {/* Special Terms Indicator */}
+                      {hasSpecialTerms && (
+                        <Alert severity="info" sx={{ mt: 2, py: 0.5, textAlign: 'left' }} icon={<InfoIcon fontSize="small" />}>
+                          <Typography variant="caption" component="div">
+                            {plan.hasMinimumTerm && <strong>{plan.minimumTermDisplay} minimum</strong>}
+                            {plan.postCancellationAccessDays > 0 && (
+                              <div><strong>{plan.postCancellationAccessDays}-day post-cancel access</strong></div>
+                            )}
+                          </Typography>
+                        </Alert>
+                      )}
+
+                      <Divider sx={{ my: 2 }} />
+                      <List dense sx={{ textAlign: 'left' }}>
+                        {plan.features.slice(0, 6).map((feature, index) => (
+                          <ListItem key={index} sx={{ py: 0.25, px: 0 }}>
+                            <ListItemIcon sx={{ minWidth: 28 }}>
+                              <CheckIcon color="success" fontSize="small" />
+                            </ListItemIcon>
+                            <ListItemText
+                              primary={feature}
+                              primaryTypographyProps={{ variant: 'caption' }}
+                            />
+                          </ListItem>
+                        ))}
+                      </List>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              );
+            })}
+          </Grid>
+
+          {/* Billing Day Selection */}
+          <Card sx={{ mt: 4, p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Preferred Billing Day
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Select which day of the month you'd like to be billed
+            </Typography>
+            <Slider
+              value={formData.billingDay || 1}
+              onChange={(e, value) => setFormData((prev) => ({ ...prev, billingDay: value }))}
+              min={1}
+              max={28}
+              marks={[
+                { value: 1, label: '1st' },
+                { value: 7, label: '7th' },
+                { value: 15, label: '15th' },
+                { value: 21, label: '21st' },
+                { value: 28, label: '28th' },
+              ]}
+              valueLabelDisplay="on"
+              sx={{ maxWidth: 500, mx: 'auto', display: 'block' }}
+            />
+          </Card>
+
+          {/* Terms Accepted Indicator */}
+          {termsAccepted && termReqs.hasSpecialTerms && (
+            <Alert severity="success" sx={{ mt: 3 }} icon={<CheckIcon />}>
+              <AlertTitle>Terms Accepted</AlertTitle>
+              You have reviewed and accepted the terms for the {selectedPlanData?.name} plan.
+            </Alert>
+          )}
+
+          <Box sx={{ mt: 4, display: 'flex', justifyContent: 'space-between' }}>
+            <Button onClick={() => setCurrentPhase(5)} startIcon={<ArrowBackIcon />}>
+              Back
+            </Button>
+            <GlowingButton
+              onClick={handleContinueToPayment}
+              endIcon={<ArrowForwardIcon />}
+            >
+              {termReqs.hasSpecialTerms && !termsAccepted ? 'Review Terms & Continue' : 'Continue to Payment'}
+            </GlowingButton>
+          </Box>
+
+          {/* Terms Dialog */}
+          <Dialog
+            open={termsDialogOpen}
+            onClose={() => setTermsDialogOpen(false)}
+            maxWidth="md"
+            fullWidth
           >
-            Continue to Payment
-          </GlowingButton>
+            <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <SecurityIcon color="primary" />
+              <Typography variant="h6" component="span">
+                {selectedPlanData?.name} Plan - Terms & Conditions
+              </Typography>
+            </DialogTitle>
+            <DialogContent dividers>
+              {/* Setup Fee Alert */}
+              {selectedPlanData?.setupFee > 0 && (
+                <Alert severity="warning" sx={{ mb: 3 }}>
+                  <AlertTitle>Setup Fee: {selectedPlanData.setupFeeDisplay}</AlertTitle>
+                  <Typography variant="body2">
+                    {selectedPlanData.setupFeeIncludes || 'Non-refundable setup fee'}
+                  </Typography>
+                  <Typography variant="body2" sx={{ mt: 1, fontWeight: 'bold' }}>
+                    This fee is NON-REFUNDABLE under all circumstances.
+                  </Typography>
+                </Alert>
+              )}
+
+              {/* Minimum Term Alert */}
+              {selectedPlanData?.hasMinimumTerm && (
+                <Alert severity="info" sx={{ mb: 3 }}>
+                  <AlertTitle>Minimum Term: {selectedPlanData.minimumTermDisplay}</AlertTitle>
+                  <Typography variant="body2" paragraph>
+                    This plan requires a {selectedPlanData.minimumTermDisplay} minimum commitment.
+                  </Typography>
+                  <Typography variant="body2" paragraph>
+                    <strong>Early Cancellation:</strong> If you cancel before {selectedPlanData.minimumTermDisplay},
+                    you must pay the remaining balance in full.
+                  </Typography>
+                  {selectedPlanData.earlyTerminationExample && (
+                    <Typography variant="body2">
+                      <strong>Example:</strong> {selectedPlanData.earlyTerminationExample}
+                    </Typography>
+                  )}
+                </Alert>
+              )}
+
+              {/* Post-Cancellation Alert */}
+              {selectedPlanData?.postCancellationAccessDays > 0 && (
+                <Alert severity="warning" sx={{ mb: 3 }}>
+                  <AlertTitle>{selectedPlanData.postCancellationAccessDays}-Day Post-Cancellation Period</AlertTitle>
+                  <Typography variant="body2" paragraph>
+                    You must maintain credit report access for <strong>{selectedPlanData.postCancellationAccessDays} days after cancellation</strong>.
+                  </Typography>
+                  <Typography variant="body2" paragraph>
+                    <strong>Why?</strong> {selectedPlanData.postCancellationAccessReason}
+                  </Typography>
+                  <Typography variant="body2">
+                    You will be charged {selectedPlanData.perDeleteDisplay} for each item that deletes during this period.
+                  </Typography>
+                </Alert>
+              )}
+
+              {/* Attorney Review (Premium) */}
+              {selectedPlanData?.includesAttorneyReview && (
+                <Alert severity="success" sx={{ mb: 3 }}>
+                  <AlertTitle>Credit Attorney Review Included</AlertTitle>
+                  <Typography variant="body2" paragraph>
+                    {selectedPlanData.attorneyReviewDescription}
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Delivery:</strong> Within {selectedPlanData.attorneyReviewDeliveryDays} days of service start
+                  </Typography>
+                </Alert>
+              )}
+
+              <Divider sx={{ my: 3 }} />
+
+              {/* Full Terms */}
+              <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
+                {selectedPlanData?.termsFull}
+              </Typography>
+
+              <Divider sx={{ my: 3 }} />
+
+              {/* Key Points */}
+              <Typography variant="subtitle2" gutterBottom fontWeight="bold">
+                Key Points:
+              </Typography>
+              <List dense>
+                {selectedPlanData?.termsHighlights?.map((highlight, index) => (
+                  <ListItem key={index} disablePadding>
+                    <ListItemIcon sx={{ minWidth: 32 }}>
+                      <CheckIcon color="primary" fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText primary={highlight} primaryTypographyProps={{ variant: 'body2' }} />
+                  </ListItem>
+                ))}
+              </List>
+            </DialogContent>
+            <DialogActions sx={{ p: 3 }}>
+              <Button onClick={() => setTermsDialogOpen(false)} variant="outlined">
+                Cancel
+              </Button>
+              <Button
+                onClick={() => handleTermsAccept({
+                  planId: selectedPlan,
+                  agreedToTerms: true,
+                  agreedAt: new Date().toISOString(),
+                  ipAddress: 'captured-by-server'
+                })}
+                variant="contained"
+                size="large"
+                startIcon={<CheckIcon />}
+              >
+                I Accept - Continue to Payment
+              </Button>
+            </DialogActions>
+          </Dialog>
         </Box>
-      </Box>
-    </Fade>
-  );
+      </Fade>
+    );
+  };
 
   const renderPhase7 = () => {
     const selectedPlanData = SERVICE_PLANS.find((p) => p.id === selectedPlan) || SERVICE_PLANS[1];

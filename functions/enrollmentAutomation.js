@@ -737,35 +737,89 @@ async function convertProspectToClient(contactId, userId, servicePlanData) {
     // ============================================
     // UPDATE: contact (prospect → client)
     // ============================================
+
+    // Determine setup fee based on plan
+    const planId = servicePlanData.planId || servicePlanData.planName?.toLowerCase().replace(/\s+/g, '-');
+    let setupFeeAmount = 0;
+    let postCancellationDays = 0;
+    let hasMinimumTerm = false;
+    let minimumTermMonths = 0;
+    let includesAttorneyReview = false;
+
+    // Plan-specific settings (matches servicePlans.js constants)
+    if (planId === 'premium') {
+      setupFeeAmount = 200;
+      hasMinimumTerm = true;
+      minimumTermMonths = 6;
+      includesAttorneyReview = true;
+    } else if (planId === 'standard') {
+      hasMinimumTerm = true;
+      minimumTermMonths = 6;
+    } else if (planId === 'pay-for-delete') {
+      setupFeeAmount = 49;
+      postCancellationDays = 45;
+    }
+    // DIY has no special requirements
+
     await db.collection('contacts').doc(contactId).update({
       // Role progression
       roles: admin.firestore.FieldValue.arrayUnion('client'),
       primaryRole: 'client',
-      
+
       // Service tracking
       serviceSelected: true,
       servicePlanId: servicePlanData.planId,
       servicePlanName: servicePlanData.planName,
       servicePlanPrice: servicePlanData.price,
       servicePlanStartDate: admin.firestore.FieldValue.serverTimestamp(),
-      
+
+      // NEW: Service plan terms tracking (v2.0)
+      serviceStartDate: admin.firestore.FieldValue.serverTimestamp(),
+      monthsCompleted: 0,
+
+      // NEW: Terms tracking
+      termsAccepted: servicePlanData.termsAccepted || false,
+      termsAcceptedAt: servicePlanData.termsAcceptedAt || null,
+      termsVersion: '2.0',
+      termsIpAddress: servicePlanData.termsIpAddress || null,
+
+      // NEW: Plan-specific tracking
+      setupFeePaid: setupFeeAmount > 0 ? (servicePlanData.setupFeePaid || false) : null,
+      setupFeeAmount: setupFeeAmount,
+      hasMinimumTerm: hasMinimumTerm,
+      minimumTermMonths: minimumTermMonths,
+      postCancellationAccessDays: postCancellationDays,
+
+      // NEW: Attorney review tracking (Premium only)
+      attorneyReviewIncluded: includesAttorneyReview,
+      attorneyReviewDelivered: includesAttorneyReview ? false : null,
+      attorneyReviewDeliveryDate: null,
+
+      // NEW: Cancellation tracking
+      status: 'active',
+      cancellationDate: null,
+      cancellationReason: null,
+      cancellationProcessedBy: null,
+      earlyTerminationFee: null,
+      postCancellationAccessEnds: null,
+
       // Contract tracking
       contractSigned: true,
       contractSignedAt: admin.firestore.FieldValue.serverTimestamp(),
       contractDocumentId: servicePlanData.contractId || null,
-      
+
       // Pipeline progression
       pipelineStage: 'client',
       pipelineStatus: 'active',
       pipelineUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      
+
       // Lifecycle tracking
       'lifecycle.clientAt': admin.firestore.FieldValue.serverTimestamp(),
-      
+
       // IDIQ tracking
       idiqSubscriptionType: 'paid',
       idiqSubscriptionStatus: 'active',
-      
+
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     });
 

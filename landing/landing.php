@@ -212,17 +212,40 @@
 							<label for="phone">
 								Phone Number <span class="required">*</span>
 							</label>
-							<input 
-								type="tel" 
-								id="phone" 
-								name="phone" 
-								placeholder="(555) 123-4567" 
+							<input
+								type="tel"
+								id="phone"
+								name="phone"
+								placeholder="(555) 123-4567"
 								required
 								autocomplete="tel"
 							>
 							<small>10 digits, no spaces or dashes</small>
 						</div>
-						
+
+						<!-- Service Plan Selection (NEW v2.0) -->
+						<div class="form-group">
+							<label for="servicePlan">
+								Preferred Service Plan <span class="required">*</span>
+							</label>
+							<select
+								id="servicePlan"
+								name="servicePlan"
+								required
+								style="width:100%;padding:12px;border:2px solid #ddd;border-radius:6px;font-size:15px;font-family:Roboto,sans-serif;box-sizing:border-box;transition:border-color 0.3s;background-color:#fff;"
+							>
+								<option value="">Choose your plan</option>
+								<option value="diy">DIY - $39/mo (Self-Service)</option>
+								<option value="standard" selected>Standard - $149/mo (MOST POPULAR - 6-month minimum)</option>
+								<option value="premium">Premium - $349/mo + $200 setup (VIP + Attorney Review - 6-month minimum)</option>
+								<option value="pay-for-delete">Pay-For-Delete - $49 setup + $149/deletion (No Risk - 45-day post-cancel access)</option>
+							</select>
+							<small style="color:#666;display:block;margin-top:4px;">
+								Standard & Premium require 6-month minimum commitment.
+								Pay-For-Delete requires 45-day credit access after cancellation.
+							</small>
+						</div>
+
 						<!-- Submit Button -->
 						<button type="submit" class="submit-btn" id="submit-btn">
 							🚀 Get My Free Credit Review
@@ -300,7 +323,8 @@
 				firstName: document.getElementById('firstName').value.trim(),
 				lastName: document.getElementById('lastName').value.trim(),
 				email: document.getElementById('email').value.trim().toLowerCase(),
-				phone: document.getElementById('phone').value.replace(/\D/g, '')
+				phone: document.getElementById('phone').value.replace(/\D/g, ''),
+				servicePlan: document.getElementById('servicePlan').value
 			};
 			
 			    console.log('📤 Sending to Firebase:', formData);
@@ -317,7 +341,8 @@
 						firstName: formData.firstName,
 						lastName: formData.lastName,
 						email: formData.email,
-						phone: formData.phone
+						phone: formData.phone,
+						servicePlan: formData.servicePlan
 					})
 				});
 				
@@ -331,9 +356,9 @@
 					submitBtn.innerHTML = '✅ Success! Redirecting to enrollment...';
 					submitBtn.style.background = '#090';
 					
-					// Redirect to enrollment form with contactId
+					// Redirect to enrollment form with contactId and plan
 					setTimeout(() => {
-						window.location.href = `https://myclevercrm.com/complete-enrollment?contactId=${result.contactId}&source=landing_page`;
+						window.location.href = `https://myclevercrm.com/complete-enrollment?contactId=${result.contactId}&plan=${formData.servicePlan}&source=landing_page`;
 					}, 1500); // 1.5 second delay so user sees success message
 					
 				} else {
