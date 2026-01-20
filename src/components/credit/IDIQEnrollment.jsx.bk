@@ -114,9 +114,9 @@ import {
   orderBy,
   limit,
 } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { db } from '../lib/firebase';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 
 // ============================================================================
 // 🔧 FIREBASE CLOUD FUNCTIONS SETUP

@@ -37,7 +37,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ROLE_HIERARCHY } from '@/layout/navConfig';
 
 // Lazy load components
-const IDIQEnrollment = lazy(() => import('../../components/credit/IDIQEnrollment'));
+const IDIQEnrollment = lazy(() => import('../../components/IDIQEnrollment'));
 const ClientCreditReport = lazy(() => import('../../components/credit/ClientCreditReport'));
 const CreditReportWorkflow = lazy(() => import('../../components/credit/CreditReportWorkflow'));
 const AIDisputeGenerator = lazy(() => import('../../components/credit/AIDisputeGenerator'));
