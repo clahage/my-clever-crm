@@ -2131,10 +2131,10 @@ function ChangeHistoryTab() {
                   label="Filter by Plan"
                 >
                   <MenuItem value="all">All Plans</MenuItem>
-                  <MenuItem value="diy">DIY Credit Repair</MenuItem>
-                  <MenuItem value="standard">Standard Plan</MenuItem>
-                  <MenuItem value="acceleration">Acceleration Plan</MenuItem>
-                  <MenuItem value="premium">Premium Attorney-Backed</MenuItem>
+                  <MenuItem value="diy">DIY Starter</MenuItem>
+                  <MenuItem value="standard">Professional</MenuItem>
+                  <MenuItem value="vip-fast-track">VIP Fast Track</MenuItem>
+                  <MenuItem value="pfd">Pay-For-Delete Only</MenuItem>
                 </Select>
               </FormControl>
             </Grid>

@@ -30,6 +30,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
     middleName: '',
     lastName: '',
     suffix: '',
+    photoIdUrl: '',
     preferredName: '',
     namePronunciation: '',
     dateOfBirth: '',
@@ -111,9 +112,11 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
       disputeHistory: [],
       negativeItems: []
     },
+
+    
     
     // Documents
-    documents: {
+  documents: {
       idReceived: false,
       idType: '',
       idNumber: '',
@@ -138,7 +141,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
     },
     
     // Household
-    household: {
+  household: {
       maritalStatus: 'single',
       spouseName: '',
       spouseSSN: '',
@@ -275,11 +278,13 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
   const [lastSaved, setLastSaved] = useState(null);
   const [dataQuality, setDataQuality] = useState({ score: 0, issues: [], blockers: [], canSave: false });
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false); // NEW: For photo uploads
   const [realtimeData, setRealtimeData] = useState(null);
   const [focusedField, setFocusedField] = useState(null);
 
   const autoSaveTimerRef = useRef(null);
   const fileInputRef = useRef(null);
+  const photoInputRef = useRef(null); // NEW: For photo uploads
 
   // Contact autosuggest hook for finding existing contacts
   const {
@@ -799,6 +804,43 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
     addTimelineEvent('password_generated', 'IDIQ password generated');
   };
 
+  // Photo Upload Handler - NEW FUNCTION ADDED
+  const handlePhotoUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    setUploadingPhoto(true);
+    addTimelineEvent('photo_upload_started', `Uploading photo ID: ${file.name}`);
+    
+    try {
+      // Create thumbnail preview immediately
+      const photoUrl = URL.createObjectURL(file);
+      
+      // Update form data with photo
+      setFormData(prev => ({
+        ...prev,
+        photoIdUrl: photoUrl,
+        documents: {
+          ...prev.documents,
+          idReceived: true,
+          idFileUrl: photoUrl,
+          idUploadDate: new Date().toISOString()
+        }
+      }));
+      
+      addTimelineEvent('photo_uploaded', `Photo ID uploaded successfully: ${file.name}`);
+      setUploadingPhoto(false);
+      
+      // In production: Upload to Firebase Storage here
+      console.log('📸 Photo uploaded locally, ready for Firebase Storage integration');
+      
+    } catch (error) {
+      console.error('Photo upload error:', error);
+      addTimelineEvent('photo_upload_failed', `Photo upload failed: ${error.message}`);
+      setUploadingPhoto(false);
+    }
+  };
+
   const handleFileUpload = async (event, docType) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -1253,6 +1295,41 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
         />
         {expandedSections.basic && (
           <div className="p-4 bg-white border border-gray-200 rounded-lg space-y-4">
+            
+            {/* ===== PHOTO ID PREVIEW - VISUAL CONFIRMATION ===== */}
+            {formData.photoIdUrl && (
+              <div className="mb-4 flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="relative">
+                  <img 
+                    src={formData.photoIdUrl} 
+                    alt="Photo ID" 
+                    className="w-20 h-20 object-cover rounded-lg border-2 border-blue-300"
+                  />
+                  <div className="absolute -top-1 -right-1 bg-green-500 text-white rounded-full p-1">
+                    <CheckCircle className="w-3 h-3" />
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-blue-900">Photo ID Uploaded</p>
+                  <p className="text-xs text-blue-700">
+                    Identity verification & reduces fraud
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm('Remove uploaded photo? You can upload a new one in the Documents section.')) {
+                      updateField('photoIdUrl', '');
+                      addTimelineEvent('photo_removed', 'Photo ID removed');
+                    }
+                  }}
+                  className="text-red-600 hover:text-red-700 p-2 hover:bg-red-50 rounded"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1472,13 +1549,18 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
                 </label>
                 <input
                   type={showSSN ? "text" : "password"}
+                  name="ssn-secure"
                   value={formatSSN(formData.ssn)}
                   onChange={(e) => handleSSNChange(e.target.value)}
                   placeholder="XXX-XX-XXXX"
                   maxLength="11"
                   autoComplete="new-password"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck="false"
                   data-lpignore="true"
                   data-form-type="other"
+                  data-1p-ignore="true"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono"
                 />
                 {formData.ssnLast4 && (
@@ -2385,7 +2467,15 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
                   className="rounded border-gray-300"
                 />
                 <FileText className="w-5 h-5 text-blue-600" />
-                <span className="text-sm font-medium flex-1">Photo ID (Driver's License, Passport, State ID)</span>
+                <div className="flex-1 flex items-center gap-2">
+                  <span className="text-sm font-medium">Photo ID (Driver's License, Passport, State ID)</span>
+                  {formData.photoIdUrl && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
+                      <Upload className="w-3 h-3" />
+                      Photo Uploaded
+                    </span>
+                  )}
+                </div>
                 {formData.documents.idReceived && (
                   <span className="text-xs text-green-600 flex items-center gap-1">
                     <CheckCircle className="w-3 h-3" /> Received

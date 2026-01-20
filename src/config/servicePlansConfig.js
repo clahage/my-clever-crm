@@ -50,7 +50,7 @@ export const defaultServicePlans = [
     // Pricing structure
     pricing: {
       monthly: 39,
-      setupFee: 0,
+      setupFee: 69,
       perDeletion: 0,
       contractMonths: 0, // Month-to-month, no contract required
       currency: 'USD',
@@ -76,7 +76,8 @@ export const defaultServicePlans = [
       'Client portal access',
       'Self-service dispute tools',
       'Progress tracking',
-      'Cancel anytime (no contract)'
+      'Cancel anytime (no contract)',
+'IDIQ subscription required: $21.86/month (maintained up to 45 days from service end)'
     ],
     featuresEs: [
       'Plantillas de cartas de disputa generadas por IA',
@@ -86,7 +87,8 @@ export const defaultServicePlans = [
       'Acceso al portal del cliente',
       'Herramientas de disputa de autoservicio',
       'Seguimiento de progreso',
-      'Cancelar en cualquier momento (sin contrato)'
+      'Cancelar en cualquier momento (sin contrato)',
+'Suscripción IDIQ requerida: $21.86/mes (mantenida hasta 45 días desde el final del servicio)'
     ],
 
     // Target audience and ideal use cases
@@ -324,8 +326,8 @@ export const defaultServicePlans = [
       ]
     },
 
-    description: 'Results-based pricing - only pay for successful deletions',
-    descriptionEs: 'Precios basados en resultados - solo pague por eliminaciones exitosas',
+    description: 'Results-based pricing - only pay for successful deletions with $69 setup fee',
+    descriptionEs: 'Precios basados en resultados - solo pague por eliminaciones exitosas con tarifa de configuración de $69',
 
     features: [
       'No monthly fees - pay only for results',
@@ -335,7 +337,9 @@ export const defaultServicePlans = [
       'Credit monitoring included',
       'No risk - no deletions, no charge',
       'Transparent pricing per deletion',
-      'Flexible contract - cancel anytime'
+      'Flexible contract - cancel anytime',
+      '$69 setup fee',
+      'IDIQ subscription required: $21.86/month (maintained up to 45 days from service end or cancellation)'
     ],
     featuresEs: [
       'Sin tarifas mensuales - pague solo por resultados',
@@ -345,7 +349,9 @@ export const defaultServicePlans = [
       'Monitoreo de crédito incluido',
       'Sin riesgo - sin eliminaciones, sin cargo',
       'Precios transparentes por eliminación',
-      'Contrato flexible - cancelar en cualquier momento'
+      'Contrato flexible - cancelar en cualquier momento',
+      'Tarifa de configuración de $69',
+      'Suscripción IDIQ requerida: $21.86/mes (mantenida hasta 45 días desde el final del servicio o cancelación)'
     ],
 
     targetAudience: 'risk_averse',

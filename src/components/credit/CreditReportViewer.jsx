@@ -331,6 +331,10 @@ const CreditReportViewer = ({ reportId: propReportId, contactId: propContactId, 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { currentUser, userProfile } = useAuth();
+  // Early validation - graceful handling of missing parameters
+if (!propReportId && !propContactId) {
+  console.warn('[CreditReportViewer] Component rendered without required parameters');
+}
 
   // ===== STATE MANAGEMENT =====
   const [report, setReport] = useState(null);
@@ -377,12 +381,16 @@ const CreditReportViewer = ({ reportId: propReportId, contactId: propContactId, 
           const snapshot = await getDocs(reportsQuery);
 
           if (snapshot.empty) {
-            throw new Error('No credit reports found for this contact');
-          }
+  setError('Please select a client to view their credit report.');
+  setLoading(false);
+  return;
+}
 
           reportDoc = snapshot.docs[0];
         } else {
-          throw new Error('No report ID or contact ID provided');
+          console.warn('[CreditReportViewer] No report ID or contact ID provided');
+setError('Please select a client to view their credit report.');
+return;
         }
 
         const reportData = {
