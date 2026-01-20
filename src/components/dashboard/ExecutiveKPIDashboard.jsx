@@ -138,9 +138,9 @@ export default function ExecutiveKPIDashboard() {
     setLoading(true);
     setError(null);
     try {
-      // Query Firestore directly - removed old Cloud Function calls
-      console.error('Error loading KPIs from Cloud Functions, using fallback data:', err);
-      // Fallback: Load data directly from Firestore collections
+  // Query Firestore directly - removed old Cloud Function calls
+  console.log('Loading KPIs directly from Firestore collections');
+  // Fallback: Load data directly from Firestore collections
       try {
         // Using imports from top of file
 

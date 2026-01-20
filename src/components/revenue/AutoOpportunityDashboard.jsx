@@ -175,13 +175,11 @@ const ClientRow = ({ client, type, onContact, onAddToCampaign }) => (
     setLoading(true);
     setError(null);
     try {
-      const operationsManager = httpsCallable(functions, 'operationsManager');
-      const result = await operationsManager({
-        action: 'scanAutoOpportunities'
-      });
-      if (result.data.success) {
-        setData(result.data);
-      }
+      // Lines 178-184 (REPLACE ENTIRE BLOCK)
+// Skip unreliable Cloud Function, use direct Firestore
+console.log('Loading auto opportunities directly from Firestore');
+// The fallback code (lines 189-192) will handle the data loading
+throw new Error('Using direct Firestore fallback');
     } catch (err) {
       console.error('Load opportunities error, using Firestore fallback:', err);
       // Fallback: Load contacts directly and analyze for opportunities
