@@ -181,6 +181,16 @@ import {
 } from '@/services/enrollmentTrackingService';
 import ViewCreditReportButton from '../credit/ViewCreditReportButton';
 
+// ===== PHONE CORRUPTION DETECTION IMPORTS =====
+import { 
+  detectAndCorrectPhoneCorruption,
+  processContactPhoneData,
+  processLandingPageData,
+  getPhoneForIDIQEnrollment,
+  createPhoneCorrectionNotification,
+  trackPhoneCorruption
+} from '@/utils/phoneCorruptionFix';
+
 // ============================================================================
 // AUTOSAVE CONSTANTS
 // ============================================================================
@@ -587,6 +597,11 @@ const CompleteEnrollmentFlow = ({
   const [crmContactData, setCrmContactData] = useState(null);
   const [crmContactLoading, setCrmContactLoading] = useState(false);
 
+  // ===== NEW: PHONE CORRUPTION DETECTION STATE =====
+  const [phoneCorrectionInfo, setPhoneCorrectionInfo] = useState(null);
+  const [showPhoneCorrectionAlert, setShowPhoneCorrectionAlert] = useState(false);
+
+
   // ===== FIREBASE FUNCTIONS =====
   const functions = getFunctions();
   const idiqService = httpsCallable(functions, 'idiqService');
@@ -792,22 +807,45 @@ const CompleteEnrollmentFlow = ({
             setCrmContactData(data);
             setContactId(preFilledContactId);
             
-            // Pre-fill form with contact data
+            // ===== PHONE CORRUPTION DETECTION FOR CRM CONTACT =====
+            const processedContactData = processContactPhoneData(data);
+            
+            // Check if phone was corrected
+            if (processedContactData.phoneCorruption?.corrected) {
+              console.log('🔧 Phone corruption fixed for contact:', preFilledContactId);
+              
+              // Show user notification
+              setPhoneCorrectionInfo(createPhoneCorrectionNotification({
+                corrected: true,
+                message: processedContactData.phoneCorruption.message
+              }));
+              setShowPhoneCorrectionAlert(true);
+              
+              // Track the correction
+              trackPhoneCorruption({
+                corrected: true,
+                original: processedContactData.phoneOriginal,
+                formatted: processedContactData.phone,
+                message: processedContactData.phoneCorruption.message
+              }, 'contact_preload');
+            }
+
+            // Pre-fill form with contact data (using processed data)
             setFormData(prev => ({
               ...prev,
-              firstName: data.firstName || prev.firstName,
-              middleName: data.middleName || prev.middleName,
-              lastName: data.lastName || prev.lastName,
-              email: data.email || prev.email,
-              phone: data.phone || prev.phone,
-              carrier: data.carrier || prev.carrier,
-              street: data.address?.street || data.street || prev.street,
-              city: data.address?.city || data.city || prev.city,
-              state: data.address?.state || data.state || prev.state,
-              zip: data.address?.zip || data.zipCode || data.zip || prev.zip,
-              dateOfBirth: data.dateOfBirth || prev.dateOfBirth,
-              employer: data.employer || prev.employer,
-              income: data.income || prev.income,
+              firstName: processedContactData.firstName || prev.firstName,
+              middleName: processedContactData.middleName || prev.middleName,
+              lastName: processedContactData.lastName || prev.lastName,
+              email: processedContactData.email || prev.email,
+              phone: processedContactData.phone || prev.phone, // This is now corrected!
+              carrier: processedContactData.carrier || prev.carrier,
+              street: processedContactData.address?.street || processedContactData.street || prev.street,
+              city: processedContactData.address?.city || processedContactData.city || prev.city,
+              state: processedContactData.address?.state || processedContactData.state || prev.state,
+              zip: processedContactData.address?.zip || processedContactData.zipCode || processedContactData.zip || prev.zip,
+              dateOfBirth: processedContactData.dateOfBirth || prev.dateOfBirth,
+              employer: processedContactData.employer || prev.employer,
+              income: processedContactData.income || prev.income,
               source: 'crm_enrollment',
             }));
             
@@ -834,22 +872,46 @@ const CompleteEnrollmentFlow = ({
     
     const cleanup = createIframeListener((data) => {
       console.log('📨 Received data from landing page:', data);
+      
+      // ===== PROCESS LANDING PAGE DATA WITH PHONE FIX =====
+      const processedLandingData = processLandingPageData(data);
+      
+      // Check if phone was corrected from landing page
+      if (processedLandingData.landingPageCorruption) {
+        console.log('🌐 Phone corruption fixed from landing page');
+        
+        // Show user notification
+        setPhoneCorrectionInfo(createPhoneCorrectionNotification({
+          corrected: true,
+          message: processedLandingData.correctionMessage
+        }));
+        setShowPhoneCorrectionAlert(true);
+        
+        // Track the correction
+        trackPhoneCorruption({
+          corrected: true,
+          original: processedLandingData.phoneOriginal,
+          formatted: processedLandingData.phone,
+          message: processedLandingData.correctionMessage
+        }, 'landing_page');
+      }
+      
       setFormData((prev) => ({
         ...prev,
-        firstName: data.firstName || prev.firstName,
-        middleName: data.middleName || prev.middleName,
-        lastName: data.lastName || prev.lastName,
-        email: data.email || prev.email,
-        phone: data.phone || prev.phone,
-        carrier: data.carrier || prev.carrier,
-        street: data.street || prev.street,
-        city: data.city || prev.city,
-        state: data.state || prev.state,
-        zip: data.zip || prev.zip,
+        firstName: processedLandingData.firstName || prev.firstName,
+        middleName: processedLandingData.middleName || prev.middleName,
+        lastName: processedLandingData.lastName || prev.lastName,
+        email: processedLandingData.email || prev.email,
+        phone: processedLandingData.phone || prev.phone, // CORRECTED PHONE!
+        carrier: processedLandingData.carrier || prev.carrier,
+        street: processedLandingData.street || prev.street,
+        city: processedLandingData.city || prev.city,
+        state: processedLandingData.state || prev.state,
+        zip: processedLandingData.zip || prev.zip,
         source: 'landing_page',
-        utmSource: data.utmSource || prev.utmSource,
-        utmMedium: data.utmMedium || prev.utmMedium,
-        utmCampaign: data.utmCampaign || prev.utmCampaign,
+        utmSource: processedLandingData.utmSource || prev.utmSource,
+        utmMedium: processedLandingData.utmMedium || prev.utmMedium,
+        utmCampaign: processedLandingData.utmCampaign || prev.utmCampaign,
       }));
     });
 
@@ -867,18 +929,41 @@ const CompleteEnrollmentFlow = ({
         const data = event.data.data;
         console.log('✅ Processing enrollment data:', data);
         
+        // ===== PROCESS LANDING PAGE DATA WITH PHONE FIX =====
+        const processedLandingData = processLandingPageData(data);
+        
+        // Check if phone was corrected from landing page
+        if (processedLandingData.landingPageCorruption) {
+          console.log('🌐 Phone corruption fixed from postMessage');
+          
+          // Show user notification
+          setPhoneCorrectionInfo(createPhoneCorrectionNotification({
+            corrected: true,
+            message: processedLandingData.correctionMessage
+          }));
+          setShowPhoneCorrectionAlert(true);
+          
+          // Track the correction
+          trackPhoneCorruption({
+            corrected: true,
+            original: processedLandingData.phoneOriginal,
+            formatted: processedLandingData.phone,
+            message: processedLandingData.correctionMessage
+          }, 'landing_page_postmessage');
+        }
+        
         setFormData((prev) => ({
           ...prev,
-          firstName: data.firstName || prev.firstName,
-          middleName: data.middleName || prev.middleName,
-          lastName: data.lastName || prev.lastName,
-          email: data.email || prev.email,
-          phone: data.phone || prev.phone,
-          carrier: data.carrier || prev.carrier,
-          street: data.street || prev.street,
-          city: data.city || prev.city,
-          state: data.state || prev.state,
-          zip: data.zip || prev.zip,
+          firstName: processedLandingData.firstName || prev.firstName,
+          middleName: processedLandingData.middleName || prev.middleName,
+          lastName: processedLandingData.lastName || prev.lastName,
+          email: processedLandingData.email || prev.email,
+          phone: processedLandingData.phone || prev.phone, // CORRECTED PHONE!
+          carrier: processedLandingData.carrier || prev.carrier,
+          street: processedLandingData.street || prev.street,
+          city: processedLandingData.city || prev.city,
+          state: processedLandingData.state || prev.state,
+          zip: processedLandingData.zip || prev.zip,
           source: 'landing_page',
         }));
         
@@ -1179,7 +1264,17 @@ const CompleteEnrollmentFlow = ({
 
   const startCreditAnalysis = async () => {
     const cleanSSN = formData.ssn.replace(/\D/g, '');
-    const cleanPhone = formData.phone.replace(/\D/g, '');
+    
+    // ===== USE CLEANED PHONE FOR IDIQ =====
+    const cleanPhone = getPhoneForIDIQEnrollment(formData.phone);
+    
+    if (!cleanPhone) {
+      setError('Invalid phone number format. Please check and try again.');
+      setLoading(false);
+      return;
+    }
+    
+    console.log('📞 Using cleaned phone for IDIQ enrollment:', cleanPhone);
     
     setAnalysisProgress(0);
     setCurrentAnalysisStep(0);
@@ -1201,7 +1296,7 @@ const CompleteEnrollmentFlow = ({
           middleName: formData.middleName,
           lastName: formData.lastName,
           email: formData.email,
-          phone: cleanPhone,
+          phone: cleanPhone, // ===== USING CLEANED PHONE =====
           password: formData.password,
           dateOfBirth: formData.dateOfBirth,
           ssn: cleanSSN,
@@ -2096,6 +2191,17 @@ const CompleteEnrollmentFlow = ({
       <Box>
         {/* CRM Mode Header */}
         {renderCRMHeader()}
+        {/* Phone Correction Alert */}
+        {showPhoneCorrectionAlert && phoneCorrectionInfo && (
+          <Alert 
+            severity="success" 
+            onClose={() => setShowPhoneCorrectionAlert(false)}
+            sx={{ mb: 2 }}
+          >
+            <AlertTitle>{phoneCorrectionInfo.title}</AlertTitle>
+            {phoneCorrectionInfo.message}
+          </Alert>
+        )}
         
         {/* CRM Loading State */}
         {crmContactLoading && (
@@ -2204,9 +2310,30 @@ const CompleteEnrollmentFlow = ({
                 <TextField
                   fullWidth
                   label="Phone Number"
+                  type="tel"
                   value={formData.phone}
-                  onChange={handleFormChange('phone')}
+                  onChange={(e) => {
+                    const newPhone = e.target.value;
+                    
+                    // ===== PHONE CORRUPTION DETECTION =====
+                    const phoneResult = detectAndCorrectPhoneCorruption(newPhone);
+                    
+                    // Use corrected phone if correction was made
+                    const phoneToSet = phoneResult.corrected ? phoneResult.formatted : newPhone;
+                    
+                    handleFormChange('phone')({ target: { value: phoneToSet } });
+                    
+                    // Show correction notification if needed
+                    if (phoneResult.corrected && !showPhoneCorrectionAlert) {
+                      setPhoneCorrectionInfo(createPhoneCorrectionNotification(phoneResult));
+                      setShowPhoneCorrectionAlert(true);
+                      trackPhoneCorruption(phoneResult, 'manual_entry');
+                    }
+                  }}
                   required
+                  placeholder="Enter your phone number"
+                  helperText="10-digit US phone number"
+                  autoComplete="tel"
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
