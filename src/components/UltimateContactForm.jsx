@@ -9,8 +9,9 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Phone, Mail, MapPin, FileText, CreditCard, Users, Bell, Plus, X, ChevronDown, ChevronUp, Mic, Eye, EyeOff, Brain, Clock, Globe, MessageSquare, Activity, Upload, Download, Search, AlertCircle, CheckCircle, TrendingUp, Zap, Shield, Star, Target, Calendar, DollarSign, Briefcase, Home } from 'lucide-react';
-import { db } from '../lib/firebase';
+import { db, storage } from '../lib/firebase';
 import { collection, addDoc, updateDoc, doc, onSnapshot, query, where, orderBy, limit, getDocs, serverTimestamp } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 // AI-Guided Form System imports
 import VoiceMicButton from './voice/VoiceMicButton';
@@ -661,26 +662,8 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
     autoSaveTimerRef.current = setTimeout(async () => {
       setAutoSaving(true);
       try {
-        // ===== AUTO-ASSIGN 'LEAD' ROLE DURING AUTO-SAVE =====
-        const hasName = formData.firstName && formData.lastName;
-        const hasPhone = formData.phones.some(p => p.number && p.number.replace(/\D/g, '').length >= 10);
-        const hasEmail = formData.emails.some(e => e.address && e.address.includes('@'));
-        const hasContactMethod = hasPhone || hasEmail;
-        
-        // Auto-add 'lead' role if qualified and not already present
-        let updatedRoles = [...(formData.roles || ['contact'])];
-        if (hasName && hasContactMethod && !updatedRoles.includes('lead')) {
-          updatedRoles.push('lead');
-          console.log('✅ AUTO-SAVE: AUTO-ASSIGNED LEAD ROLE:', {
-            name: `${formData.firstName} ${formData.lastName}`,
-            phone: hasPhone,
-            email: hasEmail
-          });
-        }
-        
         await updateDoc(doc(db, 'contacts', contactId), {
           ...formData,
-          roles: updatedRoles,  // ← USE UPDATED ROLES
           lastSavedAt: new Date().toISOString(),
           lastSavedBy: 'auto-save'
         });
@@ -866,17 +849,31 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
     setUploadingFile(true);
     addTimelineEvent('file_upload_started', `Uploading ${docType}: ${file.name}`);
     
-    // In production: upload to Firebase Storage
-    // For now, simulate upload
-    setTimeout(() => {
-      const fileUrl = `https://storage.example.com/${file.name}`;
+    try {
+      // ===== REAL FIREBASE STORAGE UPLOAD =====
+      // Create unique filename with timestamp
+      const timestamp = Date.now();
+      const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const storagePath = `contact-documents/${contactId || 'temp'}/${docType}_${timestamp}_${sanitizedFileName}`;
       
+      // Create storage reference
+      const storageRef = ref(storage, storagePath);
+      
+      // Upload file to Firebase Storage
+      console.log('📤 Uploading to Firebase Storage:', storagePath);
+      await uploadBytes(storageRef, file);
+      
+      // Get download URL
+      const fileUrl = await getDownloadURL(storageRef);
+      console.log('✅ File uploaded successfully:', fileUrl);
+      
+      // Update form data based on document type
       switch(docType) {
         case 'id':
           updateNestedField('documents', 'idReceived', true);
           updateNestedField('documents', 'idFileUrl', fileUrl);
           updateNestedField('documents', 'idUploadDate', new Date().toISOString());
-          // ✅ ALSO update photoIdUrl so thumbnail displays
+          // ALSO update photoIdUrl so thumbnail displays
           updateField('photoIdUrl', fileUrl);
           console.log('✅ Photo ID uploaded, thumbnail should display:', fileUrl);
           break;
@@ -893,7 +890,13 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
       
       addTimelineEvent('file_uploaded', `${docType} uploaded successfully: ${file.name}`);
       setUploadingFile(false);
-    }, 1500);
+      
+    } catch (error) {
+      console.error('❌ File upload failed:', error);
+      addTimelineEvent('file_upload_failed', `Failed to upload ${docType}: ${error.message}`);
+      setUploadingFile(false);
+      alert(`Upload failed: ${error.message}`);
+    }
   };
 
   const calculateEngagementScore = () => {
@@ -928,6 +931,65 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
     
     return Math.min(100, Math.round(score));
   };
+
+  // ===== CALCULATE LEAD SCORE BASED ON PROFILE DATA =====
+  const calculateLeadScore = () => {
+    let score = 3; // Base score
+    
+    // +1 for complete name
+    if (formData.firstName && formData.lastName) score += 1;
+    
+    // +1 for contact info
+    const hasPhone = formData.phones.some(p => p.number && p.number.replace(/\D/g, '').length >= 10);
+    const hasEmail = formData.emails.some(e => e.address && e.address.includes('@'));
+    if (hasPhone && hasEmail) score += 1;
+    else if (hasPhone || hasEmail) score += 0.5;
+    
+    // +1 for employment info
+    if (formData.employment.status === 'employed' && formData.employment.monthlyIncome) {
+      score += 1;
+      // Bonus for income level
+      const income = parseInt(formData.employment.monthlyIncome);
+      if (income >= 5000) score += 0.5;
+      if (income >= 10000) score += 0.5;
+    }
+    
+    // +1 for credit profile
+    if (formData.creditProfile.approximateScore) {
+      score += 1;
+      // Lower score = higher urgency = higher lead score
+      const creditScore = parseInt(formData.creditProfile.approximateScore);
+      if (creditScore < 600) score += 1; // Needs help
+      else if (creditScore < 700) score += 0.5;
+    }
+    
+    // +1 for negative items / dispute needs
+    if (formData.creditProfile.negativeItems?.length > 0 || 
+        formData.creditProfile.primaryGoals?.includes('Remove negative items')) {
+      score += 1;
+    }
+    
+    // +0.5 for all 3 bureaus selected
+    if (formData.creditProfile.bureausToDispute?.length === 3) {
+      score += 0.5;
+    }
+    
+    // +0.5 for high urgency
+    if (formData.creditProfile.urgencyLevel === 'high') {
+      score += 0.5;
+    }
+    
+    // +0.5 for complete address
+    const hasAddress = formData.addresses.some(a => a.street && a.city && a.zip);
+    if (hasAddress) score += 0.5;
+    
+    // +0.5 for documents uploaded
+    if (formData.documents.idReceived) score += 0.5;
+    
+    // Cap at 10, round to 1 decimal
+    return Math.min(10, Math.round(score * 10) / 10);
+  };
+
 
   const handleSave = async () => {
     // Check for duplicates before creating
@@ -972,35 +1034,20 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
 
     const engagementScore = calculateEngagementScore();
     
-    // ===== AUTO-ASSIGN 'LEAD' ROLE - SIMPLE LOGIC =====
-    // If contact has name + (phone OR email), automatically add 'lead' role
-    const hasName = formData.firstName && formData.lastName;
-    const hasPhone = formData.phones.some(p => p.number && p.number.replace(/\D/g, '').length >= 10);
-    const hasEmail = formData.emails.some(e => e.address && e.address.includes('@'));
-    const hasContactMethod = hasPhone || hasEmail;
-    
-    // Auto-add 'lead' role if qualified and not already present
-    let updatedRoles = [...(formData.roles || ['contact'])];
-    if (hasName && hasContactMethod && !updatedRoles.includes('lead')) {
-      updatedRoles.push('lead');
-      console.log('✅ AUTO-ASSIGNED LEAD ROLE:', {
-        name: `${formData.firstName} ${formData.lastName}`,
-        phone: hasPhone,
-        email: hasEmail
-      });
-      addTimelineEvent('role_assigned', 'Automatically assigned "lead" role (has name + contact method)');
-    }
+    // ===== CALCULATE LEAD SCORE =====
+    const calculatedLeadScore = calculateLeadScore();
+    console.log('📊 Calculated Lead Score:', calculatedLeadScore, '/10');
     
     const finalData = {
       ...formData,
-      roles: updatedRoles,  // ← USE UPDATED ROLES
+      leadScore: calculatedLeadScore,
       aiTracking: {
         ...formData.aiTracking,
         engagementScore
       },
       dataQualityScore: dataQuality.score,
-      stage: formData.stage || 'prospecting',
-      pipelineStage: formData.pipelineStage || 'new',
+      stage: formData.stage || 'prospecting',           // DEFAULT STAGE
+      pipelineStage: formData.pipelineStage || 'new',   // DEFAULT PIPELINE STAGE
       lastSavedAt: new Date().toISOString(),
       lastSavedBy: 'manual'
     };
@@ -1337,64 +1384,38 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
         />
         {expandedSections.basic && (
           <div className="p-4 bg-white border border-gray-200 rounded-lg space-y-4">
-            
-            {/* ===== PHOTO ID PREVIEW - VISUAL CONFIRMATION ===== */}
+            {/* Photo ID Thumbnail Display */}
             {formData.photoIdUrl && (
-              <div className="mb-4 flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <div className="relative">
-                  {formData.photoIdUrl.toLowerCase().endsWith('.pdf') ? (
-                    // PDF Icon Display
-                    <div className="w-20 h-20 flex items-center justify-center bg-red-50 rounded-lg border-2 border-red-300">
-                      <FileText className="w-10 h-10 text-red-600" />
+              <div className="mb-4 p-3 bg-blue-50 border-2 border-blue-200 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0">
+                    {formData.photoIdUrl.toLowerCase().endsWith('.pdf') ? (
+                      <div className="w-20 h-20 flex items-center justify-center bg-red-50 rounded-lg border-2 border-red-300">
+                        <FileText className="w-10 h-10 text-red-600" />
+                      </div>
+                    ) : (
+                      <img 
+                        src={formData.photoIdUrl} 
+                        alt="Photo ID" 
+                        className="w-20 h-20 object-cover rounded-lg border-2 border-blue-300"
+                      />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <CheckCircle className="w-4 h-4 text-blue-600" />
+                      <span className="text-sm font-semibold text-blue-900">Photo ID Uploaded</span>
                     </div>
-                  ) : (
-                    // Image Display
-                    <img 
-                      src={formData.photoIdUrl} 
-                      alt="Photo ID" 
-                      className="w-20 h-20 object-cover rounded-lg border-2 border-blue-300"
-                    />
-                  )}
-                  <div className="absolute -top-1 -right-1 bg-green-500 text-white rounded-full p-1">
-                    <CheckCircle className="w-3 h-3" />
+                    <p className="text-xs text-blue-700">
+                      {formData.photoIdUrl.toLowerCase().endsWith('.pdf') ? 'PDF Document' : 'Image File'}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Uploaded: {formData.documents.idUploadDate ? new Date(formData.documents.idUploadDate).toLocaleDateString() : 'Recently'}
+                    </p>
                   </div>
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-blue-900">
-                    {formData.photoIdUrl.toLowerCase().endsWith('.pdf') ? 'Photo ID (PDF)' : 'Photo ID'} Uploaded
-                  </p>
-                  <p className="text-xs text-blue-700">
-                    Identity verification & reduces fraud
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (window.confirm('Remove uploaded photo? You can upload a new one in the Documents section.')) {
-                      updateField('photoIdUrl', '');
-                      addTimelineEvent('photo_removed', 'Photo ID removed');
-                    }
-                  }}
-                  className="text-red-600 hover:text-red-700 p-2 hover:bg-red-50 rounded"
-                >
-                  <X className="w-4 h-4" />
-                </button>
               </div>
             )}
-```
-
-**RESULT:** PDFs show red document icon, images show thumbnail! ✅
-
----
-
-## 🔧 FIX #2: AUTO-ADD LEAD ROLE
-
-**I need one more section from you:**
-
-**Ctrl+F to find this EXACT text:**
-```
-const engagementScore = calculateEngagementScore();
-
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1614,18 +1635,13 @@ const engagementScore = calculateEngagementScore();
                 </label>
                 <input
                   type={showSSN ? "text" : "password"}
-                  name="ssn-secure"
                   value={formatSSN(formData.ssn)}
                   onChange={(e) => handleSSNChange(e.target.value)}
                   placeholder="XXX-XX-XXXX"
                   maxLength="11"
                   autoComplete="new-password"
-                  autoCorrect="off"
-                  autoCapitalize="off"
-                  spellCheck="false"
                   data-lpignore="true"
                   data-form-type="other"
-                  data-1p-ignore="true"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono"
                 />
                 {formData.ssnLast4 && (
@@ -2532,15 +2548,7 @@ const engagementScore = calculateEngagementScore();
                   className="rounded border-gray-300"
                 />
                 <FileText className="w-5 h-5 text-blue-600" />
-                <div className="flex-1 flex items-center gap-2">
-                  <span className="text-sm font-medium">Photo ID (Driver's License, Passport, State ID)</span>
-                  {formData.photoIdUrl && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
-                      <Upload className="w-3 h-3" />
-                      Photo Uploaded
-                    </span>
-                  )}
-                </div>
+                <span className="text-sm font-medium flex-1">Photo ID (Driver's License, Passport, State ID)</span>
                 {formData.documents.idReceived && (
                   <span className="text-xs text-green-600 flex items-center gap-1">
                     <CheckCircle className="w-3 h-3" /> Received

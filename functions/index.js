@@ -2264,15 +2264,179 @@ exports.operationsManager = onRequest(
           break;
         }
         
-        // ENHANCED: All other cases with similar validation improvements
-        case 'createPortalAccount':
-        case 'landingPageContact':
-        case 'captureWebLead': {
-          // Enhanced parameter validation for these cases too
-          console.log(`🔧 Processing ${action} with enhanced validation`);
+        // ============================================
+        // CAPTURE WEB LEAD - Landing Page Form
+        // ============================================
+        case 'captureWebLead':
+        case 'landingPageContact': {
+          console.log(`🔧 Processing ${action}...`);
           
-          // ... existing logic with enhanced validation ...
-          // (keeping existing functionality but adding parameter checks)
+          const { 
+            firstName, 
+            lastName, 
+            email, 
+            phone, 
+            message,
+            creditGoal,
+            leadSource,
+            utmSource,
+            utmMedium,
+            utmCampaign
+          } = params;
+          
+          // Validate required fields
+          if (!email && !phone) {
+            response.status(400).json({
+              success: false,
+              error: 'Email or phone is required'
+            });
+            return;
+          }
+          
+          try {
+            // Check for existing contact by email OR phone
+            let existingContactId = null;
+            
+            if (email) {
+              const emailQuery = await db.collection('contacts')
+                .where('email', '==', email.toLowerCase().trim())
+                .limit(1)
+                .get();
+              
+              if (!emailQuery.empty) {
+                existingContactId = emailQuery.docs[0].id;
+              }
+            }
+            
+            if (!existingContactId && phone) {
+              const cleanPhone = phone.replace(/\D/g, '');
+              const phoneQuery = await db.collection('contacts')
+                .where('phone', '==', cleanPhone)
+                .limit(1)
+                .get();
+              
+              if (!phoneQuery.empty) {
+                existingContactId = phoneQuery.docs[0].id;
+              }
+            }
+            
+            const cleanPhone = phone ? phone.replace(/\D/g, '') : '';
+            const contactData = {
+              firstName: firstName || '',
+              lastName: lastName || '',
+              email: email ? email.toLowerCase().trim() : '',
+              phone: cleanPhone,
+              message: message || '',
+              creditGoal: creditGoal || '',
+              roles: ['contact', 'lead'],
+              leadSource: leadSource || 'website',
+              utmSource: utmSource || '',
+              utmMedium: utmMedium || '',
+              utmCampaign: utmCampaign || '',
+              updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            };
+            
+            let contactId;
+            
+            if (existingContactId) {
+              // Update existing contact
+              await db.collection('contacts').doc(existingContactId).update(contactData);
+              contactId = existingContactId;
+              console.log('📝 Updated existing contact:', contactId);
+            } else {
+              // Create new contact
+              contactData.createdAt = admin.firestore.FieldValue.serverTimestamp();
+              contactData.status = 'new';
+              contactData.leadScore = 5;
+              
+              const newContactRef = await db.collection('contacts').add(contactData);
+              contactId = newContactRef.id;
+              console.log('👤 Created new contact:', contactId);
+            }
+            
+            // Log interaction
+            await db.collection('interactions').add({
+              contactId,
+              type: 'web_form_submission',
+              details: {
+                source: action,
+                creditGoal: creditGoal || '',
+                message: message || '',
+                utmSource: utmSource || ''
+              },
+              createdAt: admin.firestore.FieldValue.serverTimestamp(),
+              createdBy: 'system'
+            });
+            
+            result = {
+              success: true,
+              contactId,
+              isNewContact: !existingContactId,
+              message: existingContactId 
+                ? 'Contact updated successfully' 
+                : 'New lead captured successfully'
+            };
+            
+            console.log(`✅ ${action} completed:`, result);
+            
+          } catch (leadError) {
+            console.error(`❌ ${action} error:`, leadError);
+            result = {
+              success: false,
+              error: leadError.message
+            };
+          }
+          
+          break;
+        }
+        
+        // ============================================
+        // CREATE PORTAL ACCOUNT
+        // ============================================
+        case 'createPortalAccount': {
+          console.log('🔧 Processing createPortalAccount...');
+          
+          const { contactId, email, password } = params;
+          
+          if (!contactId || !email) {
+            response.status(400).json({
+              success: false,
+              error: 'contactId and email are required'
+            });
+            return;
+          }
+          
+          try {
+            // Create Firebase Auth user
+            const userRecord = await admin.auth().createUser({
+              email: email,
+              password: password || Math.random().toString(36).slice(-12),
+              emailVerified: false
+            });
+            
+            // Update contact with portal account info
+            await db.collection('contacts').doc(contactId).update({
+              portalUserId: userRecord.uid,
+              portalCreatedAt: admin.firestore.FieldValue.serverTimestamp(),
+              roles: admin.firestore.FieldValue.arrayUnion('client'),
+              status: 'client'
+            });
+            
+            result = {
+              success: true,
+              portalUserId: userRecord.uid,
+              message: 'Portal account created successfully'
+            };
+            
+            console.log('✅ Portal account created for:', email);
+            
+          } catch (portalError) {
+            console.error('❌ Create portal account error:', portalError);
+            result = {
+              success: false,
+              error: portalError.message
+            };
+          }
           
           break;
         }

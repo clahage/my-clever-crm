@@ -1,6 +1,6 @@
 import React, { lazy, Suspense } from 'react';
 const AdminDashboard = lazy(() => import('@/pages/AdminDashboard'));
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useSearchParams } from 'react-router-dom';
 import EmailWorkflowDashboard from './components/EmailWorkflowDashboard';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
@@ -11,8 +11,8 @@ import Products from '@/pages/Products';
 import ServicePlanSelector from '@/components/client/ServicePlanSelector';
 const ServicePlanRecommenderPage = lazy(() => import('@/pages/ServicePlanRecommender'));
 // src/App.jsx - Speedy Credit Repair CRM Complete Application Router
-// VERSION: 3.0 - HYBRID HUB ARCHITECTURE INTEGRATION
-// LAST UPDATED: 2025-11-06 - All 18 Hubs Integrated
+// VERSION: 3.1 - HYBRID HUB ARCHITECTURE + ENROLLMENT WRAPPER
+// LAST UPDATED: 2026-01-21 - Added CompleteEnrollmentWrapper for URL params
 import ContractStatusTracker from '@/components/common/ContractStatusTracker';
 import PricingCalculatorCommon from '@/components/common/PricingCalculator';
 import IDIQEnrollmentWizard from "./components/idiq/IDIQEnrollmentWizard.jsx"
@@ -147,6 +147,30 @@ const PredictiveAnalytics = lazy(() => import('@/pages/PredictiveAnalytics'));
 const WorkflowTestingDashboard = lazy(() => import('@/pages/WorkflowTestingDashboard'));
 const IDIQSandboxTester = lazy(() => import('@/components/testing/IDIQSandboxTester'));
 const TestFunctions = lazy(() => import('@/pages/TestFunctions'));
+
+// ============================================================================
+// COMPLETE ENROLLMENT WRAPPER - Extracts URL params and passes to component
+// ============================================================================
+const CompleteEnrollmentWrapper = () => {
+  // Extract URL parameters (contactId, source, resume)
+  const searchParams = new URLSearchParams(window.location.search);
+  
+  const contactId = searchParams.get('contactId');
+  const source = searchParams.get('source');
+  const resumeId = searchParams.get('resume');
+  
+  console.log('📋 Enrollment URL Params:', { contactId, source, resumeId });
+  
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <CompleteEnrollmentFlow
+        preFilledContactId={contactId || null}
+        resumeContactId={resumeId || null}
+        mode={source === 'crm' ? 'crm' : 'public'}
+      />
+    </Suspense>
+  );
+};
 
 // ===== MASSIVE PRODUCTION HUBS (9,597 lines total) =====
 const CommunicationsHub = lazy(() => import('@/pages/hubs/CommunicationsHub'));
@@ -484,7 +508,7 @@ const AppContent = () => {
         <Route path="admin/ai-reviews/:reviewId" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><AIReviewEditor /></Suspense></ProtectedRoute>} />
         <Route path="credit-analysis" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><CreditAnalysisEngine /></Suspense></ProtectedRoute>} />
         <Route path="test-idiq-workflow" element={<Suspense fallback={<LoadingFallback />}><TestIDIQWorkflow /></Suspense>} />
-        <Route path="complete-enrollment" element={<Suspense fallback={<LoadingFallback />}><CompleteEnrollmentFlow /></Suspense>} />
+        <Route path="complete-enrollment" element={<CompleteEnrollmentWrapper />} />
         <Route path="predictive-analytics" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><PredictiveAnalytics /></Suspense></ProtectedRoute>} />
 
         {/* ============================================================================ */}

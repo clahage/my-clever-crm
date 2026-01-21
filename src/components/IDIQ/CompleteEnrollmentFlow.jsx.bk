@@ -25,11 +25,6 @@
 // ✅ IDIQ Platinum co-branding
 // ✅ Social Proof notifications
 // ✅ Christopher's photo + BBB A+ badge
-// ✅ DUAL MODE: Public (landing page) + CRM (staff enrollment)
-// ✅ AutoSave every 30 seconds with session recovery
-// ✅ CRM pre-fill from Firestore contact
-// ✅ Connection monitoring (online/offline)
-// ✅ 3-tier verification failure escalation with AI helpers
 //
 // © 1995-2025 Speedy Credit Repair Inc. | Chris Lahage | All Rights Reserved
 // ============================================================================
@@ -82,7 +77,6 @@ import {
   RadioGroup,
   FormLabel,
   Slider,
-  Snackbar,
   useTheme,
   useMediaQuery,
   styled,
@@ -131,11 +125,6 @@ import {
   LocationOn as LocationIcon,
   PhotoCamera as PhotoIcon,
   CloudUpload as UploadIcon,
-  Save as SaveIcon,
-  Wifi as WifiIcon,
-  WifiOff as WifiOffIcon,
-  Restore as RestoreIcon,
-  Business as BusinessIcon,
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
@@ -151,7 +140,7 @@ import {
   Area,
   AreaChart,
 } from 'recharts';
-import { collection, addDoc, doc, updateDoc, getDoc, serverTimestamp, arrayUnion } from 'firebase/firestore';
+import { collection, addDoc, doc, updateDoc, serverTimestamp, arrayUnion } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage, auth } from '@/lib/firebase';
 import { getFunctions, httpsCallable } from 'firebase/functions';
@@ -180,13 +169,6 @@ import {
   logConversion
 } from '@/services/enrollmentTrackingService';
 import ViewCreditReportButton from '../credit/ViewCreditReportButton';
-
-// ============================================================================
-// AUTOSAVE CONSTANTS
-// ============================================================================
-const AUTOSAVE_INTERVAL = 30000; // 30 seconds
-const AUTOSAVE_KEY = 'speedycrm_enrollment_autosave';
-const SESSION_EXPIRY_HOURS = 24;
 
 // ============================================================================
 // STYLED COMPONENTS
@@ -320,23 +302,6 @@ const DiscountBadge = styled(Box)(({ theme }) => ({
   boxShadow: '0 4px 15px rgba(255, 107, 53, 0.4)',
 }));
 
-// AutoSave Indicator
-const AutoSaveIndicator = styled(Box)(({ theme }) => ({
-  position: 'fixed',
-  bottom: 20,
-  right: 20,
-  zIndex: 1000,
-  display: 'flex',
-  alignItems: 'center',
-  gap: 8,
-  padding: '8px 16px',
-  borderRadius: 20,
-  background: theme.palette.mode === 'dark' ? 'rgba(30, 30, 30, 0.95)' : 'rgba(255, 255, 255, 0.95)',
-  boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
-  border: `1px solid ${theme.palette.divider}`,
-}));
-
-
 // ============================================================================
 // CONSTANTS
 // ============================================================================
@@ -352,17 +317,6 @@ const PHASES = [
   { id: 8, label: 'Celebrate', icon: CelebrationIcon, description: "You're enrolled!" },
   { id: 9, label: 'Portal', icon: DashboardIcon, description: 'Preview your portal' },
   { id: 10, label: 'Complete', icon: CheckIcon, description: 'All set!' },
-];
-
-// CRM Mode uses fewer phases (skips welcome screens)
-const CRM_PHASES = [
-  { id: 1, label: 'Client Info', icon: PersonIcon, description: 'Verify details' },
-  { id: 2, label: 'Analysis', icon: SearchIcon, description: 'Pull credit report' },
-  { id: 3, label: 'Results', icon: AssessmentIcon, description: 'Review report' },
-  { id: 4, label: 'Documents', icon: DocumentIcon, description: 'Upload docs' },
-  { id: 5, label: 'Agreement', icon: SignatureIcon, description: 'Digital signature' },
-  { id: 6, label: 'Plan', icon: CreditIcon, description: 'Select plan' },
-  { id: 7, label: 'Complete', icon: CheckIcon, description: 'Finalize' },
 ];
 
 const US_STATES = [
@@ -396,53 +350,27 @@ const US_STATES = [
 
 const SERVICE_PLANS = [
   {
-    id: 'diy',
-    name: 'DIY Credit Repair',
-    price: 39,
-    description: 'Tools & templates for self-repair',
-    features: ['Dispute Letter Templates', 'Credit Education Portal', 'Email Support', 'Monthly Score Updates'],
+    id: 'essential',
+    name: 'Essential',
+    price: 99,
+    description: 'Great for minor credit issues',
+    features: ['3 Bureau Monitoring', '3 Disputes/Month', 'Email Support', 'Monthly Reports'],
     popular: false,
   },
   {
-    id: 'standard',
-    name: 'Standard',
+    id: 'professional',
+    name: 'Professional',
     price: 149,
     description: 'Our most popular plan',
-    features: ['Everything in DIY', '6 Disputes/Month', 'Priority Support', 'Weekly Reports', 'AI Recommendations'],
+    features: ['Everything in Essential', '6 Disputes/Month', 'Priority Support', 'Weekly Reports', 'AI Recommendations'],
     popular: true,
   },
   {
-    id: 'acceleration',
-    name: 'Acceleration',
+    id: 'vip',
+    name: 'VIP Platinum',
     price: 199,
-    description: 'Faster results, more disputes',
-    features: ['Everything in Standard', '12 Disputes/Month', 'Dedicated Analyst', 'Bi-Weekly Calls', 'Rush Processing'],
-    popular: false,
-  },
-  {
-    id: 'premium',
-    name: 'VIP Premium',
-    price: 349,
     description: 'Maximum results, fastest timeline',
-    features: ['Everything in Acceleration', 'Unlimited Disputes', '24/7 Phone Support', 'Daily Monitoring', 'Personal Advisor', 'Credit Building Tools'],
-    popular: false,
-  },
-  {
-    id: 'hybrid',
-    name: 'Hybrid',
-    price: 99,
-    description: 'Mix of DIY + professional help',
-    features: ['DIY Tools', '3 Professional Disputes/Month', 'Monthly Strategy Call', 'Email Support'],
-    popular: false,
-  },
-  {
-    id: 'payfordelete',
-    name: 'Pay-For-Delete',
-    price: 0,
-    setupFee: 99,
-    deletionFee: 149,
-    description: 'Only pay when items are removed',
-    features: ['$99 Setup Fee', '$149 Per Deletion', 'No Monthly Fee', 'Results-Based Pricing'],
+    features: ['Everything in Professional', 'Unlimited Disputes', '24/7 Phone Support', 'Daily Monitoring', 'Personal Advisor', 'Credit Building Tools'],
     popular: false,
   },
 ];
@@ -469,29 +397,14 @@ const SOCIAL_PROOF_CITIES = [
 // MAIN COMPONENT
 // ============================================================================
 
-const CompleteEnrollmentFlow = ({ 
-  // Legacy props (for backward compatibility)
-  initialData = null, 
-  resumeContactId = null,
-  
-  // NEW: Dual mode props
-  mode = 'public',                    // 'public' (landing page) or 'crm' (staff enrollment)
-  preFilledContactId = null,          // Firestore contact ID for CRM mode
-  onComplete = null,                  // Callback when enrollment completes (CRM mode)
-  skipPayment = false,                // Skip payment step (for staff-initiated)
-  skipCelebration = false,            // Skip celebration phase (for efficiency)
-}) => {
+  const CompleteEnrollmentFlow = ({ initialData = null, resumeContactId = null }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  
-  // Determine if we're in CRM mode
-  const isCRMMode = mode === 'crm' || !!preFilledContactId;
 
   // ===== REFS =====
   const signatureRef = useRef(null);
   const idUploadRef = useRef(null);
   const utilityUploadRef = useRef(null);
-  const autoSaveTimerRef = useRef(null);
 
   // ===== STATE =====
   const [currentPhase, setCurrentPhase] = useState(1);
@@ -506,7 +419,7 @@ const CompleteEnrollmentFlow = ({
     middleName: '',
     lastName: '',
     email: '',
-    password: '',
+    password: '',          // ← ADD THIS (for IDIQ portal)
     phone: '',
     carrier: '',
     street: '',
@@ -519,12 +432,7 @@ const CompleteEnrollmentFlow = ({
     income: '',
     billingDay: 1,
     agreeToTerms: false,
-    agreeToAddress: false,
-    // Source tracking
-    source: isCRMMode ? 'crm_enrollment' : 'landing_page',
-    utmSource: '',
-    utmMedium: '',
-    utmCampaign: '',
+    agreeToAddress: false, // ← ADD THIS (for "6 months at address" checkbox)
   });
 
   // Analysis state
@@ -539,7 +447,7 @@ const CompleteEnrollmentFlow = ({
   const [signatureData, setSignatureData] = useState(null);
 
   // Plan & Payment
-  const [selectedPlan, setSelectedPlan] = useState('standard');
+  const [selectedPlan, setSelectedPlan] = useState('professional');
   const [paymentComplete, setPaymentComplete] = useState(false);
 
   // Social proof
@@ -574,266 +482,47 @@ const CompleteEnrollmentFlow = ({
   // Tracking state
   const [trackingInitialized, setTrackingInitialized] = useState(false);
 
-  // ===== NEW: AUTOSAVE STATE =====
-  const [autoSaveStatus, setAutoSaveStatus] = useState('idle'); // 'idle', 'saving', 'saved', 'error'
-  const [lastSavedAt, setLastSavedAt] = useState(null);
-  const [showRecoveryDialog, setShowRecoveryDialog] = useState(false);
-  const [recoveryData, setRecoveryData] = useState(null);
-
-  // ===== NEW: CONNECTION STATE =====
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-
-  // ===== NEW: CRM MODE STATE =====
-  const [crmContactData, setCrmContactData] = useState(null);
-  const [crmContactLoading, setCrmContactLoading] = useState(false);
-
   // ===== FIREBASE FUNCTIONS =====
   const functions = getFunctions();
   const idiqService = httpsCallable(functions, 'idiqService');
   const createStripeCheckout = httpsCallable(functions, 'createStripeCheckout');
   const operationsManager = httpsCallable(functions, 'operationsManager');
 
-  // ============================================================================
-  // AUTOSAVE FUNCTIONS
-  // ============================================================================
+  // ===== EFFECTS =====
 
-  // Save current form state to localStorage
-  const saveToLocalStorage = useCallback(() => {
-    try {
-      const dataToSave = {
-        formData,
-        currentPhase,
-        contactId,
-        creditReport,
-        selectedPlan,
-        idPhotoUrl,
-        utilityPhotoUrl,
-        signatureData,
-        enrollmentId,
-        membershipNumber,
-        verificationAnswers,
-        savedAt: new Date().toISOString(),
-        mode: isCRMMode ? 'crm' : 'public',
-        preFilledContactId,
-      };
-      
-      localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(dataToSave));
-      setAutoSaveStatus('saved');
-      setLastSavedAt(new Date());
-      console.log('✅ AutoSave: Form data saved at', new Date().toLocaleTimeString());
-      
-      // Reset status after 3 seconds
-      setTimeout(() => setAutoSaveStatus('idle'), 3000);
-      
-    } catch (err) {
-      console.error('❌ AutoSave failed:', err);
-      setAutoSaveStatus('error');
-    }
-  }, [formData, currentPhase, contactId, creditReport, selectedPlan, idPhotoUrl, utilityPhotoUrl, signatureData, enrollmentId, membershipNumber, verificationAnswers, isCRMMode, preFilledContactId]);
-
-  // Check for saved session on mount
-  const checkForSavedSession = useCallback(() => {
-    try {
-      const saved = localStorage.getItem(AUTOSAVE_KEY);
-      if (!saved) return;
-      
-      const parsedData = JSON.parse(saved);
-      const savedTime = new Date(parsedData.savedAt);
-      const now = new Date();
-      const hoursDiff = (now - savedTime) / (1000 * 60 * 60);
-      
-      // Only offer recovery if less than 24 hours old
-      if (hoursDiff < SESSION_EXPIRY_HOURS) {
-        const savedMode = parsedData.mode || 'public';
-        const currentMode = isCRMMode ? 'crm' : 'public';
-        
-        if (savedMode === currentMode || parsedData.formData?.email) {
-          console.log('💾 Found saved session from', savedTime.toLocaleString());
-          setRecoveryData(parsedData);
-          setShowRecoveryDialog(true);
-        }
-      } else {
-        localStorage.removeItem(AUTOSAVE_KEY);
-        console.log('🗑️ Cleared expired session (>24 hours old)');
-      }
-    } catch (err) {
-      console.error('Error checking saved session:', err);
-      localStorage.removeItem(AUTOSAVE_KEY);
-    }
-  }, [isCRMMode]);
-
-  // Restore saved session
-  const restoreSession = useCallback(() => {
-    if (!recoveryData) return;
-    
-    try {
-      setFormData(recoveryData.formData || formData);
-      setCurrentPhase(recoveryData.currentPhase || 1);
-      setContactId(recoveryData.contactId || null);
-      setCreditReport(recoveryData.creditReport || null);
-      setSelectedPlan(recoveryData.selectedPlan || 'standard');
-      setIdPhotoUrl(recoveryData.idPhotoUrl || null);
-      setUtilityPhotoUrl(recoveryData.utilityPhotoUrl || null);
-      setSignatureData(recoveryData.signatureData || null);
-      setEnrollmentId(recoveryData.enrollmentId || null);
-      setMembershipNumber(recoveryData.membershipNumber || null);
-      setVerificationAnswers(recoveryData.verificationAnswers || {});
-      
-      setShowRecoveryDialog(false);
-      setSuccess('Session restored! Continuing where you left off...');
-      console.log('✅ Session restored successfully');
-      
-    } catch (err) {
-      console.error('Error restoring session:', err);
-      setError('Failed to restore session. Starting fresh.');
-      setShowRecoveryDialog(false);
-    }
-  }, [recoveryData]);
-
-  // Discard saved session
-  const discardSession = useCallback(() => {
-    localStorage.removeItem(AUTOSAVE_KEY);
-    setShowRecoveryDialog(false);
-    setRecoveryData(null);
-    console.log('🗑️ Saved session discarded');
-  }, []);
-
-  // ============================================================================
-  // EFFECTS
-  // ============================================================================
-
-  // Check for saved session on mount
+  // Iframe listener for landing page handshake
   useEffect(() => {
-    if (!resumeContactId && !preFilledContactId) {
-      checkForSavedSession();
-    }
-  }, []);
-
-  // AutoSave timer - save every 30 seconds
-  useEffect(() => {
-    if (currentPhase > 1 || formData.email || formData.firstName) {
-      autoSaveTimerRef.current = setInterval(() => {
-        setAutoSaveStatus('saving');
-        saveToLocalStorage();
-      }, AUTOSAVE_INTERVAL);
-      
-      return () => {
-        if (autoSaveTimerRef.current) {
-          clearInterval(autoSaveTimerRef.current);
-        }
-      };
-    }
-  }, [currentPhase, formData.email, formData.firstName, saveToLocalStorage]);
-
-  // Save on beforeunload (page close/refresh)
-  useEffect(() => {
-    const handleBeforeUnload = (e) => {
-      if (currentPhase > 1 && currentPhase < 8) {
-        saveToLocalStorage();
-        
-        if (contactId) {
-          markEnrollmentAbandoned(contactId, {
-            ...formData,
-            currentPhase,
-          });
-
-          trackEvent({
-            eventType: 'form_abandoned',
-            contactId,
-            email: formData.email,
-            firstName: formData.firstName,
-            middleName: formData.middleName,
-            phone: formData.phone,
-            phase: currentPhase,
-          });
-        }
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [contactId, currentPhase, formData, saveToLocalStorage]);
-
-  // Connection monitoring
-  useEffect(() => {
-    const handleOnline = () => {
-      setIsOnline(true);
-      console.log('✅ Connection restored');
-      saveToLocalStorage();
-    };
-    
-    const handleOffline = () => {
-      setIsOnline(false);
-      console.warn('⚠️ Connection lost - AutoSave will continue locally');
-      saveToLocalStorage();
-    };
-    
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, [saveToLocalStorage]);
-
-  // ===== CRM MODE - Load contact from Firestore =====
-  useEffect(() => {
-    const loadContactData = async () => {
-      if (isCRMMode && preFilledContactId) {
-        setCrmContactLoading(true);
-        try {
-          console.log('📂 CRM Mode: Loading contact', preFilledContactId);
-          const contactRef = doc(db, 'contacts', preFilledContactId);
-          const contactSnap = await getDoc(contactRef);
-          
-          if (contactSnap.exists()) {
-            const data = contactSnap.data();
-            setCrmContactData(data);
-            setContactId(preFilledContactId);
-            
-            // Pre-fill form with contact data
-            setFormData(prev => ({
-              ...prev,
-              firstName: data.firstName || prev.firstName,
-              middleName: data.middleName || prev.middleName,
-              lastName: data.lastName || prev.lastName,
-              email: data.email || prev.email,
-              phone: data.phone || prev.phone,
-              carrier: data.carrier || prev.carrier,
-              street: data.address?.street || data.street || prev.street,
-              city: data.address?.city || data.city || prev.city,
-              state: data.address?.state || data.state || prev.state,
-              zip: data.address?.zip || data.zipCode || data.zip || prev.zip,
-              dateOfBirth: data.dateOfBirth || prev.dateOfBirth,
-              employer: data.employer || prev.employer,
-              income: data.income || prev.income,
-              source: 'crm_enrollment',
-            }));
-            
-            console.log('✅ CRM Mode: Contact data pre-filled', data.firstName, data.lastName);
-          } else {
-            console.warn('⚠️ Contact not found:', preFilledContactId);
-            setError('Contact not found. Please select a different contact.');
-          }
-        } catch (err) {
-          console.error('❌ Error loading contact:', err);
-          setError('Failed to load contact data. Please try again.');
-        } finally {
-          setCrmContactLoading(false);
-        }
-      }
-    };
-    
-    loadContactData();
-  }, [isCRMMode, preFilledContactId]);
-
-  // Iframe listener for landing page handshake (PUBLIC MODE ONLY)
-  useEffect(() => {
-    if (isCRMMode) return;
-    
     const cleanup = createIframeListener((data) => {
       console.log('📨 Received data from landing page:', data);
+      setFormData((prev) => ({
+        ...prev,
+        firstName: data.firstName || prev.firstName,
+        middleName: data.middleName || prev.middleName,
+        lastName: data.lastName || prev.lastName,
+        email: data.email || prev.email,
+        // Do NOT populate password from landing page (security)
+        phone: data.phone || prev.phone,
+        carrier: data.carrier || prev.carrier,
+        street: data.street || prev.street,
+        city: data.city || prev.city,
+        state: data.state || prev.state,
+        zip: data.zip || prev.zip,
+      }));
+    });
+
+    return cleanup;
+  }, []);
+
+  // ===== Window postMessage listener (for popup windows) =====
+useEffect(() => {
+  const handleMessage = (event) => {
+    console.log('📨 Received postMessage:', event.data);
+    
+    // Check if it's enrollment data
+    if (event.data.type === 'ENROLLMENT_DATA' && event.data.data) {
+      const data = event.data.data;
+      console.log('✅ Processing enrollment data:', data);
+      
       setFormData((prev) => ({
         ...prev,
         firstName: data.firstName || prev.firstName,
@@ -846,59 +535,33 @@ const CompleteEnrollmentFlow = ({
         city: data.city || prev.city,
         state: data.state || prev.state,
         zip: data.zip || prev.zip,
-        source: 'landing_page',
-        utmSource: data.utmSource || prev.utmSource,
-        utmMedium: data.utmMedium || prev.utmMedium,
-        utmCampaign: data.utmCampaign || prev.utmCampaign,
       }));
-    });
-
-    return cleanup;
-  }, [isCRMMode]);
-
-  // Window postMessage listener (for popup windows) - PUBLIC MODE ONLY
-  useEffect(() => {
-    if (isCRMMode) return;
-    
-    const handleMessage = (event) => {
-      console.log('📨 Received postMessage:', event.data);
       
-      if (event.data.type === 'ENROLLMENT_DATA' && event.data.data) {
-        const data = event.data.data;
-        console.log('✅ Processing enrollment data:', data);
-        
-        setFormData((prev) => ({
-          ...prev,
-          firstName: data.firstName || prev.firstName,
-          middleName: data.middleName || prev.middleName,
-          lastName: data.lastName || prev.lastName,
-          email: data.email || prev.email,
-          phone: data.phone || prev.phone,
-          carrier: data.carrier || prev.carrier,
-          street: data.street || prev.street,
-          city: data.city || prev.city,
-          state: data.state || prev.state,
-          zip: data.zip || prev.zip,
-          source: 'landing_page',
-        }));
-        
-        console.log('✅ Form data pre-populated from landing page!');
-        
-        if (event.source) {
-          event.source.postMessage({ type: 'DATA_RECEIVED' }, '*');
-        }
+      console.log('✅ Form data pre-populated from landing page!');
+      
+      // Send confirmation back to landing page
+      if (event.source) {
+        event.source.postMessage({
+          type: 'DATA_RECEIVED'
+        }, '*');
       }
-    };
-    
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [isCRMMode]);
+    }
+  };
+  
+  // Add listener
+  window.addEventListener('message', handleMessage);
+  
+  // Cleanup
+  return () => {
+    window.removeEventListener('message', handleMessage);
+  };
+}, []);
 
-  // Load saved state from localStorage (legacy)
+  // Load saved state from localStorage
   useEffect(() => {
     const savedState = loadEnrollmentState();
-    if (savedState && !resumeContactId && !preFilledContactId) {
-      console.log('📂 Restoring saved enrollment state (legacy)');
+    if (savedState && !resumeContactId) {
+      console.log('📂 Restoring saved enrollment state');
       setFormData(savedState.formData || formData);
       setCurrentPhase(savedState.currentPhase || 1);
       setContactId(savedState.contactId);
@@ -906,14 +569,14 @@ const CompleteEnrollmentFlow = ({
     }
   }, []);
 
-  // Resume from recovery link (legacy)
+  // Resume from recovery link
   useEffect(() => {
     if (resumeContactId) {
       handleResumeEnrollment(resumeContactId);
     }
   }, [resumeContactId]);
 
-  // Save state on changes (legacy)
+  // Save state on changes
   useEffect(() => {
     if (contactId && currentPhase > 1) {
       saveEnrollmentState({
@@ -926,10 +589,8 @@ const CompleteEnrollmentFlow = ({
     }
   }, [formData, currentPhase, contactId, creditReport]);
 
-  // Social proof notifications (PUBLIC MODE ONLY)
+  // Social proof notifications
   useEffect(() => {
-    if (isCRMMode) return;
-    
     const showRandomSocialProof = () => {
       const city = SOCIAL_PROOF_CITIES[Math.floor(Math.random() * SOCIAL_PROOF_CITIES.length)];
       setSocialProofCity(city);
@@ -938,22 +599,50 @@ const CompleteEnrollmentFlow = ({
     };
 
     const interval = setInterval(showRandomSocialProof, 30000);
+    // Show first one after 10 seconds
     const timeout = setTimeout(showRandomSocialProof, 10000);
 
     return () => {
       clearInterval(interval);
       clearTimeout(timeout);
     };
-  }, [isCRMMode]);
+  }, []);
 
-  // Initialize exit intent tracking (PUBLIC MODE ONLY)
+  // Handle page unload (abandonment detection)
   useEffect(() => {
-    if (isCRMMode) return;
+    const handleBeforeUnload = (e) => {
+      if (contactId && currentPhase > 1 && currentPhase < 8) {
+        markEnrollmentAbandoned(contactId, {
+          ...formData,
+          currentPhase,
+        });
+
+        // Also track in MySQL
+        trackEvent({
+          eventType: 'form_abandoned',
+          contactId,
+          email: formData.email,
+          firstName: formData.firstName,
+          middleName: formData.middleName,
+          phone: formData.phone,
+          phase: currentPhase,
+        });
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [contactId, currentPhase, formData]);
+
+// Initialize exit intent tracking (30 second delay, once per session)
+  useEffect(() => {
     if (!trackingInitialized || currentPhase >= 5) return;
 
+    // Only show exit intent ONCE per session
     const exitIntentShown = sessionStorage.getItem('exitIntentShown');
     if (exitIntentShown) return;
 
+    // Wait 30 seconds before enabling exit intent
     const delayTimer = setTimeout(() => {
       const cleanup = initExitIntent({
         currentPhase,
@@ -967,10 +656,10 @@ const CompleteEnrollmentFlow = ({
       });
 
       return cleanup;
-    }, 30000);
+    }, 30000); // 30 seconds
 
     return () => clearTimeout(delayTimer);
-  }, [trackingInitialized, currentPhase, contactId, formData.email, isCRMMode]);
+  }, [trackingInitialized, currentPhase, contactId, formData.email]);
 
   // Initialize inactivity timer for abandoned cart recovery
   useEffect(() => {
@@ -980,15 +669,16 @@ const CompleteEnrollmentFlow = ({
       contactId,
       email: formData.email,
       firstName: formData.firstName,
-      middleName: formData.middleName,
+          middleName: formData.middleName,
       phone: formData.phone,
       currentPhase,
       formData,
-      timeoutMs: 15 * 60 * 1000,
+      timeoutMs: 15 * 60 * 1000, // 15 minutes
       onInactive: async (data) => {
         console.log('⏰ User inactive - triggering recovery');
 
-        if (!isCRMMode && formData.phone && formData.carrier) {
+        // Schedule SMS recovery via carrier gateway
+        if (formData.phone && formData.carrier) {
           const resumeLink = `https://speedycreditrepair.com/enroll?resume=${contactId}`;
           try {
             await sendSpinTaxRecovery({
@@ -1006,7 +696,7 @@ const CompleteEnrollmentFlow = ({
     });
 
     return cleanup;
-  }, [contactId, currentPhase, formData, isCRMMode]);
+  }, [contactId, currentPhase, formData]);
 
   // Track phase changes
   useEffect(() => {
@@ -1017,7 +707,7 @@ const CompleteEnrollmentFlow = ({
         email: formData.email,
         phone: formData.phone,
         firstName: formData.firstName,
-        middleName: formData.middleName,
+          middleName: formData.middleName,
         formData,
       });
     }
@@ -1070,8 +760,8 @@ const CompleteEnrollmentFlow = ({
       setError('Please enter a valid email address');
       return false;
     }
-    // CRM mode may skip address verification
-    if (!isCRMMode && !formData.agreeToAddress) {
+    // Added production check for the 6-month address requirement
+    if (!formData.agreeToAddress) {
       setError('You must confirm you have been at your address for at least 6 months.');
       return false;
     }
@@ -1084,42 +774,37 @@ const CompleteEnrollmentFlow = ({
     setLoading(true);
     setError(null);
 
+    // Sanitize phone number (removes dashes/dots/spaces) for API compatibility
     const cleanPhone = formData.phone.replace(/\D/g, '');
     const submissionData = { ...formData, phone: cleanPhone };
 
     try {
+      // Track form start
       await trackFormStarted({
-        contactId: contactId || null,
+        contactId: null,
         email: formData.email,
         firstName: formData.firstName,
         middleName: formData.middleName,
       });
 
-      // For CRM mode with existing contact, just update
-      if (isCRMMode && contactId) {
-        await updateDoc(doc(db, 'contacts', contactId), {
-          ...submissionData,
-          updatedAt: serverTimestamp(),
-          enrollmentStartedAt: serverTimestamp(),
-          enrollmentSource: 'crm_enrollment',
-        });
-      } else {
-        const result = await processEnrollment(formData, { forceCreate: false });
+      // Process enrollment (creates/updates contact)
+      const result = await processEnrollment(formData, { forceCreate: false });
 
-        let newContactId = null;
-        if (result.isDuplicate) {
-          const updateResult = await processEnrollment(formData, { updateExisting: true });
-          newContactId = updateResult.contactId;
-        } else if (result.success) {
-          newContactId = result.contactId;
-        }
-
-        setContactId(newContactId);
+      let newContactId = null;
+      if (result.isDuplicate) {
+        // If duplicate found, update existing
+        const updateResult = await processEnrollment(formData, { updateExisting: true });
+        newContactId = updateResult.contactId;
+      } else if (result.success) {
+        newContactId = result.contactId;
       }
+
+      setContactId(newContactId);
       
+      // Track step 1 complete
       await trackPhaseComplete({
         phase: 1,
-        contactId: contactId,
+        contactId: newContactId,
         email: formData.email,
         phone: formData.phone,
         firstName: formData.firstName,
@@ -1127,14 +812,14 @@ const CompleteEnrollmentFlow = ({
         formData,
       });
       
+      // ✅ Log enrollment start interaction
       await logInteraction('enrollment_started', {
         description: 'Started Complete Enrollment Flow',
         phase: 1,
         email: formData.email,
         firstName: formData.firstName,
         lastName: formData.lastName,
-        leadSource: isCRMMode ? 'CRM Enrollment' : 'Website',
-        mode: isCRMMode ? 'crm' : 'public',
+        leadSource: 'Website'
       });
 
       setCurrentPhase(2);
@@ -1154,6 +839,7 @@ const CompleteEnrollmentFlow = ({
     setAppliedDiscount(exitIntentData?.discount || 50);
     setShowExitIntent(false);
 
+    // Track acceptance
     await trackExitIntentResponse({
       accepted: true,
       contactId,
@@ -1168,6 +854,7 @@ const CompleteEnrollmentFlow = ({
   const handleExitIntentDismiss = async () => {
     setShowExitIntent(false);
 
+    // Track dismissal
     await trackExitIntentResponse({
       accepted: false,
       contactId,
@@ -1177,7 +864,7 @@ const CompleteEnrollmentFlow = ({
     });
   };
 
-  const startCreditAnalysis = async () => {
+    const startCreditAnalysis = async () => {
     const cleanSSN = formData.ssn.replace(/\D/g, '');
     const cleanPhone = formData.phone.replace(/\D/g, '');
     
@@ -1223,6 +910,7 @@ const CompleteEnrollmentFlow = ({
         
         setVerificationRequired(true);
         
+        // THE FIX: Redundant extraction to ensure the .map() function receives a valid array
         const extractedQuestions = 
           response.data.questions || 
           response.data.verificationQuestions || 
@@ -1235,31 +923,60 @@ const CompleteEnrollmentFlow = ({
         setAnalysisComplete(true);
         setLoading(false);
         
+        // Move to verification phase (stay in phase 2 but show questions)
         return;
       }
 
-      // No verification needed - process report directly
+      // No verification needed - proceed with credit report
+      // Handle both nested and direct data structures
       const resData = response.data?.data || response.data || {};
-      setCreditReport(resData);
-      setAnalysisComplete(true);
+      console.log("📊 VantageScore:", resData.vantageScore);
 
+      if (!resData || (!resData.vantageScore && !resData.score)) {
+        throw new Error("IDIQ returned empty data - check API configuration");
+      }
+      
+      setCreditReport(resData);
+      setMembershipNumber(response.data.membershipNumber);
+      setAnalysisComplete(true);
+      
+      // ✅ FIX: Update comprehensive IDIQ enrollment status (no verification required)
       try {
         await updateDoc(doc(db, 'contacts', contactId), {
+          // Detailed enrollment object
           idiqEnrollment: {
             status: 'active',
             enrollmentId: response.data.enrollmentId || `ENR-${Date.now()}`,
             membershipNumber: response.data.membershipNumber || null,
             enrolledAt: serverTimestamp(),
+            verifiedAt: null, // No verification required
             creditScore: resData.vantageScore || resData.score || null,
-            enrollmentSource: isCRMMode ? 'crm' : 'website',
-            plan: selectedPlan || 'not_selected_yet'
+            enrollmentSource: 'website',
+            plan: selectedPlan || 'not_selected_yet',
+            verificationRequired: false
           },
+          
+          // Update flags
           enrollmentStatus: 'active',
           idiqActive: true,
           status: 'enrolled',
+          
+          // Capture form fields
+          leadSource: formData.leadSource || 'Website - Complete Enrollment',
+          employer: formData.employer || '',
+          income: formData.income || '',
+          
+          // Update existing idiq object
+          'idiq.enrolled': true,
+          'idiq.enrolledAt': serverTimestamp(),
+          'idiq.lastEnrollmentAt': serverTimestamp(),
+          'idiq.membershipNumber': response.data.membershipNumber || null,
+          'idiq.reportRequested': true,
+          
           updatedAt: serverTimestamp()
         });
         
+        // ✅ Log enrollment completion interaction
         await logInteraction('idiq_enrollment_completed', {
           description: 'IDIQ enrollment completed successfully without verification',
           enrollmentId: response.data.enrollmentId,
@@ -1276,13 +993,14 @@ const CompleteEnrollmentFlow = ({
       
       setCurrentPhase(3);
 
+      // THE FIX: Exhaustive score detection from the newly authorized report
       const targetScore = 
         resData.vantageScore || 
         resData.score || 
         resData.bureaus?.transunion?.score || 
         resData.bureaus?.experian?.score || 
         resData.bureaus?.equifax?.score || 
-        300;
+        300; // Only use 300 if absolutely everything is missing
 
       console.log("🎯 Final Score Detected for Animation:", targetScore);
       animateScore(targetScore);
@@ -1300,7 +1018,7 @@ const CompleteEnrollmentFlow = ({
     }
   };
   
-  // ===== SUBMIT VERIFICATION ANSWERS =====
+  // ===== SUBMIT VERIFICATION ANSWERS - DETAILED PRODUCTION LOGIC =====
   const submitVerificationAnswers = async () => {
     setLoading(true);
     setVerificationError(null);
@@ -1308,15 +1026,18 @@ const CompleteEnrollmentFlow = ({
     try {
       console.log("📝 Submitting verification answers...");
 
+      // Build answers array - IDIQ expects answer IDs
       const answerIds = verificationQuestions.map((q, idx) => {
         const selectedAnswer = verificationAnswers[idx];
         if (!selectedAnswer) {
           throw new Error(`Please answer question ${idx + 1}`);
         }
         
+        // FIX: Check both .answers and .answer to prevent the 'find' crash
         const options = q.answers || q.answer || [];
         const foundOption = options.find(a => (a.answer || a.choice || a.text) === selectedAnswer);
         
+        // Return the ID for the API, fallback to text if ID is missing
         return foundOption ? foundOption.id : selectedAnswer;
       });
 
@@ -1331,19 +1052,23 @@ const CompleteEnrollmentFlow = ({
         }
       });
 
+      // Handle response data whether nested or direct
       const resData = response.data?.data || response.data || {};
       const successFlag = response.data?.success && response.data?.verified;
 
       console.log("✅ Verification response:", response.data);
 
       if (successFlag) {
+        // SUCCESS - Identity confirmed, moving to results
         console.log("🎉 Verification successful!");
         
         setCreditReport(resData);
         setVerificationRequired(false);
         
+        // ✅ FIX: Update comprehensive IDIQ enrollment status
         try {
           await updateDoc(doc(db, 'contacts', contactId), {
+            // Detailed enrollment object
             idiqEnrollment: {
               status: 'active',
               enrollmentId: enrollmentId || `ENR-${Date.now()}`,
@@ -1351,23 +1076,31 @@ const CompleteEnrollmentFlow = ({
               enrolledAt: serverTimestamp(),
               verifiedAt: serverTimestamp(),
               creditScore: resData.vantageScore || resData.score || null,
-              enrollmentSource: isCRMMode ? 'crm' : 'website',
+              enrollmentSource: 'website',
               plan: selectedPlan || 'not_selected_yet'
             },
+            
+            // Update flags
             enrollmentStatus: 'active',
             idiqActive: true,
-            status: 'enrolled',
-            leadSource: formData.leadSource || (isCRMMode ? 'CRM Enrollment' : 'Website - Complete Enrollment'),
+            status: 'enrolled', // Change from 'abandoned' to 'enrolled'
+            
+            // Capture form fields
+            leadSource: formData.leadSource || 'Website - Complete Enrollment',
             employer: formData.employer || '',
             income: formData.income || '',
+            
+            // Update existing idiq object
             'idiq.enrolled': true,
             'idiq.enrolledAt': serverTimestamp(),
             'idiq.lastEnrollmentAt': serverTimestamp(),
             'idiq.membershipNumber': membershipNumber || response.data.membershipNumber || null,
             'idiq.reportRequested': true,
+            
             updatedAt: serverTimestamp()
           });
           
+          // ✅ Log enrollment completion interaction
           await logInteraction('idiq_enrollment_completed', {
             description: 'IDIQ enrollment completed successfully with verification',
             enrollmentId: enrollmentId,
@@ -1376,16 +1109,26 @@ const CompleteEnrollmentFlow = ({
             plan: selectedPlan,
             verificationRequired: true
           });
+          
+          console.log('✅ IDIQ enrollment status updated:', {
+            status: 'active',
+            enrollmentId,
+            membershipNumber,
+            contactId
+          });
         } catch (updateErr) {
           console.error('❌ Failed to update IDIQ enrollment status:', updateErr);
+          // Don't throw - continue enrollment even if status update fails
         }
         
         setCurrentPhase(3);
         
+        // Animate score counter using available fallback mapping
         const targetScore = resData.vantageScore || resData.score || 300;
         animateScore(targetScore);
         
       } else if (response.data?.locked) {
+        // LOCKED OUT - User failed 3 attempts
         console.log("🚫 Account locked - notifying support");
         setVerificationError({
           type: 'locked',
@@ -1393,27 +1136,8 @@ const CompleteEnrollmentFlow = ({
           attemptsRemaining: 0
         });
         
-        // Send alert email to Laurie for locked accounts
-        try {
-          await sendEmail({
-            to: 'Laurie@speedycreditrepair.com',
-            type: 'VERIFICATION_LOCKED_ALERT',
-            subject: `🚨 IDIQ Verification Locked - ${formData.firstName} ${formData.lastName}`,
-            html: `
-              <h2>Client Verification Locked</h2>
-              <p><strong>Name:</strong> ${formData.firstName} ${formData.lastName}</p>
-              <p><strong>Email:</strong> ${formData.email}</p>
-              <p><strong>Phone:</strong> ${formData.phone}</p>
-              <p><strong>Enrollment ID:</strong> ${enrollmentId}</p>
-              <p>The client has failed IDIQ security questions 3 times. Please reach out to assist.</p>
-            `,
-            contactId: contactId,
-          });
-        } catch (emailErr) {
-          console.error('Failed to send locked alert email:', emailErr);
-        }
-        
       } else {
+        // INCORRECT - Update attempt tracking and reset answers
         console.log("❌ Answer incorrect - tracking attempt statistics");
         setVerificationAttempts(response.data?.attempts || 0);
         setVerificationError({
@@ -1424,6 +1148,7 @@ const CompleteEnrollmentFlow = ({
           maxAttempts: response.data?.maxAttempts
         });
         
+        // Clear answers to force user to re-read the questions
         setVerificationAnswers({});
       }
 
@@ -1455,7 +1180,24 @@ const CompleteEnrollmentFlow = ({
     requestAnimationFrame(animate);
   };
 
-  // ===== INTERACTION LOGGING HELPER =====
+  const generateMockCreditReport = () => ({
+    vantageScore: 628,
+    bureaus: {
+      transunion: { score: 625, accounts: 15, negativeItems: 4 },
+      equifax: { score: 631, accounts: 14, negativeItems: 3 },
+      experian: { score: 628, accounts: 15, negativeItems: 5 },
+    },
+    negativeItems: [
+      { type: 'Late Payment', creditor: 'Capital One', amount: 2400, date: '2024-08', bureau: 'All' },
+      { type: 'Collection', creditor: 'Medical Debt', amount: 850, date: '2023-11', bureau: 'Experian' },
+      { type: 'Charge Off', creditor: 'Best Buy', amount: 1200, date: '2023-05', bureau: 'All' },
+      { type: 'Hard Inquiry', creditor: 'Auto Lender', date: '2024-06', bureau: 'TransUnion' },
+    ],
+    projectedImprovement: 85,
+    improvementTimeline: 6,
+  });
+
+    // ===== INTERACTION LOGGING HELPER =====
   const logInteraction = async (type, details) => {
     if (!contactId) {
       console.warn('⚠️ Cannot log interaction: no contactId');
@@ -1463,16 +1205,18 @@ const CompleteEnrollmentFlow = ({
     }
     
     try {
+      // Add to interactions collection
       await addDoc(collection(db, 'interactions'), {
         contactId: contactId,
         type: type,
         details: details,
         createdAt: serverTimestamp(),
         createdBy: auth.currentUser?.email || 'system',
-        source: isCRMMode ? 'CRM Enrollment Flow' : 'Complete Enrollment Flow',
+        source: 'Complete Enrollment Flow',
         phase: currentPhase
       });
       
+      // Also add to contact's timeline array
       await updateDoc(doc(db, 'contacts', contactId), {
         timeline: arrayUnion({
           type: type,
@@ -1489,12 +1233,14 @@ const CompleteEnrollmentFlow = ({
       console.log('✅ Interaction logged:', type, details);
     } catch (err) {
       console.error('❌ Failed to log interaction:', err);
+      // Don't throw - interaction logging shouldn't break enrollment
     }
   };
 
   const handlePhotoUpload = async (file, type) => {
     if (!file) return;
 
+    // ✅ Validate file type
     const validTypes = [
       'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
       'application/pdf'
@@ -1505,6 +1251,7 @@ const CompleteEnrollmentFlow = ({
       return;
     }
     
+    // ✅ Validate file size (10MB max)
     if (file.size > 10 * 1024 * 1024) {
       setError('File size must be less than 10MB');
       return;
@@ -1512,6 +1259,7 @@ const CompleteEnrollmentFlow = ({
 
     setLoading(true);
     try {
+      // ✅ Add file extension to storage path
       const fileExtension = file.name.split('.').pop();
       const storageRef = ref(storage, `enrollments/${contactId}/${type}-${Date.now()}.${fileExtension}`);
       
@@ -1524,12 +1272,16 @@ const CompleteEnrollmentFlow = ({
         setUtilityPhotoUrl(url);
       }
 
+      // ✅ FIX: Update contact with document URLs AND checklist
       const checklistField = type === 'id' ? 'photoId' : 'utilityBill';
       
       await updateDoc(doc(db, 'contacts', contactId), {
+        // Store document URLs
         [`documents.${type}`]: url,
         [`documents.${type}Type`]: file.type,
         [`documents.${type}Name`]: file.name,
+        
+        // ✅ NEW: Update documents checklist
         [`documentsChecklist.${checklistField}`]: {
           checked: true,
           uploadedAt: serverTimestamp(),
@@ -1538,9 +1290,11 @@ const CompleteEnrollmentFlow = ({
           fileSize: file.size,
           fileType: file.type
         },
+        
         updatedAt: serverTimestamp(),
       });
 
+      // ✅ NEW: Log interaction
       await logInteraction('document_uploaded', {
         documentType: type === 'id' ? 'Photo ID' : 'Utility Bill',
         fileName: file.name,
@@ -1549,6 +1303,13 @@ const CompleteEnrollmentFlow = ({
       });
 
       setSuccess(`${type === 'id' ? 'ID' : 'Utility bill'} uploaded successfully!`);
+      
+      console.log('✅ Document uploaded and checklist updated:', {
+        type,
+        fileName: file.name,
+        checklistField,
+        contactId
+      });
       
     } catch (err) {
       console.error('Upload error:', err);
@@ -1565,12 +1326,14 @@ const CompleteEnrollmentFlow = ({
         const dataUrl = signatureRef.current.toDataURL();
         setSignatureData(dataUrl);
 
+        // We use 'await' here to ensure it saves before moving forward
         await updateDoc(doc(db, 'contacts', contactId), {
           signature: dataUrl,
           signedAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
 
+        // ✅ FIX #3B: Log signature capture interaction
         await logInteraction('signature_captured', {
           description: 'Digital signature captured',
           phase: currentPhase,
@@ -1601,18 +1364,19 @@ const CompleteEnrollmentFlow = ({
 
     console.log('💳 Processing payment:', { plan: plan.name, price: finalPrice });
 
-    // Skip payment if CRM mode with skipPayment flag
-    if (skipPayment || finalPrice <= 0) {
+    // SKIP STRIPE IF PRICE IS $0 (Trial Mode or Full Discount)
+    if (finalPrice <= 0) {
       setLoading(true);
       try {
         console.log('🎁 Activating free trial/promotional enrollment');
         
+        // ✅ FIX #3C: Log free trial activation
         await logInteraction('payment_completed', {
-          description: `${skipPayment ? 'Payment skipped (CRM)' : 'Free trial activated'} - ${plan.name} plan`,
+          description: `Free trial activated - ${plan.name} plan`,
           plan: plan.name,
           planId: selectedPlan,
           amount: 0,
-          paymentMethod: skipPayment ? 'crm_skip' : 'free_trial',
+          paymentMethod: 'free_trial',
           phase: currentPhase
         });
         
@@ -1630,10 +1394,11 @@ const CompleteEnrollmentFlow = ({
     try {
       console.log('💳 Creating Stripe checkout session...');
       
+      // Create Stripe checkout session via Cloud Function
       const response = await createStripeCheckout({
         productId: plan.id,
         productName: `Speedy Credit Repair - ${plan.name}`,
-        amount: finalPrice * 100,
+        amount: finalPrice * 100, // Stripe uses cents
         currency: 'usd',
         contactId: contactId,
         billingDay: formData.billingDay,
@@ -1641,6 +1406,7 @@ const CompleteEnrollmentFlow = ({
         cancelUrl: `${window.location.origin}/enrollment?phase=6`,
       });
 
+      // Redirect to Stripe
       const stripe = await loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
       const { error } = await stripe.redirectToCheckout({ sessionId: response.data.sessionId });
       
@@ -1656,6 +1422,7 @@ const CompleteEnrollmentFlow = ({
   const finalizeEnrollment = async () => {
     setPaymentComplete(true);
     
+    // ✅ Log payment completion interaction
     const selectedPlanData = SERVICE_PLANS.find((p) => p.id === selectedPlan) || SERVICE_PLANS[1];
     await logInteraction('payment_completed', {
       description: `Payment completed - ${selectedPlanData.name} plan`,
@@ -1665,14 +1432,10 @@ const CompleteEnrollmentFlow = ({
       discountApplied: appliedDiscount
     });
     
-    // Skip celebration phase in CRM mode if requested
-    if (isCRMMode && skipCelebration) {
-      setCurrentPhase(10);
-    } else {
-      setCurrentPhase(8);
-    }
+    setCurrentPhase(8);
     
     try {
+      // Trigger backend account creation
       await operationsManager({
         action: 'createClientAccount',
         contactId: contactId,
@@ -1681,33 +1444,24 @@ const CompleteEnrollmentFlow = ({
         discountApplied: appliedDiscount,
       });
 
-      await updateDoc(doc(db, 'contacts', contactId), {
-        status: 'client',
-        roles: arrayUnion('client'),
-        enrollmentCompletedAt: serverTimestamp(),
-        selectedPlan: selectedPlan,
-        updatedAt: serverTimestamp(),
+      // Log conversion for analytics and ROI tracking
+      await logConversion({
+        contactId,
+        email: formData.email,
+        planId: selectedPlan,
+        planPrice: selectedPlanData.price,
+        discountApplied: appliedDiscount,
       });
 
+        // Send automated welcome sequence
       await sendWelcomeEmail();
 
-      // Trigger celebration effects (PUBLIC MODE ONLY)
-      if (!isCRMMode) {
-        triggerCelebration();
-      }
-
-      // Call onComplete callback (CRM MODE)
-      if (isCRMMode && onComplete) {
-        onComplete(contactId, {
-          enrollmentId,
-          membershipNumber,
-          plan: selectedPlan,
-          creditScore: creditReport?.vantageScore,
-        });
-      }
+      // Trigger celebration effects
+      triggerCelebration();
 
     } catch (err) {
       console.warn('Backend sync partial failure:', err);
+      // We don't block the user here as payment/signature is already done
     } finally {
       setLoading(false);
     }
@@ -1778,12 +1532,11 @@ const CompleteEnrollmentFlow = ({
   const handleComplete = async () => {
     await markEnrollmentCompleted(contactId);
     clearEnrollmentState();
-    
-    // Clear AutoSave data
-    localStorage.removeItem(AUTOSAVE_KEY);
 
+    // ✅ FIX #4: Update comprehensive IDIQ enrollment status
     try {
       await updateDoc(doc(db, 'contacts', contactId), {
+        // Detailed enrollment object
         idiqEnrollment: {
           status: 'active',
           enrollmentId: enrollmentId || `ENR-${Date.now()}`,
@@ -1791,36 +1544,50 @@ const CompleteEnrollmentFlow = ({
           enrolledAt: serverTimestamp(),
           completedAt: serverTimestamp(),
           creditScore: creditReport?.vantageScore || null,
-          enrollmentSource: isCRMMode ? 'crm' : 'website',
+          enrollmentSource: 'website',
           plan: selectedPlan
         },
+        
+        // Update flags
         enrollmentStatus: 'enrolled',
         idiqActive: true,
-        status: 'enrolled',
-        leadSource: formData.leadSource || (isCRMMode ? 'CRM Enrollment' : 'Website - Complete Enrollment'),
+        status: 'enrolled', // Change from any previous status
+        
+        // Capture form fields if not already set
+        leadSource: formData.leadSource || 'Website - Complete Enrollment',
         employer: formData.employer || '',
         income: formData.income || '',
+        
+        // Update existing idiq object
         'idiq.enrolled': true,
         'idiq.enrolledAt': serverTimestamp(),
         'idiq.lastEnrollmentAt': serverTimestamp(),
         'idiq.membershipNumber': membershipNumber || null,
         'idiq.reportRequested': true,
         'idiq.enrollmentCompleted': true,
+        
         updatedAt: serverTimestamp()
       });
 
+      // ✅ Log enrollment completion interaction
       await logInteraction('enrollment_completed', {
         description: 'Complete enrollment flow finished successfully',
         enrollmentId: enrollmentId,
         membershipNumber: membershipNumber,
         creditScore: creditReport?.vantageScore,
         plan: selectedPlan,
-        phase: 10,
-        mode: isCRMMode ? 'crm' : 'public',
+        phase: 10
       });
 
+      console.log('✅ IDIQ enrollment status updated:', {
+        status: 'enrolled',
+        enrollmentId,
+        membershipNumber,
+        contactId
+      });
     } catch (err) {
       console.error('❌ Failed to update enrollment status:', err);
+      // Don't block the celebration - user has completed enrollment
     }
 
     // Populate DisputeHub with negative items
@@ -1840,6 +1607,7 @@ const CompleteEnrollmentFlow = ({
           });
         }
         
+        // ✅ Log disputes created
         await logInteraction('disputes_created', {
           description: `Created ${creditReport.negativeItems.length} dispute items`,
           count: creditReport.negativeItems.length
@@ -1850,56 +1618,41 @@ const CompleteEnrollmentFlow = ({
     }
 
     setCurrentPhase(10);
-    
-    // Call onComplete callback (CRM MODE)
-    if (isCRMMode && onComplete) {
-      onComplete(contactId, {
-        enrollmentId,
-        membershipNumber,
-        plan: selectedPlan,
-        creditScore: creditReport?.vantageScore,
-        completed: true,
-      });
-    }
   };
 
   // ===== RENDER HELPERS =====
 
-  const renderPhaseIndicator = () => {
-    const phases = isCRMMode ? CRM_PHASES : PHASES;
-    
-    return (
-      <Box sx={{ width: '100%', mb: 4 }}>
-        <Stepper
-          activeStep={currentPhase - 1}
-          alternativeLabel={!isMobile}
-          orientation={isMobile ? 'vertical' : 'horizontal'}
-          sx={{
-            '& .MuiStepLabel-root': { cursor: 'pointer' },
-            '& .MuiStepIcon-root.Mui-active': { color: '#2196F3' },
-            '& .MuiStepIcon-root.Mui-completed': { color: '#4CAF50' },
-          }}
-        >
-          {phases.slice(0, isMobile ? 5 : phases.length).map((phase) => (
-            <Step key={phase.id} completed={currentPhase > phase.id}>
-              <StepLabel
-                icon={<phase.icon />}
-                optional={
-                  !isMobile && (
-                    <Typography variant="caption" color="textSecondary">
-                      {phase.description}
-                    </Typography>
-                  )
-                }
-              >
-                {phase.label}
-              </StepLabel>
-            </Step>
-          ))}
-        </Stepper>
-      </Box>
-    );
-  };
+  const renderPhaseIndicator = () => (
+    <Box sx={{ width: '100%', mb: 4 }}>
+      <Stepper
+        activeStep={currentPhase - 1}
+        alternativeLabel={!isMobile}
+        orientation={isMobile ? 'vertical' : 'horizontal'}
+        sx={{
+          '& .MuiStepLabel-root': { cursor: 'pointer' },
+          '& .MuiStepIcon-root.Mui-active': { color: '#2196F3' },
+          '& .MuiStepIcon-root.Mui-completed': { color: '#4CAF50' },
+        }}
+      >
+        {PHASES.slice(0, isMobile ? 5 : 10).map((phase) => (
+          <Step key={phase.id} completed={currentPhase > phase.id}>
+            <StepLabel
+              icon={<phase.icon />}
+              optional={
+                !isMobile && (
+                  <Typography variant="caption" color="textSecondary">
+                    {phase.description}
+                  </Typography>
+                )
+              }
+            >
+              {phase.label}
+            </StepLabel>
+          </Step>
+        ))}
+      </Stepper>
+    </Box>
+  );
 
   const renderBranding = () => (
     <Box
@@ -1928,14 +1681,6 @@ const CompleteEnrollmentFlow = ({
         </Box>
       </Box>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-        {isCRMMode && (
-          <Chip
-            icon={<BusinessIcon />}
-            label="Staff Enrollment"
-            color="secondary"
-            variant="filled"
-          />
-        )}
         <Chip
           icon={<StarIcon sx={{ color: '#FFD700' }} />}
           label="BBB A+ Rating"
@@ -1975,439 +1720,327 @@ const CompleteEnrollmentFlow = ({
     </Card>
   );
 
-  // ===== SESSION RECOVERY DIALOG =====
-  const renderRecoveryDialog = () => (
-    <Dialog
-      open={showRecoveryDialog}
-      onClose={() => setShowRecoveryDialog(false)}
-      maxWidth="sm"
-      fullWidth
-    >
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <RestoreIcon color="primary" />
-        Resume Previous Session?
-      </DialogTitle>
-      <DialogContent>
-        <Alert severity="info" sx={{ mb: 2 }}>
-          We found a saved enrollment session from{' '}
-          <strong>
-            {recoveryData?.savedAt
-              ? new Date(recoveryData.savedAt).toLocaleString()
-              : 'recently'}
-          </strong>
-        </Alert>
-        
-        {recoveryData?.formData && (
-          <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-            <Typography variant="subtitle2" gutterBottom>
-              Saved Information:
-            </Typography>
-            <Typography variant="body2">
-              <strong>Name:</strong> {recoveryData.formData.firstName} {recoveryData.formData.lastName}
-            </Typography>
-            <Typography variant="body2">
-              <strong>Email:</strong> {recoveryData.formData.email}
-            </Typography>
-            <Typography variant="body2">
-              <strong>Progress:</strong> Phase {recoveryData.currentPhase} of {isCRMMode ? 7 : 10}
-            </Typography>
-          </Box>
-        )}
-        
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-          Would you like to continue where you left off, or start fresh?
-        </Typography>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={discardSession} color="inherit">
-          Start Fresh
-        </Button>
-        <Button onClick={restoreSession} variant="contained" startIcon={<RestoreIcon />}>
-          Resume Session
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
-
-  // ===== CRM MODE HEADER =====
-  const renderCRMHeader = () => {
-    if (!isCRMMode || !crmContactData) return null;
-    
-    return (
-      <Alert
-        severity="info"
-        icon={<BusinessIcon />}
-        sx={{ mb: 3 }}
-      >
-        <AlertTitle>Staff Enrollment Mode</AlertTitle>
-        Enrolling: <strong>{crmContactData.firstName} {crmContactData.lastName}</strong> ({crmContactData.email})
-      </Alert>
-    );
-  };
-
-  // ===== AUTOSAVE INDICATOR =====
-  const renderAutoSaveIndicator = () => (
-    <AutoSaveIndicator>
-      {/* Connection Status */}
-      {isOnline ? (
-        <WifiIcon fontSize="small" color="success" />
-      ) : (
-        <WifiOffIcon fontSize="small" color="error" />
-      )}
-      
-      {/* Save Status */}
-      {autoSaveStatus === 'saving' && (
-        <>
-          <CircularProgress size={16} />
-          <Typography variant="caption">Saving...</Typography>
-        </>
-      )}
-      {autoSaveStatus === 'saved' && (
-        <>
-          <CheckIcon fontSize="small" color="success" />
-          <Typography variant="caption" color="success.main">Saved!</Typography>
-        </>
-      )}
-      {autoSaveStatus === 'error' && (
-        <>
-          <ErrorIcon fontSize="small" color="error" />
-          <Typography variant="caption" color="error">Save failed</Typography>
-        </>
-      )}
-      {autoSaveStatus === 'idle' && lastSavedAt && (
-        <Typography variant="caption" color="text.secondary">
-          Last saved: {lastSavedAt.toLocaleTimeString()}
-        </Typography>
-      )}
-      
-      {/* Manual Save Button */}
-      <Tooltip title="Save now">
-        <IconButton size="small" onClick={saveToLocalStorage}>
-          <SaveIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
-    </AutoSaveIndicator>
-  );
-
   // ===== PHASE RENDERERS =====
 
   const renderPhase1 = () => (
     <Fade in timeout={500}>
       <Box>
-        {/* CRM Mode Header */}
-        {renderCRMHeader()}
-        
-        {/* CRM Loading State */}
-        {crmContactLoading && (
-          <Box sx={{ textAlign: 'center', py: 4 }}>
-            <CircularProgress />
-            <Typography sx={{ mt: 2 }}>Loading contact information...</Typography>
-          </Box>
-        )}
-        
-        {!crmContactLoading && (
-          <>
-            <Typography variant="h4" fontWeight={700} gutterBottom>
-              {isCRMMode ? 'Verify Client Information' : "Let's Get Started!"}
-            </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-              {isCRMMode 
-                ? 'Please verify and complete the client information below.'
-                : 'Your journey to better credit begins here. Fill in your details to receive your FREE Credit Analysis.'
-              }
-            </Typography>
+        <Typography variant="h4" fontWeight={700} gutterBottom>
+          Let's Get Started!
+        </Typography>
+        <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+          Your journey to better credit begins here. Fill in your details to receive your
+          <strong> FREE Credit Analysis</strong>.
+        </Typography>
 
-            {!isCRMMode && renderChristopherCard()}
+        {renderChristopherCard()}
 
-            <Grid container spacing={3}>
-              <Grid item xs={12} sm={5}>
-                <TextField
-                  fullWidth
-                  label="First Name"
-                  value={formData.firstName}
-                  onChange={handleFormChange('firstName')}
-                  required
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <PersonIcon color="action" />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={2}>
-                <TextField
-                  fullWidth
-                  label="Middle Initial"
-                  value={formData.middleName}
-                  onChange={handleFormChange('middleName')}
-                  inputProps={{ maxLength: 1 }}
-                  placeholder="M"
-                  helperText="Optional"
-                />
-              </Grid>
-              <Grid item xs={12} sm={5}>
-                <TextField
-                  fullWidth
-                  label="Last Name"
-                  value={formData.lastName}
-                  onChange={handleFormChange('lastName')}
-                  required
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Email Address"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleFormChange('email')}
-                  required
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <EmailIcon color="action" />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={formData.password}
-                  onChange={handleFormChange('password')}
-                  required
-                  autoComplete="new-password"
-                  placeholder="Create portal password"
-                  helperText="For your IDIQ credit monitoring portal"
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SecurityIcon color="action" />
-                      </InputAdornment>
-                    ),
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
-                          {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Phone Number"
-                  value={formData.phone}
-                  onChange={handleFormChange('phone')}
-                  required
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <PhoneIcon color="action" />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth required>
-                  <InputLabel>Mobile Carrier</InputLabel>
-                  <Select
-                    value={formData.carrier}
-                    onChange={handleFormChange('carrier')}
-                    label="Mobile Carrier"
-                    startAdornment={
-                      <InputAdornment position="start">
-                        <PhoneCarrierIcon color="action" />
-                      </InputAdornment>
-                    }
-                  >
-                    {CARRIER_OPTIONS.map((carrier) => (
-                      <MenuItem key={carrier.value} value={carrier.value}>
-                        {carrier.label}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                  Required for text message notifications about your credit progress
-                </Typography>
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Street Address"
-                  value={formData.street}
-                  onChange={handleFormChange('street')}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <HomeIcon color="action" />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <TextField
-                  fullWidth
-                  label="City"
-                  value={formData.city}
-                  onChange={handleFormChange('city')}
-                />
-              </Grid>
-              {/* ===== STATE DROPDOWN FIX ===== */}
-              <Grid item xs={12} sm={4}>
-                <FormControl fullWidth>
-                  <InputLabel 
-                    id="state-select-label"
-                    shrink={true}
-                    sx={{
-                      backgroundColor: theme.palette.mode === 'dark' ? '#1e1e1e' : 'white',
-                      px: 0.5,
-                    }}
-                  >
-                    State
-                  </InputLabel>
-                  <Select
-                    labelId="state-select-label"
-                    value={formData.state}
-                    onChange={handleFormChange('state')}
-                    label="State"
-                    notched={true}
-                    displayEmpty
-                  >
-                    <MenuItem value="" disabled>
-                      <em>Select State</em>
-                    </MenuItem>
-                    {US_STATES.map((state) => (
-                      <MenuItem key={state.code} value={state.code}>
-                        {state.name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <TextField
-                  fullWidth
-                  label="ZIP Code"
-                  value={formData.zip}
-                  onChange={handleFormChange('zip')}
-                  inputProps={{ maxLength: 5 }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Date of Birth"
-                  type="date"
-                  value={formData.dateOfBirth}
-                  onChange={handleFormChange('dateOfBirth')}
-                  InputLabelProps={{ shrink: true }}
-                  required
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <CalendarIcon color="action" />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Social Security Number"
-                  value={formData.ssn}
-                  onChange={handleFormChange('ssn')}
-                  required
-                  type={showSSN ? 'text' : 'password'}
-                  placeholder="XXX-XX-XXXX"
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SecurityIcon color="action" />
-                      </InputAdornment>
-                    ),
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton onClick={() => setShowSSN(!showSSN)} edge="end">
-                          {showSSN ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                  helperText="Required for credit report access - encrypted & secure"
-                />
-              </Grid>
-            </Grid>
-
-            {/* Agreement checkboxes - PUBLIC MODE ONLY */}
-            {!isCRMMode && (
-              <Box sx={{ mt: 4 }}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.agreeToAddress}
-                      onChange={handleFormChange('agreeToAddress')}
-                      color="primary"
-                    />
-                  }
-                  label={
-                    <Typography variant="body2">
-                      I confirm I have lived at my current address for at least 6 months
-                    </Typography>
-                  }
-                />
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.agreeToTerms}
-                      onChange={handleFormChange('agreeToTerms')}
-                      color="primary"
-                    />
-                  }
-                  label={
-                    <Typography variant="body2">
-                      By checking this box and clicking 'AGREE & NEXT' you agree to be bound by the{' '}
-                      <Link href="https://www.idiq.com/terms-of-service" target="_blank" rel="noopener">Terms of Service</Link>,{' '}
-                      <Link href="https://www.idiq.com/privacy-policy" target="_blank" rel="noopener">Privacy Policy</Link>, and to receive important{' '}
-                      <Link href="https://www.idiq.com/electronic-communications" target="_blank" rel="noopener">notices and other communications electronically</Link>.
-                    </Typography>
-                  }
-                />
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1, pl: 4 }}>
-                  You are providing express written consent for IDIQ, parties calling on behalf of IDIQ, network partners, or any authorized 
-                  third party on their behalf to e-mail, or to call or text you (including through automated means, e.g., through an automatic 
-                  telephone dialing system or through the use of pre-recorded or artificial voice messages), to any telephone number you provide, 
-                  even if your telephone number is listed on any internal, corporate, state, federal, or national Do-Not-Call (DNC) list, for 
-                  any purpose, including marketing. Texts include SMS and MMS - charges may apply. This consent to such communications is not 
-                  required as a condition to obtain any goods or services, and you may choose to speak with an individual customer service 
-                  representative by contacting 877-875-4347.
-                </Typography>
-              </Box>
-            )}
-
-            <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
-              <GlowingButton
-                onClick={handlePhase1Submit}
-                disabled={loading || (!isCRMMode && (!formData.agreeToAddress || !formData.agreeToTerms))}
-                endIcon={loading ? <CircularProgress size={20} color="inherit" /> : <ArrowForwardIcon />}
-                sx={{ px: 6, py: 2 }}
+        <Grid container spacing={3}>
+          <Grid item xs={12} sm={5}>
+            <TextField
+              fullWidth
+              label="First Name"
+              value={formData.firstName}
+              onChange={handleFormChange('firstName')}
+              required
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <PersonIcon color="action" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+          <Grid item xs={12} sm={2}>
+            <TextField
+              fullWidth
+              label="Middle Initial"
+              value={formData.middleName}
+              onChange={handleFormChange('middleName')}
+              inputProps={{ maxLength: 1 }}
+              placeholder="M"
+              helperText="Optional"
+            />
+          </Grid>
+          <Grid item xs={12} sm={5}>
+            <TextField
+              fullWidth
+              label="Last Name"
+              value={formData.lastName}
+              onChange={handleFormChange('lastName')}
+              required
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              label="Email Address"
+              type="email"
+              value={formData.email}
+              onChange={handleFormChange('email')}
+              required
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <EmailIcon color="action" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              label="Password"
+              type={showPassword ? 'text' : 'password'}
+              value={formData.password}
+              onChange={handleFormChange('password')}
+              required
+              autoComplete="new-password"
+              placeholder="Create portal password"
+              helperText="For your IDIQ credit monitoring portal"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SecurityIcon color="action" />
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                      {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              label="Phone Number"
+              value={formData.phone}
+              onChange={handleFormChange('phone')}
+              required
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <PhoneIcon color="action" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+          <Grid item xs={12}>
+            <FormControl fullWidth required>
+              <InputLabel>Mobile Carrier</InputLabel>
+              <Select
+                value={formData.carrier}
+                onChange={handleFormChange('carrier')}
+                label="Mobile Carrier"
+                startAdornment={
+                  <InputAdornment position="start">
+                    <PhoneCarrierIcon color="action" />
+                  </InputAdornment>
+                }
               >
-                {loading ? 'Processing...' : (isCRMMode ? 'Continue Enrollment' : 'AGREE & NEXT')}
-              </GlowingButton>
-            </Box>
-          </>
-        )}
+                {CARRIER_OPTIONS.map((carrier) => (
+                  <MenuItem key={carrier.value} value={carrier.value}>
+                    {carrier.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+              Required for text message notifications about your credit progress
+            </Typography>
+          </Grid>
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              label="Street Address"
+              value={formData.street}
+              onChange={handleFormChange('street')}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <HomeIcon color="action" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <TextField
+              fullWidth
+              label="City"
+              value={formData.city}
+              onChange={handleFormChange('city')}
+            />
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <FormControl fullWidth>
+              <InputLabel 
+                id="state-select-label"
+                shrink={true}
+                sx={{
+                  backgroundColor: 'white',
+                  px: 0.5,
+                }}
+              >
+                State
+              </InputLabel>
+              <Select
+                labelId="state-select-label"
+                value={formData.state}
+                onChange={handleFormChange('state')}
+                label="State"
+                displayEmpty
+                notched={true}
+                renderValue={(selected) => {
+                  if (!selected) {
+                    return <em style={{ color: '#9e9e9e' }}>Select State</em>;
+                  }
+                  const stateObj = US_STATES.find(s => s.code === selected);
+                  return stateObj ? stateObj.name : selected;
+                }}
+                sx={{
+                  '& .MuiSelect-select': {
+                    py: 1.75,
+                  },
+                }}
+              >
+                <MenuItem value="" disabled>
+                  <em>Select State</em>
+                </MenuItem>
+                {US_STATES.map((state) => (
+                  <MenuItem key={state.code} value={state.code}>
+                    {state.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <TextField
+              fullWidth
+              label="ZIP Code"
+              value={formData.zip}
+              onChange={handleFormChange('zip')}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              label="Date of Birth"
+              type="date"
+              value={formData.dateOfBirth}
+              onChange={handleFormChange('dateOfBirth')}
+              InputLabelProps={{ shrink: true }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <CalendarIcon color="action" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              label="Social Security Number"
+              type="text"
+              autoComplete="off"
+              name="ssn-field"
+              value={formData.ssn}
+              onChange={handleFormChange('ssn')}
+              placeholder="XXX-XX-XXXX"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SecurityIcon color="action" />
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton onClick={() => setShowSSN(!showSSN)} edge="end">
+                      {showSSN ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+                sx: {
+                  '& input': {
+                    textSecurity: showSSN ? 'none' : 'disc',
+                    WebkitTextSecurity: showSSN ? 'none' : 'disc',
+                  },
+                },
+              }}
+            />
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+              <SecurityIcon sx={{ fontSize: 12, mr: 0.5 }} />
+              256-bit encrypted. Required only for credit report retrieval.
+            </Typography>
+          </Grid>
+        </Grid>
+          
+          {/* ===== DISCLOSURE CHECKBOXES ===== */}
+          <Box>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={formData.agreeToAddress}
+                  onChange={(e) => setFormData({ ...formData, agreeToAddress: e.target.checked })}
+                  required
+                />
+              }
+              label={
+                <Typography variant="body2">
+                  I have been at my current address for six months or more.
+                </Typography>
+              }
+            />
+          </Box>
+          <Box>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={formData.agreeToTerms}
+                  onChange={(e) => setFormData({ ...formData, agreeToTerms: e.target.checked })}
+                  required
+                />
+              }
+              label={
+                <Typography variant="body2">
+                  By checking this box and clicking 'AGREE & NEXT' you agree to be bound by the{' '}
+                  <Link href="https://www.idiq.com/terms-of-service" target="_blank" rel="noopener">Terms of Service</Link>,{' '}
+                  <Link href="https://www.idiq.com/privacy-policy" target="_blank" rel="noopener">Privacy Policy</Link>, and to receive important{' '}
+                  <Link href="https://www.idiq.com/electronic-communications" target="_blank" rel="noopener">notices and other communications electronically</Link>.
+                </Typography>
+              }
+            />
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1, pl: 4 }}>
+              You are providing express written consent for IDIQ, parties calling on behalf of IDIQ, network partners, or any authorized 
+              third party on their behalf to e-mail, or to call or text you (including through automated means, e.g., through an automatic 
+              telephone dialing system or through the use of pre-recorded or artificial voice messages), to any telephone number you provide, 
+              even if your telephone number is listed on any internal, corporate, state, federal, or national Do-Not-Call (DNC) list, for 
+              any purpose, including marketing. Texts include SMS and MMS - charges may apply. This consent to such communications is not 
+              required as a condition to obtain any goods or services, and you may choose to speak with an individual customer service 
+              representative by contacting 877-875-4347.
+            </Typography>
+          </Box>
+
+        <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
+          <GlowingButton
+            onClick={handlePhase1Submit}
+            disabled={loading || !formData.agreeToAddress || !formData.agreeToTerms}
+            endIcon={loading ? <CircularProgress size={20} color="inherit" /> : <ArrowForwardIcon />}
+            sx={{ px: 6, py: 2 }}
+          >
+            {loading ? 'Processing...' : 'AGREE & NEXT'}
+          </GlowingButton>
+        </Box>
       </Box>
     </Fade>
   );
@@ -2433,7 +2066,7 @@ const CompleteEnrollmentFlow = ({
               />
             </Box>
 
-            {/* Show error messages with 3-tier escalation */}
+            {/* Show error messages */}
             {verificationError && (
               <Alert 
                 severity={verificationError.type === 'locked' ? 'error' : 'warning'}
@@ -2565,10 +2198,11 @@ const CompleteEnrollmentFlow = ({
               </Alert>
             )}
 
-            {/* Verification Questions */}
+            {/* Verification Questions - BULLETPROOF HANDSHAKE VERSION */}
             {!verificationError?.locked && (
               <>
                 <Paper sx={{ p: 3, mb: 3 }}>
+                  {/* GUARD: Ensure verificationQuestions is an array before mapping */}
                   {(Array.isArray(verificationQuestions) ? verificationQuestions : []).map((question, index) => (
                     <Box key={index} sx={{ mb: 3 }}>
                       <Typography variant="subtitle1" fontWeight={600} gutterBottom>
@@ -2587,11 +2221,14 @@ const CompleteEnrollmentFlow = ({
                           }));
                         }}
                       >
+                        {/* THE FIX: Support every possible IDIQ response field name for choices */}
                         {(question.answers || question.answer || question.choices || []).map((ans, ansIdx) => (
                           <FormControlLabel
                             key={ansIdx}
+                            // Use the ID for logic, fallback to text/choice if ID is missing
                             value={ans.id || ans.choice || ans.answer || ans.text || ""}
                             control={<Radio />}
+                            // Display text to the user regardless of what IDIQ calls the field
                             label={ans.answer || ans.text || ans.choice || "Select this option"}
                             sx={{ mb: 1 }}
                           />
@@ -2758,61 +2395,100 @@ const CompleteEnrollmentFlow = ({
           </CardContent>
         </IDIQPlatinumCard>
 
-        {/* Negative Items Summary */}
-        {creditReport?.negativeItems && creditReport.negativeItems.length > 0 && (
-          <Card sx={{ mb: 4 }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Items We Can Help With ({creditReport.negativeItems.length})
-              </Typography>
-              <List>
-                {creditReport.negativeItems.slice(0, 5).map((item, index) => (
-                  <ListItem key={index} divider>
-                    <ListItemIcon>
-                      <WarningIcon color="error" />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={`${item.type} - ${item.creditor}`}
-                      secondary={`${item.amount ? `$${item.amount}` : ''} ${item.date ? `• ${item.date}` : ''} • ${item.bureau}`}
-                    />
-                  </ListItem>
-                ))}
-              </List>
-              {creditReport.negativeItems.length > 5 && (
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                  + {creditReport.negativeItems.length - 5} more items
-                </Typography>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Projected Improvement */}
-        <Card sx={{ mb: 4, bgcolor: 'success.50' }}>
+        {/* Score Projection Chart */}
+        <Card sx={{ mb: 4 }}>
           <CardContent>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <TrendingUpIcon sx={{ fontSize: 48, color: 'success.main' }} />
-              <Box>
-                <Typography variant="h5" fontWeight={700} color="success.main">
-                  +{creditReport?.projectedImprovement || 85} Point Potential
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Based on our analysis, we project significant improvement within {creditReport?.improvementTimeline || 6} months
-                </Typography>
-              </Box>
+            <Typography variant="h6" fontWeight={600} gutterBottom>
+              Your Projected Score Improvement
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Based on our analysis, here's your estimated credit journey with Speedy Credit Repair
+            </Typography>
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart
+                data={[
+                  { month: 'Now', score: displayedScore },
+                  { month: 'Month 2', score: displayedScore + 25 },
+                  { month: 'Month 4', score: displayedScore + 50 },
+                  { month: 'Month 6', score: displayedScore + 85 },
+                  { month: 'Month 8', score: displayedScore + 100 },
+                  { month: 'Month 10', score: Math.min(displayedScore + 120, 850) },
+                ]}
+              >
+                <defs>
+                  <linearGradient id="scoreGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#2196F3" stopOpacity={0.8} />
+                    <stop offset="95%" stopColor="#2196F3" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis domain={[300, 850]} />
+                <RechartsTooltip />
+                <Area
+                  type="monotone"
+                  dataKey="score"
+                  stroke="#2196F3"
+                  fillOpacity={1}
+                  fill="url(#scoreGradient)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+            <Box sx={{ textAlign: 'center', mt: 2 }}>
+              <Chip
+                icon={<TrendingUpIcon />}
+                label={`Potential improvement: +${creditReport?.projectedImprovement || 85} points`}
+                color="success"
+                sx={{ fontSize: '1rem', py: 2 }}
+              />
             </Box>
           </CardContent>
         </Card>
 
-        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Button onClick={() => setCurrentPhase(1)} startIcon={<ArrowBackIcon />}>
-            Back
+        {/* Negative Items Found */}
+        <Card sx={{ mb: 4 }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="h6" fontWeight={600}>
+                Negative Items We Can Dispute
+              </Typography>
+              <Chip label={`${creditReport?.negativeItems?.length || 0} items`} color="error" />
+            </Box>
+            <List>
+              {creditReport?.negativeItems?.map((item, index) => (
+                <ListItem key={index} divider>
+                  <ListItemIcon>
+                    <WarningIcon color="warning" />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={item.creditor}
+                    secondary={
+                      <>
+                        {item.type} | {item.bureau} | {item.amount ? `$${item.amount}` : item.date}
+                      </>
+                    }
+                  />
+                  <Chip label="Disputable" size="small" color="success" variant="outlined" />
+                </ListItem>
+              ))}
+            </List>
+          </CardContent>
+        </Card>
+
+        {/* Download PDF Button */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+          <Button
+            variant="outlined"
+            startIcon={<DownloadIcon />}
+            onClick={handleDownloadPDF}
+          >
+            Download Credit Health Summary PDF
           </Button>
           <GlowingButton
             onClick={() => setCurrentPhase(4)}
             endIcon={<ArrowForwardIcon />}
           >
-            Continue to Document Upload
+            Continue to Documents
           </GlowingButton>
         </Box>
       </Box>
@@ -2823,10 +2499,10 @@ const CompleteEnrollmentFlow = ({
     <Fade in timeout={500}>
       <Box>
         <Typography variant="h4" fontWeight={700} gutterBottom>
-          Document Upload
+          Upload Your Documents
         </Typography>
         <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-          Upload your identification documents to verify your identity.
+          To verify your identity and begin the dispute process, please upload the following documents.
         </Typography>
 
         <Grid container spacing={4}>
@@ -3418,54 +3094,6 @@ const CompleteEnrollmentFlow = ({
     </Fade>
   );
 
-  const renderPhase10 = () => (
-    <Fade in timeout={500}>
-      <Box sx={{ textAlign: 'center', py: 6 }}>
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ type: 'spring', stiffness: 200 }}
-        >
-          <CheckIcon sx={{ fontSize: 100, color: '#4CAF50', mb: 2 }} />
-        </motion.div>
-
-        <Typography variant="h3" fontWeight={700} gutterBottom>
-          All Set, {formData.firstName}!
-        </Typography>
-        <Typography variant="h5" color="text.secondary" sx={{ mb: 4 }}>
-          Your enrollment is complete. Welcome to the Speedy Credit family!
-        </Typography>
-
-        <Card sx={{ maxWidth: 500, mx: 'auto', mb: 4, bgcolor: 'success.50' }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              Your Account Details
-            </Typography>
-            <Divider sx={{ my: 2 }} />
-            <Typography variant="body1">
-              <strong>Email:</strong> {formData.email}
-            </Typography>
-            <Typography variant="body1">
-              <strong>Phone:</strong> {formData.phone}
-            </Typography>
-            <Typography variant="body1">
-              <strong>Plan:</strong> {SERVICE_PLANS.find((p) => p.id === selectedPlan)?.name}
-            </Typography>
-          </CardContent>
-        </Card>
-
-        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
-          <Button variant="contained" href="/client-portal" startIcon={<DashboardIcon />}>
-            Go to Portal
-          </Button>
-          <Button variant="outlined" href="tel:8887247344" startIcon={<PhoneIcon />}>
-            Call Us: (888) 724-7344
-          </Button>
-        </Box>
-      </Box>
-    </Fade>
-  );
-
   // ===== EXIT INTENT POPUP =====
   const renderExitIntentPopup = () => (
     <AnimatePresence>
@@ -3542,10 +3170,60 @@ const CompleteEnrollmentFlow = ({
     </AnimatePresence>
   );
 
+  const renderPhase10 = () => (
+    <Fade in timeout={500}>
+      <Box sx={{ textAlign: 'center', py: 6 }}>
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: 'spring', stiffness: 200 }}
+        >
+          <CheckIcon sx={{ fontSize: 100, color: '#4CAF50', mb: 2 }} />
+        </motion.div>
+
+        <Typography variant="h3" fontWeight={700} gutterBottom>
+          All Set, {formData.firstName}!
+        </Typography>
+        <Typography variant="h5" color="text.secondary" sx={{ mb: 4 }}>
+          Your enrollment is complete. Welcome to the Speedy Credit family!
+        </Typography>
+
+        <Card sx={{ maxWidth: 500, mx: 'auto', mb: 4, bgcolor: 'success.50' }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Your Account Details
+            </Typography>
+            <Divider sx={{ my: 2 }} />
+            <Typography variant="body1">
+              <strong>Email:</strong> {formData.email}
+            </Typography>
+            <Typography variant="body1">
+              <strong>Phone:</strong> {formData.phone}
+            </Typography>
+            <Typography variant="body1">
+              <strong>Plan:</strong> {SERVICE_PLANS.find((p) => p.id === selectedPlan)?.name}
+            </Typography>
+          </CardContent>
+        </Card>
+
+        
+
+        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
+          <Button variant="contained" href="/client-portal" startIcon={<DashboardIcon />}>
+            Go to Portal
+          </Button>
+          <Button variant="outlined" href="tel:8887247344" startIcon={<PhoneIcon />}>
+            Call Us: (888) 724-7344
+          </Button>
+        </Box>
+      </Box>
+    </Fade>
+  );
+
   // ===== MAIN RENDER =====
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: isCRMMode ? 'transparent' : 'grey.50', py: isCRMMode ? 2 : 4 }}>
+    <Box sx={{ minHeight: '100vh', bgcolor: 'grey.50', py: 4 }}>
       <Box sx={{ maxWidth: 1200, mx: 'auto', px: { xs: 2, md: 4 } }}>
         {/* Branding Header */}
         {renderBranding()}
@@ -3594,35 +3272,33 @@ const CompleteEnrollmentFlow = ({
         </Paper>
       </Box>
 
-      {/* Social Proof Notification (PUBLIC MODE ONLY) */}
-      {!isCRMMode && (
-        <AnimatePresence>
-          {showSocialProof && (
-            <SocialProofNotification
-              initial={{ opacity: 0, x: -100 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -100 }}
-            >
-              <Avatar sx={{ bgcolor: 'success.main' }}>
-                <CheckIcon />
-              </Avatar>
-              <Box>
-                <Typography variant="body2" fontWeight={600}>
-                  Someone in {socialProofCity}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  just joined the VIP program!
-                </Typography>
-              </Box>
-            </SocialProofNotification>
-          )}
-        </AnimatePresence>
-      )}
+      {/* Social Proof Notification */}
+      <AnimatePresence>
+        {showSocialProof && (
+          <SocialProofNotification
+            initial={{ opacity: 0, x: -100 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -100 }}
+          >
+            <Avatar sx={{ bgcolor: 'success.main' }}>
+              <CheckIcon />
+            </Avatar>
+            <Box>
+              <Typography variant="body2" fontWeight={600}>
+                Someone in {socialProofCity}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                just joined the VIP program!
+              </Typography>
+            </Box>
+          </SocialProofNotification>
+        )}
+      </AnimatePresence>
 
-      {/* Exit Intent Popup (PUBLIC MODE ONLY) */}
-      {!isCRMMode && renderExitIntentPopup()}
+      {/* Exit Intent Popup */}
+      {renderExitIntentPopup()}
 
-      {/* Discount Applied Badge */}
+      {/* Discount Applied Badge (fixed position) */}
       <AnimatePresence>
         {discountApplied && (
           <motion.div
@@ -3632,7 +3308,7 @@ const CompleteEnrollmentFlow = ({
             style={{
               position: 'fixed',
               bottom: 80,
-              right: 80,
+              right: 20,
               zIndex: 1000,
             }}
           >
@@ -3650,12 +3326,6 @@ const CompleteEnrollmentFlow = ({
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* AutoSave Indicator */}
-      {(currentPhase > 1 || formData.email) && renderAutoSaveIndicator()}
-
-      {/* Session Recovery Dialog */}
-      {renderRecoveryDialog()}
     </Box>
   );
 };

@@ -1,16 +1,23 @@
 // Path: /src/components/UltimateContactForm.jsx
 // ============================================================================
-// ULTIMATE CONTACT FORM - AI-POWERED COMPREHENSIVE CLIENT INTAKE
+// ULTIMATE CONTACT FORM - AI-POWERED COMPREHENSIVE CONTACT INTAKE
 // ============================================================================
-// Version: 3.0 - Complete client intelligence capture system
+// Version: 3.1 - Complete contact intelligence capture system
 // Features: 2980+ lines, 50+ AI capabilities, duplicate detection
-// Last Updated: 2025-12-01
+// Last Updated: 2025-12-02 - Changed "Client" to "Contact" terminology
 // ============================================================================
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Phone, Mail, MapPin, FileText, CreditCard, Users, Bell, Plus, X, ChevronDown, ChevronUp, Mic, Eye, EyeOff, Brain, Clock, Globe, MessageSquare, Activity, Upload, Download, Search, AlertCircle, CheckCircle, TrendingUp, Zap, Shield, Star, Target, Calendar, DollarSign, Briefcase, Home } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { collection, addDoc, updateDoc, doc, onSnapshot, query, where, orderBy, limit, getDocs, serverTimestamp } from 'firebase/firestore';
+
+// AI-Guided Form System imports
+import VoiceMicButton from './voice/VoiceMicButton';
+import PronunciationRecorder from './voice/PronunciationRecorder';
+import AIFormAssistant from './ai/AIFormAssistant';
+import { lookupZIP } from '../services/ZIPLookupService';
+import useContactAutosuggest from '../hooks/useContactAutosuggest';
 
 // ============================================================================
 // MAIN COMPONENT DECLARATION
@@ -23,6 +30,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
     middleName: '',
     lastName: '',
     suffix: '',
+    photoIdUrl: '',
     preferredName: '',
     namePronunciation: '',
     dateOfBirth: '',
@@ -104,9 +112,11 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
       disputeHistory: [],
       negativeItems: []
     },
+
+    
     
     // Documents
-    documents: {
+  documents: {
       idReceived: false,
       idType: '',
       idNumber: '',
@@ -131,7 +141,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
     },
     
     // Household
-    household: {
+  household: {
       maritalStatus: 'single',
       spouseName: '',
       spouseSSN: '',
@@ -232,11 +242,13 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
     // Internal
     notes: '',
     tags: [],
-    roles: ['contact'], // Multiple roles: contact, lead, client, affiliate, previous-client, inactive
+    roles: ['contact'],
     assignedTo: '',
-    leadSource: 'ai-receptionist',
-    leadScore: 0,
+    leadSource: '',
+    leadScore: 5,
     lifecycleStage: 'new',
+    stage: 'prospecting',           
+    pipelineStage: 'new',          
     dataQualityScore: 0,
     lastSavedAt: null,
     lastSavedBy: '',
@@ -264,12 +276,52 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
   const [duplicates, setDuplicates] = useState([]);
   const [autoSaving, setAutoSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
-  const [dataQuality, setDataQuality] = useState({ score: 0, issues: [] });
+  const [dataQuality, setDataQuality] = useState({ score: 0, issues: [], blockers: [], canSave: false });
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false); // NEW: For photo uploads
   const [realtimeData, setRealtimeData] = useState(null);
-  
+  const [focusedField, setFocusedField] = useState(null);
+
   const autoSaveTimerRef = useRef(null);
   const fileInputRef = useRef(null);
+  const photoInputRef = useRef(null); // NEW: For photo uploads
+
+  // Contact autosuggest hook for finding existing contacts
+  const {
+    suggestions: contactSuggestions,
+    isLoading: autosuggestLoading,
+    search: searchContacts,
+    selectContact,
+    clearSuggestions
+  } = useContactAutosuggest({ formName: 'UltimateContactForm', maxSuggestions: 5 });
+
+  // Handle autofill from selected contact
+  const handleContactAutofill = useCallback(async (contact) => {
+    const autofillData = await selectContact(contact);
+    if (autofillData) {
+      setFormData(prev => ({
+        ...prev,
+        firstName: autofillData.firstName || prev.firstName,
+        lastName: autofillData.lastName || prev.lastName,
+        middleName: autofillData.middleName || prev.middleName,
+        preferredName: autofillData.preferredName || prev.preferredName,
+        dateOfBirth: autofillData.dateOfBirth || prev.dateOfBirth,
+        ssn: autofillData.ssn || prev.ssn,
+        phones: autofillData.phone ? [{ type: 'mobile', number: autofillData.phone, isPrimary: true, canText: true, canCall: true, verified: false }] : prev.phones,
+        emails: autofillData.email ? [{ type: 'personal', address: autofillData.email, isPrimary: true, verified: false }] : prev.emails,
+        addresses: autofillData.address ? [{
+          type: 'home',
+          street: autofillData.address,
+          city: autofillData.city || '',
+          state: autofillData.state || '',
+          zip: autofillData.zip || '',
+          isPrimary: true,
+          verified: false
+        }] : prev.addresses
+      }));
+      addTimelineEvent('autofill', `Auto-filled from existing contact: ${contact.name}`);
+    }
+  }, [selectContact]);
 
   // Real-time listener for AI receptionist calls
   useEffect(() => {
@@ -325,67 +377,108 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
     }
   }, [formData.ssn]);
 
-  // Calculate data quality score
+  // ============================================================================
+  // CALCULATE DATA QUALITY SCORE
+  // ============================================================================
+  // Christopher's Rules:
+  // - MINIMUM TO SAVE: Phone OR Email (at least one)
+  // - Everything else is OPTIONAL and adds to completeness
+  // - Verified checkboxes are informational, not required
+  // - Issues shown as yellow warnings, not blockers
+  // ============================================================================
   useEffect(() => {
     const calculateQuality = () => {
       let score = 0;
-      const issues = [];
-      const maxScore = 100;
+      const issues = [];      // Yellow warnings (informational)
+      const blockers = [];    // Red blockers (prevent save)
       
-      // Required fields (30 points)
-      if (formData.firstName && formData.lastName) score += 10;
-      else issues.push('Missing name information');
+      // ═══════════════════════════════════════════════════════════════
+      // MINIMUM REQUIRED: Phone OR Email (one must exist)
+      // ═══════════════════════════════════════════════════════════════
+      const hasPhone = formData.phones.some(p => p.number && p.number.replace(/\D/g, '').length >= 10);
+      const hasEmail = formData.emails.some(e => e.address && e.address.includes('@'));
       
-      if (formData.dateOfBirth) score += 5;
-      else issues.push('Missing date of birth');
+      if (!hasPhone && !hasEmail) {
+        blockers.push('⛔ Must provide at least a phone number OR email address');
+      } else {
+        score += 20; // Base score for having contact method
+      }
       
-      if (formData.ssn && formData.ssn.length === 9) score += 10;
-      else issues.push('Missing or incomplete SSN');
+      // ═══════════════════════════════════════════════════════════════
+      // OPTIONAL BUT RECOMMENDED (adds to score, doesn't block)
+      // ═══════════════════════════════════════════════════════════════
       
-      if (formData.phones.length > 0 && formData.phones[0].number) score += 5;
-      else issues.push('Missing phone number');
+      // Name (15 points possible)
+      if (formData.firstName && formData.lastName) {
+        score += 15;
+      } else if (formData.firstName || formData.lastName) {
+        score += 7;
+        issues.push('💡 Full name helps with personalization');
+      } else {
+        issues.push('💡 Name recommended for communication');
+      }
       
-      // Contact verification (20 points)
-      const verifiedPhone = formData.phones.some(p => p.verified);
-      if (verifiedPhone) score += 10;
-      else issues.push('Phone not verified');
+      // Date of Birth (10 points)
+      if (formData.dateOfBirth) {
+        score += 10;
+      } else {
+        issues.push('💡 DOB needed for credit bureaus');
+      }
       
-      const verifiedEmail = formData.emails.some(e => e.verified);
-      if (verifiedEmail) score += 10;
-      else issues.push('Email not verified');
+      // SSN (15 points)
+      if (formData.ssn && formData.ssn.length === 9) {
+        score += 15;
+      } else if (formData.ssnLast4) {
+        score += 5;
+        issues.push('💡 Full SSN needed for credit disputes');
+      } else {
+        issues.push('💡 SSN required for credit repair services');
+      }
       
-      // Address completeness (15 points)
+      // Contact verification (BONUS points - not required)
+      if (formData.phones.some(p => p.verified)) score += 5;
+      if (formData.emails.some(e => e.verified)) score += 5;
+      
+      // Address (10 points)
       const hasFullAddress = formData.addresses.some(a => 
         a.street && a.city && a.state && a.zip
       );
-      if (hasFullAddress) score += 10;
-      else issues.push('Incomplete address');
+      if (hasFullAddress) {
+        score += 10;
+      } else {
+        issues.push('💡 Address helps with dispute letters');
+      }
       
-      if (formData.addresses.some(a => a.verified)) score += 5;
-      else issues.push('Address not verified');
+      // Employment (5 points)
+      if (formData.employment.employer) {
+        score += 5;
+      }
       
-      // Employment (10 points)
-      if (formData.employment.employer && formData.employment.monthlyIncome) score += 10;
-      else issues.push('Missing employment details');
+      // Lead Source (5 points)
+      if (formData.leadSource) {
+        score += 5;
+      } else {
+        issues.push('💡 Lead source helps track marketing');
+      }
       
-      // Credit profile (10 points)
-      if (formData.creditProfile.approximateScore) score += 5;
-      if (formData.creditProfile.primaryGoals.length > 0) score += 5;
+      // Credit profile (5 points)
+      if (formData.creditProfile.approximateScore) {
+        score += 5;
+      }
       
-      // Documents (10 points)
-      const docScore = [
+      // Documents (5 points)
+      const docCount = [
         formData.documents.idReceived,
         formData.documents.proofOfAddressReceived,
         formData.documents.ssnCardReceived
       ].filter(Boolean).length;
-      score += docScore * 3.33;
-      
-      // IDIQ enrollment (5 points)
-      if (formData.idiq.membershipStatus === 'active') score += 5;
+      score += docCount * 1.67;
       
       setDataQuality({ 
-        score: Math.round(score), 
+        score: Math.min(100, Math.round(score)), 
         issues,
+        blockers,
+        canSave: blockers.length === 0,  // Easy check for save button
         lastCalculated: new Date().toISOString()
       });
     };
@@ -400,27 +493,31 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
       setAiAnalyzing(true);
       const suggestions = [];
       
-      // Completeness checks
+      // Completeness checks - Changed from "required" to "suggestion"
       if (!formData.firstName || !formData.lastName) {
         suggestions.push({ 
-          type: 'required', 
+          type: 'suggestion', 
           field: 'name', 
-          message: 'Basic name information needed',
-          priority: 'high'
+          message: 'Adding name helps personalize communications',
+          priority: 'medium'
         });
       }
       
-      if (formData.phones.length === 0 || !formData.phones[0].number) {
+      // Check for BOTH phone and email missing (this is the only blocker)
+      const hasPhone = formData.phones.some(p => p.number && p.number.replace(/\D/g, '').length >= 10);
+      const hasEmail = formData.emails.some(e => e.address && e.address.includes('@'));
+      
+      if (!hasPhone && !hasEmail) {
         suggestions.push({ 
           type: 'required', 
-          field: 'phone', 
-          message: 'At least one phone number required',
+          field: 'contact', 
+          message: 'At least one phone number OR email address is required',
           priority: 'high'
         });
       }
       
       // Duplicate detection
-      if (formData.firstName && formData.lastName && formData.phones[0]?.number) {
+      if (formData.firstName && formData.lastName && (hasPhone || hasEmail)) {
         // In production: query Firestore for potential duplicates
         // For now, simulate
         const potentialDupes = [];
@@ -564,8 +661,26 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
     autoSaveTimerRef.current = setTimeout(async () => {
       setAutoSaving(true);
       try {
+        // ===== AUTO-ASSIGN 'LEAD' ROLE DURING AUTO-SAVE =====
+        const hasName = formData.firstName && formData.lastName;
+        const hasPhone = formData.phones.some(p => p.number && p.number.replace(/\D/g, '').length >= 10);
+        const hasEmail = formData.emails.some(e => e.address && e.address.includes('@'));
+        const hasContactMethod = hasPhone || hasEmail;
+        
+        // Auto-add 'lead' role if qualified and not already present
+        let updatedRoles = [...(formData.roles || ['contact'])];
+        if (hasName && hasContactMethod && !updatedRoles.includes('lead')) {
+          updatedRoles.push('lead');
+          console.log('✅ AUTO-SAVE: AUTO-ASSIGNED LEAD ROLE:', {
+            name: `${formData.firstName} ${formData.lastName}`,
+            phone: hasPhone,
+            email: hasEmail
+          });
+        }
+        
         await updateDoc(doc(db, 'contacts', contactId), {
           ...formData,
+          roles: updatedRoles,  // ← USE UPDATED ROLES
           lastSavedAt: new Date().toISOString(),
           lastSavedBy: 'auto-save'
         });
@@ -634,28 +749,25 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
   };
 
   const handleZipCodeChange = async (zip, addressIndex) => {
+    // Always update the zip field immediately
+    updateArrayItem('addresses', addressIndex, { zip });
+
     if (zip.length === 5) {
-      // In production: call real ZIP API
-      const zipData = {
-        '90620': { city: 'Buena Park', state: 'CA' },
-        '92647': { city: 'Huntington Beach', state: 'CA' },
-        '92648': { city: 'Huntington Beach', state: 'CA' },
-        '92649': { city: 'Huntington Beach', state: 'CA' },
-        '90630': { city: 'Cypress', state: 'CA' },
-        '92683': { city: 'Westminster', state: 'CA' },
-        '92655': { city: 'Midway City', state: 'CA' },
-        '92646': { city: 'Huntington Beach', state: 'CA' }
-      };
-      const data = zipData[zip] || { city: '', state: '' };
-      updateArrayItem('addresses', addressIndex, { 
-        zip, 
-        city: data.city, 
-        state: data.state 
-      });
-      
-      addTimelineEvent('address_lookup', `ZIP code ${zip} auto-populated: ${data.city}, ${data.state}`);
-    } else {
-      updateArrayItem('addresses', addressIndex, { zip });
+      try {
+        // Use real ZIP lookup service with Zippopotamus API
+        const data = await lookupZIP(zip);
+        if (data && data.city) {
+          updateArrayItem('addresses', addressIndex, {
+            zip,
+            city: data.city,
+            state: data.stateAbbr || data.state
+          });
+          addTimelineEvent('address_lookup', `ZIP code ${zip} auto-populated: ${data.city}, ${data.stateAbbr} (via ${data.source})`);
+        }
+      } catch (error) {
+        console.error('ZIP lookup failed:', error);
+        // Silently fail - user can still enter city/state manually
+      }
     }
   };
 
@@ -710,6 +822,43 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
     addTimelineEvent('password_generated', 'IDIQ password generated');
   };
 
+  // Photo Upload Handler - NEW FUNCTION ADDED
+  const handlePhotoUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    setUploadingPhoto(true);
+    addTimelineEvent('photo_upload_started', `Uploading photo ID: ${file.name}`);
+    
+    try {
+      // Create thumbnail preview immediately
+      const photoUrl = URL.createObjectURL(file);
+      
+      // Update form data with photo
+      setFormData(prev => ({
+        ...prev,
+        photoIdUrl: photoUrl,
+        documents: {
+          ...prev.documents,
+          idReceived: true,
+          idFileUrl: photoUrl,
+          idUploadDate: new Date().toISOString()
+        }
+      }));
+      
+      addTimelineEvent('photo_uploaded', `Photo ID uploaded successfully: ${file.name}`);
+      setUploadingPhoto(false);
+      
+      // In production: Upload to Firebase Storage here
+      console.log('📸 Photo uploaded locally, ready for Firebase Storage integration');
+      
+    } catch (error) {
+      console.error('Photo upload error:', error);
+      addTimelineEvent('photo_upload_failed', `Photo upload failed: ${error.message}`);
+      setUploadingPhoto(false);
+    }
+  };
+
   const handleFileUpload = async (event, docType) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -727,6 +876,9 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
           updateNestedField('documents', 'idReceived', true);
           updateNestedField('documents', 'idFileUrl', fileUrl);
           updateNestedField('documents', 'idUploadDate', new Date().toISOString());
+          // ✅ ALSO update photoIdUrl so thumbnail displays
+          updateField('photoIdUrl', fileUrl);
+          console.log('✅ Photo ID uploaded, thumbnail should display:', fileUrl);
           break;
         case 'proofOfAddress':
           updateNestedField('documents', 'proofOfAddressReceived', true);
@@ -794,7 +946,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
             lastContact: serverTimestamp(),
             tags: [...new Set([...(existing.data().tags || []), 'repeat-contact'])],
           });
-          console.log('✅ Duplicate detected! Updated contact frequency.');
+          console.log('âœ… Duplicate detected! Updated contact frequency.');
           return existing.id; // Return existing ID
         }
       }
@@ -810,7 +962,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
             contactFrequency: (existing.data().contactFrequency || 1) + 1,
             lastContact: serverTimestamp(),
           });
-          console.log('✅ Duplicate detected! Updated contact frequency.');
+          console.log('âœ… Duplicate detected! Updated contact frequency.');
           return existing.id;
         }
       }
@@ -819,13 +971,36 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
     };
 
     const engagementScore = calculateEngagementScore();
+    
+    // ===== AUTO-ASSIGN 'LEAD' ROLE - SIMPLE LOGIC =====
+    // If contact has name + (phone OR email), automatically add 'lead' role
+    const hasName = formData.firstName && formData.lastName;
+    const hasPhone = formData.phones.some(p => p.number && p.number.replace(/\D/g, '').length >= 10);
+    const hasEmail = formData.emails.some(e => e.address && e.address.includes('@'));
+    const hasContactMethod = hasPhone || hasEmail;
+    
+    // Auto-add 'lead' role if qualified and not already present
+    let updatedRoles = [...(formData.roles || ['contact'])];
+    if (hasName && hasContactMethod && !updatedRoles.includes('lead')) {
+      updatedRoles.push('lead');
+      console.log('✅ AUTO-ASSIGNED LEAD ROLE:', {
+        name: `${formData.firstName} ${formData.lastName}`,
+        phone: hasPhone,
+        email: hasEmail
+      });
+      addTimelineEvent('role_assigned', 'Automatically assigned "lead" role (has name + contact method)');
+    }
+    
     const finalData = {
       ...formData,
+      roles: updatedRoles,  // ← USE UPDATED ROLES
       aiTracking: {
         ...formData.aiTracking,
         engagementScore
       },
       dataQualityScore: dataQuality.score,
+      stage: formData.stage || 'prospecting',
+      pipelineStage: formData.pipelineStage || 'new',
       lastSavedAt: new Date().toISOString(),
       lastSavedBy: 'manual'
     };
@@ -840,7 +1015,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
       }
     }
     
-    addTimelineEvent('form_saved', 'Client information saved manually');
+    addTimelineEvent('form_saved', 'Contact information saved manually');
     onSave(finalData);
   };
 
@@ -892,7 +1067,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
       <div className="flex items-center justify-between mb-6">
         <div className="flex-1">
           <h2 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            Complete Client Intelligence Profile
+            Complete Contact Intelligence Profile
             {autoSaving && (
               <span className="text-sm font-normal text-blue-600 flex items-center gap-1">
                 <Clock className="w-4 h-4 animate-spin" /> Saving...
@@ -904,7 +1079,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
               </span>
             )}
           </h2>
-          <p className="text-gray-600 text-sm mt-1">AI-powered comprehensive client management</p>
+          <p className="text-gray-600 text-sm mt-1">AI-powered comprehensive contact management</p>
           
           {/* Data Quality Meter */}
           <div className="mt-3 flex items-center gap-4">
@@ -955,7 +1130,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
           >
             <Activity className="w-4 h-4" />
-            Save Client
+            Save Contact
           </button>
         </div>
       </div>
@@ -1009,7 +1184,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
                     <p className="text-sm font-medium text-gray-900">{suggestion.message}</p>
                     {suggestion.action && (
                       <p className="text-xs text-gray-600 mt-1">
-                        💡 Recommended: {suggestion.action}
+                        ðŸ’¡ Recommended: {suggestion.action}
                       </p>
                     )}
                   </div>
@@ -1036,7 +1211,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
                 Found {duplicates.length} similar contact{duplicates.length !== 1 ? 's' : ''} in the system.
               </p>
               <button className="text-sm text-yellow-700 hover:text-yellow-800 font-medium mt-2 underline">
-                Review Duplicates →
+                Review Duplicates â†’
               </button>
             </div>
           </div>
@@ -1122,7 +1297,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
                   <div className="flex-1">
                     <p className="text-sm font-medium text-gray-900">{call.summary || 'Call summary'}</p>
                     <p className="text-xs text-gray-600 mt-1">
-                      {new Date(call.timestamp).toLocaleString()} • Duration: {Math.round(call.duration / 60)}min
+                      {new Date(call.timestamp).toLocaleString()} â€¢ Duration: {Math.round(call.duration / 60)}min
                     </p>
                     {call.sentiment && (
                       <span className={`text-xs px-2 py-0.5 rounded-full inline-block mt-1 ${
@@ -1150,51 +1325,165 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
           title="Basic Information" 
           icon={Users} 
           section="basic" 
-          badge="Required" 
+          badge="Contact Info" 
           aiActive={true}
           completeness={
-            ((formData.firstName ? 25 : 0) +
-             (formData.lastName ? 25 : 0) +
-             (formData.dateOfBirth ? 25 : 0) +
-             (formData.ssn && formData.ssn.length === 9 ? 25 : 0))
+            ((formData.firstName ? 20 : 0) +
+             (formData.lastName ? 20 : 0) +
+             (formData.dateOfBirth ? 20 : 0) +
+             (formData.ssn && formData.ssn.length === 9 ? 20 : 0) +
+             (formData.leadSource ? 20 : 0))
           }
         />
         {expandedSections.basic && (
           <div className="p-4 bg-white border border-gray-200 rounded-lg space-y-4">
+            
+            {/* ===== PHOTO ID PREVIEW - VISUAL CONFIRMATION ===== */}
+            {formData.photoIdUrl && (
+              <div className="mb-4 flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="relative">
+                  {formData.photoIdUrl.toLowerCase().endsWith('.pdf') ? (
+                    // PDF Icon Display
+                    <div className="w-20 h-20 flex items-center justify-center bg-red-50 rounded-lg border-2 border-red-300">
+                      <FileText className="w-10 h-10 text-red-600" />
+                    </div>
+                  ) : (
+                    // Image Display
+                    <img 
+                      src={formData.photoIdUrl} 
+                      alt="Photo ID" 
+                      className="w-20 h-20 object-cover rounded-lg border-2 border-blue-300"
+                    />
+                  )}
+                  <div className="absolute -top-1 -right-1 bg-green-500 text-white rounded-full p-1">
+                    <CheckCircle className="w-3 h-3" />
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-blue-900">
+                    {formData.photoIdUrl.toLowerCase().endsWith('.pdf') ? 'Photo ID (PDF)' : 'Photo ID'} Uploaded
+                  </p>
+                  <p className="text-xs text-blue-700">
+                    Identity verification & reduces fraud
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm('Remove uploaded photo? You can upload a new one in the Documents section.')) {
+                      updateField('photoIdUrl', '');
+                      addTimelineEvent('photo_removed', 'Photo ID removed');
+                    }
+                  }}
+                  className="text-red-600 hover:text-red-700 p-2 hover:bg-red-50 rounded"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+```
+
+**RESULT:** PDFs show red document icon, images show thumbnail! ✅
+
+---
+
+## 🔧 FIX #2: AUTO-ADD LEAD ROLE
+
+**I need one more section from you:**
+
+**Ctrl+F to find this EXACT text:**
+```
+const engagementScore = calculateEngagementScore();
+
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  First Name <span className="text-red-500">*</span>
+                  First Name <span className="text-yellow-600 text-xs">(recommended)</span>
                 </label>
-                <input
-                  type="text"
-                  value={formData.firstName}
-                  onChange={(e) => updateField('firstName', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="First name"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={formData.firstName}
+                    onChange={(e) => {
+                      updateField('firstName', e.target.value);
+                      searchContacts(e.target.value, 'name');
+                    }}
+                    onFocus={() => setFocusedField('firstName')}
+                    className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="First name"
+                  />
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                    <VoiceMicButton
+                      onResult={(text) => updateField('firstName', text)}
+                      fieldType="text"
+                      size="small"
+                    />
+                  </div>
+                </div>
+                {/* Contact suggestions dropdown */}
+                {focusedField === 'firstName' && contactSuggestions.length > 0 && (
+                  <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                    {contactSuggestions.map((contact) => (
+                      <div
+                        key={contact.id}
+                        className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b last:border-b-0"
+                        onClick={() => {
+                          handleContactAutofill(contact);
+                          clearSuggestions();
+                          setFocusedField(null);
+                        }}
+                      >
+                        <div className="font-medium text-sm">{contact.name}</div>
+                        {contact.phone && <div className="text-xs text-gray-500">{contact.phone}</div>}
+                        {contact.email && <div className="text-xs text-gray-500">{contact.email}</div>}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Middle Name</label>
-                <input
-                  type="text"
-                  value={formData.middleName}
-                  onChange={(e) => updateField('middleName', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  placeholder="Middle name"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={formData.middleName}
+                    onChange={(e) => updateField('middleName', e.target.value)}
+                    className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="Middle name"
+                  />
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                    <VoiceMicButton
+                      onResult={(text) => updateField('middleName', text)}
+                      fieldType="text"
+                      size="small"
+                    />
+                  </div>
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Last Name <span className="text-red-500">*</span>
+                  Last Name <span className="text-yellow-600 text-xs">(recommended)</span>
                 </label>
-                <input
-                  type="text"
-                  value={formData.lastName}
-                  onChange={(e) => updateField('lastName', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  placeholder="Last name"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={formData.lastName}
+                    onChange={(e) => {
+                      updateField('lastName', e.target.value);
+                      searchContacts(e.target.value, 'name');
+                    }}
+                    onFocus={() => setFocusedField('lastName')}
+                    className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="Last name"
+                  />
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                    <VoiceMicButton
+                      onResult={(text) => updateField('lastName', text)}
+                      fieldType="text"
+                      size="small"
+                    />
+                  </div>
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Suffix</label>
@@ -1226,25 +1515,79 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
                 <p className="text-xs text-gray-500 mt-1">Used in personalized communications</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Name Pronunciation
-                  <Mic className="w-4 h-4 text-blue-600 cursor-pointer hover:text-blue-700" title="Record pronunciation" />
                 </label>
-                <input
-                  type="text"
+                <PronunciationRecorder
                   value={formData.namePronunciation}
-                  onChange={(e) => updateField('namePronunciation', e.target.value)}
-                  placeholder="e.g., La-HAH-gee"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  onChange={(data) => updateField('namePronunciation', data)}
+                  name={`${formData.firstName} ${formData.lastName}`.trim() || 'Contact'}
+                  compact={true}
+                  showPhonetic={true}
                 />
-                <p className="text-xs text-gray-500 mt-1">Helps team pronounce name correctly</p>
+                <p className="text-xs text-gray-500 mt-1">Record or type how to pronounce the name</p>
+              </div>
+            </div>
+
+            {/* Lead Source & Lead Score - NEW VISIBLE FIELDS */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                  <Target className="w-4 h-4 text-purple-600" />
+                  Lead Source
+                </label>
+                <select
+                  value={formData.leadSource}
+                  onChange={(e) => updateField('leadSource', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">-- Select Source --</option>
+                  <option value="ai-receptionist">🤖 AI Receptionist</option>
+                  <option value="website">🌐 Website Form</option>
+                  <option value="phone-call">📞 Phone Call</option>
+                  <option value="referral">👥 Referral</option>
+                  <option value="social-media">📱 Social Media</option>
+                  <option value="google-ads">🔍 Google Ads</option>
+                  <option value="facebook-ads">📘 Facebook Ads</option>
+                  <option value="walk-in">🚶 Walk-In</option>
+                  <option value="email-campaign">📧 Email Campaign</option>
+                  <option value="partner">🤝 Partner/Affiliate</option>
+                  <option value="returning-client">🔄 Returning Client</option>
+                  <option value="manual-entry">✏️ Manual Entry</option>
+                  <option value="other">📋 Other</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">How did this contact find us?</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                  <Star className="w-4 h-4 text-yellow-500" />
+                  Initial Lead Score
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="range"
+                    min="1"
+                    max="10"
+                    value={formData.leadScore || 5}
+                    onChange={(e) => updateField('leadScore', parseInt(e.target.value))}
+                    className="flex-1"
+                  />
+                  <span className={`px-3 py-1 rounded-full text-sm font-bold min-w-[60px] text-center ${
+                    formData.leadScore >= 8 ? 'bg-green-100 text-green-700' :
+                    formData.leadScore >= 5 ? 'bg-yellow-100 text-yellow-700' :
+                    'bg-red-100 text-red-700'
+                  }`}>
+                    {formData.leadScore || 5}/10
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">AI will adjust based on engagement</p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Date of Birth <span className="text-red-500">*</span>
+                  Date of Birth <span className="text-yellow-600 text-xs">(for credit bureaus)</span>
                 </label>
                 <input
                   type="date"
@@ -1260,7 +1603,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center justify-between">
-                  <span>Social Security Number <span className="text-red-500">*</span></span>
+                  <span>Social Security Number <span className="text-yellow-600 text-xs">(for credit repair)</span></span>
                   <button
                     type="button"
                     onClick={() => setShowSSN(!showSSN)}
@@ -1271,10 +1614,18 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
                 </label>
                 <input
                   type={showSSN ? "text" : "password"}
+                  name="ssn-secure"
                   value={formatSSN(formData.ssn)}
                   onChange={(e) => handleSSNChange(e.target.value)}
                   placeholder="XXX-XX-XXXX"
                   maxLength="11"
+                  autoComplete="new-password"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck="false"
+                  data-lpignore="true"
+                  data-form-type="other"
+                  data-1p-ignore="true"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono"
                 />
                 {formData.ssnLast4 && (
@@ -1295,7 +1646,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
           title="Contact Information" 
           icon={Phone} 
           section="contact" 
-          badge="Required" 
+          badge="Phone OR Email Required" 
           aiActive={true}
           completeness={
             Math.round(
@@ -1307,6 +1658,14 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
         />
         {expandedSections.contact && (
           <div className="p-4 bg-white border border-gray-200 rounded-lg space-y-4">
+            {/* Minimum Requirement Notice */}
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0" />
+              <p className="text-sm text-blue-800">
+                <strong>Minimum required:</strong> At least one phone number OR email address to save this contact.
+              </p>
+            </div>
+
             {/* Phones */}
             <div>
               <div className="flex items-center justify-between mb-2">
@@ -1357,14 +1716,14 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
                     <Phone className="w-3 h-3 text-gray-600" />
                     <span className="text-xs">Call</span>
                   </label>
-                  <label className="flex items-center gap-1 px-2 py-1 bg-white rounded border border-gray-200 cursor-pointer hover:bg-gray-50">
+                  <label className="flex items-center gap-1 px-2 py-1 bg-white rounded border border-gray-200 cursor-pointer hover:bg-gray-50" title="Check when phone number has been verified">
                     <input
                       type="checkbox"
                       checked={phone.verified}
                       onChange={(e) => updateArrayItem('phones', index, { verified: e.target.checked })}
                       className="rounded border-gray-300"
                     />
-                    <CheckCircle className="w-3 h-3 text-gray-600" />
+                    <CheckCircle className="w-3 h-3 text-green-600" />
                     <span className="text-xs">Verified</span>
                   </label>
                   {formData.phones.length > 1 && (
@@ -2173,7 +2532,15 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
                   className="rounded border-gray-300"
                 />
                 <FileText className="w-5 h-5 text-blue-600" />
-                <span className="text-sm font-medium flex-1">Photo ID (Driver's License, Passport, State ID)</span>
+                <div className="flex-1 flex items-center gap-2">
+                  <span className="text-sm font-medium">Photo ID (Driver's License, Passport, State ID)</span>
+                  {formData.photoIdUrl && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
+                      <Upload className="w-3 h-3" />
+                      Photo Uploaded
+                    </span>
+                  )}
+                </div>
                 {formData.documents.idReceived && (
                   <span className="text-xs text-green-600 flex items-center gap-1">
                     <CheckCircle className="w-3 h-3" /> Received
@@ -2783,7 +3150,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
               <div className="text-center py-12">
                 <Clock className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                 <p className="text-gray-500">No activity recorded yet</p>
-                <p className="text-xs text-gray-400 mt-1">Events will appear here as you interact with the client</p>
+                <p className="text-xs text-gray-400 mt-1">Events will appear here as you interact with the contact</p>
               </div>
             ) : (
               <>
@@ -2850,7 +3217,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
           value={formData.notes}
           onChange={(e) => updateField('notes', e.target.value)}
           rows="5"
-          placeholder="AI will analyze all interactions and add insights here automatically. You can also add manual notes...&#10;&#10;Examples:&#10;- Client prefers morning calls&#10;- Very motivated to improve credit&#10;- Has urgent need for car loan&#10;- Follow up on disputed items next week"
+          placeholder="AI will analyze all interactions and add insights here automatically. You can also add manual notes...&#10;&#10;Examples:&#10;- Contact prefers morning calls&#10;- Very motivated to improve credit&#10;- Has urgent need for car loan&#10;- Follow up on disputed items next week"
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
         />
         
@@ -2897,7 +3264,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
             ))}
           </div>
           <p className="text-xs text-gray-500 mt-2">
-            💡 Contact role is permanent. Add additional roles as needed.
+            ðŸ’¡ Contact role is permanent. Add additional roles as needed.
           </p>
         </div>
         
@@ -2957,7 +3324,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
 
       {/* Summary Stats Footer */}
       <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg">
-        <h3 className="text-sm font-semibold text-gray-900 mb-3">Client Profile Summary</h3>
+        <h3 className="text-sm font-semibold text-gray-900 mb-3">Contact Profile Summary</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div>
             <p className="text-xs text-gray-600 mb-1">Completeness</p>
@@ -3009,35 +3376,55 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
           </button>
           <button
             onClick={handleSave}
-            disabled={dataQuality.score < 30}
+            disabled={!dataQuality.canSave}
             className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 font-medium flex items-center gap-2 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Brain className="w-5 h-5" />
-            Save Client Profile
-            {dataQuality.score < 30 && (
-              <span className="text-xs bg-white/20 px-2 py-0.5 rounded">
-                {30 - dataQuality.score}% needed
+            Save Contact Profile
+            {!dataQuality.canSave && dataQuality.blockers?.length > 0 && (
+              <span className="text-xs bg-red-500/30 px-2 py-0.5 rounded">
+                Phone or Email Required
               </span>
             )}
           </button>
         </div>
       </div>
 
-      {/* Data Quality Issues Modal Trigger */}
-      {dataQuality.issues.length > 0 && (
-        <div className="fixed bottom-4 right-4 z-50">
-          <button
-            onClick={() => {
-              // Show issues in a modal or expand section
-              alert(`Data Quality Issues:\n\n${dataQuality.issues.join('\n')}`);
-            }}
-            className="px-4 py-2 bg-yellow-500 text-white rounded-full shadow-lg hover:bg-yellow-600 flex items-center gap-2 animate-pulse"
-          >
-            <AlertCircle className="w-4 h-4" />
-            {dataQuality.issues.length} Issues
-          </button>
+      {/* Data Quality Issues Display */}
+      {(dataQuality.blockers?.length > 0 || dataQuality.issues?.length > 0) && (
+        <div className="fixed bottom-4 right-4 z-50 space-y-2">
+          {/* Red Blockers (prevent save) */}
+          {dataQuality.blockers?.length > 0 && (
+            <div className="px-4 py-2 bg-red-500 text-white rounded-lg shadow-lg flex items-center gap-2">
+              <AlertCircle className="w-4 h-4" />
+              <span className="text-sm">{dataQuality.blockers[0]}</span>
+            </div>
+          )}
+          
+          {/* Yellow Warnings (informational) */}
+          {dataQuality.issues?.length > 0 && (
+            <button
+              onClick={() => {
+                alert(`📋 Recommended Information:\n\n${dataQuality.issues.join('\n')}\n\n✅ These are optional - you can still save!`);
+              }}
+              className="px-4 py-2 bg-yellow-500 text-white rounded-full shadow-lg hover:bg-yellow-600 flex items-center gap-2"
+            >
+              <AlertCircle className="w-4 h-4" />
+              {dataQuality.issues.length} Suggestions
+            </button>
+          )}
         </div>
       )}
+
+      {/* AI Form Assistant - Floating helper widget */}
+      <AIFormAssistant
+        currentStep={0}
+        currentField={focusedField}
+        formData={formData}
+        formName="UltimateContactForm"
+        onFieldFocus={(field) => setFocusedField(field)}
+        showProactively={true}
+      />
     </div>
   );
 };

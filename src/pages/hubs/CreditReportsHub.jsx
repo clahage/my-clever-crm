@@ -2,7 +2,8 @@
 // ============================================================================
 // 📊 CREDIT REPORTS HUB - IDIQ SYSTEM UNIFIED INTERFACE
 // ============================================================================
-// UPDATED: Added Upload & Parse and Report Viewer tabs
+// UPDATED: 2026-01-21 - Changed Enroll Contact to use CompleteEnrollmentFlow
+// with contact selection and CRM mode support
 // ============================================================================
 
 import React, { useState, Suspense, lazy } from 'react';
@@ -38,6 +39,7 @@ import { ROLE_HIERARCHY } from '@/layout/navConfig';
 
 // Lazy load components
 const IDIQEnrollment = lazy(() => import('../../components/IDIQEnrollment'));
+const CompleteEnrollmentFlow = lazy(() => import('../../components/idiq/CompleteEnrollmentFlow'));
 const ClientCreditReport = lazy(() => import('../../components/credit/ClientCreditReport'));
 const CreditReportWorkflow = lazy(() => import('../../components/credit/CreditReportWorkflow'));
 const AIDisputeGenerator = lazy(() => import('../../components/credit/AIDisputeGenerator'));
@@ -54,26 +56,47 @@ const CreditReviewGenerator = lazy(() => import('../../components/revenue/Credit
 const AutoOpportunityDashboard = lazy(() => import('../../components/revenue/AutoOpportunityDashboard'));
 const AffiliateLinkManager = lazy(() => import('../../components/revenue/AffiliateLinkManager'));
 
-// Tab configuration - UPDATED with new tabs
+// Tab configuration - UPDATED: Changed enroll to use CompleteEnrollmentFlow
 const TABS = [
-  { id: 'upload', label: 'Upload & Parse', icon: UploadIcon, component: CreditReportUploader, permission: 'user', badge: 'NEW' },
-  { id: 'viewer', label: 'Report Viewer', icon: ViewerIcon, component: CreditReportViewer, permission: 'user', badge: 'AI' },
-  { id: 'review', label: 'AI Review', icon: ReviewIcon, component: CreditReviewGenerator, permission: 'user', badge: 'REV' },
-  { id: 'auto', label: 'Auto Financing', icon: AutoIcon, component: AutoOpportunityDashboard, permission: 'manager', badge: '$$$' },
-  { id: 'affiliates', label: 'Affiliates', icon: AffiliateIcon, component: AffiliateLinkManager, permission: 'admin', badge: 'REV' },
-  { id: 'enroll', label: 'Enroll Contact', icon: EnrollIcon, component: IDIQEnrollment, permission: 'user' },
-  { id: 'reports', label: 'View Reports', icon: ReportIcon, component: ClientCreditReport, permission: 'client' },
-  { id: 'workflow', label: 'Workflows', icon: WorkflowIcon, component: CreditReportWorkflow, permission: 'user' },
-  { id: 'disputes', label: 'Disputes', icon: DisputeIcon, component: AIDisputeGenerator, permission: 'client' },
-  { id: 'monitoring', label: 'Monitoring', icon: MonitorIcon, component: CreditMonitoringSystem, permission: 'client' },
-  { id: 'optimizer', label: 'Score Optimizer', icon: OptimizerIcon, component: CreditScoreOptimizer, permission: 'client', badge: 'AI' },
-  { id: 'control', label: 'Control Center', icon: ControlIcon, component: IDIQControlCenter, permission: 'admin' },
-  { id: 'config', label: 'Settings', icon: ConfigIcon, component: IDIQConfig, permission: 'admin' },
+  { id: 'upload', label: 'Upload & Parse', icon: UploadIcon, component: 'CreditReportUploader', permission: 'user', badge: 'NEW' },
+  { id: 'viewer', label: 'Report Viewer', icon: ViewerIcon, component: 'CreditReportViewer', permission: 'user', badge: 'AI' },
+  { id: 'review', label: 'AI Review', icon: ReviewIcon, component: 'CreditReviewGenerator', permission: 'user', badge: 'REV' },
+  { id: 'auto', label: 'Auto Financing', icon: AutoIcon, component: 'AutoOpportunityDashboard', permission: 'manager', badge: '$$$' },
+  { id: 'affiliates', label: 'Affiliates', icon: AffiliateIcon, component: 'AffiliateLinkManager', permission: 'admin', badge: 'REV' },
+  { id: 'enroll', label: 'Enroll Contact', icon: EnrollIcon, component: 'CompleteEnrollmentFlow', permission: 'user' },
+  { id: 'reports', label: 'View Reports', icon: ReportIcon, component: 'ClientCreditReport', permission: 'client' },
+  { id: 'workflow', label: 'Workflows', icon: WorkflowIcon, component: 'CreditReportWorkflow', permission: 'user' },
+  { id: 'disputes', label: 'Disputes', icon: DisputeIcon, component: 'AIDisputeGenerator', permission: 'client' },
+  { id: 'monitoring', label: 'Monitoring', icon: MonitorIcon, component: 'CreditMonitoringSystem', permission: 'client' },
+  { id: 'optimizer', label: 'Score Optimizer', icon: OptimizerIcon, component: 'CreditScoreOptimizer', permission: 'client', badge: 'AI' },
+  { id: 'control', label: 'Control Center', icon: ControlIcon, component: 'IDIQControlCenter', permission: 'admin' },
+  { id: 'config', label: 'Settings', icon: ConfigIcon, component: 'IDIQConfig', permission: 'admin' },
 ];
+
+// Component map for dynamic rendering
+const COMPONENT_MAP = {
+  CreditReportUploader,
+  CreditReportViewer,
+  CreditReviewGenerator,
+  AutoOpportunityDashboard,
+  AffiliateLinkManager,
+  CompleteEnrollmentFlow,
+  IDIQEnrollment,
+  ClientCreditReport,
+  CreditReportWorkflow,
+  AIDisputeGenerator,
+  CreditMonitoringSystem,
+  CreditScoreOptimizer,
+  IDIQControlCenter,
+  IDIQConfig,
+};
 
 const CreditReportsHub = () => {
   const { userProfile } = useAuth();
   const userRole = userProfile?.role || 'user';
+  
+  // ===== SELECTED CONTACT STATE (for Enroll Contact tab) =====
+  const [selectedContactId, setSelectedContactId] = useState(null);
 
   // Permission check function - DEFINED FIRST
   const hasPermission = (requiredRole) => {
@@ -106,11 +129,21 @@ const CreditReportsHub = () => {
     }
   };
 
+  // ===== ENROLLMENT COMPLETION HANDLER =====
+  const handleEnrollmentComplete = (contactId, enrollmentData) => {
+    console.log('✅ Enrollment completed:', { contactId, enrollmentData });
+    // Clear selected contact after completion
+    setSelectedContactId(null);
+    // Optionally switch to View Reports tab
+    setActiveTab('reports');
+  };
+
   // Get accessible tabs
   const accessibleTabs = TABS.filter(tab => hasPermission(tab.permission));
 
-  // Get active component
-  const ActiveComponent = TABS.find(t => t.id === activeTab)?.component;
+  // Get active tab config
+  const activeTabConfig = TABS.find(t => t.id === activeTab);
+  const ActiveComponent = activeTabConfig ? COMPONENT_MAP[activeTabConfig.component] : null;
 
   // Loading fallback
   const LoadingFallback = () => (
@@ -118,6 +151,44 @@ const CreditReportsHub = () => {
       <CircularProgress size={60} />
     </Box>
   );
+
+  // ===== RENDER COMPONENT WITH PROPS =====
+  const renderActiveComponent = () => {
+    if (!ActiveComponent) {
+      return (
+        <Alert severity="warning">
+          You don't have permission to access this tab.
+        </Alert>
+      );
+    }
+
+    // Special handling for CompleteEnrollmentFlow - pass CRM mode props
+    if (activeTab === 'enroll') {
+      return (
+        <Suspense fallback={<LoadingFallback />}>
+          <CompleteEnrollmentFlow
+            mode="crm"
+            preFilledContactId={selectedContactId}
+            onComplete={handleEnrollmentComplete}
+            skipCelebration={true}
+          />
+        </Suspense>
+      );
+    }
+
+    // Default rendering for other components
+    return (
+      <Suspense fallback={<LoadingFallback />}>
+        <ActiveComponent 
+          // Pass contact selection handler to components that might need it
+          onSelectContact={(contactId) => {
+            setSelectedContactId(contactId);
+            setActiveTab('enroll');
+          }}
+        />
+      </Suspense>
+    );
+  };
 
   return (
     <Box className="bg-white dark:bg-gray-900 min-h-screen transition-colors duration-200">
@@ -187,15 +258,7 @@ const CreditReportsHub = () => {
 
       {/* Content */}
       <Box sx={{ p: 2 }}>
-        {ActiveComponent ? (
-          <Suspense fallback={<LoadingFallback />}>
-            <ActiveComponent />
-          </Suspense>
-        ) : (
-          <Alert severity="warning">
-            You don't have permission to access this tab.
-          </Alert>
-        )}
+        {renderActiveComponent()}
       </Box>
     </Box>
   );
