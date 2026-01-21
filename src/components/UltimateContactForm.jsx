@@ -661,8 +661,26 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
     autoSaveTimerRef.current = setTimeout(async () => {
       setAutoSaving(true);
       try {
+        // ===== AUTO-ASSIGN 'LEAD' ROLE DURING AUTO-SAVE =====
+        const hasName = formData.firstName && formData.lastName;
+        const hasPhone = formData.phones.some(p => p.number && p.number.replace(/\D/g, '').length >= 10);
+        const hasEmail = formData.emails.some(e => e.address && e.address.includes('@'));
+        const hasContactMethod = hasPhone || hasEmail;
+        
+        // Auto-add 'lead' role if qualified and not already present
+        let updatedRoles = [...(formData.roles || ['contact'])];
+        if (hasName && hasContactMethod && !updatedRoles.includes('lead')) {
+          updatedRoles.push('lead');
+          console.log('✅ AUTO-SAVE: AUTO-ASSIGNED LEAD ROLE:', {
+            name: `${formData.firstName} ${formData.lastName}`,
+            phone: hasPhone,
+            email: hasEmail
+          });
+        }
+        
         await updateDoc(doc(db, 'contacts', contactId), {
           ...formData,
+          roles: updatedRoles,  // ← USE UPDATED ROLES
           lastSavedAt: new Date().toISOString(),
           lastSavedBy: 'auto-save'
         });
@@ -858,6 +876,9 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
           updateNestedField('documents', 'idReceived', true);
           updateNestedField('documents', 'idFileUrl', fileUrl);
           updateNestedField('documents', 'idUploadDate', new Date().toISOString());
+          // ✅ ALSO update photoIdUrl so thumbnail displays
+          updateField('photoIdUrl', fileUrl);
+          console.log('✅ Photo ID uploaded, thumbnail should display:', fileUrl);
           break;
         case 'proofOfAddress':
           updateNestedField('documents', 'proofOfAddressReceived', true);
@@ -950,15 +971,36 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
     };
 
     const engagementScore = calculateEngagementScore();
+    
+    // ===== AUTO-ASSIGN 'LEAD' ROLE - SIMPLE LOGIC =====
+    // If contact has name + (phone OR email), automatically add 'lead' role
+    const hasName = formData.firstName && formData.lastName;
+    const hasPhone = formData.phones.some(p => p.number && p.number.replace(/\D/g, '').length >= 10);
+    const hasEmail = formData.emails.some(e => e.address && e.address.includes('@'));
+    const hasContactMethod = hasPhone || hasEmail;
+    
+    // Auto-add 'lead' role if qualified and not already present
+    let updatedRoles = [...(formData.roles || ['contact'])];
+    if (hasName && hasContactMethod && !updatedRoles.includes('lead')) {
+      updatedRoles.push('lead');
+      console.log('✅ AUTO-ASSIGNED LEAD ROLE:', {
+        name: `${formData.firstName} ${formData.lastName}`,
+        phone: hasPhone,
+        email: hasEmail
+      });
+      addTimelineEvent('role_assigned', 'Automatically assigned "lead" role (has name + contact method)');
+    }
+    
     const finalData = {
       ...formData,
+      roles: updatedRoles,  // ← USE UPDATED ROLES
       aiTracking: {
         ...formData.aiTracking,
         engagementScore
       },
       dataQualityScore: dataQuality.score,
-      stage: formData.stage || 'prospecting',           // DEFAULT STAGE
-      pipelineStage: formData.pipelineStage || 'new',   // DEFAULT PIPELINE STAGE
+      stage: formData.stage || 'prospecting',
+      pipelineStage: formData.pipelineStage || 'new',
       lastSavedAt: new Date().toISOString(),
       lastSavedBy: 'manual'
     };
@@ -1300,17 +1342,27 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
             {formData.photoIdUrl && (
               <div className="mb-4 flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <div className="relative">
-                  <img 
-                    src={formData.photoIdUrl} 
-                    alt="Photo ID" 
-                    className="w-20 h-20 object-cover rounded-lg border-2 border-blue-300"
-                  />
+                  {formData.photoIdUrl.toLowerCase().endsWith('.pdf') ? (
+                    // PDF Icon Display
+                    <div className="w-20 h-20 flex items-center justify-center bg-red-50 rounded-lg border-2 border-red-300">
+                      <FileText className="w-10 h-10 text-red-600" />
+                    </div>
+                  ) : (
+                    // Image Display
+                    <img 
+                      src={formData.photoIdUrl} 
+                      alt="Photo ID" 
+                      className="w-20 h-20 object-cover rounded-lg border-2 border-blue-300"
+                    />
+                  )}
                   <div className="absolute -top-1 -right-1 bg-green-500 text-white rounded-full p-1">
                     <CheckCircle className="w-3 h-3" />
                   </div>
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-blue-900">Photo ID Uploaded</p>
+                  <p className="text-sm font-medium text-blue-900">
+                    {formData.photoIdUrl.toLowerCase().endsWith('.pdf') ? 'Photo ID (PDF)' : 'Photo ID'} Uploaded
+                  </p>
                   <p className="text-xs text-blue-700">
                     Identity verification & reduces fraud
                   </p>
@@ -1329,6 +1381,19 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
                 </button>
               </div>
             )}
+```
+
+**RESULT:** PDFs show red document icon, images show thumbnail! ✅
+
+---
+
+## 🔧 FIX #2: AUTO-ADD LEAD ROLE
+
+**I need one more section from you:**
+
+**Ctrl+F to find this EXACT text:**
+```
+const engagementScore = calculateEngagementScore();
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
