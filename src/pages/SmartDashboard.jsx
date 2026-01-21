@@ -5293,7 +5293,7 @@ const SmartDashboard = () => {
                   ...newContact,
                   createdAt: serverTimestamp(),
                   updatedAt: serverTimestamp(),
-                  roles: ['contact'],
+                  roles: newContact.roles || ['contact'],  // ← FIXED: Use roles from UltimateContactForm
                   status: 'active',
                   source: 'manual',
                   createdBy: auth.currentUser?.uid || 'system',
