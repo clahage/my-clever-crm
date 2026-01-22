@@ -155,7 +155,6 @@ import { collection, addDoc, doc, updateDoc, getDoc, serverTimestamp, arrayUnion
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage, auth } from '@/lib/firebase';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { loadStripe } from '@stripe/stripe-js';
 
 // Import our services
 import {
@@ -169,7 +168,7 @@ import {
   clearEnrollmentState,
 } from '@/services/idiqContactManager';
 import { CARRIER_OPTIONS, sendSpinTaxRecovery } from '@/services/smsGatewayService';
-import { sendEmail } from '@/services/emailService';
+import { sendWelcomeEmail, sendIDIQInstructions } from '@/utils/emailTriggers';
 import {
   trackEvent,
   trackPhaseComplete,
@@ -551,6 +550,9 @@ const CompleteEnrollmentFlow = ({
   // Plan & Payment
   const [selectedPlan, setSelectedPlan] = useState('standard');
   const [paymentComplete, setPaymentComplete] = useState(false);
+  const [showPaymentOptions, setShowPaymentOptions] = useState(false);
+
+  
 
   // Social proof
   const [showSocialProof, setShowSocialProof] = useState(false);
@@ -605,8 +607,8 @@ const CompleteEnrollmentFlow = ({
   // ===== FIREBASE FUNCTIONS =====
   const functions = getFunctions();
   const idiqService = httpsCallable(functions, 'idiqService');
-  const createStripeCheckout = httpsCallable(functions, 'createStripeCheckout');
   const operationsManager = httpsCallable(functions, 'operationsManager');
+  const emailService = httpsCallable(functions, 'emailService');
 
   // ============================================================================
   // AUTOSAVE FUNCTIONS
@@ -1396,99 +1398,164 @@ const CompleteEnrollmentFlow = ({
   };
   
   // ===== SUBMIT VERIFICATION ANSWERS =====
-  const submitVerificationAnswers = async () => {
-    setLoading(true);
-    setVerificationError(null);
+const submitVerificationAnswers = async () => {
+  setLoading(true);
+  setVerificationError(null);
 
-    try {
-      console.log("📝 Submitting verification answers...");
+  try {
+    console.log("📝 Submitting verification answers...");
 
-      const answerIds = verificationQuestions.map((q, idx) => {
-        const selectedAnswer = verificationAnswers[idx];
-        if (!selectedAnswer) {
-          throw new Error(`Please answer question ${idx + 1}`);
-        }
-        
-        const options = q.answers || q.answer || [];
-        const foundOption = options.find(a => (a.answer || a.choice || a.text) === selectedAnswer);
-        
-        return foundOption ? foundOption.id : selectedAnswer;
-      });
+    const answerIds = verificationQuestions.map((q, idx) => {
+      const selectedAnswer = verificationAnswers[idx];
+      if (!selectedAnswer) {
+        throw new Error(`Please answer question ${idx + 1}`);
+      }
+      
+      const options = q.answers || q.answer || [];
+      const foundOption = options.find(a => (a.answer || a.choice || a.text) === selectedAnswer);
+      
+      return foundOption ? foundOption.id : selectedAnswer;
+    });
 
-      console.log("🔐 Submitting answer IDs for enrollment:", enrollmentId);
+    console.log("🔐 Submitting answer IDs for enrollment:", enrollmentId);
 
-      const response = await idiqService({
-        action: 'submitVerification',
-        memberData: {
-          email: formData.email,
-          answerIds: answerIds,
-          enrollmentId: enrollmentId
-        }
-      });
+    const response = await idiqService({
+      action: 'submitVerification',
+      memberData: {
+        email: formData.email,
+        answerIds: answerIds,
+        enrollmentId: enrollmentId
+      }
+    });
 
-      const resData = response.data?.data || response.data || {};
-      const successFlag = response.data?.success && response.data?.verified;
+    const resData = response.data?.data || response.data || {};
+    const successFlag = response.data?.success && response.data?.verified;
 
-      console.log("✅ Verification response:", response.data);
+    console.log("✅ Verification response:", response.data);
 
-      if (successFlag) {
-        console.log("🎉 Verification successful!");
-        
-        setCreditReport(resData);
-        setVerificationRequired(false);
-        
-        try {
-          await updateDoc(doc(db, 'contacts', contactId), {
-            idiqEnrollment: {
-              status: 'active',
-              enrollmentId: enrollmentId || `ENR-${Date.now()}`,
-              membershipNumber: membershipNumber || response.data.membershipNumber || null,
-              enrolledAt: serverTimestamp(),
-              verifiedAt: serverTimestamp(),
-              creditScore: resData.vantageScore || resData.score || null,
-              enrollmentSource: isCRMMode ? 'crm' : 'website',
-              plan: selectedPlan || 'not_selected_yet'
-            },
-            enrollmentStatus: 'active',
-            idiqActive: true,
-            status: 'enrolled',
-            leadSource: formData.leadSource || (isCRMMode ? 'CRM Enrollment' : 'Website - Complete Enrollment'),
-            employer: formData.employer || '',
-            income: formData.income || '',
-            'idiq.enrolled': true,
-            'idiq.enrolledAt': serverTimestamp(),
-            'idiq.lastEnrollmentAt': serverTimestamp(),
-            'idiq.membershipNumber': membershipNumber || response.data.membershipNumber || null,
-            'idiq.reportRequested': true,
-            updatedAt: serverTimestamp()
-          });
-          
-          await logInteraction('idiq_enrollment_completed', {
-            description: 'IDIQ enrollment completed successfully with verification',
-            enrollmentId: enrollmentId,
-            membershipNumber: membershipNumber || response.data.membershipNumber,
-            creditScore: resData.vantageScore || resData.score,
-            plan: selectedPlan,
-            verificationRequired: true
-          });
-        } catch (updateErr) {
-          console.error('❌ Failed to update IDIQ enrollment status:', updateErr);
-        }
-        
-        setCurrentPhase(3);
-        
-        const targetScore = resData.vantageScore || resData.score || 300;
-        animateScore(targetScore);
-        
-      } else if (response.data?.locked) {
-        console.log("🚫 Account locked - notifying support");
-        setVerificationError({
-          type: 'locked',
-          message: response.data.message || 'Account locked. Please contact support.',
-          attemptsRemaining: 0
+    if (successFlag) {
+      console.log("🎉 Verification successful!");
+      
+      setCreditReport(resData);
+      setVerificationRequired(false);
+      
+      try {
+        await updateDoc(doc(db, 'contacts', contactId), {
+          idiqEnrollment: {
+            status: 'active',
+            enrollmentId: enrollmentId || `ENR-${Date.now()}`,
+            membershipNumber: membershipNumber || response.data.membershipNumber || null,
+            enrolledAt: serverTimestamp(),
+            verifiedAt: serverTimestamp(),
+            creditScore: resData.vantageScore || resData.score || null,
+            enrollmentSource: isCRMMode ? 'crm' : 'website',
+            plan: selectedPlan || 'not_selected_yet'
+          },
+          enrollmentStatus: 'active',
+          idiqActive: true,
+          status: 'enrolled',
+          leadSource: formData.leadSource || (isCRMMode ? 'CRM Enrollment' : 'Website - Complete Enrollment'),
+          employer: formData.employer || '',
+          income: formData.income || '',
+          'idiq.enrolled': true,
+          'idiq.enrolledAt': serverTimestamp(),
+          'idiq.lastEnrollmentAt': serverTimestamp(),
+          'idiq.membershipNumber': membershipNumber || response.data.membershipNumber || null,
+          'idiq.reportRequested': true,
+          updatedAt: serverTimestamp()
         });
         
-        // Send alert email to Laurie for locked accounts
+        await logInteraction('idiq_enrollment_completed', {
+          description: 'IDIQ enrollment completed successfully with verification',
+          enrollmentId: enrollmentId,
+          membershipNumber: membershipNumber || response.data.membershipNumber,
+          creditScore: resData.vantageScore || resData.score,
+          plan: selectedPlan,
+          verificationRequired: true
+        });
+
+        // ===== 🚀 CRITICAL FIX: TRIGGER CUSTOMER EMAILS =====
+        console.log('📧 Triggering customer email automation...');
+        
+        try {
+          // Import the working email triggers (add this to imports at top of file)
+          const { sendWelcomeEmail, sendIDIQInstructions } = await import('@/utils/emailTriggers');
+          
+          // Send IDIQ instructions email immediately
+          const idiqEmailResult = await sendIDIQInstructions(contactId, {
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            email: formData.email
+          }, membershipNumber || response.data.membershipNumber || 'See IDIQ Email');
+          
+          if (idiqEmailResult?.success) {
+            console.log('✅ IDIQ instructions email sent successfully');
+          } else {
+            console.error('❌ IDIQ instructions email failed:', idiqEmailResult?.error);
+          }
+          
+          // Send welcome email (if not already sent)
+          const welcomeEmailResult = await sendWelcomeEmail(contactId, {
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            email: formData.email
+          });
+          
+          if (welcomeEmailResult?.success) {
+            console.log('✅ Welcome email sent successfully');
+          } else {
+            console.error('❌ Welcome email failed:', welcomeEmailResult?.error);
+          }
+          
+        } catch (emailError) {
+          console.error('❌ Customer email automation failed:', emailError);
+          // Don't block the enrollment process if emails fail
+        }
+        // ===== END EMAIL AUTOMATION FIX =====
+        
+      } catch (updateErr) {
+        console.error('❌ Failed to update IDIQ enrollment status:', updateErr);
+      }
+      
+      setCurrentPhase(3);
+      
+      const targetScore = resData.vantageScore || resData.score || 300;
+      animateScore(targetScore);
+      
+    } else if (response.data?.locked) {
+      console.log("🚫 Account locked - notifying support");
+      setVerificationError({
+        type: 'locked',
+        message: response.data.message || 'Account locked. Please contact support.',
+        attemptsRemaining: 0
+      });
+      
+      // Send alert email to Laurie for locked accounts
+      try {
+        // Use the working emailService function instead of broken sendEmail
+        await emailService({
+          action: 'send',
+          to: 'Laurie@speedycreditrepair.com',
+          subject: `🚨 IDIQ Verification Locked - ${formData.firstName} ${formData.lastName}`,
+          body: `Client Verification Locked
+
+Name: ${formData.firstName} ${formData.lastName}
+Email: ${formData.email}
+Phone: ${formData.phone}
+Enrollment ID: ${enrollmentId}
+
+The customer has been locked out of IDIQ verification. Please contact them immediately and assist with manual verification.
+
+Time: ${new Date().toLocaleString()}`,
+          recipientName: 'Laurie',
+          contactId: contactId,
+          templateType: 'admin_alert'
+        });
+        
+        console.log('✅ Admin alert email sent to Laurie');
+      } catch (alertEmailError) {
+        console.error('❌ Failed to send admin alert email:', alertEmailError);
+      }
         try {
           await sendEmail({
             to: 'Laurie@speedycreditrepair.com',
@@ -1691,76 +1758,122 @@ const CompleteEnrollmentFlow = ({
   };
 
   const handlePayment = async () => {
-    const plan = SERVICE_PLANS.find((p) => p.id === selectedPlan);
-    const finalPrice = Math.max(plan.price - appliedDiscount, 0);
+  const plan = SERVICE_PLANS.find((p) => p.id === selectedPlan);
+  const finalPrice = Math.max(plan.price - appliedDiscount, 0);
 
-    console.log('💳 Processing payment:', { plan: plan.name, price: finalPrice });
+  console.log('💳 Processing ACH/Zelle payment:', { plan: plan.name, price: finalPrice });
 
-    // Skip payment if CRM mode with skipPayment flag
-    if (skipPayment || finalPrice <= 0) {
-      setLoading(true);
-      try {
-        console.log('🎁 Activating free trial/promotional enrollment');
-        
-        await logInteraction('payment_completed', {
-          description: `${skipPayment ? 'Payment skipped (CRM)' : 'Free trial activated'} - ${plan.name} plan`,
-          plan: plan.name,
-          planId: selectedPlan,
-          amount: 0,
-          paymentMethod: skipPayment ? 'crm_skip' : 'free_trial',
-          phase: currentPhase
-        });
-        
-        await finalizeEnrollment();
-        return;
-      } catch (err) {
-        console.error('❌ Trial activation error:', err);
-        setError('Error activating trial account. Please contact support.');
-        setLoading(false);
-        return;
-      }
-    }
-
+  // Skip payment if CRM mode with skipPayment flag
+  if (skipPayment || finalPrice <= 0) {
     setLoading(true);
     try {
-      console.log('💳 Creating Stripe checkout session...');
+      console.log('🎁 Activating free trial/promotional enrollment');
       
-      const response = await createStripeCheckout({
-        productId: plan.id,
-        productName: `Speedy Credit Repair - ${plan.name}`,
-        amount: finalPrice * 100,
-        currency: 'usd',
-        contactId: contactId,
-        billingDay: formData.billingDay,
-        successUrl: `${window.location.origin}/enrollment/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancelUrl: `${window.location.origin}/enrollment?phase=6`,
+      await logInteraction('payment_completed', {
+        description: `${skipPayment ? 'Payment skipped (CRM)' : 'Free trial activated'} - ${plan.name} plan`,
+        plan: plan.name,
+        planId: selectedPlan,
+        amount: 0,
+        paymentMethod: skipPayment ? 'crm_skip' : 'free_trial',
+        phase: currentPhase
       });
-
-      const stripe = await loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
-      const { error } = await stripe.redirectToCheckout({ sessionId: response.data.sessionId });
       
-      if (error) throw error;
-
+      await finalizeEnrollment();
+      return;
     } catch (err) {
-      console.error('Payment error:', err);
-      setError('Payment failed or was cancelled. Please try again to activate your account.');
+      console.error('❌ Trial activation error:', err);
+      setError('Error activating trial account. Please contact support.');
       setLoading(false);
+      return;
     }
-  };
+  }
 
-  const finalizeEnrollment = async () => {
-    setPaymentComplete(true);
+  // Show ACH/Zelle payment selection instead of Stripe checkout
+  setShowPaymentOptions(true);
+};
+
+const handleACHPayment = async () => {
+  setLoading(true);
+  try {
+    console.log('🏦 Setting up ACH payment...');
     
-    const selectedPlanData = SERVICE_PLANS.find((p) => p.id === selectedPlan) || SERVICE_PLANS[1];
-    await logInteraction('payment_completed', {
-      description: `Payment completed - ${selectedPlanData.name} plan`,
-      plan: selectedPlan,
-      planName: selectedPlanData.name,
-      price: selectedPlanData.price,
-      discountApplied: appliedDiscount
+    const plan = SERVICE_PLANS.find((p) => p.id === selectedPlan);
+    const setupFee = 99;
+    const billingDate = new Date();
+    billingDate.setDate(billingDate.getDate() + 30); // 30 days from today
+    
+    // Create payment intent in Firebase
+    const paymentRef = await addDoc(collection(db, 'paymentIntents'), {
+      contactId: contactId,
+      type: 'ach_setup',
+      planId: selectedPlan,
+      planName: plan.name,
+      setupFee: setupFee,
+      monthlyAmount: plan.price,
+      billingDate: billingDate,
+      status: 'pending_ach_setup',
+      paymentMethod: 'ACH',
+      customerInfo: {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phone: formData.phone
+      },
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
     });
+
+    // Send ACH setup instructions email using working emailService
+    await emailService({
+      action: 'send',
+      to: formData.email,
+      subject: 'ACH Setup Instructions - Speedy Credit Repair',
+      body: `Hi ${formData.firstName},
+
+Thank you for selecting the ${plan.name} plan!
+
+ACH PAYMENT SETUP DETAILS:
+• Setup Fee: $${setupFee}
+• Monthly Fee: $${plan.price}
+• First Payment: ${billingDate.toLocaleDateString()}
+
+NEXT STEPS:
+1. Call (888) 724-7344 to securely provide banking details
+2. ACH auto-pay setup within 24 hours
+3. Email confirmation once complete
+
+Your credit repair starts immediately!
+
+Best regards,
+Christopher Lahage & Team`,
+      recipientName: formData.firstName,
+      contactId: contactId,
+      templateType: 'ach_setup'
+    });
+
+    console.log('✅ ACH setup completed with email sent');
+    await finalizeEnrollment();
     
-    // Skip celebration phase in CRM mode if requested
+  } catch (error) {
+    console.error('❌ ACH setup error:', error);
+    setError('ACH setup failed. Please call (888) 724-7344 for assistance.');
+    setLoading(false);
+  }
+};
+
+const finalizeEnrollment = async () => {
+  setPaymentComplete(true);
+  
+  const selectedPlanData = SERVICE_PLANS.find((p) => p.id === selectedPlan) || SERVICE_PLANS[1];
+  await logInteraction('payment_completed', {
+    description: `Payment completed - ${selectedPlanData.name} plan`,
+    plan: selectedPlan,
+    planName: selectedPlanData.name,
+    price: selectedPlanData.price,
+    discountApplied: appliedDiscount
+  });
+  
+  // Skip celebration phase in CRM mode if requested
     if (isCRMMode && skipCelebration) {
       setCurrentPhase(10);
     } else {
@@ -1809,35 +1922,20 @@ const CompleteEnrollmentFlow = ({
   };
 
   const sendWelcomeEmail = async () => {
-    try {
-      await sendEmail({
-        to: formData.email,
-        type: 'WELCOME_NEW_CLIENT',
-        subject: `Welcome to Speedy Credit Repair, ${formData.firstName}!`,
-        html: `
-          <h1>Welcome to the Family!</h1>
-          <p>Hi ${formData.firstName},</p>
-          <p>Congratulations! Your account is now active and we are ready to start working for you today.</p>
-          <p><strong>Next Steps:</strong></p>
-          <ul>
-            <li>Analyst Review: 24-48 Hours</li>
-            <li>First Dispute Round: Starting Immediately</li>
-            <li>Portal Access: Enabled</li>
-          </ul>
-          <p>Access your portal here: <a href="https://myclevercrm.com/client-portal">Client Portal</a></p>
-          <p>Best,<br/>Christopher Lahage</p>
-        `,
-        variables: {
-          firstName: formData.firstName,
-          middleName: formData.middleName,
-          lastName: formData.lastName,
-        },
-        contactId: contactId,
-      });
-    } catch (err) {
-      console.error('Welcome email failed:', err);
-    }
-  };
+  try {
+    console.log('📧 Triggering welcome email via working emailService...');
+    
+    const result = await sendWelcomeEmail(contactId, {
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email
+    });
+    
+    console.log('✅ Welcome email result:', result);
+  } catch (err) {
+    console.error('❌ Welcome email error:', err);
+  }
+};
 
   const triggerCelebration = () => {
     const duration = 3000;
@@ -3783,6 +3881,142 @@ const CompleteEnrollmentFlow = ({
 
       {/* Session Recovery Dialog */}
       {renderRecoveryDialog()}
+      {/* ACH/Zelle Payment Options Dialog */}
+<Dialog 
+  open={showPaymentOptions} 
+  onClose={() => setShowPaymentOptions(false)}
+  maxWidth="sm" 
+  fullWidth
+>
+  <DialogTitle>
+    <Typography variant="h5" component="h2">
+      Complete Your Payment Setup
+    </Typography>
+  </DialogTitle>
+  <DialogContent>
+    <Box sx={{ py: 2 }}>
+      <Typography variant="h6" gutterBottom>
+        {SERVICE_PLANS.find(p => p.id === selectedPlan)?.name} Plan
+      </Typography>
+      
+      <Typography variant="body1" sx={{ mb: 2 }}>
+        Setup Fee: <strong>$99</strong> • Monthly: <strong>${SERVICE_PLANS.find(p => p.id === selectedPlan)?.price}</strong>
+      </Typography>
+      
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+        First monthly payment begins 30 days from today
+      </Typography>
+      
+      <Grid container spacing={2}>
+        <Grid item xs={12} sm={6}>
+          <Card 
+            sx={{ 
+              cursor: 'pointer',
+              '&:hover': { transform: 'translateY(-2px)', boxShadow: 3 },
+              transition: 'all 0.2s',
+              border: '2px solid transparent',
+              '&:hover': { borderColor: 'primary.main' }
+            }}
+            onClick={handleACHPayment}
+          >
+            <CardContent sx={{ textAlign: 'center', py: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                🏦 ACH Bank Transfer
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                Direct from your bank account
+              </Typography>
+              <Chip 
+                label="Most Popular" 
+                color="primary" 
+                size="small" 
+              />
+            </CardContent>
+          </Card>
+        </Grid>
+        
+        <Grid item xs={12} sm={6}>
+          <Card 
+            sx={{ 
+              cursor: 'pointer',
+              '&:hover': { transform: 'translateY(-2px)', boxShadow: 3 },
+              transition: 'all 0.2s',
+              border: '2px solid transparent',
+              '&:hover': { borderColor: 'secondary.main' }
+            }}
+            onClick={async () => {
+              setLoading(true);
+              try {
+                const plan = SERVICE_PLANS.find((p) => p.id === selectedPlan);
+                
+                // Send Zelle instructions email
+                await emailService({
+                  action: 'send',
+                  to: formData.email,
+                  subject: 'Zelle Payment Instructions - Speedy Credit Repair',
+                  body: `Hi ${formData.firstName},
+
+Thank you for selecting the ${plan.name} plan!
+
+ZELLE PAYMENT:
+• Setup Fee: $99 (pay now)
+• Monthly Fee: $${plan.price} (starts in 30 days)
+
+PAY NOW WITH ZELLE:
+1. Open your banking app
+2. Select "Send with Zelle"
+3. Send to: billing@speedycreditrepair.com
+4. Amount: $99
+5. Memo: "${formData.firstName} ${formData.lastName} Setup"
+
+We'll activate your account within 2 hours!
+
+Best regards,
+Christopher Lahage & Team`,
+                  recipientName: formData.firstName,
+                  contactId: contactId,
+                  templateType: 'zelle_instructions'
+                });
+
+                console.log('✅ Zelle instructions sent');
+                await finalizeEnrollment();
+              } catch (error) {
+                console.error('❌ Zelle setup error:', error);
+                setError('Zelle setup failed. Please call (888) 724-7344.');
+                setLoading(false);
+              }
+            }}
+          >
+            <CardContent sx={{ textAlign: 'center', py: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                📱 Zelle
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                Quick payment via banking app  
+              </Typography>
+              <Chip 
+                label="Instant" 
+                color="secondary" 
+                size="small" 
+              />
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+      
+      <Alert severity="info" sx={{ mt: 2 }}>
+        <Typography variant="body2">
+          <strong>Secure Payment:</strong> We accept ACH and Zelle only. Your information is protected.
+        </Typography>
+      </Alert>
+    </Box>
+  </DialogContent>
+  <DialogActions>
+    <Button onClick={() => setShowPaymentOptions(false)}>
+      Back to Plan Selection
+    </Button>
+  </DialogActions>
+</Dialog>
     </Box>
   );
 };
