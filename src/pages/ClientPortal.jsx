@@ -65,6 +65,9 @@ import {
   Bot, Brain
 } from 'lucide-react';
 
+// Document Download Button Component
+import DocumentDownloadButton from '../components/documents/DocumentDownloadButton';
+
 // Chart.js Core
 import {
   Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement,
@@ -2300,9 +2303,12 @@ const ACHIEVEMENTS = {
                         </Box>
                       </CardContent>
                       <CardActions>
-                        <Button size="small" startIcon={<Download />} href={doc.downloadURL} target="_blank">
-                          Download
-                        </Button>
+                        <DocumentDownloadButton
+                          url={doc.downloadURL}
+                          filename={doc.fileName}
+                          variant="button"
+                          label="Download"
+                        />
                         <IconButton size="small" onClick={() => {
                           if (window.confirm('Delete this document?')) {
                             deleteDoc(doc.id, doc.storagePath);

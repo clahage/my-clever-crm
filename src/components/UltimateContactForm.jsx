@@ -9,6 +9,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Phone, Mail, MapPin, FileText, CreditCard, Users, Bell, Plus, X, ChevronDown, ChevronUp, Mic, Eye, EyeOff, Brain, Clock, Globe, MessageSquare, Activity, Upload, Download, Search, AlertCircle, CheckCircle, TrendingUp, Zap, Shield, Star, Target, Calendar, DollarSign, Briefcase, Home } from 'lucide-react';
+import DocumentDownloadButton, { DocumentThumbnail } from './documents/DocumentDownloadButton';
 import { db, storage } from '../lib/firebase';
 import { collection, addDoc, updateDoc, doc, onSnapshot, query, where, orderBy, limit, getDocs, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -1384,22 +1385,19 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
         />
         {expandedSections.basic && (
           <div className="p-4 bg-white border border-gray-200 rounded-lg space-y-4">
-            {/* Photo ID Thumbnail Display */}
+            {/* Photo ID Thumbnail Display - WITH DOWNLOAD BUTTON */}
             {formData.photoIdUrl && (
               <div className="mb-4 p-3 bg-blue-50 border-2 border-blue-200 rounded-lg">
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0">
-                    {formData.photoIdUrl.toLowerCase().endsWith('.pdf') ? (
-                      <div className="w-20 h-20 flex items-center justify-center bg-red-50 rounded-lg border-2 border-red-300">
-                        <FileText className="w-10 h-10 text-red-600" />
-                      </div>
-                    ) : (
-                      <img 
-                        src={formData.photoIdUrl} 
-                        alt="Photo ID" 
-                        className="w-20 h-20 object-cover rounded-lg border-2 border-blue-300"
-                      />
-                    )}
+                    <DocumentThumbnail
+                      url={formData.photoIdUrl}
+                      filename={`${formData.firstName || 'contact'}_${formData.lastName || ''}_photo_id`.trim().replace(/\s+/g, '_')}
+                      alt="Photo ID"
+                      width={80}
+                      height={80}
+                      showDownload={true}
+                    />
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
@@ -1412,6 +1410,16 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
                     <p className="text-xs text-gray-500 mt-1">
                       Uploaded: {formData.documents.idUploadDate ? new Date(formData.documents.idUploadDate).toLocaleDateString() : 'Recently'}
                     </p>
+                    {/* Additional Download Button for clarity */}
+                    <div className="mt-2">
+                      <DocumentDownloadButton
+                        url={formData.photoIdUrl}
+                        filename={`${formData.firstName || 'contact'}_photo_id`}
+                        variant="button"
+                        label="Download ID"
+                        size="small"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2626,6 +2634,15 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
                     <CheckCircle className="w-3 h-3" /> Received
                   </span>
                 )}
+                {/* Download Button for Proof of Address */}
+                {formData.documents.proofOfAddressFileUrl && (
+                  <DocumentDownloadButton
+                    url={formData.documents.proofOfAddressFileUrl}
+                    filename={`${formData.firstName || 'contact'}_${formData.lastName || ''}_proof_of_address`.trim().replace(/\s+/g, '_')}
+                    variant="icon"
+                    label="Download Proof of Address"
+                  />
+                )}
               </label>
 
               {formData.documents.proofOfAddressReceived && (
@@ -2642,6 +2659,20 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
                     <option value="mortgage">Mortgage Statement</option>
                     <option value="other">Other</option>
                   </select>
+                  
+                  {/* Show thumbnail if file uploaded */}
+                  {formData.documents.proofOfAddressFileUrl && (
+                    <div className="mt-3">
+                      <DocumentThumbnail
+                        url={formData.documents.proofOfAddressFileUrl}
+                        filename={`${formData.firstName || 'contact'}_proof_of_address`}
+                        alt="Proof of Address"
+                        width={100}
+                        height={70}
+                        showDownload={true}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -2667,7 +2698,30 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
                     <CheckCircle className="w-3 h-3" /> Received
                   </span>
                 )}
+                {/* Download Button for SSN Card */}
+                {formData.documents.ssnCardFileUrl && (
+                  <DocumentDownloadButton
+                    url={formData.documents.ssnCardFileUrl}
+                    filename={`${formData.firstName || 'contact'}_${formData.lastName || ''}_ssn_card`.trim().replace(/\s+/g, '_')}
+                    variant="icon"
+                    label="Download SSN Card"
+                  />
+                )}
               </label>
+              
+              {/* Show thumbnail if SSN Card file uploaded */}
+              {formData.documents.ssnCardFileUrl && (
+                <div className="ml-11 mt-3">
+                  <DocumentThumbnail
+                    url={formData.documents.ssnCardFileUrl}
+                    filename={`${formData.firstName || 'contact'}_ssn_card`}
+                    alt="SSN Card"
+                    width={100}
+                    height={70}
+                    showDownload={true}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Credit Reports */}

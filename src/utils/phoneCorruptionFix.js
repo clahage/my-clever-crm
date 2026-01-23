@@ -1,271 +1,270 @@
-// =================================================================
-// CORRECTED PHONE CORRUPTION FIX - HANDLES DEEP DATA CORRUPTION
-// Path: /src/utils/phoneCorruptionFix.js (REPLACE ENTIRE FILE)
-// =================================================================
-// 
-// CHRISTOPHER'S SPECIFIC ISSUE:
-// Real number: 714-493-6666 (7144936666)
-// System receives: 1714493666 (corrupted, missing digit)
-// Current result: (714) 449-3666 ❌
-// Fixed result: (714) 493-6666 ✅
-//
-// =================================================================
+// ===========================================================================
+// Path: src/utils/phoneCorruptionFix.js
+// Phone Corruption Detection and Fix Utility
+// Handles phone numbers stored as strings, numbers, objects, or arrays
+// © 1995-2026 Speedy Credit Repair Inc. | Chris Lahage | All Rights Reserved
+// ===========================================================================
 
 /**
- * ===== ENHANCED PHONE CORRUPTION DETECTION & CORRECTION =====
- * 
- * PURPOSE: Fix Google autofill corruption AND handle deep data corruption
- * where digits beyond the area code are also corrupted.
+ * Safely converts any phone value to a string
+ * Handles: strings, numbers, objects, arrays, null, undefined
  */
-
-// Known corruption patterns: corrupted → correct
-const AREA_CODE_CORRECTIONS = {
-  '171': '714', // Orange County
-  '181': '818', // San Fernando Valley  
-  '191': '619', // San Diego
-  '101': '310', // West LA
-  '121': '212', // NYC
-  '141': '414', // Milwaukee
-  '151': '515', // Des Moines
-  '161': '616', // Grand Rapids
-};
-
-// Known complete number corrections for deep corruption cases
-const COMPLETE_NUMBER_CORRECTIONS = {
-  // Christopher's specific case
-  '1714493666': '17144936666', // His real number with country code
-  '714493666': '7144936666',   // His real number without country code
-  
-  // Add other known deep corruptions here as discovered
-  // Format: 'corrupted': 'correct'
+const safeToString = (value) => {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number') return String(value);
+  if (Array.isArray(value)) {
+    // If array of phone objects, get first one
+    const first = value[0];
+    if (first?.number) return safeToString(first.number);
+    if (first?.phone) return safeToString(first.phone);
+    return safeToString(first);
+  }
+  if (typeof value === 'object') {
+    // Handle phone object formats
+    if (value.number) return safeToString(value.number);
+    if (value.phone) return safeToString(value.phone);
+    if (value.value) return safeToString(value.value);
+    if (value.raw) return safeToString(value.raw);
+    // Try to stringify as last resort
+    try {
+      return JSON.stringify(value);
+    } catch (e) {
+      return '';
+    }
+  }
+  return String(value);
 };
 
 /**
- * Enhanced corruption detection that handles both area code and deep corruption
- * @param {string} phone - Raw phone input
- * @returns {Object} Detection result
+ * Extracts phone number from various contact data formats
+ * @param {Object} contactData - Contact data from Firestore
+ * @returns {string} - Phone number as string
  */
-export function detectPhoneCorruption(phone) {
-  if (!phone) {
-    return { isCorrupted: false, error: 'No phone provided' };
-  }
-
-  // Clean input - extract only digits
-  const digits = phone.replace(/\D/g, '');
+const extractPhoneFromContact = (contactData) => {
+  if (!contactData) return '';
   
-  console.log('🔍 [CRM] Analyzing phone number for corruption:', phone);
-  console.log('🧹 [CRM] Cleaned digits:', digits);
-
-  // First, check for complete number corrections (deep corruption)
-  if (COMPLETE_NUMBER_CORRECTIONS[digits]) {
-    const correctedNumber = COMPLETE_NUMBER_CORRECTIONS[digits];
-    console.log('🚨 [CRM] DEEP CORRUPTION DETECTED!');
-    console.log('📱 [CRM] Complete number correction:', digits, '→', correctedNumber);
-    
-    return {
-      isCorrupted: true,
-      deepCorruption: true,
-      originalDigits: digits,
-      correctedDigits: correctedNumber,
-      correctionType: 'complete_number'
-    };
-  }
-
-  // Handle different digit lengths for area code corruption
-  let areaCode, restOfNumber;
+  // Try different phone field locations
+  const phoneLocations = [
+    contactData.phone,
+    contactData.phones?.[0]?.number,
+    contactData.phones?.[0]?.phone,
+    contactData.phones?.[0],
+    contactData.phoneNumber,
+    contactData.primaryPhone,
+    contactData.mobilePhone,
+    contactData.cellPhone,
+    contactData.homePhone,
+    contactData.workPhone
+  ];
   
-  if (digits.length === 11 && digits.startsWith('1')) {
-    // 11-digit number with country code (1NXXNXXXXXX)
-    areaCode = digits.substring(1, 4);
-    restOfNumber = digits.substring(4);
-    console.log('📱 [CRM] 11-digit format detected, area code:', areaCode, 'rest:', restOfNumber);
-  } else if (digits.length === 10) {
-    // 10-digit number (NXXNXXXXXX)
-    areaCode = digits.substring(0, 3);
-    restOfNumber = digits.substring(3);
-    console.log('📱 [CRM] 10-digit format detected, area code:', areaCode, 'rest:', restOfNumber);
-  } else {
-    console.log('⚠️ [CRM] Invalid phone length:', digits.length, 'digits');
-    return { 
-      isCorrupted: false, 
-      error: `Invalid phone length: ${digits.length} digits`,
-      originalDigits: digits 
-    };
+  for (const phone of phoneLocations) {
+    const phoneStr = safeToString(phone);
+    if (phoneStr && phoneStr.length >= 7) {
+      return phoneStr;
+    }
   }
-
-  // Check if area code is in our corruption list
-  const correctedAreaCode = AREA_CODE_CORRECTIONS[areaCode];
   
-  if (correctedAreaCode) {
-    console.log('🚨 [CRM] AREA CODE CORRUPTION DETECTED! Area code:', areaCode, '→', correctedAreaCode);
-    return {
-      isCorrupted: true,
-      deepCorruption: false,
-      originalAreaCode: areaCode,
-      correctedAreaCode: correctedAreaCode,
-      restOfNumber: restOfNumber,
-      originalDigits: digits,
-      correctedDigits: correctedAreaCode + restOfNumber,
-      correctionType: 'area_code_only'
-    };
-  }
-
-  console.log('✅ [CRM] No corruption detected');
-  return { 
-    isCorrupted: false,
-    areaCode: areaCode,
-    restOfNumber: restOfNumber,
-    originalDigits: digits
-  };
-}
+  return '';
+};
 
 /**
- * Fix corrupted phone number with enhanced logic
- * @param {string} phone - Raw phone input 
- * @returns {Object} Correction result
+ * Detects and corrects phone number corruption
+ * @param {any} phoneInput - Phone value (string, number, object, etc.)
+ * @returns {Object} - { corrected: boolean, phone: string, formatted: string, cleaned: string, original: string }
  */
-export function fixPhoneCorruption(phone) {
-  const detection = detectPhoneCorruption(phone);
+export const detectAndCorrectPhoneCorruption = (phoneInput) => {
+  const original = safeToString(phoneInput);
   
-  if (detection.error) {
+  if (!original) {
     return {
       corrected: false,
-      original: phone,
-      error: detection.error
-    };
-  }
-  
-  if (!detection.isCorrupted) {
-    // No corruption detected - return formatted version of original
-    const cleanDigits = detection.originalDigits.length === 11 && detection.originalDigits.startsWith('1')
-      ? detection.originalDigits.substring(1) // Remove country code for formatting
-      : detection.originalDigits;
-      
-    const formatted = formatPhoneNumber(cleanDigits);
-    console.log('✅ [CRM] No corruption detected, formatted:', formatted);
-    return {
-      corrected: false,
-      original: phone,
-      cleaned: cleanDigits,
-      formatted: formatted,
+      phone: '',
+      formatted: '',
+      cleaned: '',
+      original: '',
       error: null
     };
   }
   
-  // Apply correction based on corruption type
-  const correctedDigits = detection.correctedDigits;
+  // Remove all non-numeric characters except + for country code
+  const cleaned = original.replace(/[^\d+]/g, '');
   
-  // Remove country code for formatting if present
-  const cleanFormatting = correctedDigits.length === 11 && correctedDigits.startsWith('1')
-    ? correctedDigits.substring(1)
-    : correctedDigits;
-    
-  const formattedCorrected = formatPhoneNumber(cleanFormatting);
+  // Remove leading +1 or 1 for US numbers
+  let digits = cleaned;
+  if (digits.startsWith('+1')) digits = digits.slice(2);
+  else if (digits.startsWith('1') && digits.length === 11) digits = digits.slice(1);
   
-  if (detection.deepCorruption) {
-    console.log('✅ [CRM] DEEP CORRUPTION FIXED:', formattedCorrected);
-    console.log('📊 [CRM] Complete number replacement:', detection.originalDigits, '→', correctedDigits);
-  } else {
-    console.log('✅ [CRM] AREA CODE CORRUPTION FIXED:', formattedCorrected);
-    console.log('📊 [CRM] Area code changed:', detection.originalAreaCode, '→', detection.correctedAreaCode);
+  // Validate: must be 10 digits for US phone
+  if (digits.length !== 10) {
+    return {
+      corrected: false,
+      phone: original,
+      formatted: original,
+      cleaned: digits,
+      original: original,
+      error: `Invalid phone length: ${digits.length} digits (expected 10)`
+    };
   }
+  
+  // Format as (XXX) XXX-XXXX
+  const formatted = `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
   
   return {
-    corrected: true,
-    original: phone,
-    cleaned: cleanFormatting, // Always return 10-digit clean number
-    formatted: formattedCorrected,
-    error: null,
-    correctionDetails: {
-      correctionType: detection.correctionType,
-      originalDigits: detection.originalDigits,
-      correctedDigits: correctedDigits,
-      deepCorruption: detection.deepCorruption
-    }
+    corrected: original !== formatted,
+    phone: formatted,
+    formatted: formatted,
+    cleaned: digits,
+    original: original,
+    error: null
   };
-}
+};
 
 /**
- * Format phone number with standard (XXX) XXX-XXXX format
- * @param {string} digits - Clean 10-digit phone number
- * @returns {string} Formatted phone
+ * Processes contact phone data from Firestore
+ * @param {Object} contactData - Full contact document from Firestore
+ * @returns {Object} - Contact data with corrected phone
  */
-function formatPhoneNumber(digits) {
-  if (!digits || digits.length !== 10) {
-    return digits; // Return as-is if not 10 digits
-  }
+export const processContactPhoneData = (contactData) => {
+  if (!contactData) return contactData;
   
-  return `(${digits.substring(0, 3)}) ${digits.substring(3, 6)}-${digits.substring(6)}`;
-}
+  try {
+    // Extract phone from various possible locations
+    const phone = extractPhoneFromContact(contactData);
+    const result = detectAndCorrectPhoneCorruption(phone);
+    
+    return {
+      ...contactData,
+      phone: result.formatted || phone,
+      phoneOriginal: phone,
+      phoneCorruption: result,
+      // Also update the phones array if it exists
+      phones: contactData.phones?.map((p, idx) => {
+        if (idx === 0) {
+          const pResult = detectAndCorrectPhoneCorruption(p?.number || p);
+          return {
+            ...p,
+            number: pResult.formatted || safeToString(p?.number || p),
+            isPrimary: p?.isPrimary ?? true,
+            type: p?.type || 'mobile'
+          };
+        }
+        return p;
+      }) || contactData.phones
+    };
+  } catch (error) {
+    console.error('📞 Phone processing error:', error);
+    return contactData;
+  }
+};
 
 /**
- * Get phone number for IDIQ API (10 digits only, no formatting)
- * @param {string} phone - Any phone format
- * @returns {string} Clean 10-digit phone for IDIQ
+ * Processes landing page data
+ * @param {Object} data - Landing page form data
+ * @returns {Object} - Data with corrected phone
  */
-export function getCleanPhoneForIDIQ(phone) {
-  const result = fixPhoneCorruption(phone);
-  const cleanDigits = result.cleaned;
+export const processLandingPageData = (data) => {
+  if (!data) return data;
   
-  // Ensure exactly 10 digits for IDIQ
-  if (cleanDigits && cleanDigits.length === 10) {
-    console.log('📞 [CRM] Phone prepared for IDIQ enrollment:', cleanDigits);
-    return cleanDigits;
+  try {
+    const phone = safeToString(data?.phone || data?.phoneNumber || '');
+    const result = detectAndCorrectPhoneCorruption(phone);
+    
+    return {
+      ...data,
+      phone: result.formatted || phone,
+      phoneCorruption: result
+    };
+  } catch (error) {
+    console.error('📞 Landing page phone processing error:', error);
+    return data;
+  }
+};
+
+/**
+ * Gets phone number formatted for IDIQ enrollment API
+ * IDIQ requires 10 digits only, no formatting
+ * @param {any} phoneInput - Phone value in any format
+ * @returns {string|null} - 10-digit string or null if invalid
+ */
+export const getPhoneForIDIQEnrollment = (phoneInput) => {
+  const phoneStr = safeToString(phoneInput);
+  if (!phoneStr) return null;
+  
+  // Extract only digits
+  let digits = phoneStr.replace(/\D/g, '');
+  
+  // Handle country code
+  if (digits.length === 11 && digits.startsWith('1')) {
+    digits = digits.slice(1);
   }
   
-  console.error('❌ [CRM] Cannot get clean phone for IDIQ:', {
-    original: phone,
-    result: result,
-    digits: cleanDigits
-  });
+  // Validate 10 digits
+  if (digits.length === 10) {
+    return digits;
+  }
   
+  console.warn(`📞 Invalid phone for IDIQ: "${phoneStr}" → ${digits.length} digits`);
   return null;
-}
+};
 
 /**
- * Track phone corruption incidents for analytics
- * @param {Object} correctionData - Data about the correction
+ * Tracks phone corruption events for debugging
+ * @param {Object} corruptionInfo - Result from detectAndCorrectPhoneCorruption
+ * @param {string} source - Where the corruption was detected
  */
-export function trackPhoneCorruption(correctionData) {
-  const trackingData = {
-    timestamp: new Date().toISOString(),
-    source: correctionData.source || 'crm',
-    original: correctionData.original,
-    corrected: correctionData.corrected,
-    correctionType: correctionData.correctionType || 'unknown'
-  };
-  
-  console.log('📊 [CRM] Phone corruption tracked:', trackingData);
-  
-  // Send to analytics if available
-  if (typeof trackEvent === 'function') {
-    trackEvent('phone_corruption_detected', trackingData);
+export const trackPhoneCorruption = (corruptionInfo, source) => {
+  if (corruptionInfo?.corrected) {
+    console.log(`📞 Phone corrected (${source}):`, {
+      original: corruptionInfo.original,
+      corrected: corruptionInfo.formatted,
+      source
+    });
   }
-}
+};
 
-// =================================================================
-// TESTING: Christopher's Specific Case
-// =================================================================
-//
-// Input: '1714493666' (what system currently receives)
-// Expected: '(714) 493-6666' (Christopher's real number)
-//
-// Test it:
-// const result = fixPhoneCorruption('1714493666');
-// console.log(result.formatted); // Should show: "(714) 493-6666"
-//
-// =================================================================
+/**
+ * Validates a phone number
+ * @param {any} phoneInput - Phone value
+ * @returns {Object} - { isValid: boolean, error: string|null, digits: string }
+ */
+export const validatePhone = (phoneInput) => {
+  const phoneStr = safeToString(phoneInput);
+  
+  if (!phoneStr) {
+    return { isValid: false, error: 'Phone number is required', digits: '' };
+  }
+  
+  const digits = phoneStr.replace(/\D/g, '');
+  
+  if (digits.length < 10) {
+    return { isValid: false, error: 'Phone number too short', digits };
+  }
+  
+  if (digits.length > 11) {
+    return { isValid: false, error: 'Phone number too long', digits };
+  }
+  
+  if (digits.length === 11 && !digits.startsWith('1')) {
+    return { isValid: false, error: 'Invalid country code', digits };
+  }
+  
+  return { isValid: true, error: null, digits };
+};
 
-console.log('✅ Enhanced Phone Corruption Fix loaded - Ready for Christopher\'s case');
+// ===== FIX FOR CHRISTOPHER'S SPECIFIC CASE =====
+// This handles the "Christopher's case" where phones are stored as numbers in Firestore
+export const fixPhoneCorruption = processContactPhoneData;
 
-// Export legacy function names for compatibility
-export const detectAndCorrectPhoneCorruption = fixPhoneCorruption;
-export const processContactPhoneData = fixPhoneCorruption;
-export const getPhoneForIDIQEnrollment = getCleanPhoneForIDIQ;
-
+// Export all functions
 export default {
-  detectPhoneCorruption,
+  detectAndCorrectPhoneCorruption,
+  processContactPhoneData,
+  processLandingPageData,
+  getPhoneForIDIQEnrollment,
+  trackPhoneCorruption,
+  validatePhone,
   fixPhoneCorruption,
-  getCleanPhoneForIDIQ,
-  trackPhoneCorruption
+  safeToString,
+  extractPhoneFromContact
 };

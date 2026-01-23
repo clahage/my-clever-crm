@@ -179,17 +179,34 @@ import {
   logConversion
 } from '@/services/enrollmentTrackingService';
 import ViewCreditReportButton from '../credit/ViewCreditReportButton';
+import IDIQCreditReportViewer from '../credit/IDIQCreditReportViewer';
 
 // ===== PHONE CORRUPTION DETECTION IMPORTS =====
 import { 
   detectAndCorrectPhoneCorruption,
   processContactPhoneData,
-  processLandingPageData,
   getPhoneForIDIQEnrollment,
-  createPhoneCorrectionNotification,
   trackPhoneCorruption
 } from '@/utils/phoneCorruptionFix';
 
+// Helper function for landing page data (not exported from phoneCorruptionFix)
+const processLandingPageData = (data) => {
+  if (!data) return data;
+  const phone = data?.phone || data?.phoneNumber || '';
+  const result = detectAndCorrectPhoneCorruption(phone);
+  return {
+    ...data,
+    phone: result?.formatted || result?.cleaned || phone,
+    phoneCorruption: result
+  };
+};
+
+// Helper function for phone correction notification
+const createPhoneCorrectionNotification = (info) => ({
+  show: info?.corrected || false,
+  message: info?.message || 'Phone number was corrected',
+  severity: 'info'
+});
 // ============================================================================
 // AUTOSAVE CONSTANTS
 // ============================================================================
@@ -602,6 +619,10 @@ const CompleteEnrollmentFlow = ({
   // ===== NEW: PHONE CORRUPTION DETECTION STATE =====
   const [phoneCorrectionInfo, setPhoneCorrectionInfo] = useState(null);
   const [showPhoneCorrectionAlert, setShowPhoneCorrectionAlert] = useState(false);
+
+  // ===== NEW: IDIQ CREDIT REPORT WIDGET STATE =====
+  const [showFullCreditReport, setShowFullCreditReport] = useState(false);
+  const [creditReportMemberToken, setCreditReportMemberToken] = useState(null);
 
 
   // ===== FIREBASE FUNCTIONS =====
@@ -1312,7 +1333,11 @@ const CompleteEnrollmentFlow = ({
         contactId: contactId || null
       });
 
-      console.log("✅ IDIQ Response:", response.data);
+  console.log("✅ IDIQ Response:", response.data);
+  console.log("📋 Full response structure:", JSON.stringify(response.data, null, 2).substring(0, 1000));
+  console.log("🔍 verificationRequired:", response.data.verificationRequired);
+  console.log("🔍 questions:", response.data.questions?.length || 0);
+  console.log("🔍 verificationQuestions:", response.data.verificationQuestions?.length || 0);
 
       // Check if verification is required
       if (response.data.verificationRequired) {
@@ -1438,6 +1463,14 @@ const submitVerificationAnswers = async () => {
       
       setCreditReport(resData);
       setVerificationRequired(false);
+      
+      // ===== NEW: Store member token and show full credit report =====
+      if (response.data?.memberToken) {
+        setCreditReportMemberToken(response.data.memberToken);
+        console.log('✅ Member token received for credit report widget');
+      }
+      setShowFullCreditReport(true);
+      console.log('📊 Enabling full credit report display');
       
       try {
         await updateDoc(doc(db, 'contacts', contactId), {
@@ -3028,6 +3061,70 @@ const finalizeEnrollment = async () => {
             </Box>
           </CardContent>
         </Card>
+
+        {/* ===== FULL IDIQ CREDIT REPORT WIDGET ===== */}
+        {/* This shows the complete credit report using IDIQ's MicroFrontend */}
+        {showFullCreditReport && enrollmentId && (
+          <Card sx={{ mb: 4 }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h6" fontWeight={700}>
+                  📊 Complete Credit Report
+                </Typography>
+                <Chip 
+                  label="LIVE FROM IDIQ" 
+                  color="primary" 
+                  size="small"
+                  icon={<ShieldIcon sx={{ fontSize: 16 }} />}
+                />
+              </Box>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                This is your full tri-merge credit report from all three bureaus. 
+                Review all accounts, inquiries, and public records below.
+              </Typography>
+              
+              <IDIQCreditReportViewer
+                enrollmentId={enrollmentId}
+                contactId={contactId}
+                showHeader={false}
+                minHeight={800}
+                onReportLoaded={(data) => {
+                  console.log('✅ Full credit report loaded in enrollment flow:', data);
+                  // AI can analyze this data for disputes and recommendations
+                  if (data?.token) {
+                    setCreditReportMemberToken(data.token);
+                  }
+                }}
+                onError={(err) => {
+                  console.error('❌ Credit report widget error:', err);
+                  // Don't block enrollment if widget fails - they can view later
+                }}
+              />
+              
+              <Alert severity="info" sx={{ mt: 2 }}>
+                <AlertTitle>What Happens Next?</AlertTitle>
+                <Typography variant="body2">
+                  Our AI is analyzing your credit report to identify disputable items and 
+                  recommend the best service plan for your situation. You'll receive a 
+                  personalized credit review via email within 24 hours.
+                </Typography>
+              </Alert>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Toggle button to show/hide full report */}
+        {enrollmentId && !showFullCreditReport && (
+          <Button
+            variant="outlined"
+            fullWidth
+            sx={{ mb: 4 }}
+            onClick={() => setShowFullCreditReport(true)}
+            startIcon={<AssessmentIcon />}
+          >
+            View Complete Credit Report
+          </Button>
+        )}
 
         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
           <Button onClick={() => setCurrentPhase(1)} startIcon={<ArrowBackIcon />}>

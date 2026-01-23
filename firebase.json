@@ -1,9 +1,4 @@
 {
-  "functions": [{
-    "source": "functions",
-    "runtime": "nodejs20",
-    "codebase": "default"
-  }],
   "hosting": {
     "public": "dist",
     "ignore": [
@@ -16,6 +11,30 @@
         "source": "**",
         "destination": "/index.html"
       }
+    ],
+    "headers": [
+      {
+        "source": "**",
+        "headers": [
+          {
+            "key": "Cross-Origin-Opener-Policy",
+            "value": "same-origin-allow-popups"
+          },
+          {
+            "key": "Cross-Origin-Embedder-Policy", 
+            "value": "unsafe-none"
+          }
+        ]
+      }
+    ],
+    "cleanUrls": true,
+    "trailingSlash": false
+  },
+  "functions": {
+    "source": "functions",
+    "node": "18",
+    "predeploy": [
+      "npm --prefix \"$RESOURCE_DIR\" run build"
     ]
   },
   "firestore": {
@@ -24,5 +43,25 @@
   },
   "storage": {
     "rules": "storage.rules"
+  },
+  "emulators": {
+    "auth": {
+      "port": 9099
+    },
+    "functions": {
+      "port": 5001
+    },
+    "firestore": {
+      "port": 8080
+    },
+    "hosting": {
+      "port": 5000
+    },
+    "storage": {
+      "port": 9199
+    },
+    "ui": {
+      "enabled": true
+    }
   }
 }

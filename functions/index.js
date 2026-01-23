@@ -384,6 +384,7 @@ console.log('✅ Function 3/10: processAICall loaded');
 // Triggers on: Contact document updates (including enrollment completion)
 // Handles: New contact setup + Enrollment automation when status changes to 'enrolled'
 // Enhanced: Now includes complete enrollment automation workflow
+// NEW: Auto-assigns "lead" role based on lead indicators
 
 exports.onContactUpdated = onDocumentUpdated(
   {
@@ -408,12 +409,51 @@ exports.onContactUpdated = onDocumentUpdated(
     
     try {
       // ═══════════════════════════════════════════════════════════════════════
+      // AUTO-ASSIGN LEAD ROLE BASED ON INDICATORS (Runs on ALL updates)
+      // ═══════════════════════════════════════════════════════════════════════
+      const needsLeadRole = !afterData.roles || !afterData.roles.includes('lead');
+      const hasLeadIndicators = 
+        afterData.leadScore >= 5 || 
+        afterData.source === 'ai_receptionist' ||
+        afterData.source === 'landing_page' ||
+        afterData.source === 'referral' ||
+        afterData.source === 'website' ||
+        afterData.source === 'form' ||
+        afterData.source === 'walk_in' ||
+        afterData.source === 'phone_call' ||
+        (afterData.emails && afterData.emails.length > 0) ||
+        (afterData.phones && afterData.phones.length > 0) ||
+        afterData.email ||
+        afterData.phone;
+      
+      if (needsLeadRole && hasLeadIndicators) {
+        console.log('📝 Auto-assigning lead role to contact:', contactId);
+        console.log('   Lead indicators found:', {
+          leadScore: afterData.leadScore,
+          source: afterData.source,
+          hasEmail: !!afterData.email || afterData.emails?.length > 0,
+          hasPhone: !!afterData.phone || afterData.phones?.length > 0
+        });
+        
+        try {
+          await event.data.after.ref.update({
+            roles: admin.firestore.FieldValue.arrayUnion('lead'),
+            rolesUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            rolesUpdatedBy: 'system:auto_role_assignment'
+          });
+          console.log('✅ Lead role added successfully to:', contactId);
+        } catch (roleErr) {
+          console.error('❌ Failed to add lead role:', roleErr);
+        }
+      }
+
+      // ═══════════════════════════════════════════════════════════════════════
       // SCENARIO 1: NEW CONTACT CREATED
       // ═══════════════════════════════════════════════════════════════════════
       if (!beforeData) {
         console.log('👤 New contact created:', contactId);
         
-        // Auto-assign lead role if not already set
+        // Lead role already handled above, but ensure it's set for new contacts
         if (!afterData.roles || !afterData.roles.includes('lead')) {
           await event.data.after.ref.update({
             roles: admin.firestore.FieldValue.arrayUnion('lead'),
@@ -583,7 +623,7 @@ exports.onContactUpdated = onDocumentUpdated(
   }
 );
 
-console.log('✅ Function 4/11: onContactUpdated loaded (WITH ENROLLMENT + EMAIL AUTOMATION)');
+console.log('✅ Function 4/11: onContactUpdated loaded (WITH ENROLLMENT + EMAIL AUTOMATION + AUTO LEAD ROLE)');
 
 // ============================================
 // FUNCTION 5: IDIQ SERVICE (PRODUCTION)
@@ -855,49 +895,154 @@ exports.idiqService = onCall(
 
             if (!memberToken) throw new Error('Could not authorize member with IDIQ API.');
 
-            // STEP 3: Check for Identity Verification Questions
-            console.log('📊 Checking for identity verification questions...');
-            const questionsResponse = await fetch(`${IDIQ_BASE_URL}v1/enrollment/verification-questions`, {
-              headers: { 'Authorization': `Bearer ${memberToken}`, 'Accept': 'application/json' }
-            });
+            // =====================================================================
+        // STEP 3: Check for Identity Verification Questions
+        // =====================================================================
+        // Per IDIQ Partner Integration Framework documentation:
+        // - New enrollments REQUIRE identity verification
+        // - GET /v1/enrollment/verification-questions returns 3-4 questions
+        // - User must answer correctly to "activate" API access
+        // - Without this, IDIQ sends manual "complete setup" email
+        // =====================================================================
+        console.log('📊 Checking for identity verification questions...');
+        
+        // Add delay after fresh enrollment to ensure IDIQ backend is ready
+        if (enrollmentId && enrollmentId !== 'existing_active_member') {
+          console.log('⏳ Waiting 2 seconds for IDIQ to process new enrollment...');
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+        
+        const questionsResponse = await fetch(`${IDIQ_BASE_URL}v1/enrollment/verification-questions`, {
+          method: 'GET',
+          headers: { 
+            'Authorization': `Bearer ${memberToken}`, 
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        const questionsStatus = questionsResponse.status;
+        console.log('📋 Verification questions API status:', questionsStatus);
 
-            if (questionsResponse.ok) {
-              const questionsData = await questionsResponse.json();
-              
-              // FRONTEND FIX: Ensure questions is ALWAYS an array to stop the .map() crash
-              const questionsList = questionsData.questions || (Array.isArray(questionsData) ? questionsData : []);
-              
-              if (questionsList.length > 0) {
-                console.log(`🔐 Verification required: Returning ${questionsList.length} questions to frontend`);
-                
-                // MULTI-KEY STRUCTURAL RETURN: Ensures React finds the array regardless of mapping
-                return {
-                  success: true,
-                  verificationRequired: true,
-                  enrollmentId: enrollmentId || 'existing_active_member',
-                  email: email,
-                  membershipNumber: membershipNumber || 'existing',
-                  // TRIPLE-REDUNDANT RETURN: Guarantees the frontend React .map() function finds the list
-                  questions: questionsList,
+        if (questionsResponse.ok) {
+          const questionsData = await questionsResponse.json();
+          
+          // DEBUG: Log raw response (first 500 chars)
+          console.log('📋 Raw verification questions response:', JSON.stringify(questionsData).substring(0, 500));
+          
+          // Handle various response formats from IDIQ
+          const questionsList = 
+            questionsData.questions || 
+            questionsData.Questions ||
+            (questionsData.isSuccess !== false && questionsData.data?.questions) ||
+            (Array.isArray(questionsData) ? questionsData : []);
+          
+          if (questionsList && questionsList.length > 0) {
+            console.log(`🔐 Verification required: Found ${questionsList.length} questions`);
+            
+            // Store questions in Firestore for resume capability
+            if (enrollmentId && enrollmentId !== 'existing_active_member') {
+              try {
+                await db.collection('idiqEnrollments').doc(enrollmentId).update({
+                  enrollmentStep: 'verification_pending',
                   verificationQuestions: questionsList,
-                  questionsData: { questions: questionsList },
-                  data: {
-                    questions: questionsList,
-                    verificationQuestions: questionsList,
-                    vantageScore: null
-                  },
-                  message: 'Please answer security questions to verify your identity'
-                };
+                  questionsReceivedAt: admin.firestore.FieldValue.serverTimestamp()
+                });
+                console.log('✅ Verification questions saved to Firestore');
+              } catch (saveErr) {
+                console.warn('⚠️ Could not save questions to Firestore:', saveErr.message);
               }
             }
+            
+            return {
+              success: true,
+              verificationRequired: true,
+              enrollmentId: enrollmentId || 'existing_active_member',
+              email: email,
+              membershipNumber: membershipNumber || 'existing',
+              // Multiple keys for frontend compatibility
+              questions: questionsList,
+              verificationQuestions: questionsList,
+              questionsData: { questions: questionsList },
+              data: {
+                questions: questionsList,
+                verificationQuestions: questionsList,
+                vantageScore: null
+              },
+              message: 'Please answer security questions to verify your identity',
+              tip: 'These questions come from your credit file. Answer based on your history.'
+            };
+          } else {
+            console.log('✅ No verification questions returned (user may already be verified or questions are empty)');
+          }
+        } else {
+          // Log non-200 responses for debugging
+          const errorBody = await questionsResponse.text();
+          console.log(`⚠️ Verification questions API returned ${questionsStatus}:`, errorBody.substring(0, 300));
+          
+          if (questionsStatus === 422) {
+            console.log('ℹ️ 422 may indicate verification is already complete or another issue');
+          }
+        }
 
-            // STEP 4: Pull Report & Robust Score Mapping
-            console.log('📈 Fetching credit report data...');
-            const reportResponse = await fetch(`${IDIQ_BASE_URL}v1/credit-report`, {
-              headers: { 'Authorization': `Bearer ${memberToken}`, 'Accept': 'application/json' }
-            });
+        // =====================================================================
+        // STEP 4: Pull Credit Report (with verification retry)
+        // =====================================================================
+        console.log('📈 Fetching credit report data...');
+        const reportResponse = await fetch(`${IDIQ_BASE_URL}v1/credit-report`, {
+          method: 'GET',
+          headers: { 
+            'Authorization': `Bearer ${memberToken}`, 
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        });
 
-            if (!reportResponse.ok) throw new Error('Could not pull report from IDIQ');
+        // ===== HANDLE 422 ERROR (Verification Required) =====
+        if (reportResponse.status === 422) {
+          const errorData = await reportResponse.text();
+          console.log('⚠️ Credit report returned 422 - verification required:', errorData);
+          
+          // Retry getting verification questions
+          console.log('🔄 Retrying verification questions fetch...');
+          const retryResponse = await fetch(`${IDIQ_BASE_URL}v1/enrollment/verification-questions`, {
+            method: 'GET',
+            headers: { 
+              'Authorization': `Bearer ${memberToken}`, 
+              'Accept': 'application/json'
+            }
+          });
+          
+          if (retryResponse.ok) {
+            const retryData = await retryResponse.json();
+            console.log('📋 Retry questions raw:', JSON.stringify(retryData).substring(0, 300));
+            const retryQuestions = retryData.questions || retryData.Questions || [];
+            
+            if (retryQuestions.length > 0) {
+              console.log(`🔐 Retry found ${retryQuestions.length} verification questions`);
+              return {
+                success: true,
+                verificationRequired: true,
+                enrollmentId: enrollmentId || 'existing_active_member',
+                email: email,
+                membershipNumber: membershipNumber || 'existing',
+                questions: retryQuestions,
+                verificationQuestions: retryQuestions,
+                data: { questions: retryQuestions, verificationQuestions: retryQuestions },
+                message: 'Identity verification required before accessing your credit report'
+              };
+            }
+          }
+          
+          // Can't get questions - return clear error
+          throw new Error('Identity verification required but questions could not be loaded. Please try again or contact support at (888) 724-7344.');
+        }
+
+        if (!reportResponse.ok) {
+          const errorText = await reportResponse.text();
+          console.error('❌ Credit report pull failed:', reportResponse.status, errorText);
+          throw new Error(`Could not pull credit report: ${errorText}`);
+        }
 
             const reportData = await reportResponse.json();
             
@@ -968,26 +1113,52 @@ exports.idiqService = onCall(
             const isCorrect = result.status === 'Correct' || result.status === 0;
             
             if (isCorrect) {
-              console.log('✅ Identity verified! Pulling final report...');
+              console.log('✅ Identity verified! Storing member token and pulling report...');
               
+              // ===== STORE MEMBER TOKEN FOR CREDIT REPORT WIDGET =====
               if (enrollmentId && enrollmentId !== 'existing_active_member') {
                 await db.collection('idiqEnrollments').doc(enrollmentId).update({
                   verificationStatus: 'verified',
                   verifiedAt: admin.firestore.FieldValue.serverTimestamp(),
-                  enrollmentStep: 'completed'
+                  enrollmentStep: 'completed',
+                  // ===== NEW: Store member token for widget use =====
+                  memberAccessToken: memberToken,
+                  tokenExpiresAt: new Date(Date.now() + 3600000), // 1 hour
+                  lastActivity: admin.firestore.FieldValue.serverTimestamp()
                 });
+                console.log('✅ Member token stored in enrollment for widget');
               }
 
+              // ===== ADD DELAY: Give IDIQ time to process verification =====
+              console.log('⏳ Waiting 3 seconds for IDIQ to process verification...');
+              await new Promise(resolve => setTimeout(resolve, 3000));
+              
+              console.log('📊 Now fetching credit report...');
               const reportResponse = await fetch(`${IDIQ_BASE_URL}v1/credit-report`, {
                 headers: { 'Authorization': `Bearer ${memberToken}`, 'Accept': 'application/json' }
               });
 
               const reportData = await reportResponse.json();
-              const score = reportData.vantageScore || reportData.score || (reportData.bureaus && reportData.bureaus.transunion?.score);
+              console.log('📋 Raw credit report response:', JSON.stringify(reportData).substring(0, 1000));
+
+              const score = reportData.vantageScore || 
+                          reportData.score || 
+                          reportData.bureaus?.transunion?.score ||
+                          reportData.bureaus?.experian?.score ||
+                          reportData.bureaus?.equifax?.score ||
+                          null;
+
+              console.log('📈 Extracted score:', score);
+
+              if (!score) {
+                console.warn('⚠️ No score found in credit report! Report may be empty.');
+              }
 
               return {
                 success: true,
                 verified: true,
+                // ===== NEW: Include member token for immediate widget use =====
+                memberToken: memberToken,
                 // REDUNDANT RETURN: Ensures frontend finds the data regardless of its state path
                 data: { ...reportData, vantageScore: score },
                 reportData: { ...reportData, vantageScore: score },
@@ -1048,6 +1219,90 @@ exports.idiqService = onCall(
           } catch (err) {
             console.error('❌ submitVerification error:', err.message);
             throw err;
+          }
+        }
+
+        // ===== NEW CASE: GET MEMBER TOKEN (for credit report widget) =====
+        case 'getMemberToken': {
+          console.log('🔑 getMemberToken: Starting...');
+          
+          const { enrollmentId, contactId } = data;
+          
+          if (!enrollmentId && !contactId) {
+            return { success: false, error: 'enrollmentId or contactId required' };
+          }
+          
+          // Find the enrollment
+          let enrollmentDoc;
+          let enrollmentData;
+          
+          if (enrollmentId) {
+            enrollmentDoc = await db.collection('idiqEnrollments').doc(enrollmentId).get();
+            if (enrollmentDoc.exists) {
+              enrollmentData = enrollmentDoc.data();
+            }
+          }
+          
+          // If not found by enrollmentId, try contactId
+          if (!enrollmentData && contactId) {
+            const enrollments = await db.collection('idiqEnrollments')
+              .where('contactId', '==', contactId)
+              .where('status', 'in', ['active', 'verified', 'enrolled'])
+              .orderBy('createdAt', 'desc')
+              .limit(1)
+              .get();
+            
+            if (!enrollments.empty) {
+              enrollmentDoc = enrollments.docs[0];
+              enrollmentData = enrollmentDoc.data();
+            }
+          }
+          
+          if (!enrollmentData) {
+            console.log('❌ getMemberToken: Enrollment not found');
+            return { success: false, error: 'Enrollment not found' };
+          }
+          
+          const email = enrollmentData.email;
+          if (!email) {
+            console.log('❌ getMemberToken: Email not found in enrollment');
+            return { success: false, error: 'Email not found in enrollment' };
+          }
+          
+          try {
+            // Get partner token first
+            console.log('🔑 getMemberToken: Getting partner token...');
+            const partnerToken = await getPartnerToken();
+            
+            // Get member token
+            console.log('🔑 getMemberToken: Getting member token for:', email);
+            const memberToken = await getMemberToken(email, partnerToken);
+            
+            // Store the token for future use (expires in 1 hour)
+            const expiresAt = new Date(Date.now() + 3600000); // 1 hour from now
+            
+            await enrollmentDoc.ref.update({
+              memberAccessToken: memberToken,
+              tokenExpiresAt: expiresAt,
+              lastTokenRefresh: admin.firestore.FieldValue.serverTimestamp(),
+              lastActivity: admin.firestore.FieldValue.serverTimestamp()
+            });
+            
+            console.log('✅ getMemberToken: Success for', email);
+            
+            return {
+              success: true,
+              memberToken: memberToken,
+              email: email,
+              expiresAt: expiresAt.toISOString(),
+              membershipNumber: enrollmentData.membershipNumber
+            };
+          } catch (error) {
+            console.error('❌ getMemberToken error:', error);
+            return { 
+              success: false, 
+              error: error.message || 'Failed to get member token'
+            };
           }
         }
         case 'getToken': {
