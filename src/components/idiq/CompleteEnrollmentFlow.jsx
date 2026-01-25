@@ -3377,6 +3377,7 @@ const finalizeEnrollment = async () => {
               </Typography>
               
               <IDIQCreditReportViewer
+                memberToken={creditReportMemberToken}
                 enrollmentId={enrollmentId}
                 contactId={contactId}
                 showHeader={false}
