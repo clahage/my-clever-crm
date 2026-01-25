@@ -95,6 +95,7 @@ import {
   Info as InfoIcon,
   Person as PersonIcon,
   CreditCard as CreditIcon,
+  CreditCard as CreditCardIcon,  // ADDED - alias for SSN card
   Shield as ShieldIcon,
   TrendingUp as TrendingUpIcon,
   Assessment as AssessmentIcon,
@@ -105,6 +106,7 @@ import {
   Download as DownloadIcon,
   Send as SendIcon,
   Visibility as VisibilityIcon,
+  Visibility as ViewIcon,  // ADDED - alias for document viewing
   VisibilityOff as VisibilityOffIcon,
   Search as SearchIcon,
   Description as DocumentIcon,
@@ -136,7 +138,14 @@ import {
   WifiOff as WifiOffIcon,
   Restore as RestoreIcon,
   Business as BusinessIcon,
+  Delete as DeleteIcon,           // ADDED - for document deletion
+  Folder as FolderIcon,           // ADDED - for additional docs section
+  InsertDriveFile as FileIcon,    // ADDED - for file list items
+  Add as AddIcon,                 // ADDED - for add document buttons
+  ExpandMore as ExpandMoreIcon,   // ADDED - for expandable negative items
+  ExpandLess as ExpandLessIcon,   // ADDED - for expandable negative items
 } from '@mui/icons-material';
+
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import SignatureCanvas from 'react-signature-canvas';
@@ -155,7 +164,6 @@ import { collection, addDoc, doc, updateDoc, getDoc, serverTimestamp, arrayUnion
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage, auth } from '@/lib/firebase';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-
 // Import our services
 import {
   processEnrollment,
@@ -558,10 +566,18 @@ const CompleteEnrollmentFlow = ({
   const [currentAnalysisStep, setCurrentAnalysisStep] = useState(0);
   const [analysisComplete, setAnalysisComplete] = useState(false);
   const [creditReport, setCreditReport] = useState(null);
+  const [showAllNegativeItems, setShowAllNegativeItems] = useState(false);
+  
 
   // Document state
   const [idPhotoUrl, setIdPhotoUrl] = useState(null);
   const [utilityPhotoUrl, setUtilityPhotoUrl] = useState(null);
+  const [ssnCardUrl, setSsnCardUrl] = useState(null);
+  const [bankStatementUrls, setBankStatementUrls] = useState([]);
+  const [additionalDocs, setAdditionalDocs] = useState([]);
+  const [uploadingDoc, setUploadingDoc] = useState(null); // Track which doc type is uploading
+  const [showDocumentViewer, setShowDocumentViewer] = useState(false);
+  const [viewingDocument, setViewingDocument] = useState(null);
   const [signatureData, setSignatureData] = useState(null);
 
   // Plan & Payment
@@ -817,6 +833,22 @@ const CompleteEnrollmentFlow = ({
 
   // ===== CRM MODE - Load contact from Firestore =====
   useEffect(() => {
+    // ============================================================================
+// FIXED loadContactData FUNCTION
+// ============================================================================
+// REPLACE lines 820-890 in CompleteEnrollmentFlow.jsx with this code
+//
+// FIXES:
+// 1. Maps emails[0].address → email
+// 2. Maps phones[0].number → phone  
+// 3. Maps addresses[0] → street, city, state, zip
+// 4. Maps ssn field
+// 5. Maps dateOfBirth field
+// 6. Maps employment fields
+//
+// © 1995-2026 Speedy Credit Repair Inc. | Chris Lahage | All Rights Reserved
+// ============================================================================
+
     const loadContactData = async () => {
       if (isCRMMode && preFilledContactId) {
         setCrmContactLoading(true);
@@ -830,8 +862,46 @@ const CompleteEnrollmentFlow = ({
             setCrmContactData(data);
             setContactId(preFilledContactId);
             
+            // ===== EXTRACT DATA FROM ARRAY STRUCTURES =====
+            // Get primary email from emails array
+            const primaryEmail = data.emails?.find(e => e.isPrimary)?.address || 
+                                data.emails?.[0]?.address || 
+                                data.email || '';
+            
+            // Get primary phone from phones array
+            const primaryPhone = data.phones?.find(p => p.isPrimary)?.number || 
+                                data.phones?.[0]?.number || 
+                                data.phone || '';
+            
+            // Get primary address from addresses array
+            const primaryAddress = data.addresses?.find(a => a.isPrimary) || 
+                                  data.addresses?.[0] || 
+                                  data.address || {};
+            
+            // Get employment data
+            const employment = data.employment || {};
+            
+            console.log('📋 Extracted contact data:', {
+              email: primaryEmail,
+              phone: primaryPhone,
+              address: primaryAddress,
+              ssn: data.ssn ? '***-**-' + (data.ssn?.slice(-4) || data.ssnLast4) : 'none',
+              dob: data.dateOfBirth
+            });
+            
             // ===== PHONE CORRUPTION DETECTION FOR CRM CONTACT =====
-            const processedContactData = processContactPhoneData(data);
+            // Create a flat object for phone processing
+            const flatContactData = {
+              ...data,
+              email: primaryEmail,
+              phone: primaryPhone,
+              street: primaryAddress.street || '',
+              city: primaryAddress.city || '',
+              state: primaryAddress.state || '',
+              zip: primaryAddress.zip || primaryAddress.zipCode || '',
+            };
+            
+            const processedContactData = processContactPhoneData(flatContactData);
             
             // Check if phone was corrected
             if (processedContactData.phoneCorruption?.corrected) {
@@ -853,26 +923,112 @@ const CompleteEnrollmentFlow = ({
               }, 'contact_preload');
             }
 
-            // Pre-fill form with contact data (using processed data)
+            // ===== PRE-FILL FORM WITH ALL CONTACT DATA =====
             setFormData(prev => ({
               ...prev,
-              firstName: processedContactData.firstName || prev.firstName,
-              middleName: processedContactData.middleName || prev.middleName,
-              lastName: processedContactData.lastName || prev.lastName,
-              email: processedContactData.email || prev.email,
-              phone: processedContactData.phone || prev.phone, // This is now corrected!
-              carrier: processedContactData.carrier || prev.carrier,
-              street: processedContactData.address?.street || processedContactData.street || prev.street,
-              city: processedContactData.address?.city || processedContactData.city || prev.city,
-              state: processedContactData.address?.state || processedContactData.state || prev.state,
-              zip: processedContactData.address?.zip || processedContactData.zipCode || processedContactData.zip || prev.zip,
-              dateOfBirth: processedContactData.dateOfBirth || prev.dateOfBirth,
-              employer: processedContactData.employer || prev.employer,
-              income: processedContactData.income || prev.income,
+              // Basic Info
+              firstName: data.firstName || prev.firstName,
+              middleName: data.middleName || prev.middleName,
+              lastName: data.lastName || prev.lastName,
+              suffix: data.suffix || prev.suffix,
+              
+              // Contact Info (from arrays)
+              email: primaryEmail || prev.email,
+              phone: processedContactData.phone || primaryPhone || prev.phone,
+              carrier: data.carrier || processedContactData.carrier || prev.carrier,
+              
+              // Address (from addresses array)
+              street: primaryAddress.street || prev.street,
+              unit: primaryAddress.unit || prev.unit,
+              city: primaryAddress.city || prev.city,
+              state: primaryAddress.state || prev.state,
+              zip: primaryAddress.zip || primaryAddress.zipCode || prev.zip,
+              
+              // Sensitive Info
+              ssn: data.ssn || prev.ssn,
+              dateOfBirth: data.dateOfBirth || prev.dateOfBirth,
+              
+              // Employment Info
+              employer: employment.employer || data.employer || prev.employer,
+              income: employment.monthlyIncome || data.income || prev.income,
+              occupation: employment.jobTitle || data.occupation || prev.occupation,
+              
+              // IDIQ specific
+              secretWord: data.idiq?.secretWord || data.secretWord || prev.secretWord,
+              
+              // Tracking
               source: 'crm_enrollment',
             }));
             
-            console.log('✅ CRM Mode: Contact data pre-filled', data.firstName, data.lastName);
+            console.log('✅ CRM Mode: Contact data pre-filled successfully');
+            console.log('   Name:', data.firstName, data.lastName);
+            console.log('   Email:', primaryEmail);
+            console.log('   Phone:', processedContactData.phone || primaryPhone);
+            console.log('   Address:', primaryAddress.street, primaryAddress.city, primaryAddress.state, primaryAddress.zip);
+            console.log('   SSN:', data.ssn ? 'Present (hidden)' : 'Not provided');
+            console.log('   DOB:', data.dateOfBirth || 'Not provided');
+            // ===== PRE-LOAD UPLOADED DOCUMENTS FROM CONTACT =====
+            // Photo ID - check multiple possible field locations
+            const existingIdPhoto = data.photoIdUrl || 
+                                   data.documents?.idFileUrl || 
+                                   data.idFileUrl || 
+                                   null;
+            
+            if (existingIdPhoto) {
+              console.log('📄 Found existing Photo ID, pre-loading...');
+              setIdPhotoUrl(existingIdPhoto);
+            }
+            
+            // Utility Bill / Proof of Address - check multiple possible field locations
+            const existingUtilityBill = data.utilityBillUrl || 
+                                        data.documents?.proofOfAddressFileUrl || 
+                                        data.proofOfAddressFileUrl ||
+                                        data.documents?.utilityBillUrl ||
+                                        null;
+            
+            if (existingUtilityBill) {
+              console.log('📄 Found existing Utility Bill, pre-loading...');
+              setUtilityPhotoUrl(existingUtilityBill);
+            }
+            
+            // SSN Card - check for existing
+            const existingSSNCard = data.documents?.ssnCardFileUrl || 
+                                   data.ssnCardFileUrl || 
+                                   null;
+            
+            if (existingSSNCard) {
+              console.log('📄 Found existing SSN Card, pre-loading...');
+              setSsnCardUrl(existingSSNCard);
+            }
+            
+            // Bank Statements - check for existing
+            const existingBankStatements = data.documents?.bankStatementsFileUrls || 
+                                          data.bankStatementsFileUrls || 
+                                          [];
+            
+            if (existingBankStatements.length > 0) {
+              console.log('📄 Found existing Bank Statements:', existingBankStatements.length);
+              setBankStatementUrls(existingBankStatements);
+            }
+            
+            // Additional/Misc Documents - check for existing
+            const existingAdditionalDocs = data.documents?.additionalDocs || 
+                                          data.additionalDocs || 
+                                          [];
+            
+            if (existingAdditionalDocs.length > 0) {
+              console.log('📄 Found existing Additional Docs:', existingAdditionalDocs.length);
+              setAdditionalDocs(existingAdditionalDocs);
+            }
+            
+            console.log('📄 Documents pre-loaded:', {
+              photoId: existingIdPhoto ? 'Yes' : 'No',
+              utilityBill: existingUtilityBill ? 'Yes' : 'No',
+              ssnCard: existingSSNCard ? 'Yes' : 'No',
+              bankStatements: existingBankStatements.length,
+              additionalDocs: existingAdditionalDocs.length
+            });
+            
           } else {
             console.warn('⚠️ Contact not found:', preFilledContactId);
             setError('Contact not found. Please select a different contact.');
@@ -1205,8 +1361,13 @@ const CompleteEnrollmentFlow = ({
 
       // For CRM mode with existing contact, just update
       if (isCRMMode && contactId) {
+        // Filter out undefined values - Firebase doesn't accept them
+        const cleanedData = Object.fromEntries(
+          Object.entries(submissionData).filter(([_, value]) => value !== undefined)
+        );
+        
         await updateDoc(doc(db, 'contacts', contactId), {
-          ...submissionData,
+          ...cleanedData,
           updatedAt: serverTimestamp(),
           enrollmentStartedAt: serverTimestamp(),
           enrollmentSource: 'crm_enrollment',
@@ -1401,13 +1562,31 @@ const CompleteEnrollmentFlow = ({
       const targetScore = 
         resData.vantageScore || 
         resData.score || 
+        resData.data?.vantageScore || 
+        resData.data?.reportData?.vantageScore || 
+        resData.reportData?.vantageScore || 
         resData.bureaus?.transunion?.score || 
         resData.bureaus?.experian?.score || 
         resData.bureaus?.equifax?.score || 
-        300;
+        resData.data?.bureaus?.transunion?.score || 
+        resData.data?.bureaus?.experian?.score || 
+        resData.data?.bureaus?.equifax?.score || 
+        null;
 
       console.log("🎯 Final Score Detected for Animation:", targetScore);
-      animateScore(targetScore);
+      console.log("📊 Response structure:", { 
+        hasVantageScore: !!resData.vantageScore,
+        hasDataVantageScore: !!resData.data?.vantageScore,
+        hasReportDataVantageScore: !!resData.reportData?.vantageScore,
+        hasAccountsArray: !!resData.data?.accounts,
+        accountCount: resData.data?.accounts?.length || 0
+      });
+      if (targetScore) {
+        animateScore(targetScore);
+      } else {
+        console.warn("⚠️ No credit score found in report data");
+        setDisplayedScore(null);
+      }
     
     } catch (err) {
       console.error('❌ IDIQ CREDIT REPORT PULL FAILED:', err);
@@ -1552,8 +1731,19 @@ const submitVerificationAnswers = async () => {
       
       setCurrentPhase(3);
       
-      const targetScore = resData.vantageScore || resData.score || 300;
-      animateScore(targetScore);
+      const targetScore = 
+        resData.vantageScore || 
+        resData.score || 
+        resData.data?.vantageScore || 
+        resData.data?.reportData?.vantageScore || 
+        resData.reportData?.vantageScore || 
+        null;
+      if (targetScore) {
+        animateScore(targetScore);
+      } else {
+        console.warn("⚠️ No credit score available");
+        setDisplayedScore(null);
+      }
       
     } else if (response.data?.locked) {
       console.log("🚫 Account locked - notifying support");
@@ -1641,7 +1831,7 @@ Time: ${new Date().toLocaleString()}`,
       const elapsed = currentTime - start;
       const progress = Math.min(elapsed / duration, 1);
       const eased = 1 - Math.pow(1 - progress, 3);
-      setDisplayedScore(Math.round(300 + (targetScore - 300) * eased));
+      setDisplayedScore(Math.round(targetScore * eased));
 
       if (progress < 1) {
         requestAnimationFrame(animate);
@@ -2971,16 +3161,32 @@ const finalizeEnrollment = async () => {
             <Grid container spacing={4} alignItems="center">
               <Grid item xs={12} md={4}>
                 <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                  <ScoreGauge score={displayedScore}>
-                    <Box sx={{ textAlign: 'center', zIndex: 1, position: 'relative' }}>
-                      <Typography variant="h2" fontWeight={700}>
-                        {displayedScore}
-                      </Typography>
-                      <Typography variant="caption" sx={{ opacity: 0.7 }}>
-                        VantageScore 3.0
+                  {displayedScore ? (
+                    <ScoreGauge score={displayedScore}>
+                      <Box sx={{ textAlign: 'center', zIndex: 1, position: 'relative' }}>
+                        <Typography variant="h2" fontWeight={700}>
+                          {displayedScore}
+                        </Typography>
+                        <Typography variant="caption" sx={{ opacity: 0.7 }}>
+                          VantageScore 3.0
+                        </Typography>
+                      </Box>
+                    </ScoreGauge>
+                  ) : (
+                    <Box sx={{ 
+                      textAlign: 'center', 
+                      py: 6,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: 2
+                    }}>
+                      <CircularProgress size={60} />
+                      <Typography variant="body2" color="text.secondary">
+                        Loading credit report...
                       </Typography>
                     </Box>
-                  </ScoreGauge>
+                  )}
                 </Box>
               </Grid>
               <Grid item xs={12} md={8}>
@@ -3020,11 +3226,23 @@ const finalizeEnrollment = async () => {
         {creditReport?.negativeItems && creditReport.negativeItems.length > 0 && (
           <Card sx={{ mb: 4 }}>
             <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Items We Can Help With ({creditReport.negativeItems.length})
-              </Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h6">
+                  Items We Can Help With ({creditReport.negativeItems.length})
+                </Typography>
+                <Button
+                  size="small"
+                  onClick={() => setShowAllNegativeItems(!showAllNegativeItems)}
+                  endIcon={showAllNegativeItems ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                >
+                  {showAllNegativeItems ? 'Show Less' : `Show All ${creditReport.negativeItems.length}`}
+                </Button>
+              </Box>
               <List>
-                {creditReport.negativeItems.slice(0, 5).map((item, index) => (
+                {(showAllNegativeItems 
+                  ? creditReport.negativeItems 
+                  : creditReport.negativeItems.slice(0, 5)
+                ).map((item, index) => (
                   <ListItem key={index} divider>
                     <ListItemIcon>
                       <WarningIcon color="error" />
@@ -3036,11 +3254,86 @@ const finalizeEnrollment = async () => {
                   </ListItem>
                 ))}
               </List>
-              {creditReport.negativeItems.length > 5 && (
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                  + {creditReport.negativeItems.length - 5} more items
+              {!showAllNegativeItems && creditReport.negativeItems.length > 5 && (
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1, textAlign: 'center' }}>
+                  + {creditReport.negativeItems.length - 5} more items (click "Show All" above)
                 </Typography>
               )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* All Credit Accounts */}
+        {creditReport?.accounts && creditReport.accounts.length > 0 && (
+          <Card sx={{ mb: 4 }}>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                All Credit Accounts ({creditReport.accounts.length})
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Complete list of all accounts from your credit report
+              </Typography>
+              
+              <TableContainer component={Paper} variant="outlined">
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell><strong>Bureau</strong></TableCell>
+                      <TableCell><strong>Creditor</strong></TableCell>
+                      <TableCell><strong>Account #</strong></TableCell>
+                      <TableCell><strong>Type</strong></TableCell>
+                      <TableCell align="right"><strong>Balance</strong></TableCell>
+                      <TableCell><strong>Status</strong></TableCell>
+                      <TableCell><strong>Opened</strong></TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {creditReport.accounts.map((account, index) => (
+                      <TableRow 
+                        key={index}
+                        sx={{ 
+                          '&:nth-of-type(odd)': { bgcolor: 'action.hover' },
+                          '&:hover': { bgcolor: 'action.selected' }
+                        }}
+                      >
+                        <TableCell>
+                          <Chip 
+                            label={account.bureau} 
+                            size="small"
+                            color={
+                              account.bureau === 'TransUnion' ? 'primary' :
+                              account.bureau === 'Experian' ? 'secondary' :
+                              'default'
+                            }
+                          />
+                        </TableCell>
+                        <TableCell>{account.creditorName}</TableCell>
+                        <TableCell>
+                          <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                            {account.accountNumber}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>{account.accountType}</TableCell>
+                        <TableCell align="right">
+                          ${parseFloat(account.currentBalance || 0).toLocaleString()}
+                        </TableCell>
+                        <TableCell>
+                          <Chip 
+                            label={account.paymentStatus} 
+                            size="small"
+                            color={
+                              account.paymentStatus?.toLowerCase().includes('current') ? 'success' :
+                              account.paymentStatus?.toLowerCase().includes('late') ? 'error' :
+                              'default'
+                            }
+                          />
+                        </TableCell>
+                        <TableCell>{account.dateOpened}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
             </CardContent>
           </Card>
         )}
@@ -3141,106 +3434,490 @@ const finalizeEnrollment = async () => {
     </Fade>
   );
 
+  // ============================================================================
+// EDIT 3: Enhanced renderPhase4 Function
+// ============================================================================
+// REPLACE lines 3223-3337 in CompleteEnrollmentFlow.jsx with this code
+//
+// FEATURES:
+// - Photo ID upload with preview
+// - Utility Bill / Proof of Address upload with preview
+// - SSN Card upload with preview
+// - Bank Statements (multiple) with list
+// - Additional/Misc Documents (multiple) with list
+// - Document viewer modal
+// - Delete document option
+// - Pre-populated documents show checkmark
+//
+// © 1995-2026 Speedy Credit Repair Inc. | Chris Lahage | All Rights Reserved
+// ============================================================================
+
+  // ===== ADDITIONAL DOCUMENT UPLOAD HANDLER =====
+  const handleAdditionalDocUpload = async (file) => {
+    if (!file) return;
+    
+    setUploadingDoc('additional');
+    try {
+      const timestamp = Date.now();
+      const safeFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const path = `contact-documents/${contactId || 'temp'}/additional_${timestamp}_${safeFileName}`;
+      
+      const storageRef = ref(storage, path);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      
+      const newDoc = {
+        id: timestamp,
+        name: file.name,
+        url: url,
+        type: file.type,
+        uploadedAt: new Date().toISOString(),
+      };
+      
+      setAdditionalDocs(prev => [...prev, newDoc]);
+      setSuccess('Document uploaded successfully!');
+      
+      console.log('📄 Additional document uploaded:', file.name);
+    } catch (err) {
+      console.error('❌ Error uploading additional document:', err);
+      setError('Failed to upload document. Please try again.');
+    } finally {
+      setUploadingDoc(null);
+    }
+  };
+
+  // ===== BANK STATEMENT UPLOAD HANDLER =====
+  const handleBankStatementUpload = async (file) => {
+    if (!file) return;
+    
+    setUploadingDoc('bank');
+    try {
+      const timestamp = Date.now();
+      const safeFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const path = `contact-documents/${contactId || 'temp'}/bank_${timestamp}_${safeFileName}`;
+      
+      const storageRef = ref(storage, path);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      
+      setBankStatementUrls(prev => [...prev, { 
+        id: timestamp, 
+        name: file.name, 
+        url: url,
+        uploadedAt: new Date().toISOString()
+      }]);
+      setSuccess('Bank statement uploaded successfully!');
+      
+      console.log('📄 Bank statement uploaded:', file.name);
+    } catch (err) {
+      console.error('❌ Error uploading bank statement:', err);
+      setError('Failed to upload bank statement. Please try again.');
+    } finally {
+      setUploadingDoc(null);
+    }
+  };
+
+  // ===== SSN CARD UPLOAD HANDLER =====
+  const handleSSNCardUpload = async (file) => {
+    if (!file) return;
+    
+    setUploadingDoc('ssn');
+    try {
+      const timestamp = Date.now();
+      const safeFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const path = `contact-documents/${contactId || 'temp'}/ssn_${timestamp}_${safeFileName}`;
+      
+      const storageRef = ref(storage, path);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      
+      setSsnCardUrl(url);
+      setSuccess('SSN Card uploaded successfully!');
+      
+      console.log('📄 SSN Card uploaded');
+    } catch (err) {
+      console.error('❌ Error uploading SSN card:', err);
+      setError('Failed to upload SSN card. Please try again.');
+    } finally {
+      setUploadingDoc(null);
+    }
+  };
+
+  // ===== DELETE DOCUMENT HANDLER =====
+  const handleDeleteDocument = (type, docId = null) => {
+    switch(type) {
+      case 'id':
+        setIdPhotoUrl(null);
+        break;
+      case 'utility':
+        setUtilityPhotoUrl(null);
+        break;
+      case 'ssn':
+        setSsnCardUrl(null);
+        break;
+      case 'bank':
+        setBankStatementUrls(prev => prev.filter(d => d.id !== docId));
+        break;
+      case 'additional':
+        setAdditionalDocs(prev => prev.filter(d => d.id !== docId));
+        break;
+    }
+    setSuccess('Document removed.');
+  };
+
+  // ===== VIEW DOCUMENT HANDLER =====
+  const handleViewDocument = (url, name) => {
+    setViewingDocument({ url, name });
+    setShowDocumentViewer(true);
+  };
+
+  // ===== DOCUMENT VIEWER MODAL =====
+  const DocumentViewerModal = () => (
+    <Dialog
+      open={showDocumentViewer}
+      onClose={() => setShowDocumentViewer(false)}
+      maxWidth="lg"
+      fullWidth
+    >
+      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Typography variant="h6">{viewingDocument?.name || 'Document Viewer'}</Typography>
+        <IconButton onClick={() => setShowDocumentViewer(false)}>
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
+      <DialogContent>
+        {viewingDocument?.url && (
+          viewingDocument.url.toLowerCase().includes('.pdf') ? (
+            <iframe 
+              src={viewingDocument.url} 
+              style={{ width: '100%', height: '70vh', border: 'none' }}
+              title="Document Viewer"
+            />
+          ) : (
+            <Box sx={{ textAlign: 'center' }}>
+              <img 
+                src={viewingDocument.url} 
+                alt={viewingDocument.name}
+                style={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain' }}
+              />
+            </Box>
+          )
+        )}
+      </DialogContent>
+      <DialogActions>
+        <Button 
+          startIcon={<DownloadIcon />}
+          onClick={() => window.open(viewingDocument?.url, '_blank')}
+        >
+          Download
+        </Button>
+        <Button onClick={() => setShowDocumentViewer(false)}>Close</Button>
+      </DialogActions>
+    </Dialog>
+  );
+
+  // ===== DOCUMENT CARD COMPONENT =====
+  const DocumentCard = ({ 
+    title, 
+    subtitle, 
+    icon: Icon, 
+    url, 
+    onUpload, 
+    onDelete, 
+    onView,
+    inputRef,
+    type,
+    isUploading,
+    accept = "image/jpeg,image/jpg,image/png,image/gif,image/webp,application/pdf"
+  }) => (
+    <Card
+      sx={{
+        p: 2,
+        border: url ? '2px solid #4CAF50' : '2px dashed #ccc',
+        textAlign: 'center',
+        cursor: 'pointer',
+        transition: 'all 0.2s',
+        '&:hover': { borderColor: '#2196F3', transform: 'translateY(-2px)' },
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+      }}
+      onClick={() => !url && inputRef?.current?.click()}
+    >
+      <input
+        ref={inputRef}
+        type="file"
+        accept={accept}
+        capture="environment"
+        hidden
+        onChange={(e) => onUpload(e.target.files[0])}
+      />
+      
+      {isUploading ? (
+        <Box sx={{ py: 2 }}>
+          <CircularProgress size={40} />
+          <Typography variant="body2" sx={{ mt: 1 }}>Uploading...</Typography>
+        </Box>
+      ) : url ? (
+        <Box>
+          <CheckIcon color="success" sx={{ fontSize: 40, mb: 1 }} />
+          <Typography variant="subtitle1" color="success.main" fontWeight={600}>
+            {title} ✓
+          </Typography>
+          
+          {/* Preview thumbnail */}
+          {!url.toLowerCase().includes('.pdf') && (
+            <Box sx={{ my: 1 }}>
+              <img 
+                src={url} 
+                alt={title} 
+                style={{ maxWidth: 120, maxHeight: 80, objectFit: 'cover', borderRadius: 4 }} 
+              />
+            </Box>
+          )}
+          
+          {/* Action buttons */}
+          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', mt: 1 }}>
+            <Tooltip title="View Document">
+              <IconButton size="small" onClick={(e) => { e.stopPropagation(); onView(url, title); }}>
+                <ViewIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Replace Document">
+              <IconButton size="small" onClick={(e) => { e.stopPropagation(); inputRef?.current?.click(); }}>
+                <UploadIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Delete Document">
+              <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); onDelete(type); }}>
+                <DeleteIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Box>
+        </Box>
+      ) : (
+        <Box>
+          <Icon sx={{ fontSize: 40, mb: 1, color: 'primary.main' }} />
+          <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+            {title}
+          </Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+            {subtitle}
+          </Typography>
+          <Button variant="outlined" size="small" startIcon={<UploadIcon />}>
+            Upload
+          </Button>
+        </Box>
+      )}
+    </Card>
+  );
+
+  // ===== RENDER PHASE 4 - ENHANCED DOCUMENT UPLOAD =====
   const renderPhase4 = () => (
     <Fade in timeout={500}>
       <Box>
         <Typography variant="h4" fontWeight={700} gutterBottom>
-          Document Upload
+          📄 Document Upload
         </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-          Upload your identification documents to verify your identity.
+        <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+          Upload your identification documents to verify your identity. Required documents are marked with *.
         </Typography>
 
-        <Grid container spacing={4}>
-          <Grid item xs={12} md={6}>
-            <Card
-              sx={{
-                p: 3,
-                border: idPhotoUrl ? '2px solid #4CAF50' : '2px dashed #ccc',
-                textAlign: 'center',
-                cursor: 'pointer',
-                '&:hover': { borderColor: '#2196F3' },
-              }}
-              onClick={() => idUploadRef.current?.click()}
-            >
-              <input
-                ref={idUploadRef}
-                type="file"
-                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,application/pdf"
-                capture="environment"
-                hidden
-                onChange={(e) => handlePhotoUpload(e.target.files[0], 'id')}
+        {/* Required Documents Section */}
+        <Paper sx={{ p: 2, mb: 3, bgcolor: 'primary.50' }}>
+          <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <ShieldIcon /> Required Documents
+          </Typography>
+          
+          <Grid container spacing={2}>
+            {/* Photo ID - REQUIRED */}
+            <Grid item xs={12} sm={6} md={4}>
+              <DocumentCard
+                title="Photo ID *"
+                subtitle="Driver's License, Passport, or State ID"
+                icon={CameraIcon}
+                url={idPhotoUrl}
+                onUpload={(file) => handlePhotoUpload(file, 'id')}
+                onDelete={() => handleDeleteDocument('id')}
+                onView={handleViewDocument}
+                inputRef={idUploadRef}
+                type="id"
+                isUploading={uploadingDoc === 'id'}
               />
-              {idPhotoUrl ? (
-                <Box>
-                  <CheckIcon color="success" sx={{ fontSize: 48, mb: 2 }} />
-                  <Typography variant="h6" color="success.main">
-                    Photo ID Uploaded
-                  </Typography>
-                  <img src={idPhotoUrl} alt="ID" style={{ maxWidth: 200, marginTop: 16 }} />
-                </Box>
-              ) : (
-                <Box>
-                  <CameraIcon sx={{ fontSize: 48, mb: 2, color: 'primary.main' }} />
-                  <Typography variant="h6" gutterBottom>
-                    Photo ID
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Driver's License, Passport, or State ID
-                  </Typography>
-                  <Button variant="outlined" startIcon={<UploadIcon />} sx={{ mt: 2 }}>
-                    Upload or Take Photo
-                  </Button>
-                </Box>
-              )}
-            </Card>
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <Card
-              sx={{
-                p: 3,
-                border: utilityPhotoUrl ? '2px solid #4CAF50' : '2px dashed #ccc',
-                textAlign: 'center',
-                cursor: 'pointer',
-                '&:hover': { borderColor: '#2196F3' },
-              }}
-              onClick={() => utilityUploadRef.current?.click()}
-            >
-              <input
-                ref={utilityUploadRef}
-                type="file"
-                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,application/pdf"
-                capture="environment"
-                hidden
-                onChange={(e) => handlePhotoUpload(e.target.files[0], 'utility')}
+            </Grid>
+            
+            {/* Utility Bill - REQUIRED */}
+            <Grid item xs={12} sm={6} md={4}>
+              <DocumentCard
+                title="Proof of Address *"
+                subtitle="Utility Bill, Bank Statement, or Lease"
+                icon={DocumentIcon}
+                url={utilityPhotoUrl}
+                onUpload={(file) => handlePhotoUpload(file, 'utility')}
+                onDelete={() => handleDeleteDocument('utility')}
+                onView={handleViewDocument}
+                inputRef={utilityUploadRef}
+                type="utility"
+                isUploading={uploadingDoc === 'utility'}
               />
-              {utilityPhotoUrl ? (
-                <Box>
-                  <CheckIcon color="success" sx={{ fontSize: 48, mb: 2 }} />
-                  <Typography variant="h6" color="success.main">
-                    Utility Bill Uploaded
-                  </Typography>
-                  <img src={utilityPhotoUrl} alt="Utility" style={{ maxWidth: 200, marginTop: 16 }} />
-                </Box>
-              ) : (
-                <Box>
-                  <DocumentIcon sx={{ fontSize: 48, mb: 2, color: 'primary.main' }} />
-                  <Typography variant="h6" gutterBottom>
-                    Proof of Address
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Utility Bill, Bank Statement, or Lease
-                  </Typography>
-                  <Button variant="outlined" startIcon={<UploadIcon />} sx={{ mt: 2 }}>
-                    Upload or Take Photo
-                  </Button>
-                </Box>
-              )}
-            </Card>
+            </Grid>
+            
+            {/* SSN Card - OPTIONAL but helpful */}
+            <Grid item xs={12} sm={6} md={4}>
+              <DocumentCard
+                title="SSN Card"
+                subtitle="Social Security Card (Optional)"
+                icon={CreditCardIcon}
+                url={ssnCardUrl}
+                onUpload={handleSSNCardUpload}
+                onDelete={() => handleDeleteDocument('ssn')}
+                onView={handleViewDocument}
+                inputRef={useRef(null)}
+                type="ssn"
+                isUploading={uploadingDoc === 'ssn'}
+              />
+            </Grid>
           </Grid>
-        </Grid>
+        </Paper>
 
+        {/* Additional Documents Section */}
+        <Paper sx={{ p: 2, mb: 3 }}>
+          <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <FolderIcon /> Additional Documents (Optional)
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Upload bank statements, pay stubs, or any other supporting documents.
+          </Typography>
+          
+          <Grid container spacing={2}>
+            {/* Bank Statements Upload */}
+            <Grid item xs={12} sm={6}>
+              <Card sx={{ p: 2, border: '1px dashed #ccc' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography variant="subtitle2" fontWeight={600}>
+                    📊 Bank Statements ({bankStatementUrls.length})
+                  </Typography>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={uploadingDoc === 'bank' ? <CircularProgress size={16} /> : <AddIcon />}
+                    onClick={() => document.getElementById('bank-upload').click()}
+                    disabled={uploadingDoc === 'bank'}
+                  >
+                    Add
+                  </Button>
+                  <input
+                    id="bank-upload"
+                    type="file"
+                    accept="image/*,application/pdf"
+                    hidden
+                    onChange={(e) => handleBankStatementUpload(e.target.files[0])}
+                  />
+                </Box>
+                
+                {bankStatementUrls.length > 0 ? (
+                  <List dense sx={{ maxHeight: 150, overflow: 'auto' }}>
+                    {bankStatementUrls.map((doc) => (
+                      <ListItem 
+                        key={doc.id}
+                        secondaryAction={
+                          <Box>
+                            <IconButton size="small" onClick={() => handleViewDocument(doc.url, doc.name)}>
+                              <ViewIcon fontSize="small" />
+                            </IconButton>
+                            <IconButton size="small" color="error" onClick={() => handleDeleteDocument('bank', doc.id)}>
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Box>
+                        }
+                      >
+                        <ListItemIcon><FileIcon fontSize="small" /></ListItemIcon>
+                        <ListItemText 
+                          primary={doc.name} 
+                          secondary={new Date(doc.uploadedAt).toLocaleDateString()}
+                          primaryTypographyProps={{ variant: 'body2', noWrap: true }}
+                        />
+                      </ListItem>
+                    ))}
+                  </List>
+                ) : (
+                  <Typography variant="caption" color="text.disabled">No bank statements uploaded</Typography>
+                )}
+              </Card>
+            </Grid>
+            
+            {/* Miscellaneous Documents Upload */}
+            <Grid item xs={12} sm={6}>
+              <Card sx={{ p: 2, border: '1px dashed #ccc' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography variant="subtitle2" fontWeight={600}>
+                    📁 Other Documents ({additionalDocs.length})
+                  </Typography>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={uploadingDoc === 'additional' ? <CircularProgress size={16} /> : <AddIcon />}
+                    onClick={() => document.getElementById('additional-upload').click()}
+                    disabled={uploadingDoc === 'additional'}
+                  >
+                    Add
+                  </Button>
+                  <input
+                    id="additional-upload"
+                    type="file"
+                    accept="image/*,application/pdf,.doc,.docx"
+                    hidden
+                    onChange={(e) => handleAdditionalDocUpload(e.target.files[0])}
+                  />
+                </Box>
+                
+                {additionalDocs.length > 0 ? (
+                  <List dense sx={{ maxHeight: 150, overflow: 'auto' }}>
+                    {additionalDocs.map((doc) => (
+                      <ListItem 
+                        key={doc.id}
+                        secondaryAction={
+                          <Box>
+                            <IconButton size="small" onClick={() => handleViewDocument(doc.url, doc.name)}>
+                              <ViewIcon fontSize="small" />
+                            </IconButton>
+                            <IconButton size="small" color="error" onClick={() => handleDeleteDocument('additional', doc.id)}>
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Box>
+                        }
+                      >
+                        <ListItemIcon><FileIcon fontSize="small" /></ListItemIcon>
+                        <ListItemText 
+                          primary={doc.name} 
+                          secondary={new Date(doc.uploadedAt).toLocaleDateString()}
+                          primaryTypographyProps={{ variant: 'body2', noWrap: true }}
+                        />
+                      </ListItem>
+                    ))}
+                  </List>
+                ) : (
+                  <Typography variant="caption" color="text.disabled">No additional documents uploaded</Typography>
+                )}
+              </Card>
+            </Grid>
+          </Grid>
+        </Paper>
+
+        {/* Progress indicator */}
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            Document Progress: {[idPhotoUrl, utilityPhotoUrl].filter(Boolean).length}/2 required
+          </Typography>
+          <LinearProgress 
+            variant="determinate" 
+            value={([idPhotoUrl, utilityPhotoUrl].filter(Boolean).length / 2) * 100}
+            sx={{ height: 8, borderRadius: 4 }}
+          />
+        </Box>
+
+        {/* Navigation Buttons */}
         <Box sx={{ mt: 4, display: 'flex', justifyContent: 'space-between' }}>
           <Button onClick={() => setCurrentPhase(3)} startIcon={<ArrowBackIcon />}>
             Back
@@ -3253,6 +3930,9 @@ const finalizeEnrollment = async () => {
             Continue to Signature
           </GlowingButton>
         </Box>
+
+        {/* Document Viewer Modal */}
+        <DocumentViewerModal />
       </Box>
     </Fade>
   );

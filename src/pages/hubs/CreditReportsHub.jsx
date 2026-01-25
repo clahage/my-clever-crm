@@ -125,14 +125,31 @@ const COMPONENT_MAP = {
 };
 
 // ============================================================================
-// CONTACT SELECTOR COMPONENT - For Enroll Contact Tab
+// ENHANCED CONTACT SELECTOR COMPONENT
 // ============================================================================
+// REPLACEMENT for lines 130-416 in CreditReportsHub.jsx
+// 
+// NEW FEATURES:
+// - Filter dropdown: All Contacts, Leads Only, Not Enrolled, Already Enrolled
+// - Role badges: Shows contact, lead, client, etc.
+// - Autocomplete dropdown as user types
+// - Better visual feedback
+//
+// © 1995-2026 Speedy Credit Repair Inc. | Chris Lahage | All Rights Reserved
+// ============================================================================
+
 const ContactSelector = ({ onSelectContact, onNewEnrollment }) => {
   const [contacts, setContacts] = useState([]);
   const [filteredContacts, setFilteredContacts] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // ===== NEW: Filter state =====
+  const [roleFilter, setRoleFilter] = useState('all'); // 'all', 'leads', 'not-enrolled', 'enrolled'
+  const [showAutocomplete, setShowAutocomplete] = useState(false);
+  const [autocompleteResults, setAutocompleteResults] = useState([]);
+  const searchInputRef = React.useRef(null);
 
   // Load contacts from Firestore
   useEffect(() => {
@@ -145,7 +162,7 @@ const ContactSelector = ({ onSelectContact, onNewEnrollment }) => {
       const q = query(
         contactsRef,
         orderBy('createdAt', 'desc'),
-        limit(100)
+        limit(200) // Increased limit
       );
 
       const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -154,7 +171,6 @@ const ContactSelector = ({ onSelectContact, onNewEnrollment }) => {
           ...doc.data()
         }));
         setContacts(contactsList);
-        setFilteredContacts(contactsList);
         setLoading(false);
         console.log(`✅ Loaded ${contactsList.length} contacts for enrollment selection`);
       }, (err) => {
@@ -171,26 +187,55 @@ const ContactSelector = ({ onSelectContact, onNewEnrollment }) => {
     }
   }, []);
 
-  // Filter contacts based on search term
+  // ===== FILTER CONTACTS based on search term AND role filter =====
   useEffect(() => {
-    if (!searchTerm.trim()) {
-      setFilteredContacts(contacts);
-      return;
+    let result = [...contacts];
+
+    // Apply role filter FIRST
+    switch (roleFilter) {
+      case 'leads':
+        result = result.filter(c => c.roles?.includes('lead'));
+        break;
+      case 'not-enrolled':
+        result = result.filter(c => !hasIDIQEnrollment(c));
+        break;
+      case 'enrolled':
+        result = result.filter(c => hasIDIQEnrollment(c));
+        break;
+      case 'clients':
+        result = result.filter(c => c.roles?.includes('client'));
+        break;
+      case 'all':
+      default:
+        // No filter
+        break;
     }
 
-    const term = searchTerm.toLowerCase();
-    const filtered = contacts.filter(contact => {
-      const fullName = `${contact.firstName || ''} ${contact.lastName || ''}`.toLowerCase();
-      const email = (contact.emails?.[0]?.address || contact.email || '').toLowerCase();
-      const phone = (contact.phones?.[0]?.number || contact.phone || '').toLowerCase();
-      
-      return fullName.includes(term) || 
-             email.includes(term) || 
-             phone.includes(term);
-    });
+    // Apply search term filter
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      result = result.filter(contact => {
+        const fullName = `${contact.firstName || ''} ${contact.lastName || ''}`.toLowerCase();
+        const email = (contact.emails?.[0]?.address || contact.email || '').toLowerCase();
+        const phone = (contact.phones?.[0]?.number || contact.phone || '').replace(/\D/g, '');
+        const searchPhone = term.replace(/\D/g, '');
+        
+        return fullName.includes(term) || 
+               email.includes(term) || 
+               (searchPhone && phone.includes(searchPhone));
+      });
+    }
 
-    setFilteredContacts(filtered);
-  }, [searchTerm, contacts]);
+    setFilteredContacts(result);
+    
+    // Update autocomplete results (max 5)
+    if (searchTerm.trim().length >= 2) {
+      setAutocompleteResults(result.slice(0, 5));
+      setShowAutocomplete(true);
+    } else {
+      setShowAutocomplete(false);
+    }
+  }, [searchTerm, contacts, roleFilter]);
 
   // Get primary email from contact
   const getPrimaryEmail = (contact) => {
@@ -228,6 +273,41 @@ const ContactSelector = ({ onSelectContact, onNewEnrollment }) => {
     return { label: 'Not Enrolled', color: 'default', icon: CreditScoreIcon };
   };
 
+  // ===== NEW: Get role badges for display =====
+  const getRoleBadges = (contact) => {
+    const roles = contact.roles || ['contact'];
+    const roleColors = {
+      'contact': 'default',
+      'lead': 'primary',
+      'client': 'success',
+      'prospect': 'info',
+      'affiliate': 'secondary',
+      'user': 'warning',
+    };
+    return roles.map(role => ({
+      label: role.charAt(0).toUpperCase() + role.slice(1),
+      color: roleColors[role] || 'default'
+    }));
+  };
+
+  // ===== Handle autocomplete selection =====
+  const handleAutocompleteSelect = (contactId) => {
+    setShowAutocomplete(false);
+    setSearchTerm('');
+    onSelectContact(contactId);
+  };
+
+  // ===== Close autocomplete on outside click =====
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchInputRef.current && !searchInputRef.current.contains(event.target)) {
+        setShowAutocomplete(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   // Loading state
   if (loading) {
     return (
@@ -250,6 +330,15 @@ const ContactSelector = ({ onSelectContact, onNewEnrollment }) => {
     );
   }
 
+  // ===== Calculate filter counts =====
+  const filterCounts = {
+    all: contacts.length,
+    leads: contacts.filter(c => c.roles?.includes('lead')).length,
+    'not-enrolled': contacts.filter(c => !hasIDIQEnrollment(c)).length,
+    enrolled: contacts.filter(c => hasIDIQEnrollment(c)).length,
+    clients: contacts.filter(c => c.roles?.includes('client')).length,
+  };
+
   return (
     <Box>
       {/* Header */}
@@ -262,25 +351,102 @@ const ContactSelector = ({ onSelectContact, onNewEnrollment }) => {
         </Typography>
       </Paper>
 
-      {/* Search & Actions */}
+      {/* ===== ENHANCED: Search, Filter & Actions ===== */}
       <Paper sx={{ p: 2, mb: 3 }}>
         <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={8}>
-            <TextField
-              fullWidth
-              placeholder="Search by name, email, or phone..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
-              size="small"
-            />
+          {/* Search with Autocomplete */}
+          <Grid item xs={12} md={5}>
+            <Box ref={searchInputRef} sx={{ position: 'relative' }}>
+              <TextField
+                fullWidth
+                placeholder="Search by name, email, or phone..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onFocus={() => searchTerm.length >= 2 && setShowAutocomplete(true)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon />
+                    </InputAdornment>
+                  ),
+                }}
+                size="small"
+              />
+              
+              {/* Autocomplete Dropdown */}
+              {showAutocomplete && autocompleteResults.length > 0 && (
+                <Paper
+                  sx={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    zIndex: 1000,
+                    maxHeight: 300,
+                    overflow: 'auto',
+                    mt: 0.5,
+                    boxShadow: 4,
+                  }}
+                >
+                  <List dense>
+                    {autocompleteResults.map((contact) => (
+                      <ListItem
+                        key={contact.id}
+                        button
+                        onClick={() => handleAutocompleteSelect(contact.id)}
+                        sx={{
+                          '&:hover': { bgcolor: 'action.hover' },
+                          borderBottom: '1px solid',
+                          borderColor: 'divider',
+                        }}
+                      >
+                        <ListItemAvatar>
+                          <Avatar sx={{ bgcolor: contact.roles?.includes('lead') ? 'primary.main' : 'grey.400', width: 32, height: 32 }}>
+                            {(contact.firstName?.[0] || 'U').toUpperCase()}
+                          </Avatar>
+                        </ListItemAvatar>
+                        <ListItemText
+                          primary={`${contact.firstName || 'Unknown'} ${contact.lastName || ''}`}
+                          secondary={
+                            <Box component="span" sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                              <Typography variant="caption" color="text.secondary">
+                                {getPrimaryEmail(contact)}
+                              </Typography>
+                              {contact.roles?.includes('lead') && (
+                                <Chip label="Lead" size="small" color="primary" sx={{ height: 16, fontSize: '0.6rem' }} />
+                              )}
+                            </Box>
+                          }
+                        />
+                        <ArrowForwardIcon sx={{ color: 'text.secondary', fontSize: 18 }} />
+                      </ListItem>
+                    ))}
+                  </List>
+                </Paper>
+              )}
+            </Box>
           </Grid>
+
+          {/* ===== NEW: Filter Dropdown ===== */}
+          <Grid item xs={12} md={3}>
+            <TextField
+              select
+              fullWidth
+              size="small"
+              label="Filter By"
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+              SelectProps={{ native: true }}
+            >
+              <option value="all">All Contacts ({filterCounts.all})</option>
+              <option value="leads">Leads Only ({filterCounts.leads})</option>
+              <option value="not-enrolled">Not Enrolled ({filterCounts['not-enrolled']})</option>
+              <option value="enrolled">Already Enrolled ({filterCounts.enrolled})</option>
+              <option value="clients">Clients ({filterCounts.clients})</option>
+            </TextField>
+          </Grid>
+
+          {/* New Enrollment Button */}
           <Grid item xs={12} md={4}>
             <Button
               variant="contained"
@@ -295,17 +461,30 @@ const ContactSelector = ({ onSelectContact, onNewEnrollment }) => {
         </Grid>
       </Paper>
 
-      {/* Contact Count */}
-      <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      {/* Contact Count with Filter Info */}
+      <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
         <Typography variant="body2" color="text.secondary">
           Showing {filteredContacts.length} of {contacts.length} contacts
+          {roleFilter !== 'all' && ` (filtered: ${roleFilter})`}
         </Typography>
-        <Chip 
-          label={`${contacts.filter(c => !hasIDIQEnrollment(c)).length} not enrolled`}
-          size="small"
-          color="primary"
-          variant="outlined"
-        />
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Chip 
+            label={`${filterCounts.leads} leads`}
+            size="small"
+            color="primary"
+            variant={roleFilter === 'leads' ? 'filled' : 'outlined'}
+            onClick={() => setRoleFilter(roleFilter === 'leads' ? 'all' : 'leads')}
+            sx={{ cursor: 'pointer' }}
+          />
+          <Chip 
+            label={`${filterCounts['not-enrolled']} not enrolled`}
+            size="small"
+            color="warning"
+            variant={roleFilter === 'not-enrolled' ? 'filled' : 'outlined'}
+            onClick={() => setRoleFilter(roleFilter === 'not-enrolled' ? 'all' : 'not-enrolled')}
+            sx={{ cursor: 'pointer' }}
+          />
+        </Box>
       </Box>
 
       {/* Empty state */}
@@ -313,11 +492,16 @@ const ContactSelector = ({ onSelectContact, onNewEnrollment }) => {
         <Paper sx={{ p: 4, textAlign: 'center' }}>
           <PersonIcon sx={{ fontSize: 64, color: 'text.secondary', opacity: 0.5 }} />
           <Typography variant="h6" color="text.secondary" sx={{ mt: 2 }}>
-            {searchTerm ? 'No contacts match your search' : 'No contacts found'}
+            {searchTerm ? 'No contacts match your search' : roleFilter !== 'all' ? `No ${roleFilter} found` : 'No contacts found'}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            {searchTerm ? 'Try a different search term' : 'Add contacts in the Contacts Hub first'}
+            {searchTerm ? 'Try a different search term' : roleFilter !== 'all' ? 'Try a different filter' : 'Add contacts in the Contacts Hub first'}
           </Typography>
+          {roleFilter !== 'all' && (
+            <Button variant="text" onClick={() => setRoleFilter('all')} sx={{ mr: 1 }}>
+              Clear Filter
+            </Button>
+          )}
           <Button variant="outlined" onClick={onNewEnrollment} startIcon={<AddIcon />}>
             Start New Enrollment
           </Button>
@@ -329,6 +513,7 @@ const ContactSelector = ({ onSelectContact, onNewEnrollment }) => {
         {filteredContacts.map((contact) => {
           const status = getEnrollmentStatus(contact);
           const StatusIcon = status.icon;
+          const roleBadges = getRoleBadges(contact);
           
           return (
             <Grid item xs={12} sm={6} md={4} key={contact.id}>
@@ -350,7 +535,7 @@ const ContactSelector = ({ onSelectContact, onNewEnrollment }) => {
                   <CardContent>
                     {/* Status Badge */}
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                      <Avatar sx={{ bgcolor: hasIDIQEnrollment(contact) ? 'success.main' : 'primary.main' }}>
+                      <Avatar sx={{ bgcolor: contact.roles?.includes('lead') ? 'primary.main' : hasIDIQEnrollment(contact) ? 'success.main' : 'grey.400' }}>
                         {(contact.firstName?.[0] || 'U').toUpperCase()}
                       </Avatar>
                       <Chip
@@ -365,6 +550,19 @@ const ContactSelector = ({ onSelectContact, onNewEnrollment }) => {
                     <Typography variant="h6" fontWeight="bold" noWrap>
                       {contact.firstName || 'Unknown'} {contact.lastName || ''}
                     </Typography>
+
+                    {/* ===== NEW: Role Badges ===== */}
+                    <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mt: 0.5, mb: 1 }}>
+                      {roleBadges.map((badge, idx) => (
+                        <Chip 
+                          key={idx}
+                          label={badge.label} 
+                          size="small" 
+                          color={badge.color}
+                          sx={{ height: 20, fontSize: '0.65rem' }}
+                        />
+                      ))}
+                    </Box>
 
                     {/* Email */}
                     <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>

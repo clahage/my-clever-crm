@@ -626,6 +626,140 @@ exports.onContactUpdated = onDocumentUpdated(
 console.log('✅ Function 4/11: onContactUpdated loaded (WITH ENROLLMENT + EMAIL AUTOMATION + AUTO LEAD ROLE)');
 
 // ============================================
+// FUNCTION 4B: ON CONTACT CREATED (NEW!)
+// ============================================
+// Triggers when a NEW contact document is created
+// Handles: Auto-assign lead role based on AI assessment of contact data
+// This ensures NEW contacts get proper role assignment immediately
+// © 1995-2026 Speedy Credit Repair Inc. | Chris Lahage | All Rights Reserved
+
+exports.onContactCreated = onDocumentCreated(
+  {
+    document: 'contacts/{contactId}',
+    ...defaultConfig,
+    memory: '512MiB',
+    timeoutSeconds: 60
+  },
+  async (event) => {
+    const contactId = event.params.contactId;
+    const contactData = event.data?.data();
+    
+    if (!contactData) {
+      console.log('⏭️ No contact data, skipping');
+      return null;
+    }
+    
+    console.log('👤 NEW Contact Created:', contactId);
+    console.log('   Name:', contactData.firstName, contactData.lastName);
+    
+    const db = admin.firestore();
+    
+    try {
+      // ═══════════════════════════════════════════════════════════════════════
+      // AI ROLE ASSESSMENT - Determine if contact should be assigned "lead" role
+      // ═══════════════════════════════════════════════════════════════════════
+      
+      // Check if contact already has lead role (shouldn't on create, but safety check)
+      const currentRoles = contactData.roles || ['contact'];
+      const needsLeadRole = !currentRoles.includes('lead');
+      
+      // Lead indicators - AI assessment criteria
+      const hasLeadIndicators = 
+        // Score-based
+        (contactData.leadScore && contactData.leadScore >= 5) || 
+        
+        // Source-based (high-intent sources)
+        contactData.source === 'ai_receptionist' ||
+        contactData.source === 'landing_page' ||
+        contactData.source === 'referral' ||
+        contactData.source === 'website' ||
+        contactData.source === 'form' ||
+        contactData.source === 'walk_in' ||
+        contactData.source === 'phone_call' ||
+        contactData.leadSource === 'ai_receptionist' ||
+        contactData.leadSource === 'landing_page' ||
+        contactData.leadSource === 'referral' ||
+        contactData.leadSource === 'website' ||
+        
+        // Contact info present (indicates real prospect)
+        (contactData.emails && contactData.emails.length > 0 && contactData.emails[0]?.address) ||
+        (contactData.phones && contactData.phones.length > 0 && contactData.phones[0]?.number) ||
+        contactData.email ||
+        contactData.phone ||
+        
+        // Has AI receptionist interaction
+        (contactData.aiTracking?.aiReceptionistCalls?.length > 0) ||
+        (contactData.aiTracking?.totalInteractions > 0);
+      
+      console.log('🤖 AI Role Assessment for new contact:', {
+        contactId,
+        name: `${contactData.firstName} ${contactData.lastName}`,
+        needsLeadRole,
+        hasLeadIndicators,
+        indicators: {
+          leadScore: contactData.leadScore,
+          source: contactData.source || contactData.leadSource,
+          hasEmail: !!(contactData.email || contactData.emails?.length > 0),
+          hasPhone: !!(contactData.phone || contactData.phones?.length > 0),
+          hasAIInteraction: !!(contactData.aiTracking?.totalInteractions > 0)
+        }
+      });
+      
+      if (needsLeadRole && hasLeadIndicators) {
+        console.log('📝 AI Assessment: Assigning LEAD role to new contact:', contactId);
+        
+        // Update contact with lead role
+        await db.collection('contacts').doc(contactId).update({
+          roles: admin.firestore.FieldValue.arrayUnion('lead'),
+          rolesUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          rolesUpdatedBy: 'system:ai_role_assessment',
+          aiRoleAssessment: {
+            assessedAt: admin.firestore.FieldValue.serverTimestamp(),
+            assignedRole: 'lead',
+            reason: 'Met lead indicator criteria on contact creation',
+            indicators: {
+              leadScore: contactData.leadScore || 0,
+              source: contactData.source || contactData.leadSource || 'manual',
+              hasEmail: !!(contactData.email || contactData.emails?.length > 0),
+              hasPhone: !!(contactData.phone || contactData.phones?.length > 0)
+            }
+          }
+        });
+        
+        console.log('✅ LEAD role assigned successfully to:', contactId);
+        
+        // Log to timeline
+        await db.collection('contacts').doc(contactId).update({
+          timeline: admin.firestore.FieldValue.arrayUnion({
+            id: Date.now(),
+            type: 'role_assigned',
+            description: 'AI automatically assigned LEAD role based on contact profile assessment',
+            timestamp: new Date().toISOString(),
+            metadata: {
+              role: 'lead',
+              assessedBy: 'ai_role_assessment'
+            },
+            source: 'system'
+          })
+        });
+        
+      } else {
+        console.log('ℹ️ AI Assessment: Contact does not meet lead criteria, keeping as contact only');
+        console.log('   Reason: needsLeadRole=', needsLeadRole, ', hasLeadIndicators=', hasLeadIndicators);
+      }
+      
+      return { success: true, contactId, roleAssigned: needsLeadRole && hasLeadIndicators ? 'lead' : null };
+      
+    } catch (error) {
+      console.error('❌ Error in onContactCreated AI role assessment:', error);
+      return { success: false, error: error.message };
+    }
+  }
+);
+
+console.log('✅ Function 4B/11: onContactCreated loaded (AI ROLE ASSESSMENT)');
+
+// ============================================
 // FUNCTION 5: IDIQ SERVICE (PRODUCTION)
 // ============================================
 // Handles: ALL IDIQ operations via Partner Integration Framework
@@ -839,16 +973,55 @@ exports.idiqService = onCall(
             let membershipNumber = null;
             let enrollmentId = null;
 
-            // STEP 1: Smart Check - Try to get existing member token first
+            // STEP 1: Try to get member token for existing member
+            console.log('🔑 Checking for existing member token...');
             let memberToken = await getMemberToken(email, partnerToken);
+            
+            // ===== CRITICAL FIX: If token exists, verify it's still valid =====
+            if (memberToken) {
+              console.log('✅ Found existing member token, verifying it works...');
+              
+              // Try to use the token to get verification questions
+              const testResponse = await fetch(`${IDIQ_BASE_URL}v1/enrollment/verification-questions`, {
+                method: 'GET',
+                headers: { 
+                  'Authorization': `Bearer ${memberToken}`, 
+                  'Accept': 'application/json',
+                  'Content-Type': 'application/json'
+                }
+              });
+              
+              const testStatus = testResponse.status;
+              console.log(`📋 Token validation response: ${testStatus}`);
+              
+              // If token is invalid (401/403), force re-enrollment
+              if (testStatus === 401 || testStatus === 403) {
+                console.log('⚠️ Member token is invalid/expired - forcing re-enrollment');
+                memberToken = null; // Clear it so we re-enroll below
+              } else if (testStatus === 404) {
+                console.log('⚠️ Member not found with this token - forcing re-enrollment');
+                memberToken = null; // Clear it so we re-enroll below
+              } else if (testStatus === 200) {
+                console.log('✅ Member token is valid (or member already verified)');
+                // Token is good, continue with existing flow
+              } else {
+                console.log(`⚠️ Unexpected status ${testStatus} - will retry with enrollment`);
+                memberToken = null;
+              }
+            } else {
+              console.log('ℹ️ No existing member token found');
+            }
 
-            // STEP 2: IF TOKEN IS MISSING (404/Legacy), FORCE ENROLLMENT IMMEDIATELY
+            // STEP 2: IF TOKEN IS MISSING OR INVALID, FORCE ENROLLMENT
             if (!memberToken) {
-              console.log('🚀 NO TOKEN FOUND: Forcing fresh enrollment to reactivate account...');
+              console.log('🚀 NO VALID TOKEN: Forcing fresh enrollment...');
+              
+              // Force lowercase email for consistency with IDIQ
+              const emailLower = email.trim().toLowerCase();
               
               const enrollPayload = {
                 birthDate: formatDate(dateOfBirth),
-                email: email.trim().toLowerCase(),
+                email: emailLower,
                 firstName: firstName.trim().substring(0, 15),
                 lastName: lastName.trim().substring(0, 15),
                 middleNameInitial: middleName?.substring(0, 1) || '',
@@ -861,6 +1034,8 @@ exports.idiqService = onCall(
                 zip: address?.zip?.toString().replace(/\D/g, '').substring(0, 5) || zip?.toString().replace(/\D/g, '').substring(0, 5) || ''
               };
 
+              console.log('📤 Enrollment payload email:', enrollPayload.email);
+
               const enrollResponse = await fetch(`${IDIQ_BASE_URL}v1/enrollment/enroll`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${partnerToken}`, 'Content-Type': 'application/json', 'Accept': 'application/json' },
@@ -868,14 +1043,16 @@ exports.idiqService = onCall(
               });
 
               const enrollResData = await enrollResponse.json();
+              console.log('📥 Enrollment response:', JSON.stringify(enrollResData).substring(0, 300));
               
               if (enrollResponse.ok) {
                 membershipNumber = enrollResData.membershipNumber || enrollResData.membershipNo;
+                console.log('✅ IDIQ Enrollment successful! Membership:', membershipNumber);
                 
                 // Log new enrollment to Firestore
                 const enrollmentRef = await db.collection('idiqEnrollments').add({
                   contactId: contactId || null,
-                  email: email.toLowerCase(),
+                  email: emailLower,
                   firstName: firstName,
                   lastName: lastName,
                   membershipNumber: membershipNumber,
@@ -886,165 +1063,567 @@ exports.idiqService = onCall(
                   enrolledAt: admin.firestore.FieldValue.serverTimestamp()
                 });
                 enrollmentId = enrollmentRef.id;
-              } else if (!enrollResData.message?.includes('already exists')) {
-                throw new Error(`IDIQ Enrollment failed: ${enrollResData.message || 'Unknown error'}`);
+                console.log('✅ Enrollment saved to Firestore:', enrollmentId);
+                
+                // ===== CRITICAL FIX: Wait for IDIQ to propagate enrollment =====
+                console.log('⏳ Waiting 5 seconds for IDIQ to propagate new enrollment...');
+                await new Promise(resolve => setTimeout(resolve, 5000));
+                
+              } else {
+                // ===== ENHANCED: Check for "already exists" error in multiple places =====
+                const errorMessage = enrollResData.message || '';
+                const errorArray = enrollResData.errors || [];
+                const errorString = JSON.stringify(enrollResData).toLowerCase();
+                
+                const alreadyExists = 
+                  errorMessage.toLowerCase().includes('already exists') ||
+                  errorArray.some(e => typeof e === 'string' && e.toLowerCase().includes('already exists')) ||
+                  errorString.includes('already exists') ||
+                  errorString.includes('email already exists');
+                
+                if (alreadyExists) {
+                  // Member already exists - that's fine, continue to get token
+                  console.log('ℹ️ Member already exists in IDIQ (email previously enrolled)');
+                  console.log('✅ Continuing with existing membership...');
+                  
+                  // Don't create a new enrollment record since member exists
+                  // Just continue to token retrieval below
+                } else {
+                  // Some other enrollment error
+                  console.error('❌ Enrollment failed:', enrollResData);
+                  throw new Error(`IDIQ Enrollment failed: ${enrollResData.message || JSON.stringify(enrollResData)}`);
+                }
               }
               
-              memberToken = await getMemberToken(email, partnerToken);
-            }
-
-            if (!memberToken) throw new Error('Could not authorize member with IDIQ API.');
-
-            // =====================================================================
-        // STEP 3: Check for Identity Verification Questions
-        // =====================================================================
-        // Per IDIQ Partner Integration Framework documentation:
-        // - New enrollments REQUIRE identity verification
-        // - GET /v1/enrollment/verification-questions returns 3-4 questions
-        // - User must answer correctly to "activate" API access
-        // - Without this, IDIQ sends manual "complete setup" email
-        // =====================================================================
-        console.log('📊 Checking for identity verification questions...');
-        
-        // Add delay after fresh enrollment to ensure IDIQ backend is ready
-        if (enrollmentId && enrollmentId !== 'existing_active_member') {
-          console.log('⏳ Waiting 2 seconds for IDIQ to process new enrollment...');
-          await new Promise(resolve => setTimeout(resolve, 2000));
-        }
-        
-        const questionsResponse = await fetch(`${IDIQ_BASE_URL}v1/enrollment/verification-questions`, {
-          method: 'GET',
-          headers: { 
-            'Authorization': `Bearer ${memberToken}`, 
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        const questionsStatus = questionsResponse.status;
-        console.log('📋 Verification questions API status:', questionsStatus);
-
-        if (questionsResponse.ok) {
-          const questionsData = await questionsResponse.json();
-          
-          // DEBUG: Log raw response (first 500 chars)
-          console.log('📋 Raw verification questions response:', JSON.stringify(questionsData).substring(0, 500));
-          
-          // Handle various response formats from IDIQ
-          const questionsList = 
-            questionsData.questions || 
-            questionsData.Questions ||
-            (questionsData.isSuccess !== false && questionsData.data?.questions) ||
-            (Array.isArray(questionsData) ? questionsData : []);
-          
-          if (questionsList && questionsList.length > 0) {
-            console.log(`🔐 Verification required: Found ${questionsList.length} questions`);
-            
-            // Store questions in Firestore for resume capability
-            if (enrollmentId && enrollmentId !== 'existing_active_member') {
-              try {
-                await db.collection('idiqEnrollments').doc(enrollmentId).update({
-                  enrollmentStep: 'verification_pending',
-                  verificationQuestions: questionsList,
-                  questionsReceivedAt: admin.firestore.FieldValue.serverTimestamp()
-                });
-                console.log('✅ Verification questions saved to Firestore');
-              } catch (saveErr) {
-                console.warn('⚠️ Could not save questions to Firestore:', saveErr.message);
+              // ===== CRITICAL FIX: Retry logic for member token =====
+              const emailForToken = email.trim().toLowerCase();
+              let retryCount = 0;
+              const maxRetries = 3;
+              
+              while (!memberToken && retryCount < maxRetries) {
+                console.log(`🔄 Attempting to get member token for ${emailForToken} (attempt ${retryCount + 1}/${maxRetries})...`);
+                memberToken = await getMemberToken(emailForToken, partnerToken);
+                
+                if (!memberToken && retryCount < maxRetries - 1) {
+                  console.log(`⏳ Member token not ready, waiting 3 seconds before retry...`);
+                  await new Promise(resolve => setTimeout(resolve, 3000));
+                }
+                retryCount++;
               }
             }
-            
-            return {
-              success: true,
-              verificationRequired: true,
-              enrollmentId: enrollmentId || 'existing_active_member',
-              email: email,
-              membershipNumber: membershipNumber || 'existing',
-              // Multiple keys for frontend compatibility
-              questions: questionsList,
-              verificationQuestions: questionsList,
-              questionsData: { questions: questionsList },
-              data: {
-                questions: questionsList,
-                verificationQuestions: questionsList,
-                vantageScore: null
-              },
-              message: 'Please answer security questions to verify your identity',
-              tip: 'These questions come from your credit file. Answer based on your history.'
-            };
-          } else {
-            console.log('✅ No verification questions returned (user may already be verified or questions are empty)');
-          }
-        } else {
-          // Log non-200 responses for debugging
-          const errorBody = await questionsResponse.text();
-          console.log(`⚠️ Verification questions API returned ${questionsStatus}:`, errorBody.substring(0, 300));
-          
-          if (questionsStatus === 422) {
-            console.log('ℹ️ 422 may indicate verification is already complete or another issue');
-          }
-        }
 
-        // =====================================================================
-        // STEP 4: Pull Credit Report (with verification retry)
-        // =====================================================================
-        console.log('📈 Fetching credit report data...');
-        const reportResponse = await fetch(`${IDIQ_BASE_URL}v1/credit-report`, {
-          method: 'GET',
-          headers: { 
-            'Authorization': `Bearer ${memberToken}`, 
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          }
-        });
-
-        // ===== HANDLE 422 ERROR (Verification Required) =====
-        if (reportResponse.status === 422) {
-          const errorData = await reportResponse.text();
-          console.log('⚠️ Credit report returned 422 - verification required:', errorData);
-          
-          // Retry getting verification questions
-          console.log('🔄 Retrying verification questions fetch...');
-          const retryResponse = await fetch(`${IDIQ_BASE_URL}v1/enrollment/verification-questions`, {
-            method: 'GET',
-            headers: { 
-              'Authorization': `Bearer ${memberToken}`, 
-              'Accept': 'application/json'
-            }
-          });
-          
-          if (retryResponse.ok) {
-            const retryData = await retryResponse.json();
-            console.log('📋 Retry questions raw:', JSON.stringify(retryData).substring(0, 300));
-            const retryQuestions = retryData.questions || retryData.Questions || [];
-            
-            if (retryQuestions.length > 0) {
-              console.log(`🔐 Retry found ${retryQuestions.length} verification questions`);
+            // ===== FINAL CHECK: If still no token, use widget fallback =====
+            if (!memberToken) {
+              console.log('⚠️ Could not get member token after retries - using widget fallback');
+              
+              // Store enrollment info for widget use
+              if (enrollmentId) {
+                try {
+                  await db.collection('idiqEnrollments').doc(enrollmentId).update({
+                    enrollmentStep: 'widget_fallback',
+                    widgetFallbackReason: 'Member token unavailable after retries',
+                    lastActivity: admin.firestore.FieldValue.serverTimestamp()
+                  });
+                } catch (saveErr) {
+                  console.warn('⚠️ Could not update enrollment status:', saveErr.message);
+                }
+              }
+              
+              // Return with widget mode so frontend can use IDIQ's MicroFrontend
               return {
                 success: true,
-                verificationRequired: true,
+                useWidget: true,
+                memberToken: null,
+                enrollmentId: enrollmentId || 'enrollment_pending',
+                email: email.toLowerCase(),
+                membershipNumber: membershipNumber || null,
+                verificationRequired: false,
+                questions: [],
+                verificationQuestions: [],
+                data: {
+                  vantageScore: null,
+                  useWidget: true,
+                  message: 'Member token unavailable. Please use the credit report viewer widget.'
+                },
+                message: 'Enrollment may still be processing. The credit report viewer will handle verification.',
+                widgetUrl: 'https://idiq-prod-web-api.web.app/idiq-credit-report/index.js',
+                tip: 'If verification questions appear in the widget, please answer them to complete setup.'
+              };
+            }
+            
+            console.log('✅ Member token obtained successfully!');
+
+            // =====================================================================
+            // STEP 3: Check for Identity Verification Questions
+            // =====================================================================
+            console.log('📊 Checking for identity verification questions...');
+            
+            // Add delay after fresh enrollment to ensure IDIQ backend is ready
+            if (enrollmentId && enrollmentId !== 'existing_active_member') {
+              console.log('⏳ Waiting 2 seconds for IDIQ to prepare verification questions...');
+              await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+            
+            const questionsResponse = await fetch(`${IDIQ_BASE_URL}v1/enrollment/verification-questions`, {
+              method: 'GET',
+              headers: { 
+                'Authorization': `Bearer ${memberToken}`, 
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+              }
+            });
+            
+            const questionsStatus = questionsResponse.status;
+            console.log('📋 Verification questions API status:', questionsStatus);
+
+            if (questionsResponse.ok) {
+              const questionsData = await questionsResponse.json();
+              
+              // DEBUG: Log raw response (first 500 chars)
+              console.log('📋 Raw verification questions response:', JSON.stringify(questionsData).substring(0, 500));
+              
+              // Handle various response formats from IDIQ
+              const questionsList = 
+                questionsData.questions || 
+                questionsData.Questions ||
+                (questionsData.isSuccess !== false && questionsData.data?.questions) ||
+                (Array.isArray(questionsData) ? questionsData : []);
+              
+              if (questionsList && questionsList.length > 0) {
+                console.log(`🔐 Verification required: Found ${questionsList.length} questions`);
+                
+                // Store questions in Firestore for resume capability
+                if (enrollmentId && enrollmentId !== 'existing_active_member') {
+                  try {
+                    await db.collection('idiqEnrollments').doc(enrollmentId).update({
+                      enrollmentStep: 'verification_pending',
+                      verificationQuestions: questionsList,
+                      questionsReceivedAt: admin.firestore.FieldValue.serverTimestamp()
+                    });
+                    console.log('✅ Verification questions saved to Firestore');
+                  } catch (saveErr) {
+                    console.warn('⚠️ Could not save questions to Firestore:', saveErr.message);
+                  }
+                }
+                
+                return {
+                  success: true,
+                  verificationRequired: true,
+                  enrollmentId: enrollmentId || 'existing_active_member',
+                  email: email,
+                  membershipNumber: membershipNumber || 'existing',
+                  // Multiple keys for frontend compatibility
+                  questions: questionsList,
+                  verificationQuestions: questionsList,
+                  questionsData: { questions: questionsList },
+                  data: {
+                    questions: questionsList,
+                    verificationQuestions: questionsList,
+                    vantageScore: null
+                  },
+                  message: 'Please answer security questions to verify your identity',
+                  tip: 'These questions come from your credit file. Answer based on your history.'
+                };
+              } else {
+                console.log('✅ No verification questions returned (user may already be verified)');
+              }
+            } else {
+              // Log non-200 responses for debugging
+              const errorBody = await questionsResponse.text();
+              console.log(`⚠️ Verification questions API returned ${questionsStatus}:`, errorBody.substring(0, 300));
+              
+              if (questionsStatus === 422) {
+                // Parse the error to check for "No Questions Retrieved"
+                let errorData = {};
+                try {
+                  errorData = JSON.parse(errorBody);
+                } catch (e) {
+                  errorData = { errors: [errorBody] };
+                }
+                
+                const noQuestionsError = errorData.errors?.some(e => 
+                  typeof e === 'string' && (
+                    e.toLowerCase().includes('no questions') || 
+                    e.toLowerCase().includes('not retrieved')
+                  )
+                );
+                
+                if (noQuestionsError) {
+                  console.log('⚠️ IDIQ returned "No Questions Retrieved" - attempting to pull credit report directly');
+console.log('🔄 Trying direct credit report pull with member token...');
+
+// ===== PULL CREDIT REPORT DIRECTLY =====
+try {
+  console.log('📊 Fetching credit report with member token...');
+  const reportResponse = await fetch(`${IDIQ_BASE_URL}v1/credit-report`, {
+    headers: { 
+      'Authorization': `Bearer ${memberToken}`, 
+      'Accept': 'application/json' 
+    }
+  });
+
+  if (!reportResponse.ok) {
+    console.warn(`⚠️ Credit report fetch returned ${reportResponse.status}, falling back to widget`);
+    
+    // Fallback to widget if report fetch fails
+    return {
+      success: true,
+      verificationRequired: false,
+      useWidget: true,
+      memberToken: memberToken,
+      memberAccessToken: memberToken,
+      enrollmentId: enrollmentId,
+      membershipNumber: enrollment.membershipNumber,
+      data: {},
+      questions: [],
+      verificationQuestions: [],
+      message: 'Credit report viewer will display your report.',
+      widgetUrl: 'https://idiq-prod-web-api.web.app/idiq-credit-report/index.js'
+    };
+  }
+
+  const reportData = await reportResponse.json();
+  console.log('📋 Raw credit report response:', JSON.stringify(reportData).substring(0, 1000));
+
+  const score = reportData.vantageScore || 
+              reportData.score || 
+              reportData.bureaus?.transunion?.score ||
+              reportData.bureaus?.experian?.score ||
+              reportData.bureaus?.equifax?.score ||
+              null;
+
+  console.log('📈 Extracted score:', score);
+
+  if (!score) {
+    console.warn('⚠️ No score found in credit report! Report may be empty.');
+  }
+
+  // ===== EXTRACT ALL ACCOUNTS FROM CREDIT REPORT =====
+  console.log('📊 Starting account extraction from credit report...');
+  const accounts = [];
+  
+  // Helper function to safely extract account data
+  const extractAccount = (tradeline, bureau) => {
+    if (!tradeline) return null;
+    
+    try {
+      return {
+        bureau: bureau,
+        creditorName: tradeline.creditorName || 
+                      tradeline.Creditor?.['@name'] || 
+                      tradeline['@creditorName'] ||
+                      tradeline.subscriberName ||
+                      'Unknown Creditor',
+        accountNumber: tradeline['@accountNumber'] || 
+                      tradeline.accountNumber || 
+                      tradeline['@subscriberCode'] ||
+                      '****',
+        accountType: tradeline['@accountType'] || 
+                    tradeline.accountType || 
+                    tradeline.AccountType ||
+                    'Unknown',
+        currentBalance: tradeline['@currentBalance'] || 
+                       tradeline.currentBalance || 
+                       tradeline.Balance?.['@currentBalance'] ||
+                       '0',
+        highCredit: tradeline['@highCredit'] || 
+                   tradeline.highCredit || 
+                   tradeline.HighCredit?.['@amount'] ||
+                   '0',
+        paymentStatus: tradeline['@paymentStatus'] || 
+                      tradeline.paymentStatus || 
+                      tradeline.PaymentStatus?.['@type'] ||
+                      'Unknown',
+        accountStatus: tradeline['@accountStatus'] || 
+                      tradeline.accountStatus || 
+                      tradeline.AccountStatus?.['@type'] ||
+                      'Unknown',
+        monthsReviewed: tradeline['@monthsReviewed'] || 
+                       tradeline.monthsReviewed || 
+                       '0',
+        dateOpened: tradeline['@dateOpened'] || 
+                   tradeline.dateOpened || 
+                   tradeline.DateOpened?.['@date'] ||
+                   '',
+        dateReported: tradeline['@dateReported'] || 
+                     tradeline.dateReported || 
+                     tradeline.DateReported?.['@date'] ||
+                     '',
+        terms: tradeline['@terms'] || 
+              tradeline.terms || 
+              tradeline.Terms ||
+              '',
+        monthlyPayment: tradeline['@monthlyPayment'] || 
+                       tradeline.monthlyPayment || 
+                       tradeline.Payment?.['@monthlyPayment'] ||
+                       '0'
+      };
+    } catch (err) {
+      console.error('❌ Error extracting account:', err.message);
+      return null;
+    }
+  };
+
+  // Extract TransUnion accounts
+  try {
+    const tuTradelines = reportData.TransUnion?.Tradeline || 
+                       reportData.tradelines?.TransUnion || 
+                       reportData.TU?.Tradeline ||
+                       reportData.Borrower?.CreditFile?.TradeLinePartition?.[0]?.Tradeline;
+    
+    if (tuTradelines) {
+      const tuArray = Array.isArray(tuTradelines) ? tuTradelines : [tuTradelines];
+      console.log(`📊 Found ${tuArray.length} TransUnion tradelines`);
+      
+      tuArray.forEach((tradeline, index) => {
+        const account = extractAccount(tradeline, 'TransUnion');
+        if (account && account.creditorName !== 'Unknown Creditor') {
+          accounts.push(account);
+          if (index === 0) {
+            console.log('📋 Sample TU account:', account.creditorName);
+          }
+        }
+      });
+    }
+  } catch (err) {
+    console.error('❌ Error processing TransUnion accounts:', err.message);
+  }
+
+  // Extract Experian accounts
+  try {
+    const expTradelines = reportData.Experian?.Tradeline || 
+                        reportData.tradelines?.Experian || 
+                        reportData.EXP?.Tradeline ||
+                        reportData.Borrower?.CreditFile?.TradeLinePartition?.[1]?.Tradeline;
+    
+    if (expTradelines) {
+      const expArray = Array.isArray(expTradelines) ? expTradelines : [expTradelines];
+      console.log(`📊 Found ${expArray.length} Experian tradelines`);
+      
+      expArray.forEach((tradeline, index) => {
+        const account = extractAccount(tradeline, 'Experian');
+        if (account && account.creditorName !== 'Unknown Creditor') {
+          accounts.push(account);
+          if (index === 0) {
+            console.log('📋 Sample EXP account:', account.creditorName);
+          }
+        }
+      });
+    }
+  } catch (err) {
+    console.error('❌ Error processing Experian accounts:', err.message);
+  }
+
+  // Extract Equifax accounts
+  try {
+    const eqfTradelines = reportData.Equifax?.Tradeline || 
+                        reportData.tradelines?.Equifax || 
+                        reportData.EQF?.Tradeline ||
+                        reportData.Borrower?.CreditFile?.TradeLinePartition?.[2]?.Tradeline;
+    
+    if (eqfTradelines) {
+      const eqfArray = Array.isArray(eqfTradelines) ? eqfTradelines : [eqfTradelines];
+      console.log(`📊 Found ${eqfArray.length} Equifax tradelines`);
+      
+      eqfArray.forEach((tradeline, index) => {
+        const account = extractAccount(tradeline, 'Equifax');
+        if (account && account.creditorName !== 'Unknown Creditor') {
+          accounts.push(account);
+          if (index === 0) {
+            console.log('📋 Sample EQF account:', account.creditorName);
+          }
+        }
+      });
+    }
+  } catch (err) {
+    console.error('❌ Error processing Equifax accounts:', err.message);
+  }
+
+  console.log(`✅ Successfully extracted ${accounts.length} total accounts from credit report`);
+  
+  if (accounts.length > 0) {
+    console.log('📋 Account breakdown:', {
+      TransUnion: accounts.filter(a => a.bureau === 'TransUnion').length,
+      Experian: accounts.filter(a => a.bureau === 'Experian').length,
+      Equifax: accounts.filter(a => a.bureau === 'Equifax').length
+    });
+  } else {
+    console.warn('⚠️ No accounts extracted - check report structure');
+    console.log('📋 Report keys:', Object.keys(reportData).slice(0, 10));
+  }
+
+  // Save to Firestore with accounts
+  if (contactId) {
+    try {
+      await db.collection('creditReports').add({
+        contactId,
+        email: email.toLowerCase(),
+        membershipNumber: enrollment?.membershipNumber,
+        reportData,
+        vantageScore: score,
+        accounts: accounts,
+        accountCount: accounts.length,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        source: 'idiq'
+      });
+      console.log('✅ Credit report with accounts saved to Firestore');
+    } catch (err) {
+      console.error('❌ Error saving to Firestore:', err.message);
+    }
+  }
+
+  // Return full data with accounts
+  return {
+    success: true,
+    verificationRequired: false,
+    useWidget: false,  // Changed to false since we have the data
+    memberToken: memberToken,
+    memberAccessToken: memberToken,
+    enrollmentId: enrollmentId,
+    membershipNumber: enrollment.membershipNumber,
+    data: { 
+      ...reportData, 
+      vantageScore: score,
+      accounts: accounts,
+      accountCount: accounts.length
+    },
+    reportData: { 
+      ...reportData, 
+      vantageScore: score,
+      accounts: accounts,
+      accountCount: accounts.length
+    },
+    questions: [],
+    verificationQuestions: []
+  };
+
+} catch (error) {
+  console.error('❌ Error pulling credit report:', error.message);
+  
+  // Fallback to widget on error
+  return {
+    success: true,
+    verificationRequired: false,
+    useWidget: true,
+    memberToken: memberToken,
+    memberAccessToken: memberToken,
+    enrollmentId: enrollmentId,
+    membershipNumber: enrollment.membershipNumber,
+    data: {},
+    questions: [],
+    verificationQuestions: [],
+    message: 'Credit report viewer will display your report.',
+    widgetUrl: 'https://idiq-prod-web-api.web.app/idiq-credit-report/index.js'
+  };
+}
+                }
+                
+                console.log('ℹ️ 422 may indicate verification is already complete or another issue');
+              }
+            }
+
+            // =====================================================================
+            // STEP 4: Pull Credit Report (with verification retry)
+            // =====================================================================
+            console.log('📈 Fetching credit report data...');
+            const reportResponse = await fetch(`${IDIQ_BASE_URL}v1/credit-report`, {
+              method: 'GET',
+              headers: { 
+                'Authorization': `Bearer ${memberToken}`, 
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+              }
+            });
+
+            // ===== HANDLE 422 ERROR (Verification Required) =====
+            if (reportResponse.status === 422) {
+              const errorData = await reportResponse.text();
+              console.log('⚠️ Credit report returned 422 - verification required:', errorData);
+              
+              // Retry getting verification questions
+              console.log('🔄 Retrying verification questions fetch...');
+              const retryResponse = await fetch(`${IDIQ_BASE_URL}v1/enrollment/verification-questions`, {
+                method: 'GET',
+                headers: { 
+                  'Authorization': `Bearer ${memberToken}`, 
+                  'Accept': 'application/json'
+                }
+              });
+              
+              if (retryResponse.ok) {
+                const retryData = await retryResponse.json();
+                console.log('📋 Retry questions raw:', JSON.stringify(retryData).substring(0, 300));
+                const retryQuestions = retryData.questions || retryData.Questions || [];
+                
+                if (retryQuestions.length > 0) {
+                  console.log(`🔐 Retry found ${retryQuestions.length} verification questions`);
+                  return {
+                    success: true,
+                    verificationRequired: true,
+                    enrollmentId: enrollmentId || 'existing_active_member',
+                    email: email,
+                    membershipNumber: membershipNumber || 'existing',
+                    questions: retryQuestions,
+                    verificationQuestions: retryQuestions,
+                    data: { questions: retryQuestions, verificationQuestions: retryQuestions },
+                    message: 'Identity verification required before accessing your credit report'
+                  };
+                }
+              }
+              
+              // Can't get questions - return widget fallback instead of error
+              console.log('⚠️ Cannot get verification questions - returning widget fallback');
+              return {
+                success: true,
+                useWidget: true,
+                memberToken: memberToken,
+                memberAccessToken: memberToken,
                 enrollmentId: enrollmentId || 'existing_active_member',
                 email: email,
                 membershipNumber: membershipNumber || 'existing',
-                questions: retryQuestions,
-                verificationQuestions: retryQuestions,
-                data: { questions: retryQuestions, verificationQuestions: retryQuestions },
-                message: 'Identity verification required before accessing your credit report'
+                verificationRequired: false,
+                questions: [],
+                verificationQuestions: [],
+                data: {
+                  vantageScore: null,
+                  useWidget: true,
+                  message: 'Verification required. Please use the credit report viewer widget.'
+                },
+                message: 'Identity verification required. The credit report viewer will handle this.',
+                widgetUrl: 'https://idiq-prod-web-api.web.app/idiq-credit-report/index.js',
+                tip: 'The IDIQ widget will guide you through identity verification.'
               };
             }
-          }
-          
-          // Can't get questions - return clear error
-          throw new Error('Identity verification required but questions could not be loaded. Please try again or contact support at (888) 724-7344.');
-        }
 
-        if (!reportResponse.ok) {
-          const errorText = await reportResponse.text();
-          console.error('❌ Credit report pull failed:', reportResponse.status, errorText);
-          throw new Error(`Could not pull credit report: ${errorText}`);
-        }
+            if (!reportResponse.ok) {
+              const errorText = await reportResponse.text();
+              console.error('❌ Credit report pull failed:', reportResponse.status, errorText);
+              
+              // Return widget fallback instead of throwing error
+              console.log('⚠️ Credit report failed - returning widget fallback');
+              return {
+                success: true,
+                useWidget: true,
+                memberToken: memberToken,
+                memberAccessToken: memberToken,
+                enrollmentId: enrollmentId || 'existing_active_member',
+                email: email,
+                membershipNumber: membershipNumber || 'existing',
+                verificationRequired: false,
+                questions: [],
+                verificationQuestions: [],
+                data: {
+                  vantageScore: null,
+                  useWidget: true,
+                  message: `Credit report temporarily unavailable. Please use the widget.`
+                },
+                message: 'Credit report viewer will display your report.',
+                widgetUrl: 'https://idiq-prod-web-api.web.app/idiq-credit-report/index.js'
+              };
+            }
 
             const reportData = await reportResponse.json();
+            console.log('✅ Credit report received successfully!');
             
             // FIX: Robust score mapping to ensure dashboard charts populate correctly
             const score = reportData.vantageScore || 
@@ -1061,6 +1640,7 @@ exports.idiqService = onCall(
                 createdAt: admin.firestore.FieldValue.serverTimestamp(),
                 source: 'idiq'
               });
+              console.log('✅ Credit report saved to Firestore');
             }
 
             return {
@@ -1077,10 +1657,13 @@ exports.idiqService = onCall(
             throw error;
           }
         }
+        
         case 'submitVerification': {
           try {
             const { email, answerIds, enrollmentId } = memberData;
             console.log('📝 submitVerification: Processing answers...');
+            console.log('📧 Email:', email);
+            console.log('🔑 EnrollmentId:', enrollmentId);
             
             let enrollment = null;
             if (enrollmentId && enrollmentId !== 'existing_active_member') {
@@ -1095,7 +1678,17 @@ exports.idiqService = onCall(
             }
 
             const partnerToken = await getPartnerToken();
-            const memberToken = await getMemberToken(email, partnerToken);
+            const memberToken = await getMemberToken(email.toLowerCase(), partnerToken);
+            
+            if (!memberToken) {
+              console.error('❌ Could not get member token for verification');
+              return { 
+                success: false, 
+                error: 'Could not authorize with IDIQ. Please try again.',
+                useWidget: true,
+                widgetUrl: 'https://idiq-prod-web-api.web.app/idiq-credit-report/index.js'
+              };
+            }
             
             const response = await fetch(`${IDIQ_BASE_URL}v1/enrollment/verification-questions`, {
               method: 'POST',
@@ -1107,12 +1700,21 @@ exports.idiqService = onCall(
               body: JSON.stringify({ answers: answerIds })
             });
             
-            if (!response.ok) throw new Error(`Verification request failed: ${response.status}`);
+            if (!response.ok) {
+              const errorText = await response.text();
+              console.error('❌ Verification request failed:', response.status, errorText);
+              throw new Error(`Verification request failed: ${response.status}`);
+            }
             
             const result = await response.json();
-            const isCorrect = result.status === 'Correct' || result.status === 0;
+            console.log('📋 Verification result:', JSON.stringify(result).substring(0, 200));
+            console.log('📋 FULL Verification result:', JSON.stringify(result));
             
-            if (isCorrect) {
+            // ===== ENHANCED: Handle all IDIQ response statuses =====
+            const status = result.status?.toLowerCase() || '';
+            
+            // SUCCESS CASE
+            if (status === 'correct' || result.isCorrect === true || result.verified === true) {
               console.log('✅ Identity verified! Storing member token and pulling report...');
               
               // ===== STORE MEMBER TOKEN FOR CREDIT REPORT WIDGET =====
@@ -1121,7 +1723,6 @@ exports.idiqService = onCall(
                   verificationStatus: 'verified',
                   verifiedAt: admin.firestore.FieldValue.serverTimestamp(),
                   enrollmentStep: 'completed',
-                  // ===== NEW: Store member token for widget use =====
                   memberAccessToken: memberToken,
                   tokenExpiresAt: new Date(Date.now() + 3600000), // 1 hour
                   lastActivity: admin.firestore.FieldValue.serverTimestamp()
@@ -1154,18 +1755,256 @@ exports.idiqService = onCall(
                 console.warn('⚠️ No score found in credit report! Report may be empty.');
               }
 
+              // ===== EXTRACT ALL ACCOUNTS FROM CREDIT REPORT =====
+              console.log('📊 Starting account extraction from credit report...');
+              const accounts = [];
+              
+              // Helper function to safely extract account data
+              const extractAccount = (tradeline, bureau) => {
+                if (!tradeline) return null;
+                
+                try {
+                  return {
+                    bureau: bureau,
+                    creditorName: tradeline.creditorName || 
+                                  tradeline.Creditor?.['@name'] || 
+                                  tradeline['@creditorName'] ||
+                                  tradeline.subscriberName ||
+                                  'Unknown Creditor',
+                    accountNumber: tradeline['@accountNumber'] || 
+                                  tradeline.accountNumber || 
+                                  tradeline['@subscriberCode'] ||
+                                  '****',
+                    accountType: tradeline['@accountType'] || 
+                                tradeline.accountType || 
+                                tradeline.AccountType ||
+                                'Unknown',
+                    currentBalance: tradeline['@currentBalance'] || 
+                                   tradeline.currentBalance || 
+                                   tradeline.Balance?.['@currentBalance'] ||
+                                   '0',
+                    highCredit: tradeline['@highCredit'] || 
+                               tradeline.highCredit || 
+                               tradeline.HighCredit?.['@amount'] ||
+                               '0',
+                    paymentStatus: tradeline['@paymentStatus'] || 
+                                  tradeline.paymentStatus || 
+                                  tradeline.PaymentStatus?.['@type'] ||
+                                  'Unknown',
+                    accountStatus: tradeline['@accountStatus'] || 
+                                  tradeline.accountStatus || 
+                                  tradeline.AccountStatus?.['@type'] ||
+                                  'Unknown',
+                    monthsReviewed: tradeline['@monthsReviewed'] || 
+                                   tradeline.monthsReviewed || 
+                                   '0',
+                    dateOpened: tradeline['@dateOpened'] || 
+                               tradeline.dateOpened || 
+                               tradeline.DateOpened?.['@date'] ||
+                               '',
+                    dateReported: tradeline['@dateReported'] || 
+                                 tradeline.dateReported || 
+                                 tradeline.DateReported?.['@date'] ||
+                                 '',
+                    terms: tradeline['@terms'] || 
+                          tradeline.terms || 
+                          tradeline.Terms ||
+                          '',
+                    monthlyPayment: tradeline['@monthlyPayment'] || 
+                                   tradeline.monthlyPayment || 
+                                   tradeline.Payment?.['@monthlyPayment'] ||
+                                   '0'
+                  };
+                } catch (err) {
+                  console.error('❌ Error extracting account:', err.message);
+                  return null;
+                }
+              };
+
+              // Extract TransUnion accounts
+              try {
+                const tuTradelines = reportData.TransUnion?.Tradeline || 
+                                   reportData.tradelines?.TransUnion || 
+                                   reportData.TU?.Tradeline ||
+                                   reportData.Borrower?.CreditFile?.TradeLinePartition?.[0]?.Tradeline;
+                
+                if (tuTradelines) {
+                  const tuArray = Array.isArray(tuTradelines) ? tuTradelines : [tuTradelines];
+                  console.log(`📊 Found ${tuArray.length} TransUnion tradelines`);
+                  
+                  tuArray.forEach((tradeline, index) => {
+                    const account = extractAccount(tradeline, 'TransUnion');
+                    if (account && account.creditorName !== 'Unknown Creditor') {
+                      accounts.push(account);
+                      if (index === 0) {
+                        console.log('📋 Sample TU account:', account.creditorName);
+                      }
+                    }
+                  });
+                }
+              } catch (err) {
+                console.error('❌ Error processing TransUnion accounts:', err.message);
+              }
+
+              // Extract Experian accounts
+              try {
+                const expTradelines = reportData.Experian?.Tradeline || 
+                                    reportData.tradelines?.Experian || 
+                                    reportData.EXP?.Tradeline ||
+                                    reportData.Borrower?.CreditFile?.TradeLinePartition?.[1]?.Tradeline;
+                
+                if (expTradelines) {
+                  const expArray = Array.isArray(expTradelines) ? expTradelines : [expTradelines];
+                  console.log(`📊 Found ${expArray.length} Experian tradelines`);
+                  
+                  expArray.forEach((tradeline, index) => {
+                    const account = extractAccount(tradeline, 'Experian');
+                    if (account && account.creditorName !== 'Unknown Creditor') {
+                      accounts.push(account);
+                      if (index === 0) {
+                        console.log('📋 Sample EXP account:', account.creditorName);
+                      }
+                    }
+                  });
+                }
+              } catch (err) {
+                console.error('❌ Error processing Experian accounts:', err.message);
+              }
+
+              // Extract Equifax accounts
+              try {
+                const eqfTradelines = reportData.Equifax?.Tradeline || 
+                                    reportData.tradelines?.Equifax || 
+                                    reportData.EQF?.Tradeline ||
+                                    reportData.Borrower?.CreditFile?.TradeLinePartition?.[2]?.Tradeline;
+                
+                if (eqfTradelines) {
+                  const eqfArray = Array.isArray(eqfTradelines) ? eqfTradelines : [eqfTradelines];
+                  console.log(`📊 Found ${eqfArray.length} Equifax tradelines`);
+                  
+                  eqfArray.forEach((tradeline, index) => {
+                    const account = extractAccount(tradeline, 'Equifax');
+                    if (account && account.creditorName !== 'Unknown Creditor') {
+                      accounts.push(account);
+                      if (index === 0) {
+                        console.log('📋 Sample EQF account:', account.creditorName);
+                      }
+                    }
+                  });
+                }
+              } catch (err) {
+                console.error('❌ Error processing Equifax accounts:', err.message);
+              }
+
+              console.log(`✅ Successfully extracted ${accounts.length} total accounts from credit report`);
+              
+              if (accounts.length > 0) {
+                console.log('📋 Account breakdown:', {
+                  TransUnion: accounts.filter(a => a.bureau === 'TransUnion').length,
+                  Experian: accounts.filter(a => a.bureau === 'Experian').length,
+                  Equifax: accounts.filter(a => a.bureau === 'Equifax').length
+                });
+              } else {
+                console.warn('⚠️ No accounts extracted - check report structure');
+                console.log('📋 Report keys:', Object.keys(reportData).slice(0, 10));
+              }
+
+              // Save to Firestore with accounts
+              if (contactId) {
+                try {
+                  await db.collection('creditReports').add({
+                    contactId,
+                    email: email.toLowerCase(),
+                    membershipNumber: enrollment?.membershipNumber,
+                    reportData,
+                    vantageScore: score,
+                    accounts: accounts,
+                    accountCount: accounts.length,
+                    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                    source: 'idiq'
+                  });
+                  console.log('✅ Credit report with accounts saved to Firestore');
+                } catch (err) {
+                  console.error('❌ Error saving to Firestore:', err.message);
+                }
+              }
+
               return {
                 success: true,
                 verified: true,
-                // ===== NEW: Include member token for immediate widget use =====
                 memberToken: memberToken,
-                // REDUNDANT RETURN: Ensures frontend finds the data regardless of its state path
-                data: { ...reportData, vantageScore: score },
-                reportData: { ...reportData, vantageScore: score },
-                questions: [], // Safety clear
-                verificationQuestions: [] // Safety clear
+                data: { 
+                  ...reportData, 
+                  vantageScore: score,
+                  accounts: accounts,
+                  accountCount: accounts.length
+                },
+                reportData: { 
+                  ...reportData, 
+                  vantageScore: score,
+                  accounts: accounts,
+                  accountCount: accounts.length
+                },
+                questions: [],
+                verificationQuestions: []
               };
-            } else {
+            }
+            
+            // ===== MORE QUESTIONS NEEDED =====
+            if (status === 'morequestions') {
+              console.log('⚠️ IDIQ requires additional verification - answer all questions correctly');
+              
+              // Track attempt but don't lock - this isn't a wrong answer
+              const currentAttempts = (enrollment?.verificationAttempts || 0) + 1;
+              if (enrollmentId && enrollmentId !== 'existing_active_member') {
+                await db.collection('idiqEnrollments').doc(enrollmentId).update({
+                  verificationAttempts: currentAttempts,
+                  lastAttemptAt: admin.firestore.FieldValue.serverTimestamp(),
+                  lastStatus: 'more_questions_needed'
+                });
+              }
+              
+              return {
+                success: false,
+                verified: false,
+                needsMoreQuestions: true,
+                attempts: currentAttempts,
+                maxAttempts: 3,
+                attemptsRemaining: 3 - currentAttempts,
+                message: 'Please ensure all security questions are answered correctly.'
+              };
+            }
+            
+            // ===== SESSION EXPIRED / ERROR =====
+            if (status === 'error') {
+              console.log('⚠️ IDIQ session expired - questions need to be refreshed');
+              console.log('📋 Error message:', result.message);
+              
+              const errorMessage = result.message || 'Session expired';
+              
+              // Don't count this as a failed attempt - it's a technical issue
+              if (enrollmentId && enrollmentId !== 'existing_active_member') {
+                await db.collection('idiqEnrollments').doc(enrollmentId).update({
+                  lastAttemptAt: admin.firestore.FieldValue.serverTimestamp(),
+                  lastStatus: 'session_expired',
+                  lastErrorMessage: errorMessage
+                });
+              }
+              
+              return {
+                success: false,
+                verified: false,
+                sessionExpired: true,
+                message: errorMessage,
+                action: 'Please request new verification questions and try again.',
+                note: 'Session expired. This does not count as a failed attempt.'
+              };
+            }
+            
+            // ===== INCORRECT ANSWER =====
+            if (status === 'incorrect') {
+              console.log('❌ Verification answer incorrect');
+              
               // INCORRECT ANSWER - TRACK ATTEMPTS
               const currentAttempts = (enrollment?.verificationAttempts || 0) + 1;
               const maxAttempts = 3;
@@ -1173,7 +2012,8 @@ exports.idiqService = onCall(
               if (enrollmentId && enrollmentId !== 'existing_active_member') {
                 const updateData = { 
                   verificationAttempts: currentAttempts, 
-                  lastAttemptAt: admin.firestore.FieldValue.serverTimestamp() 
+                  lastAttemptAt: admin.firestore.FieldValue.serverTimestamp(),
+                  lastStatus: 'incorrect_answer'
                 };
 
                 if (currentAttempts >= maxAttempts) {
@@ -1213,9 +2053,29 @@ exports.idiqService = onCall(
                 attemptsRemaining: maxAttempts - currentAttempts,
                 message: currentAttempts >= maxAttempts 
                   ? 'Account locked. Team notified.' 
-                  : `Incorrect. ${maxAttempts - currentAttempts} attempts remaining.`
+                  : `Incorrect answer. ${maxAttempts - currentAttempts} attempts remaining.`
               };
             }
+            
+            // ===== UNKNOWN STATUS (FALLBACK) =====
+            console.log('⚠️ Unknown verification status received:', result.status);
+            console.log('📋 Full response:', JSON.stringify(result));
+            
+            // Track as potential error but don't lock account
+            if (enrollmentId && enrollmentId !== 'existing_active_member') {
+              await db.collection('idiqEnrollments').doc(enrollmentId).update({
+                lastAttemptAt: admin.firestore.FieldValue.serverTimestamp(),
+                lastStatus: 'unknown_status',
+                lastUnknownResponse: JSON.stringify(result).substring(0, 500)
+              });
+            }
+            
+            return {
+              success: false,
+              verified: false,
+              message: `Unexpected response from IDIQ: ${result.status || 'No status'}. Please contact support.`,
+              debugInfo: result
+            };
           } catch (err) {
             console.error('❌ submitVerification error:', err.message);
             throw err;
@@ -3114,7 +3974,8 @@ console.log('Function List:');
 console.log('1. emailService - Email operations + tracking');
 console.log('2. receiveAIReceptionistCall - AI Receptionist webhook');
 console.log('3. processAICall - AI call processing + lead scoring');
-console.log('4. onContactCreated - New contact trigger');
+console.log('4. onContactUpdated - Contact update trigger (with enrollment + email automation + auto lead role)');
+console.log('4B. onContactCreated - New contact trigger (AI role assessment)');
 console.log('5. idiqService - IDIQ credit reporting operations');
 console.log('6. processWorkflowStages - Scheduled workflow processor');
 console.log('7. aiContentGenerator - AI content + document generation');
@@ -3123,4 +3984,4 @@ console.log('9. sendFaxOutbound - Telnyx fax service');
 console.log('10. enrollmentSupportService - Enrollment support + escalation');
 console.log('');
 console.log('© 1995-2024 Speedy Credit Repair Inc. | All Rights Reserved');
-console.log('Trademark: Speedy Credit Repair® - USPTO Registered');
+console.log('Trademark: Speedy Credit Repair® - USPTO Registered');// Force redeploy Fri, Jan 23, 2026  9:09:43 AM
