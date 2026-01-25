@@ -2799,7 +2799,7 @@ const finalizeEnrollment = async () => {
             </Grid>
 
             {/* Agreement checkboxes - PUBLIC MODE ONLY */}
-            {!isCRMMode && (
+            {(true) && (
               <Box sx={{ mt: 4 }}>
                 <FormControlLabel
                   control={
@@ -4597,7 +4597,7 @@ const finalizeEnrollment = async () => {
       </Box>
 
       {/* Social Proof Notification (PUBLIC MODE ONLY) */}
-      {!isCRMMode && (
+      {(true) && (
         <AnimatePresence>
           {showSocialProof && (
             <SocialProofNotification
