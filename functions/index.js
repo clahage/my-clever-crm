@@ -1280,15 +1280,67 @@ exports.idiqService = onCall(
                       console.log('📋 TrueLinkCreditReportType keys:', Object.keys(bc?.TrueLinkCreditReportType || {}));
                       }
                       
-                      // ===== EXTRACT SCORE FROM CORRECT IDIQ LOCATION =====
+                      // ===== IMPROVED SCORE EXTRACTION (handles thin files like Roman's 793) =====
                       // Note: bc was already declared above at line 1277
-                      const score = bc?.CreditScoreType?.['@riskScore'] ||
-                                   reportData.vantageScore || 
-                                   reportData.score || 
-                                   reportData.CreditScore?.score ||
-                                   reportData.Borrower?.CreditScore?.[0]?.['@value'] ||
-                                   null;
-                      console.log('📊 Credit score extracted:', score);
+                      const trueLinkData = bc?.TrueLinkCreditReportType;
+                      
+                      let score = null;
+                      let scoreSource = 'not_found';
+                      
+                      // Path 1: CreditScoreType @riskScore (most common)
+                      if (bc?.CreditScoreType?.['@riskScore']) {
+                        score = parseInt(bc.CreditScoreType['@riskScore'], 10);
+                        scoreSource = 'CreditScoreType.@riskScore';
+                      }
+                      // Path 2: Direct vantageScore
+                      else if (reportData.vantageScore) {
+                        score = reportData.vantageScore;
+                        scoreSource = 'vantageScore';
+                      }
+                      // Path 3: Borrower.CreditScore array (thin files like Roman)
+                      else if (trueLinkData?.Borrower?.CreditScore) {
+                        const borrowerScores = Array.isArray(trueLinkData.Borrower.CreditScore) 
+                          ? trueLinkData.Borrower.CreditScore 
+                          : [trueLinkData.Borrower.CreditScore];
+                        for (const scoreObj of borrowerScores) {
+                          const s = parseInt(scoreObj?.['@riskScore'] || scoreObj?.riskScore, 10);
+                          if (s >= 300 && s <= 850) {
+                            score = s;
+                            scoreSource = 'Borrower.CreditScore';
+                            break;
+                          }
+                        }
+                      }
+                      // Path 4: CreditScore at TrueLink level
+                      else if (trueLinkData?.CreditScore) {
+                        const tlScores = Array.isArray(trueLinkData.CreditScore) 
+                          ? trueLinkData.CreditScore 
+                          : [trueLinkData.CreditScore];
+                        for (const scoreObj of tlScores) {
+                          const s = parseInt(scoreObj?.['@riskScore'] || scoreObj?.riskScore, 10);
+                          if (s >= 300 && s <= 850) {
+                            score = s;
+                            scoreSource = 'TrueLink.CreditScore';
+                            break;
+                          }
+                        }
+                      }
+                      // Path 5: Legacy paths
+                      else {
+                        score = reportData.score || 
+                                reportData.CreditScore?.score ||
+                                reportData.Borrower?.CreditScore?.[0]?.['@value'] ||
+                                null;
+                        if (score) scoreSource = 'legacy';
+                      }
+                      
+                      console.log(`📊 Credit score extracted: ${score} (source: ${scoreSource})`);
+                      if (!score) {
+                        console.log('⚠️ No score found! TrueLinkCreditReportType keys:', Object.keys(trueLinkData || {}));
+                        if (trueLinkData?.Borrower) {
+                          console.log('📋 Borrower keys:', Object.keys(trueLinkData.Borrower));
+                        }
+                      }
                       
                       // ===== GET TRUELINK CREDIT REPORT (contains all tradelines) =====
                       const trueLinkReport = bc?.TrueLinkCreditReportType;
@@ -1954,12 +2006,49 @@ exports.idiqService = onCall(
                   const reportData = await reportResponse.json();
                   console.log('📋 Credit report retrieved for already-authenticated user');
                   
-                  const score = reportData.vantageScore || 
-                              reportData.score || 
-                              reportData.bureaus?.transunion?.score ||
-                              reportData.bureaus?.experian?.score ||
-                              reportData.bureaus?.equifax?.score ||
-                              null;
+                // ===== IMPROVED SCORE EXTRACTION (handles thin files like Roman's 793) =====
+                  const bc = reportData?.BundleComponents?.BundleComponent;
+                  const trueLink = bc?.TrueLinkCreditReportType;
+                  
+                  // Try multiple paths to find the score
+                  let score = null;
+                  
+                  // Path 1: Direct vantageScore
+                  if (reportData.vantageScore) {
+                    score = reportData.vantageScore;
+                    console.log('📊 Score found via vantageScore:', score);
+                  }
+                  // Path 2: CreditScoreType @riskScore (most common)
+                  else if (bc?.CreditScoreType?.['@riskScore']) {
+                    score = parseInt(bc.CreditScoreType['@riskScore'], 10);
+                    console.log('📊 Score found via CreditScoreType @riskScore:', score);
+                  }
+                  // Path 3: Borrower.CreditScore array (thin files like Roman)
+                  else if (trueLink?.Borrower?.CreditScore) {
+                    const borrowerScores = Array.isArray(trueLink.Borrower.CreditScore) 
+                      ? trueLink.Borrower.CreditScore 
+                      : [trueLink.Borrower.CreditScore];
+                    for (const scoreObj of borrowerScores) {
+                      const s = parseInt(scoreObj?.['@riskScore'] || scoreObj?.riskScore, 10);
+                      if (s >= 300 && s <= 850) {
+                        score = s;
+                        console.log('📊 Score found via Borrower.CreditScore:', score);
+                        break;
+                      }
+                    }
+                  }
+                  // Path 4: Bureau-specific scores
+                  else if (reportData.bureaus) {
+                    score = reportData.bureaus?.transunion?.score ||
+                            reportData.bureaus?.experian?.score ||
+                            reportData.bureaus?.equifax?.score;
+                    if (score) console.log('📊 Score found via bureaus:', score);
+                  }
+                  
+                  if (!score) {
+                    console.log('⚠️ No score found in report. Keys:', Object.keys(reportData));
+                    if (bc) console.log('📋 BundleComponent keys:', Object.keys(bc));
+                  }
                   
                   console.log('📈 Extracted score:', score);
                   

@@ -650,6 +650,10 @@ const CompleteEnrollmentFlow = ({
   const [creditReportMemberToken, setCreditReportMemberToken] = useState(null);
   const [pendingWidgetVerification, setPendingWidgetVerification] = useState(false);
 
+  // ===== SCORE LOADING TIMEOUT STATE (prevents perpetual loading) =====
+  const [scoreLoadingTimeout, setScoreLoadingTimeout] = useState(false);
+  const [scoreLoadingStartTime, setScoreLoadingStartTime] = useState(null);
+
 
   // ===== FIREBASE FUNCTIONS =====
   const functions = getFunctions();
@@ -788,6 +792,29 @@ const CompleteEnrollmentFlow = ({
       };
     }
   }, [currentPhase, formData.email, formData.firstName, saveToLocalStorage]);
+
+  // ===== SCORE LOADING TIMEOUT HANDLER =====
+  // Prevents perpetual loading spinner by showing fallback UI after 15 seconds
+  useEffect(() => {
+    // Only activate when in phase 3 with credit report showing but no score yet
+    if (currentPhase === 3 && showFullCreditReport && creditReportMemberToken && !displayedScore) {
+      // Start the timer if not already started
+      if (!scoreLoadingStartTime) {
+        console.log('⏱️ Starting score loading timeout timer...');
+        setScoreLoadingStartTime(Date.now());
+      }
+      
+      // Set timeout to show fallback after 15 seconds
+      const timeoutId = setTimeout(() => {
+        if (!displayedScore) {
+          console.log('⚠️ Score loading timed out after 15 seconds - showing fallback UI');
+          setScoreLoadingTimeout(true);
+        }
+      }, 15000); // 15 seconds
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [currentPhase, showFullCreditReport, creditReportMemberToken, displayedScore, scoreLoadingStartTime]);
 
   // Save on beforeunload (page close/refresh)
   useEffect(() => {
@@ -3253,6 +3280,28 @@ const finalizeEnrollment = async () => {
                         </Typography>
                       </Box>
                     </ScoreGauge>
+                  ) : scoreLoadingTimeout ? (
+                    <Box sx={{ 
+                      textAlign: 'center', 
+                      py: 4,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: 2
+                    }}>
+                      <Alert 
+                        severity="info" 
+                        sx={{ 
+                          bgcolor: 'rgba(255,255,255,0.15)', 
+                          color: 'white',
+                          maxWidth: 400,
+                          '& .MuiAlert-icon': { color: '#64b5f6' }
+                        }}
+                      >
+                        <AlertTitle>Score Display Delayed</AlertTitle>
+                        Your credit report loaded successfully. View the full report below.
+                      </Alert>
+                    </Box>
                   ) : (
                     <Box sx={{ 
                       textAlign: 'center', 
@@ -3262,9 +3311,12 @@ const finalizeEnrollment = async () => {
                       alignItems: 'center',
                       gap: 2
                     }}>
-                      <CircularProgress size={60} />
-                      <Typography variant="body2" color="text.secondary">
-                        Loading credit report...
+                      <CircularProgress size={60} sx={{ color: 'white' }} />
+                      <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+                        Loading credit score...
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.6)' }}>
+                        This usually takes a few seconds
                       </Typography>
                     </Box>
                   )}
@@ -3456,38 +3508,90 @@ const finalizeEnrollment = async () => {
               
               {/* Show verification pending message if needed */}
               {pendingWidgetVerification ? (
-                <Alert severity="warning" sx={{ mb: 3 }}>
-                  <AlertTitle>Identity Verification Required</AlertTitle>
-                  <Typography variant="body2" sx={{ mb: 2 }}>
-                    IDIQ was unable to generate security questions for your identity verification. 
-                    This can happen with thin credit files or recent address changes.
+                <Alert 
+                  severity="warning" 
+                  sx={{ 
+                    mb: 3,
+                    '& .MuiAlert-message': { width: '100%' }
+                  }}
+                >
+                  <AlertTitle sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Chip 
+                      label="VERIFICATION PENDING" 
+                      size="small" 
+                      sx={{ 
+                        bgcolor: '#ff9800', 
+                        color: 'white', 
+                        fontWeight: 'bold',
+                        fontSize: '0.7rem'
+                      }} 
+                    />
+                    Additional Verification Required
+                  </AlertTitle>
+                  
+                  <Typography variant="body2" sx={{ mt: 1, mb: 2 }}>
+                    The credit bureaus require additional verification for your identity. 
+                    This can happen for several reasons:
                   </Typography>
-                  <Typography variant="body2" sx={{ mb: 2 }}>
-                    <strong>To complete verification and access your credit report:</strong>
-                  </Typography>
-                  <Box component="ol" sx={{ pl: 2, mb: 2 }}>
-                    <li>Click the button below to access the IDIQ member portal</li>
-                    <li>Complete identity verification (may require document upload)</li>
-                    <li>Return here to view your full credit report</li>
+                  
+                  <Box component="ul" sx={{ 
+                    m: 0, 
+                    pl: 2.5,
+                    '& li': { mb: 0.75, fontSize: '0.875rem' }
+                  }}>
+                    <li><strong>Thin credit file</strong> - Limited credit history makes verification harder</li>
+                    <li><strong>Recent address change</strong> - New addresses may not be in the bureaus' records yet</li>
+                    <li><strong>Existing IDIQ account</strong> - You may already have an IDIQ account with a different email</li>
+                    <li><strong>Credit freeze or fraud alert</strong> - Security measures on your credit file</li>
+                    <li><strong>Name variations</strong> - Different name spellings across your credit accounts</li>
                   </Box>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    href={`https://member.identityiq.com/?Token=${creditReportMemberToken}&isMobileApp=false&redirect=Dashboard.aspx`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    startIcon={<OpenInNewIcon />}
-                    sx={{ mr: 2 }}
-                  >
-                    Complete Verification at IDIQ
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    onClick={() => window.location.reload()}
-                    startIcon={<RefreshIcon />}
-                  >
-                    Refresh After Verification
-                  </Button>
+                  
+                  <Divider sx={{ my: 2, borderColor: 'rgba(255, 152, 0, 0.3)' }} />
+                  
+                  <Typography variant="body2" sx={{ fontWeight: 500, mb: 1.5 }}>
+                    Your options:
+                  </Typography>
+                  
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                    <Button
+                      variant="contained"
+                      color="warning"
+                      size="small"
+                      startIcon={<OpenInNewIcon />}
+                      onClick={() => window.open('https://member.identityiq.com/', '_blank')}
+                      sx={{ textTransform: 'none' }}
+                    >
+                      Complete Verification at IDIQ
+                    </Button>
+                    
+                    <Button
+                      variant="outlined"
+                      color="warning"
+                      size="small"
+                      startIcon={<RefreshIcon />}
+                      onClick={() => window.location.reload()}
+                      sx={{ textTransform: 'none' }}
+                    >
+                      Refresh After Verification
+                    </Button>
+                    
+                    <Button
+                      variant="outlined"
+                      color="inherit"
+                      size="small"
+                      startIcon={<PhoneIcon />}
+                      onClick={() => window.open('tel:+18887247344')}
+                      sx={{ textTransform: 'none', color: 'text.secondary' }}
+                    >
+                      Call Support: (888) 724-7344
+                    </Button>
+                  </Box>
+                  
+                  <Typography variant="caption" sx={{ display: 'block', mt: 2, opacity: 0.8 }}>
+                    <strong>Already have an IDIQ account?</strong> You can log into your existing account 
+                    at member.identityiq.com to view your credit report, or contact us to link your 
+                    existing account to SpeedyCRM.
+                  </Typography>
                 </Alert>
               ) : (
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
