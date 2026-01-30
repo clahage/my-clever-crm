@@ -3433,7 +3433,8 @@ const finalizeEnrollment = async () => {
 
         {/* ===== FULL IDIQ CREDIT REPORT WIDGET ===== */}
         {/* This shows the complete credit report using IDIQ's MicroFrontend */}
-        {showFullCreditReport && enrollmentId && (
+        {/* Show widget if we have a member token - works for both verified and needs-verification cases */}
+        {showFullCreditReport && creditReportMemberToken && (
           <Card sx={{ mb: 4 }}>
             <CardContent>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
