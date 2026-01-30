@@ -88,6 +88,13 @@ import {
   useMediaQuery,
   styled,
   alpha,
+  // ===== TABLE COMPONENTS (REQUIRED FOR ACCOUNTS DISPLAY) =====
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
 } from '@mui/material';
 import {
   CheckCircle as CheckIcon,
@@ -1695,23 +1702,6 @@ const submitVerificationAnswers = async () => {
     });
 
     const resData = response.data?.data || response.data || {};
-    
-    // ===== CRITICAL: Extract accounts from all possible paths =====
-    const extractedAccounts = 
-      response.data?.accounts ||           // Top level accounts
-      response.data?.data?.accounts ||     // Nested in data
-      resData?.accounts ||                 // In resData
-      [];
-    
-    // ===== CRITICAL: Build complete credit report object =====
-    const completeCreditReport = {
-      ...resData,
-      vantageScore: response.data?.vantageScore || resData?.vantageScore || response.data?.data?.vantageScore,
-      accounts: extractedAccounts,
-      accountCount: extractedAccounts.length,
-    };
-    
-    console.log('📊 Verification - Extracted accounts:', extractedAccounts.length);
       
       // ===== CRITICAL: Store member token for widget =====
       if (response.data?.memberToken) {
@@ -1726,7 +1716,7 @@ const submitVerificationAnswers = async () => {
     if (successFlag) {
       console.log("🎉 Verification successful!");
       
-      setCreditReport(completeCreditReport);
+      setCreditReport(resData);
       setVerificationRequired(false);
       
       // ===== NEW: Store member token and show full credit report =====
