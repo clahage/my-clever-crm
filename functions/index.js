@@ -1602,16 +1602,19 @@ exports.idiqService = onCall(
         
         case 'submitVerification': {
           try {
-            const { email, answerIds, enrollmentId } = memberData;
+            const { email, answerIds, enrollmentId, contactId } = memberData;
             console.log('📝 submitVerification: Processing answers...');
             console.log('📧 Email:', email);
             console.log('🔑 EnrollmentId:', enrollmentId);
+            console.log('👤 ContactId:', contactId);
             
             let enrollment = null;
+            let membershipNumber = null;
             if (enrollmentId && enrollmentId !== 'existing_active_member') {
               const enrollDoc = await db.collection('idiqEnrollments').doc(enrollmentId).get();
               if (enrollDoc.exists) {
                 enrollment = enrollDoc.data();
+                membershipNumber = enrollment.membershipNumber;
                 // CHECK IF ALREADY LOCKED
                 if (enrollment.verificationStatus === 'locked') {
                   return { success: false, locked: true, message: 'Account locked. Please contact support.' };
@@ -1919,11 +1922,78 @@ exports.idiqService = onCall(
             
             // ===== SESSION EXPIRED / ERROR =====
             if (status === 'error') {
-              console.log('⚠️ IDIQ session expired - questions need to be refreshed');
+              console.log('⚠️ IDIQ returned error status');
               console.log('📋 Error message:', result.message);
               
               const errorMessage = result.message || 'Session expired';
               
+              // ===== SPECIAL CASE: "User is already authenticated" means SUCCESS! =====
+              if (errorMessage.toLowerCase().includes('already authenticated')) {
+                console.log('✅ User is already authenticated - fetching credit report!');
+                
+                // Update enrollment status
+                if (enrollmentId && enrollmentId !== 'existing_active_member') {
+                  await db.collection('idiqEnrollments').doc(enrollmentId).update({
+                    verificationStatus: 'verified',
+                    verifiedAt: admin.firestore.FieldValue.serverTimestamp(),
+                    enrollmentStep: 'completed',
+                    memberAccessToken: memberToken,
+                    tokenExpiresAt: new Date(Date.now() + 3600000),
+                    lastActivity: admin.firestore.FieldValue.serverTimestamp()
+                  });
+                  console.log('✅ Enrollment marked as verified');
+                }
+                
+                // Fetch the credit report
+                console.log('📊 Fetching credit report for already-authenticated user...');
+                const reportResponse = await fetch(`${IDIQ_BASE_URL}v1/credit-report`, {
+                  headers: { 'Authorization': `Bearer ${memberToken}`, 'Accept': 'application/json' }
+                });
+                
+                if (reportResponse.ok) {
+                  const reportData = await reportResponse.json();
+                  console.log('📋 Credit report retrieved for already-authenticated user');
+                  
+                  const score = reportData.vantageScore || 
+                              reportData.score || 
+                              reportData.bureaus?.transunion?.score ||
+                              reportData.bureaus?.experian?.score ||
+                              reportData.bureaus?.equifax?.score ||
+                              null;
+                  
+                  console.log('📈 Extracted score:', score);
+                  
+                  return {
+                    success: true,
+                    verified: true,
+                    alreadyAuthenticated: true,
+                    memberToken: memberToken,
+                    data: { 
+                      ...reportData, 
+                      vantageScore: score
+                    },
+                    reportData: { 
+                      ...reportData, 
+                      vantageScore: score
+                    },
+                    questions: [],
+                    verificationQuestions: []
+                  };
+                } else {
+                  console.log('⚠️ Could not fetch report, but user is verified');
+                  return {
+                    success: true,
+                    verified: true,
+                    alreadyAuthenticated: true,
+                    memberToken: memberToken,
+                    useWidget: true,
+                    message: 'Identity verified! Use the widget to view your credit report.',
+                    widgetUrl: 'https://idiq-prod-web-api.web.app/idiq-credit-report/index.js'
+                  };
+                }
+              }
+              
+              // Regular session expired case
               // Don't count this as a failed attempt - it's a technical issue
               if (enrollmentId && enrollmentId !== 'existing_active_member') {
                 await db.collection('idiqEnrollments').doc(enrollmentId).update({
