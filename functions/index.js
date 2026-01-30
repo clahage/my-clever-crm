@@ -963,7 +963,7 @@ exports.idiqService = onCall(
         
        // ===== SMART PULLREPORT: CHECK STATUS -> ENROLL IF NEEDED -> VERIFY -> GET REPORT =====
         case 'pullReport': {
-          const { firstName, lastName, email, ssn, dateOfBirth, address, middleName, contactId } = params.memberData || params;
+          const { firstName, lastName, email, ssn, dateOfBirth, address, middleName, contactId, phone } = params.memberData || params;
           
           console.log('🎯 pullReport: Starting smart enrollment/retrieval flow...');
           console.log('📧 Email:', email);
@@ -1031,10 +1031,12 @@ exports.idiqService = onCall(
                 street: address?.street?.trim().substring(0, 50) || address?.trim().substring(0, 50) || '',
                 city: address?.city?.trim().substring(0, 30) || city?.trim().substring(0, 30) || '',
                 state: address?.state?.toUpperCase().substring(0, 2) || state?.toUpperCase().substring(0, 2) || '',
-                zip: address?.zip?.toString().replace(/\D/g, '').substring(0, 5) || zip?.toString().replace(/\D/g, '').substring(0, 5) || ''
+                zip: address?.zip?.toString().replace(/\D/g, '').substring(0, 5) || zip?.toString().replace(/\D/g, '').substring(0, 5) || '',
+                primaryPhone: phone?.replace(/\D/g, '').substring(0, 10) || ''
               };
 
               console.log('📤 Enrollment payload email:', enrollPayload.email);
+              console.log('📞 Enrollment payload phone:', enrollPayload.primaryPhone);
 
               const enrollResponse = await fetch(`${IDIQ_BASE_URL}v1/enrollment/enroll`, {
                 method: 'POST',
@@ -1249,10 +1251,197 @@ exports.idiqService = onCall(
                 );
                 
                 if (noQuestionsError) {
-                  console.log('⚠️ IDIQ returned "No Questions Retrieved" - returning widget for alternative verification');
-                  console.log('🔄 Widget will handle verification (document upload, OTP, etc.)');
+                  console.log('⚠️ IDIQ returned "No Questions Retrieved" - trying to pull report directly');
                   
-                  // Return widget immediately - don't try to pull report before verification
+                  // Try to pull credit report - member might already be verified
+                  try {
+                    console.log('📊 Attempting direct credit report pull...');
+                    const reportResponse = await fetch(`${IDIQ_BASE_URL}v1/credit-report`, {
+                      method: 'GET',
+                      headers: {
+                        'Authorization': `Bearer ${memberToken}`,
+                        'Accept': 'application/json'
+                      }
+                    });
+                    
+                    console.log('📋 Credit report response status:', reportResponse.status);
+                    
+                    if (reportResponse.ok) {
+                      const reportData = await reportResponse.json();
+                      console.log('✅ Credit report retrieved successfully!');
+                      console.log('📋 Report keys:', Object.keys(reportData));
+                      console.log('📋 BundleComponent keys:', Object.keys(reportData.BundleComponents?.BundleComponent || {}));
+                      console.log('📋 Score found:', reportData.BundleComponents?.BundleComponent?.CreditScoreType?.['@riskScore']);
+                      
+                      // Log to find tradelines location
+                      const bc = reportData.BundleComponents?.BundleComponent;
+                      if (bc) {
+                      console.log('📋 Looking for tradelines in:', Object.keys(bc).filter(k => k.toLowerCase().includes('trade') || k.toLowerCase().includes('account') || k.toLowerCase().includes('credit')));
+                      console.log('📋 TrueLinkCreditReportType keys:', Object.keys(bc?.TrueLinkCreditReportType || {}));
+                      }
+                      
+                      // ===== EXTRACT SCORE FROM CORRECT IDIQ LOCATION =====
+                      // Note: bc was already declared above at line 1277
+                      const score = bc?.CreditScoreType?.['@riskScore'] ||
+                                   reportData.vantageScore || 
+                                   reportData.score || 
+                                   reportData.CreditScore?.score ||
+                                   reportData.Borrower?.CreditScore?.[0]?.['@value'] ||
+                                   null;
+                      console.log('📊 Credit score extracted:', score);
+                      
+                      // ===== GET TRUELINK CREDIT REPORT (contains all tradelines) =====
+                      const trueLinkReport = bc?.TrueLinkCreditReportType;
+                      console.log('📋 TrueLinkCreditReportType keys:', Object.keys(trueLinkReport || {}));
+                      
+                      // ===== BUREAU SYMBOL MAPPING =====
+                      const BUREAU_MAP = {
+                        'TUC': 'TransUnion',
+                        'EXP': 'Experian', 
+                        'EQF': 'Equifax',
+                        'TransUnion': 'TransUnion',
+                        'Experian': 'Experian',
+                        'Equifax': 'Equifax'
+                      };
+                      
+                      // ===== EXTRACT ALL ACCOUNTS FROM ALL BUREAUS =====
+                      const accounts = [];
+                      
+                      const extractAccount = (tradeline, defaultBureau) => {
+                        try {
+                          // Get bureau from tradeline's Source.Bureau (can be @symbol or @description)
+                          const bureauSymbol = tradeline?.Source?.Bureau?.['@symbol'] || 
+                                              tradeline?.Source?.Bureau?.['@description'] ||
+                                              tradeline?.Source?.Bureau?.['@abbreviation'] ||
+                                              defaultBureau;
+                          const bureau = BUREAU_MAP[bureauSymbol] || bureauSymbol || defaultBureau || 'Unknown';
+                          
+                          return {
+                            bureau: bureau,
+                            creditorName: tradeline?.Creditor?.CreditBusinessType?.Name?.['#text'] || 
+                                         tradeline?.Creditor?.Name || 
+                                         tradeline?.['@creditorName'] || 
+                                         tradeline?.creditorName || 
+                                         'Unknown',
+                            accountNumber: tradeline?.AccountNumber || 
+                                          tradeline?.['@accountNumber'] || 
+                                          '****',
+                            accountType: tradeline?.GrantedTrade?.AccountType?.['@description'] ||
+                                        tradeline?.AccountType?.['@description'] ||
+                                        tradeline?.['@accountType'] || 
+                                        'Unknown',
+                            currentBalance: tradeline?.GrantedTrade?.CurrentBalance?.['#text'] ||
+                                           tradeline?.CurrentBalance ||
+                                           tradeline?.['@currentBalance'] || 
+                                           '0',
+                            creditLimit: tradeline?.GrantedTrade?.CreditLimit?.['#text'] ||
+                                        tradeline?.CreditLimit ||
+                                        tradeline?.GrantedTrade?.HighCredit?.['#text'] ||
+                                        tradeline?.['@highCredit'] || 
+                                        '0',
+                            paymentStatus: tradeline?.GrantedTrade?.PayStatusType?.['@description'] ||
+                                          tradeline?.PaymentStatus ||
+                                          tradeline?.['@paymentStatus'] || 
+                                          'Unknown',
+                            accountStatus: tradeline?.AccountCondition?.['@description'] ||
+                                          tradeline?.GrantedTrade?.AccountStatus?.['@description'] ||
+                                          tradeline?.AccountStatus ||
+                                          tradeline?.['@accountStatus'] || 
+                                          'Unknown',
+                            dateOpened: tradeline?.GrantedTrade?.DateOpened?.['#text'] ||
+                                       tradeline?.DateOpened ||
+                                       tradeline?.['@dateOpened'] || 
+                                       '',
+                            dateReported: tradeline?.GrantedTrade?.DateReported?.['#text'] ||
+                                         tradeline?.DateReported ||
+                                         tradeline?.['@dateReported'] || 
+                                         '',
+                            monthlyPayment: tradeline?.GrantedTrade?.MonthlyPayment?.['#text'] ||
+                                           tradeline?.MonthlyPayment ||
+                                           tradeline?.['@monthlyPayment'] || 
+                                           '0',
+                            remarks: tradeline?.Remark?.RemarkCode?.['@description'] || ''
+                          };
+                        } catch (err) {
+                          console.error('Error extracting account:', err);
+                          return null;
+                        }
+                      };
+                      
+                      // ===== EXTRACT FROM TradeLinePartition =====
+                      const tradePartitions = trueLinkReport?.TradeLinePartition || [];
+                      const partitionArray = Array.isArray(tradePartitions) ? tradePartitions : [tradePartitions];
+                      
+                      console.log('📊 Found TradeLinePartition count:', partitionArray.length);
+                      
+                      // Track accounts by bureau for logging
+                      const bureauCounts = { TransUnion: 0, Experian: 0, Equifax: 0, Unknown: 0 };
+                      
+                      partitionArray.forEach((partition, index) => {
+                        const tradelines = partition?.Tradeline || [];
+                        const tradeArray = Array.isArray(tradelines) ? tradelines : [tradelines];
+                        
+                        // Each tradeline has its own bureau in Source.Bureau
+                        tradeArray.forEach(tradeline => {
+                          const account = extractAccount(tradeline, 'Unknown');
+                          if (account && account.creditorName !== 'Unknown') {
+                            accounts.push(account);
+                            bureauCounts[account.bureau] = (bureauCounts[account.bureau] || 0) + 1;
+                          }
+                        });
+                      });
+                      
+                      console.log('📊 Accounts by bureau:', bureauCounts);
+                      console.log(`✅ Total accounts extracted from TradeLinePartition: ${accounts.length}`);
+                      
+                      // ===== FALLBACK: Try legacy paths if no accounts found =====
+                      if (accounts.length === 0) {
+                        console.log('📋 Trying legacy tradeline locations...');
+                        
+                        // Try direct Tradeline array on TrueLinkCreditReportType
+                        const directTradelines = trueLinkReport?.Tradeline || [];
+                        const directArray = Array.isArray(directTradelines) ? directTradelines : (directTradelines ? [directTradelines] : []);
+                        
+                        directArray.forEach(tradeline => {
+                          const account = extractAccount(tradeline, 'Unknown');
+                          if (account && account.creditorName !== 'Unknown') {
+                            accounts.push(account);
+                          }
+                        });
+                        
+                        console.log(`📊 After legacy search: ${accounts.length} accounts`);
+                      }
+                      
+                      console.log(`✅ Final total accounts extracted: ${accounts.length}`);
+                      
+                      return {
+                        success: true,
+                        verificationRequired: false,
+                        useWidget: true,
+                        memberToken: memberToken,
+                        memberAccessToken: memberToken,
+                        enrollmentId: enrollmentId,
+                        membershipNumber: membershipNumber,
+                        email: email,
+                        data: {
+                          vantageScore: score,
+                          accounts: accounts,
+                          accountCount: accounts.length,
+                          reportData: reportData
+                        },
+                        vantageScore: score,
+                        accounts: accounts,
+                        accountCount: accounts.length
+                      };
+                    } else {
+                      console.log('⚠️ Credit report not available yet, returning widget for verification');
+                    }
+                  } catch (reportErr) {
+                    console.log('⚠️ Could not pull report directly:', reportErr.message);
+                  }
+                  
+                  // Fallback to widget if report pull failed
+                  console.log('🔄 Falling back to widget for verification');
                   return {
                     success: true,
                     verificationRequired: false,
@@ -1267,7 +1456,6 @@ exports.idiqService = onCall(
                     questions: [],
                     verificationQuestions: [],
                     message: 'Please complete identity verification using the viewer below.',
-                    tip: 'The viewer will guide you through verification to access your credit report.',
                     widgetUrl: 'https://idiq-prod-web-api.web.app/idiq-credit-report/index.js'
                   };
                 }

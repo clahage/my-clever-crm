@@ -35,6 +35,7 @@
 // ============================================================================
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import CreditReportDisplay from '../credit/CreditReportDisplay';
 import {
   Box,
   Paper,
@@ -1497,10 +1498,34 @@ const CompleteEnrollmentFlow = ({
   console.log("✅ IDIQ Response:", response.data);
   console.log("📋 Full response structure:", JSON.stringify(response.data, null, 2).substring(0, 1000));
   console.log("🔍 verificationRequired:", response.data.verificationRequired);
+  console.log("🔍 needsWidgetVerification:", response.data.needsWidgetVerification);
   console.log("🔍 questions:", response.data.questions?.length || 0);
   console.log("🔍 verificationQuestions:", response.data.verificationQuestions?.length || 0);
 
-      // Check if verification is required
+      // ===== HANDLE WIDGET-BASED VERIFICATION =====
+      // This happens when IDIQ couldn't generate security questions but member still needs verification
+      if (response.data.needsWidgetVerification && !response.data.vantageScore && !response.data.data?.vantageScore) {
+        console.log("🔐 Widget verification required - no credit data yet");
+        
+        // Store member token for widget
+        if (response.data?.memberToken) {
+          setCreditReportMemberToken(response.data.memberToken);
+          console.log('✅ Member token stored for widget verification');
+        }
+        
+        // Show the widget which will handle identity verification
+        setShowFullCreditReport(true);
+        setAnalysisComplete(true);
+        setCurrentPhase(3);
+        setLoading(false);
+        
+        // Set a flag to indicate widget verification is in progress
+        console.log('📋 IDIQ widget will handle identity verification');
+        
+        return;
+      }
+
+      // Check if verification is required (security questions path)
       if (response.data.verificationRequired) {
         console.log("🔐 Verification required - showing security questions");
         
@@ -1523,7 +1548,44 @@ const CompleteEnrollmentFlow = ({
 
       // No verification needed - process report directly
       const resData = response.data?.data || response.data || {};
-      setCreditReport(resData);
+      
+      // ===== CRITICAL: Extract accounts from all possible paths =====
+      const extractedAccounts = 
+        response.data?.accounts ||           // Top level accounts
+        response.data?.data?.accounts ||     // Nested in data
+        resData?.accounts ||                 // In resData
+        [];
+      
+      // ===== CRITICAL: Build complete credit report object =====
+      const completeCreditReport = {
+        ...resData,
+        vantageScore: response.data?.vantageScore || resData?.vantageScore || response.data?.data?.vantageScore,
+        accounts: extractedAccounts,
+        accountCount: extractedAccounts.length,
+      };
+      
+      console.log('📊 Extracted accounts:', extractedAccounts.length);
+      console.log('📊 Complete credit report object:', {
+        hasVantageScore: !!completeCreditReport.vantageScore,
+        accountCount: completeCreditReport.accounts?.length || 0,
+        sampleAccount: completeCreditReport.accounts?.[0] || 'none'
+      });
+      
+      // ===== CRITICAL: Store member token for widget =====
+      if (response.data?.memberToken) {
+        setCreditReportMemberToken(response.data.memberToken);
+        console.log('✅ Member token stored for credit report widget');
+      }
+      setShowFullCreditReport(true);
+      setCreditReport(completeCreditReport);
+      
+      // ===== CRITICAL: Store member token for widget =====
+      if (response.data?.memberToken) {
+        setCreditReportMemberToken(response.data.memberToken);
+        console.log('✅ Member token stored for credit report widget');
+      }
+      setShowFullCreditReport(true);
+      setEnrollmentId(response.data.enrollmentId || `ENR-${Date.now()}`);
       setAnalysisComplete(true);
 
       try {
@@ -1633,6 +1695,30 @@ const submitVerificationAnswers = async () => {
     });
 
     const resData = response.data?.data || response.data || {};
+    
+    // ===== CRITICAL: Extract accounts from all possible paths =====
+    const extractedAccounts = 
+      response.data?.accounts ||           // Top level accounts
+      response.data?.data?.accounts ||     // Nested in data
+      resData?.accounts ||                 // In resData
+      [];
+    
+    // ===== CRITICAL: Build complete credit report object =====
+    const completeCreditReport = {
+      ...resData,
+      vantageScore: response.data?.vantageScore || resData?.vantageScore || response.data?.data?.vantageScore,
+      accounts: extractedAccounts,
+      accountCount: extractedAccounts.length,
+    };
+    
+    console.log('📊 Verification - Extracted accounts:', extractedAccounts.length);
+      
+      // ===== CRITICAL: Store member token for widget =====
+      if (response.data?.memberToken) {
+        setCreditReportMemberToken(response.data.memberToken);
+        console.log('✅ Member token stored for credit report widget');
+      }
+      setShowFullCreditReport(true);
     const successFlag = response.data?.success && response.data?.verified;
 
     console.log("✅ Verification response:", response.data);
@@ -1640,7 +1726,7 @@ const submitVerificationAnswers = async () => {
     if (successFlag) {
       console.log("🎉 Verification successful!");
       
-      setCreditReport(resData);
+      setCreditReport(completeCreditReport);
       setVerificationRequired(false);
       
       // ===== NEW: Store member token and show full credit report =====
@@ -4456,6 +4542,13 @@ const finalizeEnrollment = async () => {
             </Typography>
           </CardContent>
         </Card>
+
+        {/* Show CreditReportDisplay after enrollment completes */}
+        <CreditReportDisplay
+          score={creditReport?.vantageScore}
+          accounts={creditReport?.accounts}
+          loading={isLoading}
+        />
 
         <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
           <Button variant="contained" href="/client-portal" startIcon={<DashboardIcon />}>
