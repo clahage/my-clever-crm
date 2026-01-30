@@ -152,6 +152,7 @@ import {
   Add as AddIcon,                 // ADDED - for add document buttons
   ExpandMore as ExpandMoreIcon,   // ADDED - for expandable negative items
   ExpandLess as ExpandLessIcon,   // ADDED - for expandable negative items
+  OpenInNew as OpenInNewIcon,     // ADDED - for external links
 } from '@mui/icons-material';
 
 import { motion, AnimatePresence } from 'framer-motion';
@@ -647,6 +648,7 @@ const CompleteEnrollmentFlow = ({
   // ===== NEW: IDIQ CREDIT REPORT WIDGET STATE =====
   const [showFullCreditReport, setShowFullCreditReport] = useState(false);
   const [creditReportMemberToken, setCreditReportMemberToken] = useState(null);
+  const [pendingWidgetVerification, setPendingWidgetVerification] = useState(false);
 
 
   // ===== FIREBASE FUNCTIONS =====
@@ -1519,6 +1521,9 @@ const CompleteEnrollmentFlow = ({
           setCreditReportMemberToken(response.data.memberToken);
           console.log('✅ Member token stored for widget verification');
         }
+        
+        // Set flag to indicate verification is pending
+        setPendingWidgetVerification(true);
         
         // Show the widget which will handle identity verification
         setShowFullCreditReport(true);
@@ -3442,23 +3447,61 @@ const finalizeEnrollment = async () => {
                   📊 Complete Credit Report
                 </Typography>
                 <Chip 
-                  label="LIVE FROM IDIQ" 
-                  color="primary" 
+                  label={pendingWidgetVerification ? "VERIFICATION PENDING" : "LIVE FROM IDIQ"}
+                  color={pendingWidgetVerification ? "warning" : "primary"}
                   size="small"
                   icon={<ShieldIcon sx={{ fontSize: 16 }} />}
                 />
               </Box>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                This is your full tri-merge credit report from all three bureaus. 
-                Review all accounts, inquiries, and public records below.
-              </Typography>
+              
+              {/* Show verification pending message if needed */}
+              {pendingWidgetVerification ? (
+                <Alert severity="warning" sx={{ mb: 3 }}>
+                  <AlertTitle>Identity Verification Required</AlertTitle>
+                  <Typography variant="body2" sx={{ mb: 2 }}>
+                    IDIQ was unable to generate security questions for your identity verification. 
+                    This can happen with thin credit files or recent address changes.
+                  </Typography>
+                  <Typography variant="body2" sx={{ mb: 2 }}>
+                    <strong>To complete verification and access your credit report:</strong>
+                  </Typography>
+                  <Box component="ol" sx={{ pl: 2, mb: 2 }}>
+                    <li>Click the button below to access the IDIQ member portal</li>
+                    <li>Complete identity verification (may require document upload)</li>
+                    <li>Return here to view your full credit report</li>
+                  </Box>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    href={`https://member.identityiq.com/?Token=${creditReportMemberToken}&isMobileApp=false&redirect=Dashboard.aspx`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    startIcon={<OpenInNewIcon />}
+                    sx={{ mr: 2 }}
+                  >
+                    Complete Verification at IDIQ
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    onClick={() => window.location.reload()}
+                    startIcon={<RefreshIcon />}
+                  >
+                    Refresh After Verification
+                  </Button>
+                </Alert>
+              ) : (
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                  This is your full tri-merge credit report from all three bureaus. 
+                  Review all accounts, inquiries, and public records below.
+                </Typography>
+              )}
               
               <IDIQCreditReportViewer
                 memberToken={creditReportMemberToken}
                 enrollmentId={enrollmentId}
                 contactId={contactId}
                 showHeader={false}
-                minHeight={800}
+                minHeight={pendingWidgetVerification ? 400 : 800}
                 onReportLoaded={(data) => {
                   console.log('✅ Full credit report loaded in enrollment flow:', data);
                   // AI can analyze this data for disputes and recommendations
