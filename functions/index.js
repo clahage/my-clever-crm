@@ -1351,9 +1351,53 @@ exports.idiqService = onCall(
                         'TUC': 'TransUnion',
                         'EXP': 'Experian', 
                         'EQF': 'Equifax',
+                        'TU': 'TransUnion',
+                        'EX': 'Experian',
+                        'EQ': 'Equifax',
+                        'XPN': 'Experian',
+                        'TRU': 'TransUnion',
+                        'EFX': 'Equifax',
                         'TransUnion': 'TransUnion',
                         'Experian': 'Experian',
                         'Equifax': 'Equifax'
+                      };
+                      // ===== ACCOUNT STATUS CODE MAPPING =====
+                      const ACCOUNT_STATUS_MAP = {
+                        'O': 'Open',
+                        'C': 'Closed',
+                        'F': 'Frozen',
+                        'P': 'Paid',
+                        'T': 'Transferred',
+                        'R': 'Refinanced',
+                        'D': 'Delinquent',
+                        'ChargedOff': 'Charged Off',
+                        'Collection': 'Collection',
+                        'Bankruptcy': 'Bankruptcy',
+                        'Foreclosure': 'Foreclosure',
+                        'Repossession': 'Repossession',
+                        'Current': 'Current',
+                        'Open': 'Open',
+                        'Closed': 'Closed',
+                        'Paid': 'Paid'
+                      };
+                      
+                      const PAYMENT_STATUS_MAP = {
+                        'C': 'Current',
+                        'CUR': 'Current',
+                        'Current': 'Current',
+                        'AsAgreed': 'As Agreed',
+                        '30': '30 Days Late',
+                        '60': '60 Days Late',
+                        '90': '90 Days Late',
+                        '120': '120 Days Late',
+                        '150': '150+ Days Late',
+                        'CO': 'Charged Off',
+                        'ChargedOff': 'Charged Off',
+                        'Collection': 'Collection',
+                        'Delinquent': 'Delinquent',
+                        'Late': 'Late',
+                        'Paid': 'Paid',
+                        'Unknown': 'Unknown'
                       };
                       
                       // ===== EXTRACT ALL ACCOUNTS FROM ALL BUREAUS =====
@@ -1391,15 +1435,34 @@ exports.idiqService = onCall(
                                         tradeline?.GrantedTrade?.HighCredit?.['#text'] ||
                                         tradeline?.['@highCredit'] || 
                                         '0',
-                            paymentStatus: tradeline?.GrantedTrade?.PayStatusType?.['@description'] ||
-                                          tradeline?.PaymentStatus ||
-                                          tradeline?.['@paymentStatus'] || 
-                                          'Unknown',
-                            accountStatus: tradeline?.AccountCondition?.['@description'] ||
-                                          tradeline?.GrantedTrade?.AccountStatus?.['@description'] ||
-                                          tradeline?.AccountStatus ||
-                                          tradeline?.['@accountStatus'] || 
-                                          'Unknown',
+                            paymentStatus: (() => {
+                              const raw = tradeline?.GrantedTrade?.PayStatusType?.['@description'] ||
+                                         tradeline?.GrantedTrade?.PayStatusType?.['@symbol'] ||
+                                         tradeline?.PaymentStatus?.['@description'] ||
+                                         tradeline?.PaymentStatus ||
+                                         tradeline?.['@paymentStatus'] ||
+                                         tradeline?.AccountCondition?.['@symbol'] ||
+                                         '';
+                              return PAYMENT_STATUS_MAP[raw] || raw || 'Current';
+                            })(),
+                            accountStatus: (() => {
+                              const raw = tradeline?.AccountCondition?.['@description'] ||
+                                         tradeline?.AccountCondition?.['@symbol'] ||
+                                         tradeline?.GrantedTrade?.AccountStatus?.['@description'] ||
+                                         tradeline?.GrantedTrade?.AccountStatus?.['@symbol'] ||
+                                         tradeline?.GrantedTrade?.OpenOrClosed?.['@description'] ||
+                                         tradeline?.GrantedTrade?.OpenOrClosed?.['@symbol'] ||
+                                         tradeline?.GrantedTrade?.OpenClosed?.['@description'] ||
+                                         tradeline?.GrantedTrade?.OpenClosed?.['@symbol'] ||
+                                         tradeline?.AccountStatus?.['@description'] ||
+                                         tradeline?.AccountStatus?.['@symbol'] ||
+                                         tradeline?.AccountStatus ||
+                                         tradeline?.['@accountStatus'] ||
+                                         tradeline?.OpenClosed ||
+                                         '';
+                              const normalized = raw?.toString().trim().toUpperCase();
+                              return ACCOUNT_STATUS_MAP[normalized] || ACCOUNT_STATUS_MAP[raw] || raw || 'Open';
+                            })(),
                             dateOpened: tradeline?.GrantedTrade?.DateOpened?.['#text'] ||
                                        tradeline?.DateOpened ||
                                        tradeline?.['@dateOpened'] || 
@@ -1425,6 +1488,16 @@ exports.idiqService = onCall(
                       const partitionArray = Array.isArray(tradePartitions) ? tradePartitions : [tradePartitions];
                       
                       console.log('📊 Found TradeLinePartition count:', partitionArray.length);
+                      // Debug: Log first partition structure
+                      if (partitionArray.length > 0) {
+                        const fp = partitionArray[0];
+                        const ft = fp?.Tradeline;
+                        console.log('📋 First partition debug:', {
+                          tradelineIsArray: Array.isArray(ft),
+                          tradelineCount: Array.isArray(ft) ? ft.length : 1,
+                          firstBureau: (Array.isArray(ft) ? ft[0] : ft)?.Source?.Bureau
+                        });
+                      }
                       
                       // Track accounts by bureau for logging
                       const bureauCounts = { TransUnion: 0, Experian: 0, Equifax: 0, Unknown: 0 };
@@ -1435,12 +1508,21 @@ exports.idiqService = onCall(
                         
                         // Each tradeline has its own bureau in Source.Bureau
                         tradeArray.forEach(tradeline => {
-                          const account = extractAccount(tradeline, 'Unknown');
-                          if (account && account.creditorName !== 'Unknown') {
-                            accounts.push(account);
-                            bureauCounts[account.bureau] = (bureauCounts[account.bureau] || 0) + 1;
-                          }
-                        });
+                        // ===== CRITICAL: Extract bureau from EACH tradeline =====
+                        const tradeBureau = 
+                          tradeline?.Source?.Bureau?.['@symbol'] ||      // PRIMARY - TUC, EXP, EQF
+                          tradeline?.Source?.Bureau?.['@description'] ||
+                          tradeline?.Source?.Bureau?.['@abbreviation'] ||
+                          tradeline?.['@BureauCode'] ||
+                          tradeline?.BureauCode ||
+                          'Unknown';
+                        
+                        const account = extractAccount(tradeline, tradeBureau);
+                        if (account && account.creditorName !== 'Unknown') {
+                          accounts.push(account);
+                          bureauCounts[account.bureau] = (bureauCounts[account.bureau] || 0) + 1;
+                        }
+                      });
                       });
                       
                       console.log('📊 Accounts by bureau:', bureauCounts);
@@ -1638,13 +1720,15 @@ exports.idiqService = onCall(
             }
 
             return {
-              success: true,
-              verificationRequired: false,
-              data: { ...reportData, vantageScore: score },
-              questions: [], // Safety empty array to prevent frontend crash
-              verificationQuestions: [], // Safety empty array to prevent frontend crash
-              membershipNumber
-            };
+  success: true,
+  verificationRequired: false,
+  memberToken: memberToken,           // ✅ ADD THIS
+  memberAccessToken: memberToken,     // ✅ ADD THIS
+  data: { ...reportData, vantageScore: score },
+  questions: [],
+  verificationQuestions: [],
+  membershipNumber
+};
 
           } catch (error) {
             console.error('❌ pullReport error:', error.message);
