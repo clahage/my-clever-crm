@@ -3438,99 +3438,20 @@ const finalizeEnrollment = async () => {
           </Card>
         )}
 
-        {/* All Credit Accounts */}
-        {creditReport?.accounts && creditReport.accounts.length > 0 && (
-          <Card sx={{ mb: 4 }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                All Credit Accounts ({creditReport.accounts.length})
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Complete list of all accounts from your credit report
-              </Typography>
-              
-              <TableContainer component={Paper} variant="outlined">
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell><strong>Bureau</strong></TableCell>
-                      <TableCell><strong>Creditor</strong></TableCell>
-                      <TableCell><strong>Account #</strong></TableCell>
-                      <TableCell><strong>Type</strong></TableCell>
-                      <TableCell align="right"><strong>Balance</strong></TableCell>
-                      <TableCell><strong>Status</strong></TableCell>
-                      <TableCell><strong>Opened</strong></TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {creditReport.accounts.map((account, index) => (
-                      <TableRow 
-                        key={index}
-                        sx={{ 
-                          '&:nth-of-type(odd)': { bgcolor: 'action.hover' },
-                          '&:hover': { bgcolor: 'action.selected' }
-                        }}
-                      >
-                        <TableCell>
-                          <Chip 
-                            label={account.bureau || 'TransUnion'}
-                            size="small"
-                            color={
-                              account.bureau === 'TransUnion' ? 'primary' :
-                              account.bureau === 'Experian' ? 'secondary' :
-                              account.bureau === 'Equifax' ? 'success' :
-                              'default'
-                            }
-                          />
-                        </TableCell>
-                        <TableCell>{account.creditorName}</TableCell>
-                        <TableCell>
-                          <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                            {account.accountNumber}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>{account.accountType}</TableCell>
-                        <TableCell align="right">
-                          ${parseFloat(account.currentBalance || 0).toLocaleString()}
-                        </TableCell>
-                        <TableCell>
-                          <Chip 
-                            label={
-                              // ===== Translate IDIQ status codes to human-readable =====
-                              {
-                                'C': 'Current',
-                                'P': 'Paid',
-                                'O': 'Open',
-                                'T': 'Transferred',
-                                'D': 'Delinquent',
-                                'L': 'Late',
-                                'CO': 'Charge-Off',
-                                'CL': 'Collection',
-                                'F': 'Foreclosure',
-                                'R': 'Repossession',
-                                'Current': 'Current',
-                                'Paid': 'Paid',
-                                'Open': 'Open'
-                              }[account.paymentStatus] || account.paymentStatus || 'Unknown'
-                            }
-                            size="small"
-                            color={
-                              ['Current', 'Paid', 'C', 'P'].includes(account.paymentStatus) ? 'success' :
-                              ['Late', 'Delinquent', 'D', 'L', 'CO', 'CL', 'F', 'R'].includes(account.paymentStatus) ? 'error' :
-                              ['Open', 'O', 'Transferred', 'T'].includes(account.paymentStatus) ? 'info' :
-                              'default'
-                            }
-                          />
-                        </TableCell>
-                        <TableCell>{account.dateOpened}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </CardContent>
-          </Card>
-        )}
+        {/* ===== ALL CREDIT ACCOUNTS TABLE - HIDDEN FOR NOW =====
+            The IDIQ API only returns TransUnion data (27 accounts), but the
+            IDIQ widget displays all 91 accounts from all 3 bureaus.
+            
+            FUTURE ENHANCEMENT: AI will analyze the full credit report from
+            the widget and generate a comprehensive report with:
+            - All 3 credit scores (TransUnion, Experian, Equifax)
+            - All 91 accounts organized by bureau
+            - Negative items highlighted
+            - Dispute recommendations
+            - Credit improvement action plan
+            
+            For now, users view the full report in the IDIQ widget above.
+        ===== */}
 
         {/* Projected Improvement */}
         <Card sx={{ mb: 4, bgcolor: 'success.50' }}>
