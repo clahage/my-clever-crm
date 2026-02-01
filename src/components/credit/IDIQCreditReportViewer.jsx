@@ -1,7 +1,7 @@
 // ===========================================================================
 // Path: src/components/credit/IDIQCreditReportViewer.jsx
 // IDIQ Credit Report Viewer using IDIQ's MicroFrontend Widget
-// FIXED: Sets IDIQ_CREDIT_REPORT_CONFIG BEFORE loading script (like PHP)
+// ENHANCED: Auto-clicks Summary button, improved error handling, better UX
 // © 1995-2026 Speedy Credit Repair Inc. | Chris Lahage | All Rights Reserved
 // ===========================================================================
 
@@ -11,11 +11,14 @@ import {
   Typography,
   CircularProgress,
   Alert,
+  AlertTitle,
   Button,
   Paper,
   Chip,
   IconButton,
-  Tooltip
+  Tooltip,
+  LinearProgress,
+  Divider
 } from '@mui/material';
 import {
   RefreshCw,
@@ -24,18 +27,29 @@ import {
   FileText,
   Shield,
   User,
-  Calendar
+  Calendar,
+  ExternalLink,
+  Phone,
+  Download,
+  Eye,
+  Info
 } from 'lucide-react';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { db, functions } from '@/lib/firebase';
 import { httpsCallable } from 'firebase/functions';
 
 // ===== IDIQ CREDIT REPORT VIEWER COMPONENT =====
-// ===== FIXED: Config set BEFORE script loads (matches working PHP pattern) =====
+// ===== FEATURES: =====
+// - Sets config BEFORE script loads (matches working PHP pattern)
+// - Auto-clicks Summary button to show full report
+// - Enhanced error handling and retry logic
+// - Loading progress indicators
+// - Token refresh capability
+// ===========================================================================
 const IDIQCreditReportViewer = ({
   contactId,
   enrollmentId,
-  memberToken: propMemberToken,  // ===== NEW: Accept token as prop =====
+  memberToken: propMemberToken,
   showHeader = true,
   minHeight = 600,
   onReportLoaded = null,
@@ -49,9 +63,12 @@ const IDIQCreditReportViewer = ({
   const [enrollment, setEnrollment] = useState(null);
   const [contact, setContact] = useState(null);
   const [tokenRefreshing, setTokenRefreshing] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [summaryClicked, setSummaryClicked] = useState(false);
 
   const widgetContainerRef = useRef(null);
   const scriptLoadAttempted = useRef(false);
+  const summaryClickAttempted = useRef(false);
 
   // ===== UPDATE TOKEN FROM PROP =====
   useEffect(() => {
@@ -59,7 +76,7 @@ const IDIQCreditReportViewer = ({
       console.log('🔑 Member token received from prop');
       setMemberToken(propMemberToken);
     }
-  }, [propMemberToken]);
+  }, [propMemberToken, memberToken]);
 
   // ===== FETCH CONTACT DATA =====
   useEffect(() => {
@@ -93,11 +110,13 @@ const IDIQCreditReportViewer = ({
     try {
       setLoading(true);
       setError(null);
+      setLoadingProgress(10);
 
       console.log('🔑 Fetching member token...', { enrollmentId, contactId, forceRefresh });
 
       // First try to get stored token from enrollment
       if (enrollmentId && !forceRefresh) {
+        setLoadingProgress(25);
         const enrollmentDoc = await getDoc(doc(db, 'idiqEnrollments', enrollmentId));
 
         if (enrollmentDoc.exists()) {
@@ -113,6 +132,7 @@ const IDIQCreditReportViewer = ({
             if (expiresAt > new Date(Date.now() + 5 * 60 * 1000)) {
               console.log('✅ Using cached member token (expires:', expiresAt, ')');
               setMemberToken(enrollmentData.memberAccessToken);
+              setLoadingProgress(100);
               setLoading(false);
               onReportLoaded?.({
                 token: enrollmentData.memberAccessToken,
@@ -127,6 +147,7 @@ const IDIQCreditReportViewer = ({
       // Token expired or not found - get a fresh one from backend
       console.log('🔄 Getting fresh member token from IDIQ...');
       setTokenRefreshing(true);
+      setLoadingProgress(50);
 
       const idiqService = httpsCallable(functions, 'idiqService');
       const result = await idiqService({
@@ -135,9 +156,12 @@ const IDIQCreditReportViewer = ({
         contactId
       });
 
+      setLoadingProgress(75);
+
       if (result.data?.success && result.data?.memberToken) {
         console.log('✅ Fresh member token received');
         setMemberToken(result.data.memberToken);
+        setLoadingProgress(100);
         onReportLoaded?.({
           token: result.data.memberToken,
           email: result.data.email
@@ -168,6 +192,109 @@ const IDIQCreditReportViewer = ({
       setError('No contact or enrollment ID provided');
     }
   }, [contactId, enrollmentId, propMemberToken, fetchMemberToken]);
+
+  // ===========================================================================
+  // ===== AUTO-CLICK SUMMARY FUNCTION =====
+  // ===== Attempts to click the Summary button/tab in the IDIQ widget =====
+  // ===========================================================================
+  const autoClickSummary = useCallback(() => {
+    if (summaryClickAttempted.current) return;
+    
+    let attempts = 0;
+    const maxAttempts = 40; // 20 seconds total
+    
+    console.log('🔍 Starting auto-click Summary search...');
+    
+    const tryClickSummary = setInterval(() => {
+      attempts++;
+      
+      // ===== METHOD 1: Search in regular DOM =====
+      const allClickables = document.querySelectorAll('button, [role="tab"], [role="button"], .tab, a, span, div[onclick]');
+      for (const el of allClickables) {
+        const text = (el.textContent || '').toLowerCase().trim();
+        const ariaLabel = (el.getAttribute('aria-label') || '').toLowerCase();
+        
+        // Look for "summary" but not "account summary" which is different
+        if ((text === 'summary' || ariaLabel === 'summary' || text.startsWith('summary')) && 
+            !text.includes('account') && 
+            el.offsetParent !== null) { // Check if element is visible
+          try {
+            el.click();
+            console.log('✅ Auto-clicked Summary button (regular DOM)');
+            setSummaryClicked(true);
+            summaryClickAttempted.current = true;
+            clearInterval(tryClickSummary);
+            return;
+          } catch (e) {
+            console.log('⚠️ Click failed:', e);
+          }
+        }
+      }
+      
+      // ===== METHOD 2: Search inside Shadow DOM =====
+      const widgetEl = document.querySelector('idiq-credit-report');
+      if (widgetEl?.shadowRoot) {
+        const shadowClickables = widgetEl.shadowRoot.querySelectorAll('button, [role="tab"], [role="button"], .tab, a, span');
+        for (const el of shadowClickables) {
+          const text = (el.textContent || '').toLowerCase().trim();
+          const ariaLabel = (el.getAttribute('aria-label') || '').toLowerCase();
+          
+          if ((text === 'summary' || ariaLabel === 'summary' || text.startsWith('summary')) && 
+              !text.includes('account')) {
+            try {
+              el.click();
+              console.log('✅ Auto-clicked Summary button (Shadow DOM)');
+              setSummaryClicked(true);
+              summaryClickAttempted.current = true;
+              clearInterval(tryClickSummary);
+              return;
+            } catch (e) {
+              console.log('⚠️ Shadow DOM click failed:', e);
+            }
+          }
+        }
+      }
+      
+      // ===== METHOD 3: Try iframe if widget uses one =====
+      const iframes = document.querySelectorAll('iframe');
+      for (const iframe of iframes) {
+        try {
+          const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+          if (iframeDoc) {
+            const iframeClickables = iframeDoc.querySelectorAll('button, [role="tab"], a, span');
+            for (const el of iframeClickables) {
+              const text = (el.textContent || '').toLowerCase().trim();
+              if (text === 'summary' || text.startsWith('summary')) {
+                el.click();
+                console.log('✅ Auto-clicked Summary button (iframe)');
+                setSummaryClicked(true);
+                summaryClickAttempted.current = true;
+                clearInterval(tryClickSummary);
+                return;
+              }
+            }
+          }
+        } catch (e) {
+          // Cross-origin iframe - can't access
+        }
+      }
+      
+      // Log progress every 5 attempts
+      if (attempts % 5 === 0) {
+        console.log(`🔍 Still searching for Summary button... (attempt ${attempts}/${maxAttempts})`);
+      }
+      
+      if (attempts >= maxAttempts) {
+        console.log('⚠️ Could not auto-click Summary button after', maxAttempts, 'attempts');
+        console.log('💡 User may need to manually click "Summary" tab in the credit report');
+        summaryClickAttempted.current = true;
+        clearInterval(tryClickSummary);
+      }
+    }, 500); // Check every 500ms
+    
+    // Return cleanup function
+    return () => clearInterval(tryClickSummary);
+  }, []);
 
   // ===========================================================================
   // ===== CRITICAL FIX: Load script ONLY AFTER we have the token =====
@@ -229,30 +356,51 @@ const IDIQCreditReportViewer = ({
           
           console.log('✅ IDIQ widget element created');
           setWidgetReady(true);
+          
+          // ===== STEP 6: Auto-click Summary button after widget renders =====
+          // Reset the attempt flag for this new widget
+          summaryClickAttempted.current = false;
+          setSummaryClicked(false);
+          // Wait for widget to fully render before trying to click Summary
+          setTimeout(() => {
+            autoClickSummary();
+            
+            // ===== ALSO: Detect PrintPage for revealing all accounts =====
+            setTimeout(() => {
+              try {
+                const printLinks = document.querySelectorAll('a[onclick*="PrintPage"]');
+                if (printLinks.length > 0) {
+                  console.log('🖨️ Found', printLinks.length, 'PrintPage link(s) - click Print then Cancel to reveal all accounts');
+                }
+              } catch (e) {
+                console.log('⚠️ PrintPage detection failed:', e);
+              }
+            }, 3000);
+          }, 2500); // 2.5 second delay to let widget fully initialize
         }
       }, 100); // Small delay to ensure script is fully initialized
     };
-
     script.onerror = (err) => {
       console.error('❌ Failed to load IDIQ widget script:', err);
       setError('Failed to load credit report viewer. Please refresh the page.');
       onError?.('Script load failed');
       scriptLoadAttempted.current = false; // Allow retry
     };
-
     document.body.appendChild(script);
 
     // Cleanup - do NOT reset scriptLoadAttempted to prevent reload loops
     return () => {
       // Intentionally empty - keep scriptLoadAttempted true to prevent reloads
     };
-  }, [memberToken, onError]);
+  }, [memberToken, onError, autoClickSummary]);
 
   // ===== REFRESH TOKEN HANDLER =====
   const handleRefreshToken = async () => {
     setTokenRefreshing(true);
     setWidgetReady(false);
     scriptLoadAttempted.current = false; // Allow script reload
+    summaryClickAttempted.current = false; // Reset summary click
+    setSummaryClicked(false);
     
     // Clear existing widget
     if (widgetContainerRef.current) {
@@ -264,6 +412,9 @@ const IDIQCreditReportViewer = ({
     if (existingScript) {
       existingScript.remove();
     }
+    
+    // Remove global config
+    delete window.IDIQ_CREDIT_REPORT_CONFIG;
     
     await fetchMemberToken(true);
   };
@@ -277,12 +428,25 @@ const IDIQCreditReportViewer = ({
         justifyContent: 'center',
         alignItems: 'center',
         minHeight: minHeight,
-        gap: 2
+        gap: 2,
+        p: 4
       }}>
         <CircularProgress size={48} />
         <Typography variant="body1" color="text.secondary">
           Loading credit report...
         </Typography>
+        {loadingProgress > 0 && (
+          <Box sx={{ width: '60%', mt: 2 }}>
+            <LinearProgress variant="determinate" value={loadingProgress} />
+            <Typography variant="caption" color="text.disabled" sx={{ mt: 0.5, display: 'block', textAlign: 'center' }}>
+              {loadingProgress < 25 && 'Initializing...'}
+              {loadingProgress >= 25 && loadingProgress < 50 && 'Checking enrollment...'}
+              {loadingProgress >= 50 && loadingProgress < 75 && 'Fetching credentials...'}
+              {loadingProgress >= 75 && loadingProgress < 100 && 'Almost ready...'}
+              {loadingProgress === 100 && 'Complete!'}
+            </Typography>
+          </Box>
+        )}
         <Typography variant="caption" color="text.disabled">
           This may take a few moments
         </Typography>
@@ -307,14 +471,16 @@ const IDIQCreditReportViewer = ({
           </Button>
         }
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <AlertTriangle size={20} />
-          <Box>
-            <Typography variant="body2" fontWeight={600}>
-              Failed to Load Credit Report
-            </Typography>
-            <Typography variant="caption">{error}</Typography>
-          </Box>
+        <AlertTitle>Failed to Load Credit Report</AlertTitle>
+        <Typography variant="body2">{error}</Typography>
+        <Divider sx={{ my: 1.5 }} />
+        <Typography variant="caption" color="text.secondary">
+          If this problem persists, try:
+        </Typography>
+        <Box component="ul" sx={{ m: 0, pl: 2, '& li': { fontSize: '0.75rem' } }}>
+          <li>Refreshing the page</li>
+          <li>Clearing your browser cache</li>
+          <li>Contacting support at (888) 724-7344</li>
         </Box>
       </Alert>
     );
@@ -324,6 +490,7 @@ const IDIQCreditReportViewer = ({
   if (!memberToken) {
     return (
       <Alert severity="warning" sx={{ mb: 2 }}>
+        <AlertTitle>Credit Report Not Available</AlertTitle>
         <Typography variant="body2">
           No credit report available. Please complete enrollment first.
         </Typography>
@@ -388,7 +555,7 @@ const IDIQCreditReportViewer = ({
 
             {/* Right Side - Actions */}
             <Box sx={{ display: 'flex', gap: 1 }}>
-              <Tooltip title="Refresh Token">
+              <Tooltip title="Refresh Report">
                 <IconButton
                   onClick={handleRefreshToken}
                   disabled={tokenRefreshing}
@@ -400,6 +567,19 @@ const IDIQCreditReportViewer = ({
             </Box>
           </Box>
         </Paper>
+      )}
+
+      {/* Tip for viewing full report - shown if auto-click didn't work */}
+      {widgetReady && !summaryClicked && (
+        <Alert 
+          severity="info" 
+          sx={{ mb: 2 }}
+          icon={<Info size={20} />}
+        >
+          <Typography variant="body2">
+            <strong>Tip:</strong> Click the <strong>"Summary"</strong> tab above to view your complete credit report with all accounts from all three bureaus.
+          </Typography>
+        </Alert>
       )}
 
       {/* IDIQ Widget Container */}
@@ -448,14 +628,27 @@ const IDIQCreditReportViewer = ({
         )}
       </Paper>
 
-      {/* Footer Note */}
-      <Typography
-        variant="caption"
-        color="text.disabled"
-        sx={{ display: 'block', textAlign: 'center', mt: 1 }}
-      >
-        Credit report data provided by IdentityIQ • Partner ID: 11981
-      </Typography>
+      {/* Footer with helpful info */}
+      <Box sx={{ mt: 2, display: 'flex', flexWrap: 'wrap', gap: 2, justifyContent: 'space-between', alignItems: 'center' }}>
+        <Typography
+          variant="caption"
+          color="text.disabled"
+        >
+          Credit report data provided by IdentityIQ • Partner ID: 11981
+        </Typography>
+        
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button
+            size="small"
+            variant="text"
+            startIcon={<Phone size={14} />}
+            href="tel:8887247344"
+            sx={{ fontSize: '0.75rem', textTransform: 'none' }}
+          >
+            Need Help? (888) 724-7344
+          </Button>
+        </Box>
+      </Box>
     </Box>
   );
 };

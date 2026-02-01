@@ -345,6 +345,17 @@ export const navigationItems = [
         consolidated: ['CreditReportsHub', 'CreditAnalysisEngine', 'CreditSimulator', 'BusinessCredit', 'BureauCommunicationHub']
       },
 
+      // HUB 2B: AI CREDIT REVIEW GENERATOR
+      {
+        id: 'ai-credit-review',
+        title: 'AI Credit Review',
+        path: '/ai-credit-review',
+        icon: Brain,
+        permission: 'user',
+        badge: 'AI',
+        description: 'Generate personalized AI credit reviews for clients'
+      },
+
       // HUB 3: DISPUTE MANAGEMENT
       {
         id: 'dispute-management-hub',
@@ -739,6 +750,15 @@ export const navigationItems = [
         permission: 'client',
         badge: 'AI',
         description: 'Comprehensive financial planning services'
+      },
+      {
+        id: 'tradeline-hub',
+        title: 'Tradeline Services',
+        path: '/tradeline-hub',
+        icon: TrendingUp,
+        permission: 'manager',
+        badge: '$$$',
+        description: 'Authorized user tradeline rentals - AI matching, score prediction, provider management'
       }
     ]
   },

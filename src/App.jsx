@@ -17,6 +17,7 @@ import ContractStatusTracker from '@/components/common/ContractStatusTracker';
 import PricingCalculatorCommon from '@/components/common/PricingCalculator';
 import IDIQEnrollmentWizard from "./components/idiq/IDIQEnrollmentWizard.jsx"
 import FinancialPlanningHub from './pages/hubs/FinancialPlanningHub.jsx';
+import TradelineHub from './pages/hubs/TradelineHub.jsx';
 
 // ============================================================================
 // LOADING COMPONENT
@@ -282,6 +283,7 @@ const ComplianceHub = lazy(() => import('@/pages/hubs/ComplianceHub'));
 const ContentCreatorSEOHub = lazy(() => import('@/pages/hubs/ContentCreatorSEOHub'));
 const ContractManagementHub = lazy(() => import('@/pages/hubs/ContractManagementHub'));
 const CreditReportsHub = lazy(() => import('@/pages/hubs/CreditReportsHub'));
+const AIReportGenerator = lazy(() => import('@/components/AIReportGenerator'));
 // DashboardHub removed - consolidated into SmartDashboard
 const DisputeAdminPanel = lazy(() => import('@/pages/hubs/DisputeAdminPanel'));
 const DisputeHub = lazy(() => import('@/pages/hubs/DisputeHub'));
@@ -675,6 +677,18 @@ const AppContent = () => {
     <ProtectedRoute requiredRoles={[3,4,5,6,7,8]}>
       <Suspense fallback={<LoadingFallback />}>
         <CreditReportsHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* AI Credit Review Generator */}
+<Route
+  path="ai-credit-review"
+  element={
+    <ProtectedRoute requiredRoles={[5,6,7,8]}>
+      <Suspense fallback={<LoadingFallback />}>
+        <AIReportGenerator />
       </Suspense>
     </ProtectedRoute>
   }
@@ -1433,6 +1447,15 @@ const AppContent = () => {
     </Suspense>
   </ProtectedRoute>
 } />
+
+<Route path="tradeline-hub" element={
+  <ProtectedRoute requiredRole="manager">
+    <Suspense fallback={<LoadingFallback />}>
+      <TradelineHub />
+    </Suspense>
+  </ProtectedRoute>
+} />
+
   {/* ========================================== */}
 {/* MASSIVE PRODUCTION HUBS - 9,597 LINES     */}
 {/* ========================================== */}

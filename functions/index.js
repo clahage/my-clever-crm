@@ -1346,6 +1346,30 @@ exports.idiqService = onCall(
                       const trueLinkReport = bc?.TrueLinkCreditReportType;
                       console.log('📋 TrueLinkCreditReportType keys:', Object.keys(trueLinkReport || {}));
                       
+                      // ===== DIAGNOSTIC: Log ALL possible tradeline locations =====
+                      console.log('🔍 DIAGNOSTIC - Searching for all tradeline locations...');
+                      console.log('🔍 Borrower keys:', Object.keys(trueLinkReport?.Borrower || {}));
+                      console.log('🔍 Summary keys:', Object.keys(trueLinkReport?.Summary || {}));
+                      
+                      // Check if there are bureau-specific sections
+                      const borrower = trueLinkReport?.Borrower;
+                      if (borrower?.BorrowerBureau) {
+                        console.log('🔍 BorrowerBureau found!', Object.keys(borrower.BorrowerBureau));
+                      }
+                      if (borrower?.CreditFile) {
+                        console.log('🔍 CreditFile found!', Object.keys(borrower.CreditFile));
+                      }
+                      
+                      // Check Sources for bureau info
+                      const sources = trueLinkReport?.Sources;
+                      if (sources?.Source) {
+                        const sourceArray = Array.isArray(sources.Source) ? sources.Source : [sources.Source];
+                        console.log('🔍 Sources count:', sourceArray.length);
+                        sourceArray.slice(0, 5).forEach((src, i) => {
+                          console.log(`🔍 Source ${i}:`, src?.Bureau, src?.['@bureauCode']);
+                        });
+                      }
+                      
                       // ===== BUREAU SYMBOL MAPPING =====
                       const BUREAU_MAP = {
                         'TUC': 'TransUnion',

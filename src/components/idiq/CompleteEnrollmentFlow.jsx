@@ -1203,7 +1203,18 @@ const CompleteEnrollmentFlow = ({
       setFormData(savedState.formData || formData);
       setCurrentPhase(savedState.currentPhase || 1);
       setContactId(savedState.contactId);
-      if (savedState.creditReport) setCreditReport(savedState.creditReport);
+      // Only restore creditReport if we don't have fresh API data
+      if (savedState.creditReport) {
+        console.log('📂 Checking if should restore creditReport from localStorage...');
+        setCreditReport(prev => {
+          if (prev?._freshFromAPI) {
+            console.log('🚫 Skipping - fresh API data exists with', prev.accounts?.length, 'accounts');
+            return prev;
+          }
+          console.log('📂 Restoring creditReport from localStorage');
+          return savedState.creditReport;
+        });
+      }
     }
   }, []);
 
@@ -1616,7 +1627,13 @@ const CompleteEnrollmentFlow = ({
         console.log('✅ Member token stored for credit report widget');
       }
       setShowFullCreditReport(true);
-      setCreditReport(completeCreditReport);
+      // ===== CRITICAL: Set fresh creditReport with accounts =====
+      console.log('🔥 Setting FRESH creditReport with', completeCreditReport.accounts?.length, 'accounts');
+      setCreditReport({
+        ...completeCreditReport,
+        _freshFromAPI: true,
+        _fetchedAt: Date.now()
+      });
       
       // ===== CRITICAL: Store member token for widget =====
       if (response.data?.memberToken) {
@@ -1660,19 +1677,44 @@ const CompleteEnrollmentFlow = ({
       
       setCurrentPhase(3);
 
-      const targetScore = 
-        resData.vantageScore || 
-        resData.score || 
-        resData.data?.vantageScore || 
-        resData.data?.reportData?.vantageScore || 
-        resData.reportData?.vantageScore || 
-        resData.bureaus?.transunion?.score || 
-        resData.bureaus?.experian?.score || 
-        resData.bureaus?.equifax?.score || 
-        resData.data?.bureaus?.transunion?.score || 
-        resData.data?.bureaus?.experian?.score || 
-        resData.data?.bureaus?.equifax?.score || 
-        null;
+      // ===== IMPROVED SCORE EXTRACTION (handles IDIQ BundleComponent structure) =====
+      const extractScoreFromResponse = (data) => {
+        // Path 1: Direct vantageScore (backend extracted)
+        if (data?.vantageScore) return parseInt(data.vantageScore, 10);
+        if (data?.score) return parseInt(data.score, 10);
+        
+        // Path 2: Nested data.vantageScore
+        if (data?.data?.vantageScore) return parseInt(data.data.vantageScore, 10);
+        
+        // Path 3: BundleComponent CreditScoreType (IDIQ raw response)
+        const bc = data?.BundleComponents?.BundleComponent || 
+                   data?.data?.BundleComponents?.BundleComponent;
+        if (bc?.CreditScoreType?.['@riskScore']) {
+          return parseInt(bc.CreditScoreType['@riskScore'], 10);
+        }
+        
+        // Path 4: TrueLink Borrower CreditScore (thin files like Roman)
+        const trueLink = bc?.TrueLinkCreditReportType;
+        if (trueLink?.Borrower?.CreditScore) {
+          const scores = Array.isArray(trueLink.Borrower.CreditScore) 
+            ? trueLink.Borrower.CreditScore 
+            : [trueLink.Borrower.CreditScore];
+          for (const s of scores) {
+            const score = parseInt(s?.['@riskScore'] || s?.riskScore, 10);
+            if (score >= 300 && score <= 850) return score;
+          }
+        }
+        
+        // Path 5: Bureau-specific scores
+        const bureaus = data?.bureaus || data?.data?.bureaus;
+        if (bureaus) {
+          return bureaus?.transunion?.score || bureaus?.experian?.score || bureaus?.equifax?.score;
+        }
+        
+        return null;
+      };
+      
+      const targetScore = extractScoreFromResponse(resData);
 
       console.log("🎯 Final Score Detected for Animation:", targetScore);
       console.log("📊 Response structure:", { 
@@ -3431,11 +3473,12 @@ const finalizeEnrollment = async () => {
                       >
                         <TableCell>
                           <Chip 
-                            label={account.bureau} 
+                            label={account.bureau || 'TransUnion'}
                             size="small"
                             color={
                               account.bureau === 'TransUnion' ? 'primary' :
                               account.bureau === 'Experian' ? 'secondary' :
+                              account.bureau === 'Equifax' ? 'success' :
                               'default'
                             }
                           />
@@ -3452,11 +3495,29 @@ const finalizeEnrollment = async () => {
                         </TableCell>
                         <TableCell>
                           <Chip 
-                            label={account.paymentStatus} 
+                            label={
+                              // ===== Translate IDIQ status codes to human-readable =====
+                              {
+                                'C': 'Current',
+                                'P': 'Paid',
+                                'O': 'Open',
+                                'T': 'Transferred',
+                                'D': 'Delinquent',
+                                'L': 'Late',
+                                'CO': 'Charge-Off',
+                                'CL': 'Collection',
+                                'F': 'Foreclosure',
+                                'R': 'Repossession',
+                                'Current': 'Current',
+                                'Paid': 'Paid',
+                                'Open': 'Open'
+                              }[account.paymentStatus] || account.paymentStatus || 'Unknown'
+                            }
                             size="small"
                             color={
-                              account.paymentStatus?.toLowerCase().includes('current') ? 'success' :
-                              account.paymentStatus?.toLowerCase().includes('late') ? 'error' :
+                              ['Current', 'Paid', 'C', 'P'].includes(account.paymentStatus) ? 'success' :
+                              ['Late', 'Delinquent', 'D', 'L', 'CO', 'CL', 'F', 'R'].includes(account.paymentStatus) ? 'error' :
+                              ['Open', 'O', 'Transferred', 'T'].includes(account.paymentStatus) ? 'info' :
                               'default'
                             }
                           />
