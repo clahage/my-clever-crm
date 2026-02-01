@@ -533,7 +533,7 @@ const AIReportGenerator = ({
       
       // Call AI Content Generator Firebase Function
       const response = await aiContentGenerator({
-        action: 'generateCreditReview',
+        type: 'generateCreditReview',
         params: {
           contactId: contactId || contact?.id,
           firstName: contact?.firstName || enrollmentData?.firstName,

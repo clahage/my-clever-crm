@@ -3098,12 +3098,58 @@ exports.aiContentGenerator = onCall(
                   content: `Credit Score: ${params.creditScore || 'unknown'}, Negative Items: ${params.negativeItems || 0}, Utilization: ${params.utilization || 0}%. Recommend the best plan and explain why. Format your response as JSON: {"plan": "Professional", "confidence": "high", "reason": "Clear explanation of why this plan fits", "expectedResults": "What the client can expect"}`
                 }];
               
+              // ===== NEW: Full Credit Review Email Generation =====
+              // Used by AIReportGenerator.jsx for personalized credit reviews
+              case 'generateCreditReview':
+                const p = params.params || params; // Handle nested params from frontend
+                return [{
+                  role: 'system',
+                  content: `You are Chris Lahage, a credit expert at Speedy Credit Repair with 30 years of experience as a former Toyota Finance Director. Write personalized, warm, professional credit review emails. Be encouraging but honest about challenges. Include specific actionable advice tailored to their situation. Always end with a call to action.
+
+FORMAT YOUR RESPONSE AS JSON:
+{
+  "subject": "Your Personalized Credit Review - [First Name]",
+  "body": "The full email body text here..."
+}`
+                }, {
+                  role: 'user',
+                  content: p.prompt || `Generate a personalized credit review email for ${p.firstName || 'Valued Customer'}.
+
+CREDIT PROFILE:
+- VantageScore 3.0: ${p.score || 'Unknown'} (${p.scoreRange?.label || 'Unknown range'})
+- Total Accounts: ${p.accountCount || 0}
+- Negative Items: ${p.negativeItemCount || 0}
+- Hard Inquiries: ${p.inquiryCount || 0}
+
+${p.negativeItems?.length > 0 ? `TOP NEGATIVE ITEMS TO ADDRESS:\n${p.negativeItems.slice(0,5).map((item, i) => `${i+1}. ${item.creditorName || 'Unknown'} - ${item.accountType || 'Account'} - Status: ${item.paymentStatus || 'Unknown'}`).join('\n')}` : 'No negative items identified.'}
+
+REQUIREMENTS:
+1. Be warm, encouraging, and professional
+2. Explain their score in plain, understandable language
+3. Identify the TOP factors affecting their score
+4. Provide 3-5 SPECIFIC action items they can take immediately
+5. ${p.score < 700 ? 'Include a soft recommendation for professional credit repair services' : 'Congratulate them on their good credit standing'}
+6. End with clear call to action: Call (888) 724-7344 or reply to this email
+
+TONE: Like a helpful friend who happens to be a credit expert
+LENGTH: 400-600 words
+
+SIGNATURE:
+${p.settings?.signatureName || 'Chris Lahage'}
+${p.settings?.signatureTitle || 'Credit Expert'}
+Speedy Credit Repair Inc.
+(888) 724-7344
+chris@speedycreditrepair.com
+
+Respond with valid JSON containing "subject" and "body" fields.`
+                }];
+              
               default:
                 throw new Error(`Unknown content type: ${type}`);
             }
           })(),
           temperature: 0.7,
-          max_tokens: type === 'contract' || type === 'poa' ? 2000 : 1500
+          max_tokens: type === 'contract' || type === 'poa' || type === 'generateCreditReview' ? 2000 : 1500
         })
       });
       
@@ -3116,6 +3162,38 @@ exports.aiContentGenerator = onCall(
       const generatedContent = aiData.choices[0].message.content;
       
       console.log(`✅ Generated ${type} content (${generatedContent.length} chars)`);
+      
+      // ===== Parse JSON response for generateCreditReview =====
+      if (type === 'generateCreditReview') {
+        try {
+          // Try to parse as JSON
+          const jsonMatch = generatedContent.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            return {
+              success: true,
+              review: {
+                subject: parsed.subject || `Your Personalized Credit Review`,
+                body: parsed.body || generatedContent,
+                content: parsed.body || generatedContent
+              },
+              type
+            };
+          }
+        } catch (parseErr) {
+          console.log('⚠️ Could not parse as JSON, returning raw content');
+        }
+        // Fallback: return raw content
+        return {
+          success: true,
+          review: {
+            subject: `Your Personalized Credit Review`,
+            body: generatedContent,
+            content: generatedContent
+          },
+          type
+        };
+      }
       
       return {
         success: true,
