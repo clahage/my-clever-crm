@@ -197,103 +197,119 @@ const IDIQCreditReportViewer = ({
   // ===== AUTO-CLICK SUMMARY FUNCTION =====
   // ===== Attempts to click the Summary button/tab in the IDIQ widget =====
   // ===========================================================================
-  const autoClickSummary = useCallback(() => {
+  // ===========================================================================
+  // ===== AUTO-CLICK PRINT TO REVEAL ALL ACCOUNTS =====
+  // ===== Discovery: Clicking Print then Cancel reveals all 91 accounts =====
+  // ===== Solution: Suppress print dialog while triggering the render =====
+  // ===========================================================================
+  const autoClickPrintToRevealAccounts = useCallback(() => {
     if (summaryClickAttempted.current) return;
     
     let attempts = 0;
-    const maxAttempts = 40; // 20 seconds total
+    const maxAttempts = 30; // 15 seconds total
     
-    console.log('🔍 Starting auto-click Summary search...');
+    console.log('🖨️ Starting auto-click Print to reveal all accounts...');
     
-    const tryClickSummary = setInterval(() => {
+    const tryClickPrint = setInterval(() => {
       attempts++;
       
-      // ===== METHOD 1: Search in regular DOM =====
-      const allClickables = document.querySelectorAll('button, [role="tab"], [role="button"], .tab, a, span, div[onclick]');
-      for (const el of allClickables) {
-        const text = (el.textContent || '').toLowerCase().trim();
-        const ariaLabel = (el.getAttribute('aria-label') || '').toLowerCase();
-        
-        // Look for "summary" but not "account summary" which is different
-        if ((text === 'summary' || ariaLabel === 'summary' || text.startsWith('summary')) && 
-            !text.includes('account') && 
-            el.offsetParent !== null) { // Check if element is visible
-          try {
-            el.click();
-            console.log('✅ Auto-clicked Summary button (regular DOM)');
-            setSummaryClicked(true);
-            summaryClickAttempted.current = true;
-            clearInterval(tryClickSummary);
-            return;
-          } catch (e) {
-            console.log('⚠️ Click failed:', e);
-          }
-        }
-      }
+      // ===== Find "Print this page" links =====
+      const printLinks = document.querySelectorAll('a[onclick*="PrintPage"], a[href*="PrintPage"]');
       
-      // ===== METHOD 2: Search inside Shadow DOM =====
-      const widgetEl = document.querySelector('idiq-credit-report');
-      if (widgetEl?.shadowRoot) {
-        const shadowClickables = widgetEl.shadowRoot.querySelectorAll('button, [role="tab"], [role="button"], .tab, a, span');
-        for (const el of shadowClickables) {
-          const text = (el.textContent || '').toLowerCase().trim();
-          const ariaLabel = (el.getAttribute('aria-label') || '').toLowerCase();
-          
-          if ((text === 'summary' || ariaLabel === 'summary' || text.startsWith('summary')) && 
-              !text.includes('account')) {
+      if (printLinks.length > 0) {
+        console.log('🖨️ Found', printLinks.length, 'PrintPage link(s), attempting to trigger...');
+        
+        // ===== STEP 1: Suppress the print dialog temporarily =====
+        const originalPrint = window.print;
+        window.print = function() {
+          console.log('🚫 Print dialog suppressed - accounts should now be visible');
+          // Do nothing - suppress the dialog
+        };
+        
+        // ===== STEP 2: Also suppress any print-related functions =====
+        const originalPrintPage = window.PrintPage;
+        if (typeof window.PrintPage === 'function') {
+          const origFn = window.PrintPage;
+          window.PrintPage = function() {
+            console.log('🖨️ PrintPage intercepted - rendering accounts...');
+            // Call original to render, but we've suppressed window.print
             try {
-              el.click();
-              console.log('✅ Auto-clicked Summary button (Shadow DOM)');
+              return origFn.apply(this, arguments);
+            } catch (e) {
+              console.log('⚠️ PrintPage execution error (expected):', e.message);
+            }
+          };
+        }
+        
+        // ===== STEP 3: Click the print link =====
+        try {
+          // Try clicking the first print link
+          printLinks[0].click();
+          console.log('✅ Clicked Print link to reveal all accounts');
+          setSummaryClicked(true);
+          summaryClickAttempted.current = true;
+        } catch (e) {
+          console.log('⚠️ Direct click failed, trying onclick:', e);
+          // Try triggering onclick directly
+          try {
+            const onclickAttr = printLinks[0].getAttribute('onclick');
+            if (onclickAttr) {
+              eval(onclickAttr);
+              console.log('✅ Triggered onclick to reveal accounts');
               setSummaryClicked(true);
               summaryClickAttempted.current = true;
-              clearInterval(tryClickSummary);
-              return;
-            } catch (e) {
-              console.log('⚠️ Shadow DOM click failed:', e);
             }
+          } catch (e2) {
+            console.log('⚠️ Onclick eval failed:', e2);
           }
         }
+        
+        // ===== STEP 4: Restore original print function after delay =====
+        setTimeout(() => {
+          window.print = originalPrint;
+          if (originalPrintPage) {
+            window.PrintPage = originalPrintPage;
+          }
+          console.log('✅ Print functions restored');
+        }, 2000);
+        
+        clearInterval(tryClickPrint);
+        return;
       }
       
-      // ===== METHOD 3: Try iframe if widget uses one =====
-      const iframes = document.querySelectorAll('iframe');
-      for (const iframe of iframes) {
-        try {
-          const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-          if (iframeDoc) {
-            const iframeClickables = iframeDoc.querySelectorAll('button, [role="tab"], a, span');
-            for (const el of iframeClickables) {
-              const text = (el.textContent || '').toLowerCase().trim();
-              if (text === 'summary' || text.startsWith('summary')) {
-                el.click();
-                console.log('✅ Auto-clicked Summary button (iframe)');
-                setSummaryClicked(true);
-                summaryClickAttempted.current = true;
-                clearInterval(tryClickSummary);
-                return;
-              }
-            }
+      // ===== FALLBACK: Try Summary button if Print not found =====
+      const allClickables = document.querySelectorAll('button, [role="tab"], [role="button"], .tab, a, span');
+      for (const el of allClickables) {
+        const text = (el.textContent || '').toLowerCase().trim();
+        if (text === 'summary' && el.offsetParent !== null) {
+          try {
+            el.click();
+            console.log('✅ Fallback: Clicked Summary button');
+            setSummaryClicked(true);
+            summaryClickAttempted.current = true;
+            clearInterval(tryClickPrint);
+            return;
+          } catch (e) {
+            // Continue searching
           }
-        } catch (e) {
-          // Cross-origin iframe - can't access
         }
       }
       
       // Log progress every 5 attempts
       if (attempts % 5 === 0) {
-        console.log(`🔍 Still searching for Summary button... (attempt ${attempts}/${maxAttempts})`);
+        console.log(`🔍 Still searching for Print/Summary... (attempt ${attempts}/${maxAttempts})`);
       }
       
       if (attempts >= maxAttempts) {
-        console.log('⚠️ Could not auto-click Summary button after', maxAttempts, 'attempts');
-        console.log('💡 User may need to manually click "Summary" tab in the credit report');
+        console.log('⚠️ Could not auto-trigger full report view');
+        console.log('💡 Tip: Click "Print this page" then Cancel to see all accounts');
         summaryClickAttempted.current = true;
-        clearInterval(tryClickSummary);
+        clearInterval(tryClickPrint);
       }
     }, 500); // Check every 500ms
     
     // Return cleanup function
-    return () => clearInterval(tryClickSummary);
+    return () => clearInterval(tryClickPrint);
   }, []);
 
   // ===========================================================================
@@ -357,26 +373,14 @@ const IDIQCreditReportViewer = ({
           console.log('✅ IDIQ widget element created');
           setWidgetReady(true);
           
-          // ===== STEP 6: Auto-click Summary button after widget renders =====
+          // ===== STEP 6: Auto-click Print to reveal all accounts =====
           // Reset the attempt flag for this new widget
           summaryClickAttempted.current = false;
           setSummaryClicked(false);
-          // Wait for widget to fully render before trying to click Summary
+          // Start searching for Print link QUICKLY - before user sees limited view
           setTimeout(() => {
-            autoClickSummary();
-            
-            // ===== ALSO: Detect PrintPage for revealing all accounts =====
-            setTimeout(() => {
-              try {
-                const printLinks = document.querySelectorAll('a[onclick*="PrintPage"]');
-                if (printLinks.length > 0) {
-                  console.log('🖨️ Found', printLinks.length, 'PrintPage link(s) - click Print then Cancel to reveal all accounts');
-                }
-              } catch (e) {
-                console.log('⚠️ PrintPage detection failed:', e);
-              }
-            }, 3000);
-          }, 2500); // 2.5 second delay to let widget fully initialize
+            autoClickPrintToRevealAccounts();
+          }, 1000); // 1 second delay - fast enough to catch before display
         }
       }, 100); // Small delay to ensure script is fully initialized
     };
@@ -392,7 +396,7 @@ const IDIQCreditReportViewer = ({
     return () => {
       // Intentionally empty - keep scriptLoadAttempted true to prevent reloads
     };
-  }, [memberToken, onError, autoClickSummary]);
+  }, [memberToken, onError, autoClickPrintToRevealAccounts]);
 
   // ===== REFRESH TOKEN HANDLER =====
   const handleRefreshToken = async () => {
@@ -569,19 +573,7 @@ const IDIQCreditReportViewer = ({
         </Paper>
       )}
 
-      {/* Tip for viewing full report - shown if auto-click didn't work */}
-      {widgetReady && !summaryClicked && (
-        <Alert 
-          severity="info" 
-          sx={{ mb: 2 }}
-          icon={<Info size={20} />}
-        >
-          <Typography variant="body2">
-            <strong>Tip:</strong> Click the <strong>"Summary"</strong> tab above to view your complete credit report with all accounts from all three bureaus.
-          </Typography>
-        </Alert>
-      )}
-
+      {/* Auto-click Print now reveals all accounts automatically */}
       {/* IDIQ Widget Container */}
       <Paper
         sx={{
