@@ -1,26 +1,33 @@
 // Path: /src/components/ServicePlanRecommender.jsx
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * SERVICE PLAN RECOMMENDER - MEGA ENTERPRISE VERSION
+ * SERVICE PLAN RECOMMENDER - MEGA ENTERPRISE VERSION WITH REAL AI
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * INTELLIGENT SERVICE PLAN MATCHING WITH DYNAMIC PRICING
+ * INTELLIGENT SERVICE PLAN MATCHING WITH REAL AI RECOMMENDATIONS
+ * 
+ * UPDATED: Now calls aiContentGenerator backend for REAL AI-powered recommendations
+ * using actual contact data, credit reports, AI call transcripts, and interaction history
  * 
  * Features:
  * ✅ 6 Service Plans (DIY, Standard, Acceleration, PFD, Hybrid, Premium)
- * ✅ AI-powered plan matching based on lead score
+ * ✅ REAL AI-powered plan matching via aiContentGenerator
+ * ✅ Fetches actual contact data from Firestore
+ * ✅ Considers AI receptionist call transcripts
+ * ✅ Considers email/interaction history
  * ✅ Dynamic pricing with promotional offers
  * ✅ Feature comparison matrix
  * ✅ ROI calculator
  * ✅ Success probability predictor
  * ✅ Payment plan options
  * ✅ Upsell/downsell intelligence
- * ✅ A/B testing different presentations
  * ✅ Real-time plan performance analytics
  * 
- * @version 1.0.0 MEGA ENTERPRISE
- * @date November 2025
+ * @version 2.0.0 MEGA ENTERPRISE WITH REAL AI
+ * @date February 2026
  * @author SpeedyCRM Engineering - Christopher
+ * 
+ * © 1995-2026 Speedy Credit Repair Inc. | All Rights Reserved
  */
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -33,31 +40,34 @@ import {
   ToggleButton, ToggleButtonGroup, Slider, Switch, FormControlLabel,
   Stepper, Step, StepLabel, StepContent, TextField, CircularProgress,
   Accordion, AccordionSummary, AccordionDetails, Avatar, AvatarGroup,
-  Tabs, Tab, Zoom, Fade, Grow, CardHeader
+  Tabs, Tab, Zoom, Fade, Grow, CardHeader, Skeleton
 } from '@mui/material';
 
 import {
   Star, CheckCircle, XCircle, Info, TrendingUp, DollarSign,
   Clock, Target, Zap, Shield, Award, Users, HeartHandshake,
-  Calculator, ChevronRight, ExpandMore, Compare, Sparkles,
+  Calculator, ChevronRight, ChevronDown, ArrowLeftRight, Sparkles,
   ThumbsUp, CreditCard, Calendar, Phone, Mail, MessageSquare,
   BarChart3, LineChart, Brain, Rocket, Crown, Gift, AlertCircle,
   FileCheck, BookOpen, Lightbulb, UserCheck, CheckSquare,
   FastForward, Timer, School, Briefcase, Home, Car, GraduationCap,
-  TrendingDown, ArrowUpRight, Lock, Unlock, RefreshCw, History
+  TrendingDown, ArrowUpRight, Lock, Unlock, RefreshCw, History,
+  AlertTriangle, Wifi, WifiOff
 } from 'lucide-react';
 
-import { db } from '@/lib/firebase';
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { db, functions } from '@/lib/firebase';
+import { httpsCallable } from 'firebase/functions';
+import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { format, addMonths, differenceInDays } from 'date-fns';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SERVICE PLAN DEFINITIONS
+// SERVICE PLAN DEFINITIONS (Must match backend SERVICE_PLANS_CONFIG)
 // ═══════════════════════════════════════════════════════════════════════════
 
 const SERVICE_PLANS = {
   DIY: {
     id: 'diy',
+    key: 'DIY',
     name: 'DIY Credit Repair',
     tagline: 'Learn to repair your own credit',
     price: 39,
@@ -113,6 +123,7 @@ const SERVICE_PLANS = {
 
   STANDARD: {
     id: 'standard',
+    key: 'STANDARD',
     name: 'Standard Service',
     tagline: 'Professional credit repair service',
     price: 149,
@@ -170,6 +181,7 @@ const SERVICE_PLANS = {
 
   ACCELERATION: {
     id: 'acceleration',
+    key: 'ACCELERATION',
     name: 'Acceleration Plus',
     tagline: 'Fast-track credit restoration',
     price: 199,
@@ -227,10 +239,11 @@ const SERVICE_PLANS = {
 
   PFD: {
     id: 'pfd',
+    key: 'PFD',
     name: 'Pay-for-Deletion',
     tagline: 'Risk-free, pay only for results',
     price: 0,
-    setupFee: 0,
+    setupFee: 199,
     perDeletion: 75,
     color: '#9C27B0',
     icon: Target,
@@ -284,6 +297,7 @@ const SERVICE_PLANS = {
 
   HYBRID: {
     id: 'hybrid',
+    key: 'HYBRID',
     name: 'Hybrid AI Solution',
     tagline: 'AI-powered with human oversight',
     price: 99,
@@ -340,6 +354,7 @@ const SERVICE_PLANS = {
 
   PREMIUM: {
     id: 'premium',
+    key: 'PREMIUM',
     name: 'Premium White Glove',
     tagline: 'Concierge credit restoration',
     price: 349,
@@ -397,248 +412,15 @@ const SERVICE_PLANS = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// PLAN RECOMMENDATION LOGIC
-// ═══════════════════════════════════════════════════════════════════════════
-
-class PlanRecommendationEngine {
-  /**
-   * Recommend a plan based on lead score and profile
-   */
-  static recommendPlan(leadScore, contactData) {
-    const recommendations = [];
-    
-    // Primary recommendation based on score
-    if (leadScore >= 8) {
-      recommendations.push({
-        plan: 'PREMIUM',
-        confidence: 95,
-        reason: 'High-value lead with urgent needs'
-      });
-      recommendations.push({
-        plan: 'ACCELERATION',
-        confidence: 75,
-        reason: 'Alternative fast-track option'
-      });
-    } else if (leadScore >= 6) {
-      recommendations.push({
-        plan: 'ACCELERATION',
-        confidence: 90,
-        reason: 'Best balance of speed and value'
-      });
-      recommendations.push({
-        plan: 'STANDARD',
-        confidence: 70,
-        reason: 'Solid alternative option'
-      });
-    } else if (leadScore >= 4) {
-      recommendations.push({
-        plan: 'STANDARD',
-        confidence: 85,
-        reason: 'Comprehensive professional service'
-      });
-      recommendations.push({
-        plan: 'HYBRID',
-        confidence: 65,
-        reason: 'Tech-forward budget option'
-      });
-    } else if (leadScore >= 2) {
-      recommendations.push({
-        plan: 'HYBRID',
-        confidence: 80,
-        reason: 'Affordable AI-powered solution'
-      });
-      recommendations.push({
-        plan: 'DIY',
-        confidence: 60,
-        reason: 'Budget education option'
-      });
-    } else {
-      recommendations.push({
-        plan: 'DIY',
-        confidence: 75,
-        reason: 'Start with education'
-      });
-      recommendations.push({
-        plan: 'PFD',
-        confidence: 70,
-        reason: 'Risk-free alternative'
-      });
-    }
-    
-    // Adjust based on specific factors
-    if (contactData.primaryGoal === 'buyingHome') {
-      // Prioritize speed for home buyers
-      const accelIndex = recommendations.findIndex(r => r.plan === 'ACCELERATION');
-      if (accelIndex >= 0) {
-        recommendations[accelIndex].confidence += 10;
-        recommendations[accelIndex].reason += ' - Critical for mortgage approval';
-      }
-    }
-    
-    if (contactData.monthlyIncome < 2000) {
-      // Prioritize budget options
-      const hybridIndex = recommendations.findIndex(r => r.plan === 'HYBRID');
-      if (hybridIndex >= 0) {
-        recommendations[hybridIndex].confidence += 15;
-      }
-    }
-    
-    if (contactData.previousClient) {
-      // Upgrade previous clients
-      recommendations.forEach(rec => {
-        if (rec.plan === 'PREMIUM' || rec.plan === 'ACCELERATION') {
-          rec.confidence += 10;
-          rec.reason += ' - Loyalty upgrade available';
-        }
-      });
-    }
-    
-    // Sort by confidence
-    recommendations.sort((a, b) => b.confidence - a.confidence);
-    
-    return recommendations;
-  }
-  
-  /**
-   * Calculate dynamic pricing based on factors
-   */
-  static calculateDynamicPricing(basePlan, contactData, options = {}) {
-    let price = SERVICE_PLANS[basePlan].price;
-    let discounts = [];
-    let bonuses = [];
-    
-    // Time-based promotions
-    const hour = new Date().getHours();
-    if (hour >= 9 && hour <= 11) {
-      discounts.push({
-        name: 'Morning Special',
-        amount: price * 0.1,
-        reason: 'Early bird discount'
-      });
-    }
-    
-    // Lead score discount
-    if (contactData.leadScore >= 7) {
-      discounts.push({
-        name: 'High-Value Client',
-        amount: price * 0.15,
-        reason: 'Priority client discount'
-      });
-    }
-    
-    // Urgency discount
-    if (contactData.timeline === 'immediate') {
-      discounts.push({
-        name: 'Urgent Needs',
-        amount: price * 0.1,
-        reason: 'Fast decision bonus'
-      });
-    }
-    
-    // Referral discount
-    if (contactData.leadSource === 'referral') {
-      discounts.push({
-        name: 'Referral Discount',
-        amount: price * 0.2,
-        reason: 'Friend/family referred'
-      });
-    }
-    
-    // Bundle bonuses
-    if (options.includeSpouse) {
-      bonuses.push({
-        name: 'Spouse Included',
-        value: price * 0.5,
-        description: 'Add spouse at 50% off'
-      });
-    }
-    
-    if (options.annualPayment) {
-      discounts.push({
-        name: 'Annual Prepay',
-        amount: price * 2, // 2 months free
-        reason: 'Save 2 months with annual'
-      });
-    }
-    
-    // Calculate final price
-    const totalDiscounts = discounts.reduce((sum, d) => sum + d.amount, 0);
-    const finalPrice = Math.max(price - totalDiscounts, price * 0.5); // Never below 50%
-    
-    return {
-      originalPrice: price,
-      discounts,
-      bonuses,
-      finalPrice: Math.round(finalPrice),
-      savings: Math.round(totalDiscounts),
-      savingsPercent: Math.round((totalDiscounts / price) * 100)
-    };
-  }
-  
-  /**
-   * Predict success probability for each plan
-   */
-  static predictSuccess(plan, contactData) {
-    let baseProbability = parseFloat(SERVICE_PLANS[plan].results.successRate) || 50;
-    let factors = [];
-    
-    // Credit score impact
-    if (contactData.creditScore < 500) {
-      baseProbability *= 0.8;
-      factors.push('Very low starting score');
-    } else if (contactData.creditScore > 650) {
-      baseProbability *= 1.1;
-      factors.push('Good starting position');
-    }
-    
-    // Negative items
-    const negativeCount = Object.values(contactData.negativeItems || {})
-      .reduce((sum, count) => sum + count, 0);
-    
-    if (negativeCount > 10) {
-      baseProbability *= 0.9;
-      factors.push('Many items to dispute');
-    } else if (negativeCount < 5) {
-      baseProbability *= 1.15;
-      factors.push('Few items to address');
-    }
-    
-    // Plan-specific adjustments
-    if (plan === 'DIY' && contactData.educationLevel !== 'high') {
-      baseProbability *= 0.7;
-      factors.push('DIY requires dedication');
-    }
-    
-    if (plan === 'PREMIUM' || plan === 'ACCELERATION') {
-      baseProbability *= 1.2;
-      factors.push('Professional fast-track service');
-    }
-    
-    // Previous experience
-    if (contactData.previousCreditRepair === 'failed') {
-      baseProbability *= 0.8;
-      factors.push('Previous attempt challenges');
-    } else if (contactData.previousCreditRepair === 'successful') {
-      baseProbability *= 1.3;
-      factors.push('Previous success experience');
-    }
-    
-    return {
-      probability: Math.min(95, Math.max(25, baseProbability)),
-      factors,
-      confidence: 'high' // Based on 30 years data
-    };
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
 const ServicePlanRecommender = ({ 
-  contactData = {}, 
-  leadScore = 5,
+  contactId = null,
+  contactData: initialContactData = {}, 
+  leadScore: initialLeadScore = 5,
   onPlanSelected,
+  onWorkflowAdvance,
   allowComparison = true,
   showCalculator = true,
   embedded = false 
@@ -654,88 +436,516 @@ const ServicePlanRecommender = ({
   const [showDetails, setShowDetails] = useState({});
   const [calculatorOpen, setCalculatorOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
-  const [recommendations, setRecommendations] = useState([]);
+  
+  // AI Recommendation State
+  const [aiRecommendation, setAiRecommendation] = useState(null);
+  const [contactSummary, setContactSummary] = useState(null);
+  const [dataSourcesUsed, setDataSourcesUsed] = useState({});
+  
+  // Loading/Error States
+  const [loading, setLoading] = useState(true);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [error, setError] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
+  
+  // Dynamic pricing and predictions
   const [pricing, setPricing] = useState({});
   const [successPredictions, setSuccessPredictions] = useState({});
-  const [loading, setLoading] = useState(true);
+  
+  // Contact data (can be passed in or fetched)
+  const [contactData, setContactData] = useState(initialContactData);
+  const [leadScore, setLeadScore] = useState(initialLeadScore);
+  
+  // ═════════════════════════════════════════════════════════════════════════
+  // FETCH AI RECOMMENDATION FROM BACKEND
+  // ═════════════════════════════════════════════════════════════════════════
+  
+  const fetchAIRecommendation = useCallback(async () => {
+    if (!contactId) {
+      console.warn('⚠️ No contactId provided, using local recommendation');
+      setLoading(false);
+      return;
+    }
+    
+    setAnalyzing(true);
+    setError(null);
+    
+    console.log('🤖 Fetching AI recommendation for contact:', contactId);
+    
+    try {
+      // Call the enhanced aiContentGenerator function
+      const aiContentGenerator = httpsCallable(functions, 'aiContentGenerator');
+      
+      const result = await aiContentGenerator({
+        type: 'recommendServicePlan',
+        contactId: contactId
+      });
+      
+      console.log('✅ AI Recommendation received:', result.data);
+      
+      if (result.data?.success) {
+        const { recommendation, contactSummary: summary, dataSourcesUsed: sources } = result.data;
+        
+        // Store the AI recommendation
+        setAiRecommendation(recommendation);
+        setContactSummary(summary);
+        setDataSourcesUsed(sources || {});
+        
+        // Update contact data from response
+        if (summary) {
+          setContactData(prev => ({
+            ...prev,
+            creditScore: summary.creditScore,
+            negativeItemCount: summary.negativeItemCount,
+            inquiryCount: summary.inquiryCount
+          }));
+          setLeadScore(summary.leadScore || initialLeadScore);
+        }
+        
+        // Set the recommended plan as selected
+        if (recommendation?.recommendedPlan && SERVICE_PLANS[recommendation.recommendedPlan]) {
+          setSelectedPlans([recommendation.recommendedPlan]);
+          
+          // Mark the recommended plan
+          Object.keys(SERVICE_PLANS).forEach(key => {
+            SERVICE_PLANS[key].recommended = (key === recommendation.recommendedPlan);
+          });
+        }
+        
+        console.log(`🎯 AI Recommends: ${recommendation.recommendedPlan} (${recommendation.confidence} confidence)`);
+        
+      } else {
+        throw new Error(result.data?.error || 'Failed to get recommendation');
+      }
+      
+    } catch (err) {
+      console.error('❌ AI recommendation error:', err);
+      setError(err.message || 'Failed to analyze credit profile');
+      
+      // Fall back to local recommendation
+      console.log('⚠️ Falling back to local recommendation engine');
+      generateLocalRecommendation();
+      
+    } finally {
+      setAnalyzing(false);
+      setLoading(false);
+    }
+  }, [contactId, initialLeadScore]);
+  
+  // ═════════════════════════════════════════════════════════════════════════
+  // LOCAL FALLBACK RECOMMENDATION (when AI fails)
+  // ═════════════════════════════════════════════════════════════════════════
+  
+  const generateLocalRecommendation = useCallback(() => {
+    console.log('📊 Generating local recommendation...');
+    
+    const score = contactData.creditScore || contactData.idiqEnrollment?.creditScore;
+    const negativeItems = contactData.negativeItemCount || contactData.idiqEnrollment?.negativeItemCount || 0;
+    const currentLeadScore = leadScore;
+    
+    let recommendedPlan = 'STANDARD';
+    let confidence = 'medium';
+    let reason = 'Based on typical credit repair needs';
+    
+    // Rule-based logic
+    if (score && score < 500 && negativeItems > 10) {
+      recommendedPlan = 'PREMIUM';
+      confidence = 'high';
+      reason = 'Complex credit situation requires comprehensive support';
+    } else if (contactData.primaryGoal === 'buyingHome' || contactData.timeline === 'immediate') {
+      recommendedPlan = 'ACCELERATION';
+      confidence = 'high';
+      reason = 'Urgent timeline requires expedited service';
+    } else if (currentLeadScore >= 8) {
+      recommendedPlan = 'ACCELERATION';
+      confidence = 'medium';
+      reason = 'High engagement suggests readiness for premium service';
+    } else if (currentLeadScore <= 3 || negativeItems <= 3) {
+      recommendedPlan = 'PFD';
+      confidence = 'medium';
+      reason = 'Pay-for-delete offers risk-free results-based pricing';
+    } else if (contactData.budget === 'low') {
+      recommendedPlan = 'HYBRID';
+      confidence = 'medium';
+      reason = 'Budget-friendly AI-powered solution';
+    }
+    
+    const plan = SERVICE_PLANS[recommendedPlan];
+    
+    setAiRecommendation({
+      recommendedPlan,
+      confidence,
+      monthlyPrice: plan.price,
+      reasoning: {
+        primary: reason,
+        creditFactors: `Score: ${score || 'Unknown'}, Negative Items: ${negativeItems}`,
+        behavioralFactors: 'Based on available profile data',
+        urgencyAssessment: contactData.timeline || 'Standard timeline'
+      },
+      alternativePlan: {
+        plan: 'STANDARD',
+        reason: 'Solid choice for most credit repair needs'
+      },
+      personalizedPitch: `Based on your credit profile, the ${plan.name} plan offers the best balance of results and value for your situation.`,
+      expectedResults: {
+        timeline: plan.results.timeline,
+        pointIncrease: plan.results.avgPointIncrease,
+        keyMilestones: ['Initial disputes submitted', 'First deletions received', 'Score improvement verified']
+      },
+      planDetails: plan,
+      fallbackUsed: true
+    });
+    
+    setSelectedPlans([recommendedPlan]);
+    
+    // Mark recommended
+    Object.keys(SERVICE_PLANS).forEach(key => {
+      SERVICE_PLANS[key].recommended = (key === recommendedPlan);
+    });
+    
+    setContactSummary({
+      name: `${contactData.firstName || ''} ${contactData.lastName || ''}`.trim() || 'Prospect',
+      creditScore: score,
+      negativeItemCount: negativeItems,
+      leadScore: currentLeadScore
+    });
+    
+    setDataSourcesUsed({
+      contactData: true,
+      idiqEnrollment: !!contactData.idiqEnrollment,
+      aiCalls: false,
+      emailHistory: false
+    });
+    
+  }, [contactData, leadScore]);
   
   // ═════════════════════════════════════════════════════════════════════════
   // INITIALIZATION
   // ═════════════════════════════════════════════════════════════════════════
   
   useEffect(() => {
-    initializeRecommendations();
-  }, [leadScore, contactData]);
-  
-  const initializeRecommendations = async () => {
-    setLoading(true);
+    console.log('🔄 ServicePlanRecommender initializing...', { contactId, hasInitialData: !!initialContactData.firstName });
     
-    try {
-      // Get AI recommendations
-      const recs = PlanRecommendationEngine.recommendPlan(leadScore, contactData);
-      setRecommendations(recs);
+    // If we have a contactId, fetch AI recommendation
+    if (contactId) {
+      fetchAIRecommendation();
+    } else {
+      // Use local recommendation with provided data
+      generateLocalRecommendation();
+      setLoading(false);
+    }
+    
+    // Calculate pricing for all plans
+    initializePricing();
+    
+  }, [contactId, fetchAIRecommendation]);
+  
+  // ═════════════════════════════════════════════════════════════════════════
+  // PRICING CALCULATIONS
+  // ═════════════════════════════════════════════════════════════════════════
+  
+  const initializePricing = useCallback(() => {
+    const pricingData = {};
+    const successData = {};
+    
+    Object.keys(SERVICE_PLANS).forEach(planKey => {
+      const plan = SERVICE_PLANS[planKey];
       
-      // Set primary recommendation as selected
-      if (recs.length > 0) {
-        setSelectedPlans([recs[0].plan]);
+      // Calculate dynamic pricing
+      let price = plan.price;
+      let discounts = [];
+      
+      // Time-based promotions
+      const hour = new Date().getHours();
+      if (hour >= 9 && hour <= 11) {
+        discounts.push({ name: 'Morning Special', amount: price * 0.1 });
       }
       
-      // Calculate pricing for all plans
-      const pricingData = {};
-      const successData = {};
+      // Lead score discount
+      if (leadScore >= 7) {
+        discounts.push({ name: 'Priority Client', amount: price * 0.1 });
+      }
       
-      Object.keys(SERVICE_PLANS).forEach(plan => {
-        pricingData[plan] = PlanRecommendationEngine.calculateDynamicPricing(
-          plan, 
-          contactData,
-          { annualPayment: paymentFrequency === 'annual', includeSpouse }
-        );
-        
-        successData[plan] = PlanRecommendationEngine.predictSuccess(plan, contactData);
+      const totalDiscounts = discounts.reduce((sum, d) => sum + d.amount, 0);
+      const finalPrice = Math.max(price - totalDiscounts, price * 0.7);
+      
+      pricingData[planKey] = {
+        originalPrice: plan.originalPrice || price,
+        currentPrice: price,
+        discounts,
+        finalPrice: Math.round(finalPrice),
+        savings: Math.round(totalDiscounts)
+      };
+      
+      // Calculate success probability
+      let probability = parseFloat(plan.results.successRate) || 70;
+      if (contactData.creditScore > 600) probability *= 1.1;
+      if (contactData.negativeItemCount < 5) probability *= 1.1;
+      
+      successData[planKey] = {
+        probability: Math.min(95, Math.round(probability)),
+        factors: []
+      };
+    });
+    
+    setPricing(pricingData);
+    setSuccessPredictions(successData);
+  }, [leadScore, contactData]);
+  
+  // ═════════════════════════════════════════════════════════════════════════
+  // PLAN SELECTION HANDLER
+  // ═════════════════════════════════════════════════════════════════════════
+  
+  const handlePlanSelect = async (planKey) => {
+    console.log('📋 Plan selected:', planKey);
+    
+    if (comparisonMode) {
+      // Handle comparison mode selection
+      setSelectedPlans(prev => {
+        if (prev.includes(planKey)) {
+          return prev.filter(p => p !== planKey);
+        }
+        if (prev.length >= 3) {
+          return [...prev.slice(1), planKey];
+        }
+        return [...prev, planKey];
       });
+    } else {
+      // Single selection mode
+      setSelectedPlans([planKey]);
       
-      setPricing(pricingData);
-      setSuccessPredictions(successData);
+      const plan = SERVICE_PLANS[planKey];
+      const planPricing = pricing[planKey] || {};
       
-    } catch (error) {
-      console.error('Error initializing recommendations:', error);
-    } finally {
-      setLoading(false);
+      // Notify parent component
+      if (onPlanSelected) {
+        onPlanSelected({
+          plan,
+          planKey,
+          pricing: planPricing,
+          aiRecommendation,
+          prediction: successPredictions[planKey]
+        });
+      }
     }
   };
   
   // ═════════════════════════════════════════════════════════════════════════
-  // PLAN SELECTION HANDLERS
+  // PROCEED TO CONTRACT (Workflow Advancement)
   // ═════════════════════════════════════════════════════════════════════════
   
-  const handlePlanSelect = (planId) => {
-    if (comparisonMode) {
-      setSelectedPlans(prev => {
-        if (prev.includes(planId)) {
-          return prev.filter(p => p !== planId);
-        }
-        if (prev.length >= 3) {
-          return [...prev.slice(1), planId];
-        }
-        return [...prev, planId];
+  const handleProceedToContract = async () => {
+    if (!contactId || selectedPlans.length === 0) {
+      console.error('❌ Cannot proceed: missing contactId or selected plan');
+      return;
+    }
+    
+    const selectedPlanKey = selectedPlans[0];
+    const selectedPlan = SERVICE_PLANS[selectedPlanKey];
+    
+    console.log('📝 Proceeding to contract with plan:', selectedPlanKey);
+    
+    try {
+      // Update contact with selected plan
+      const contactRef = doc(db, 'contacts', contactId);
+      await updateDoc(contactRef, {
+        selectedPlan: selectedPlanKey,
+        selectedPlanName: selectedPlan.name,
+        selectedPlanPrice: selectedPlan.price,
+        planSelectedAt: serverTimestamp(),
+        workflowStage: 'contract_generation',
+        workflowLastUpdate: serverTimestamp(),
+        // Store AI recommendation data for reference
+        aiRecommendation: aiRecommendation ? {
+          recommendedPlan: aiRecommendation.recommendedPlan,
+          confidence: aiRecommendation.confidence,
+          reasoning: aiRecommendation.reasoning?.primary,
+          timestamp: new Date().toISOString()
+        } : null
       });
-    } else {
-      setSelectedPlans([planId]);
-      if (onPlanSelected) {
-        const plan = SERVICE_PLANS[planId];
-        const pricing = PlanRecommendationEngine.calculateDynamicPricing(
-          planId,
-          contactData,
-          { annualPayment: paymentFrequency === 'annual', includeSpouse }
-        );
-        
-        onPlanSelected({
-          plan,
-          pricing,
-          prediction: successPredictions[planId]
+      
+      console.log('✅ Contact updated with selected plan');
+      
+      // Notify parent to advance workflow
+      if (onWorkflowAdvance) {
+        onWorkflowAdvance({
+          nextStage: 'contract_generation',
+          selectedPlan: selectedPlanKey,
+          planDetails: selectedPlan,
+          contactId
         });
       }
+      
+    } catch (err) {
+      console.error('❌ Error updating contact:', err);
+      setError('Failed to save plan selection. Please try again.');
     }
+  };
+  
+  // ═════════════════════════════════════════════════════════════════════════
+  // RETRY HANDLER
+  // ═════════════════════════════════════════════════════════════════════════
+  
+  const handleRetry = () => {
+    setRetryCount(prev => prev + 1);
+    setError(null);
+    setLoading(true);
+    fetchAIRecommendation();
+  };
+  
+  // ═════════════════════════════════════════════════════════════════════════
+  // RENDER AI RECOMMENDATION CARD
+  // ═════════════════════════════════════════════════════════════════════════
+  
+  const renderAIRecommendationCard = () => {
+    if (!aiRecommendation) return null;
+    
+    const plan = SERVICE_PLANS[aiRecommendation.recommendedPlan];
+    if (!plan) return null;
+    
+    return (
+      <Paper
+        elevation={4}
+        sx={{
+          p: 3,
+          mb: 4,
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          color: 'white',
+          borderRadius: 3
+        }}
+      >
+        <Stack direction="row" spacing={2} alignItems="flex-start">
+          <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 56, height: 56 }}>
+            <Brain size={28} />
+          </Avatar>
+          
+          <Box sx={{ flex: 1 }}>
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
+              <Typography variant="h6" fontWeight="bold">
+                AI Recommendation
+              </Typography>
+              <Chip
+                label={`${aiRecommendation.confidence?.toUpperCase()} CONFIDENCE`}
+                size="small"
+                sx={{ 
+                  bgcolor: aiRecommendation.confidence === 'high' ? 'success.main' : 
+                           aiRecommendation.confidence === 'medium' ? 'warning.main' : 'grey.500',
+                  color: 'white',
+                  fontWeight: 'bold'
+                }}
+              />
+              {aiRecommendation.fallbackUsed && (
+                <Tooltip title="AI service unavailable - using rule-based recommendation">
+                  <Chip
+                    icon={<WifiOff size={14} />}
+                    label="Offline"
+                    size="small"
+                    sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white' }}
+                  />
+                </Tooltip>
+              )}
+            </Stack>
+            
+            <Typography variant="h5" fontWeight="bold" sx={{ mb: 1 }}>
+              {plan.name} - ${plan.price}/month
+            </Typography>
+            
+            <Typography variant="body1" sx={{ mb: 2, opacity: 0.9 }}>
+              {aiRecommendation.personalizedPitch || aiRecommendation.reasoning?.primary}
+            </Typography>
+            
+            {/* Data Sources Used */}
+            <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+              {dataSourcesUsed.contactData && (
+                <Chip icon={<UserCheck size={14} />} label="Profile Data" size="small" sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white' }} />
+              )}
+              {dataSourcesUsed.idiqEnrollment && (
+                <Chip icon={<FileCheck size={14} />} label="Credit Report" size="small" sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white' }} />
+              )}
+              {dataSourcesUsed.aiCalls && (
+                <Chip icon={<Phone size={14} />} label="Call Transcripts" size="small" sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white' }} />
+              )}
+              {dataSourcesUsed.emailHistory && (
+                <Chip icon={<Mail size={14} />} label="Email History" size="small" sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white' }} />
+              )}
+            </Stack>
+            
+            {/* Expected Results */}
+            {aiRecommendation.expectedResults && (
+              <Grid container spacing={2}>
+                <Grid item xs={4}>
+                  <Typography variant="caption" sx={{ opacity: 0.7 }}>Timeline</Typography>
+                  <Typography variant="body2" fontWeight="bold">
+                    {aiRecommendation.expectedResults.timeline}
+                  </Typography>
+                </Grid>
+                <Grid item xs={4}>
+                  <Typography variant="caption" sx={{ opacity: 0.7 }}>Expected Improvement</Typography>
+                  <Typography variant="body2" fontWeight="bold">
+                    {aiRecommendation.expectedResults.pointIncrease}
+                  </Typography>
+                </Grid>
+                <Grid item xs={4}>
+                  <Typography variant="caption" sx={{ opacity: 0.7 }}>Success Rate</Typography>
+                  <Typography variant="body2" fontWeight="bold">
+                    {plan.results.successRate}
+                  </Typography>
+                </Grid>
+              </Grid>
+            )}
+          </Box>
+        </Stack>
+      </Paper>
+    );
+  };
+  
+  // ═════════════════════════════════════════════════════════════════════════
+  // RENDER CONTACT SUMMARY
+  // ═════════════════════════════════════════════════════════════════════════
+  
+  const renderContactSummary = () => {
+    if (!contactSummary) return null;
+    
+    return (
+      <Paper sx={{ p: 2, mb: 3, bgcolor: 'background.default' }}>
+        <Stack direction="row" spacing={3} alignItems="center" flexWrap="wrap">
+          <Box>
+            <Typography variant="caption" color="text.secondary">Prospect</Typography>
+            <Typography variant="body1" fontWeight="bold">{contactSummary.name}</Typography>
+          </Box>
+          
+          {contactSummary.creditScore && (
+            <Box>
+              <Typography variant="caption" color="text.secondary">Credit Score</Typography>
+              <Typography 
+                variant="body1" 
+                fontWeight="bold"
+                color={
+                  contactSummary.creditScore >= 700 ? 'success.main' :
+                  contactSummary.creditScore >= 600 ? 'warning.main' : 'error.main'
+                }
+              >
+                {contactSummary.creditScore} ({contactSummary.scoreRange || 'Unknown'})
+              </Typography>
+            </Box>
+          )}
+          
+          <Box>
+            <Typography variant="caption" color="text.secondary">Negative Items</Typography>
+            <Typography variant="body1" fontWeight="bold" color="error.main">
+              {contactSummary.negativeItemCount || 0}
+            </Typography>
+          </Box>
+          
+          <Box>
+            <Typography variant="caption" color="text.secondary">Lead Score</Typography>
+            <Typography variant="body1" fontWeight="bold">
+              {contactSummary.leadScore || 'N/A'}/10
+            </Typography>
+          </Box>
+        </Stack>
+      </Paper>
+    );
   };
   
   // ═════════════════════════════════════════════════════════════════════════
@@ -745,7 +955,8 @@ const ServicePlanRecommender = ({
   const renderPlanCard = (planKey) => {
     const plan = SERVICE_PLANS[planKey];
     const isSelected = selectedPlans.includes(planKey);
-    const isRecommended = recommendations[0]?.plan === planKey;
+    const isRecommended = aiRecommendation?.recommendedPlan === planKey;
+    const isAlternative = aiRecommendation?.alternativePlan?.plan === planKey;
     const planPricing = pricing[planKey] || {};
     const prediction = successPredictions[planKey] || {};
     const Icon = plan.icon;
@@ -756,8 +967,8 @@ const ServicePlanRecommender = ({
         sx={{
           height: '100%',
           position: 'relative',
-          border: isSelected ? 3 : 1,
-          borderColor: isSelected ? plan.color : 'divider',
+          border: isSelected ? 3 : isRecommended ? 2 : 1,
+          borderColor: isSelected ? plan.color : isRecommended ? 'primary.main' : 'divider',
           transform: isSelected ? 'scale(1.02)' : 'scale(1)',
           transition: 'all 0.3s ease',
           cursor: 'pointer',
@@ -768,14 +979,14 @@ const ServicePlanRecommender = ({
         }}
         onClick={() => handlePlanSelect(planKey)}
       >
-        {/* Recommendation Badge */}
+        {/* AI Recommendation Badge */}
         {isRecommended && (
           <Box
             sx={{
               position: 'absolute',
               top: -12,
               right: 20,
-              bgcolor: 'error.main',
+              bgcolor: 'primary.main',
               color: 'white',
               px: 2,
               py: 0.5,
@@ -792,105 +1003,156 @@ const ServicePlanRecommender = ({
           </Box>
         )}
         
+        {/* Alternative Badge */}
+        {isAlternative && !isRecommended && (
+          <Box
+            sx={{
+              position: 'absolute',
+              top: -12,
+              right: 20,
+              bgcolor: 'secondary.main',
+              color: 'white',
+              px: 2,
+              py: 0.5,
+              borderRadius: 2,
+              fontSize: '0.7rem',
+              fontWeight: 'bold',
+              zIndex: 1
+            }}
+          >
+            ALTERNATIVE
+          </Box>
+        )}
+        
         {/* Popular Badge */}
-        {plan.popular && (
+        {plan.popular && !isRecommended && (
           <Box
             sx={{
               position: 'absolute',
               top: -12,
               left: 20,
-              bgcolor: 'success.main',
+              bgcolor: 'warning.main',
               color: 'white',
-              px: 2,
+              px: 1.5,
               py: 0.5,
               borderRadius: 2,
-              fontSize: '0.75rem',
+              fontSize: '0.7rem',
               fontWeight: 'bold',
               zIndex: 1
             }}
           >
-            MOST POPULAR
+            POPULAR
           </Box>
         )}
         
-        <CardHeader
-          avatar={
-            <Avatar sx={{ bgcolor: plan.color, width: 56, height: 56 }}>
-              <Icon size={28} />
-            </Avatar>
-          }
-          title={
-            <Typography variant="h6" fontWeight="bold">
-              {plan.name}
-            </Typography>
-          }
-          subheader={plan.tagline}
-        />
-        
         <CardContent>
-          {/* Pricing Section */}
-          <Box sx={{ mb: 3, textAlign: 'center' }}>
-            {plan.price > 0 ? (
+          {/* Plan Header */}
+          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+            <Avatar sx={{ bgcolor: plan.color, width: 40, height: 40 }}>
+              <Icon size={20} />
+            </Avatar>
+            <Box>
+              <Typography variant="h6" fontWeight="bold">
+                {plan.name}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {plan.tagline}
+              </Typography>
+            </Box>
+          </Stack>
+          
+          {/* Pricing */}
+          <Box sx={{ mb: 2 }}>
+            {plan.setupFee !== undefined ? (
               <>
-                <Typography variant="h3" fontWeight="bold" sx={{ color: plan.color }}>
-                  ${planPricing.finalPrice || plan.price}
+                <Typography variant="h4" fontWeight="bold" color={plan.color}>
+                  ${plan.perDeletion}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  per month
+                  per deletion + ${plan.setupFee} setup
                 </Typography>
-                {planPricing.savings > 0 && (
-                  <Chip
-                    label={`Save ${planPricing.savingsPercent}%`}
-                    color="success"
-                    size="small"
-                    sx={{ mt: 1 }}
-                  />
-                )}
               </>
             ) : (
-              <Box>
-                <Typography variant="h4" fontWeight="bold" sx={{ color: plan.color }}>
-                  Pay Per Deletion
-                </Typography>
-                <Typography variant="h6">
-                  ${plan.perDeletion} per item
-                </Typography>
-              </Box>
+              <>
+                <Stack direction="row" alignItems="baseline" spacing={1}>
+                  <Typography variant="h4" fontWeight="bold" color={plan.color}>
+                    ${plan.price}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">/month</Typography>
+                </Stack>
+                {plan.originalPrice && plan.originalPrice > plan.price && (
+                  <Typography 
+                    variant="body2" 
+                    sx={{ textDecoration: 'line-through', color: 'text.disabled' }}
+                  >
+                    Was ${plan.originalPrice}/mo
+                  </Typography>
+                )}
+              </>
             )}
           </Box>
           
           {/* Success Prediction */}
-          <Box sx={{ mb: 3 }}>
-            <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1}>
-              <Typography variant="body2" color="text.secondary">
-                Success Rate
-              </Typography>
-              <Typography variant="body2" fontWeight="bold">
-                {prediction.probability || plan.results.successRate}
-              </Typography>
-            </Stack>
-            <LinearProgress
-              variant="determinate"
-              value={parseFloat(prediction.probability || plan.results.successRate)}
-              sx={{
-                height: 8,
-                borderRadius: 4,
-                bgcolor: 'grey.200',
-                '& .MuiLinearProgress-bar': {
-                  bgcolor: plan.color
-                }
-              }}
-            />
-          </Box>
+          {prediction.probability && (
+            <Box sx={{ mb: 2 }}>
+              <Stack direction="row" justifyContent="space-between" alignItems="center">
+                <Typography variant="body2" color="text.secondary">
+                  Success Probability
+                </Typography>
+                <Typography variant="body2" fontWeight="bold" color="success.main">
+                  {prediction.probability}%
+                </Typography>
+              </Stack>
+              <LinearProgress 
+                variant="determinate" 
+                value={prediction.probability} 
+                sx={{ 
+                  mt: 0.5, 
+                  height: 6, 
+                  borderRadius: 3,
+                  bgcolor: 'grey.200',
+                  '& .MuiLinearProgress-bar': { bgcolor: plan.color }
+                }}
+              />
+            </Box>
+          )}
           
-          {/* Key Features */}
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
-              Key Features
-            </Typography>
-            <List dense>
-              {plan.features.included.slice(0, 5).map((feature, idx) => (
-                <ListItem key={idx} disablePadding>
+          <Divider sx={{ my: 2 }} />
+          
+          {/* Top Features */}
+          <List dense disablePadding>
+            {plan.features.included.slice(0, 5).map((feature, idx) => (
+              <ListItem key={idx} disablePadding sx={{ py: 0.25 }}>
+                <ListItemIcon sx={{ minWidth: 28 }}>
+                  <CheckCircle size={16} style={{ color: plan.color }} />
+                </ListItemIcon>
+                <ListItemText
+                  primary={feature}
+                  primaryTypographyProps={{ variant: 'body2' }}
+                />
+              </ListItem>
+            ))}
+          </List>
+          
+          {/* Show More */}
+          {plan.features.included.length > 5 && (
+            <Button
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowDetails(prev => ({ ...prev, [planKey]: !prev[planKey] }));
+              }}
+              endIcon={showDetails[planKey] ? <ExpandMore /> : <ChevronRight />}
+              sx={{ mt: 1 }}
+            >
+              {showDetails[planKey] ? 'Show Less' : `+${plan.features.included.length - 5} More Features`}
+            </Button>
+          )}
+          
+          <Collapse in={showDetails[planKey]}>
+            <List dense disablePadding sx={{ mt: 1 }}>
+              {plan.features.included.slice(5).map((feature, idx) => (
+                <ListItem key={idx} disablePadding sx={{ py: 0.25 }}>
                   <ListItemIcon sx={{ minWidth: 28 }}>
                     <CheckCircle size={16} style={{ color: plan.color }} />
                   </ListItemIcon>
@@ -901,54 +1163,18 @@ const ServicePlanRecommender = ({
                 </ListItem>
               ))}
             </List>
-            
-            {plan.features.included.length > 5 && (
-              <Button
-                size="small"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowDetails(prev => ({ ...prev, [planKey]: !prev[planKey] }));
-                }}
-              >
-                {showDetails[planKey] ? 'Show Less' : `+${plan.features.included.length - 5} more`}
-              </Button>
-            )}
-            
-            <Collapse in={showDetails[planKey]}>
-              <List dense>
-                {plan.features.included.slice(5).map((feature, idx) => (
-                  <ListItem key={idx} disablePadding>
-                    <ListItemIcon sx={{ minWidth: 28 }}>
-                      <CheckCircle size={16} style={{ color: plan.color }} />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={feature}
-                      primaryTypographyProps={{ variant: 'body2' }}
-                    />
-                  </ListItem>
-                ))}
-              </List>
-            </Collapse>
-          </Box>
+          </Collapse>
           
           {/* Results Timeline */}
-          <Box sx={{ mb: 2 }}>
-            <Stack spacing={1}>
+          <Box sx={{ mt: 2 }}>
+            <Stack spacing={0.5}>
               <Stack direction="row" justifyContent="space-between">
-                <Typography variant="caption" color="text.secondary">
-                  Timeline
-                </Typography>
-                <Typography variant="caption" fontWeight="bold">
-                  {plan.results.timeline}
-                </Typography>
+                <Typography variant="caption" color="text.secondary">Timeline</Typography>
+                <Typography variant="caption" fontWeight="bold">{plan.results.timeline}</Typography>
               </Stack>
               <Stack direction="row" justifyContent="space-between">
-                <Typography variant="caption" color="text.secondary">
-                  Avg Improvement
-                </Typography>
-                <Typography variant="caption" fontWeight="bold">
-                  {plan.results.avgPointIncrease}
-                </Typography>
+                <Typography variant="caption" color="text.secondary">Avg Improvement</Typography>
+                <Typography variant="caption" fontWeight="bold">{plan.results.avgPointIncrease}</Typography>
               </Stack>
             </Stack>
           </Box>
@@ -1044,13 +1270,45 @@ const ServicePlanRecommender = ({
   // LOADING STATE
   // ═════════════════════════════════════════════════════════════════════════
   
-  if (loading) {
+  if (loading || analyzing) {
     return (
       <Box sx={{ p: 4, textAlign: 'center' }}>
-        <CircularProgress />
-        <Typography sx={{ mt: 2 }}>
-          Analyzing your profile and generating recommendations...
+        <CircularProgress size={60} thickness={4} />
+        <Typography variant="h6" sx={{ mt: 3, mb: 1 }}>
+          {analyzing ? 'Analyzing Your Credit Profile...' : 'Loading...'}
         </Typography>
+        <Typography variant="body2" color="text.secondary">
+          {analyzing ? 'Our AI is reviewing your credit data, call transcripts, and interaction history to find the perfect plan for you.' : 'Please wait...'}
+        </Typography>
+        
+        {analyzing && (
+          <Stack spacing={1} sx={{ mt: 3, maxWidth: 400, mx: 'auto' }}>
+            <Skeleton variant="rounded" height={20} animation="wave" />
+            <Skeleton variant="rounded" height={20} width="80%" animation="wave" />
+            <Skeleton variant="rounded" height={20} width="60%" animation="wave" />
+          </Stack>
+        )}
+      </Box>
+    );
+  }
+  
+  // ═════════════════════════════════════════════════════════════════════════
+  // ERROR STATE
+  // ═════════════════════════════════════════════════════════════════════════
+  
+  if (error && !aiRecommendation) {
+    return (
+      <Box sx={{ p: 4, textAlign: 'center' }}>
+        <AlertTriangle size={60} style={{ color: '#f44336', marginBottom: 16 }} />
+        <Typography variant="h6" color="error" gutterBottom>
+          Unable to Generate Recommendation
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          {error}
+        </Typography>
+        <Button variant="contained" onClick={handleRetry} startIcon={<RefreshCw size={18} />}>
+          Try Again
+        </Button>
       </Box>
     );
   }
@@ -1068,33 +1326,30 @@ const ServicePlanRecommender = ({
             Choose Your Credit Repair Plan
           </Typography>
           <Typography variant="body1" color="text.secondary" paragraph>
-            Based on your profile, we recommend the {recommendations[0]?.plan} plan
+            {aiRecommendation 
+              ? `Based on your profile, we recommend the ${SERVICE_PLANS[aiRecommendation.recommendedPlan]?.name || 'Standard Service'} plan`
+              : 'Select the plan that best fits your needs'
+            }
           </Typography>
-          
-          {/* Quick Stats */}
-          <Stack direction="row" spacing={2} justifyContent="center" sx={{ mt: 2 }}>
-            <Chip
-              icon={<Target size={16} />}
-              label={`Lead Score: ${leadScore}/10`}
-              color="primary"
-            />
-            <Chip
-              icon={<TrendingUp size={16} />}
-              label={`${contactData.negativeItemCount || 0} Items to Remove`}
-              color="warning"
-            />
-            <Chip
-              icon={<Clock size={16} />}
-              label={contactData.timeline || 'No Rush'}
-              color="info"
-            />
-          </Stack>
         </Box>
       )}
       
+      {/* Error Alert (non-blocking) */}
+      {error && aiRecommendation && (
+        <Alert severity="warning" sx={{ mb: 3 }} onClose={() => setError(null)}>
+          {error} - Showing rule-based recommendation.
+        </Alert>
+      )}
+      
+      {/* Contact Summary */}
+      {renderContactSummary()}
+      
+      {/* AI Recommendation Card */}
+      {renderAIRecommendationCard()}
+      
       {/* Options Bar */}
       <Paper sx={{ p: 2, mb: 3 }}>
-        <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap">
+        <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2}>
           <ToggleButtonGroup
             value={paymentFrequency}
             exclusive
@@ -1148,6 +1403,25 @@ const ServicePlanRecommender = ({
             Plan Comparison
           </Typography>
           {renderComparisonTable()}
+        </Box>
+      )}
+      
+      {/* Proceed Button */}
+      {contactId && selectedPlans.length === 1 && !comparisonMode && (
+        <Box sx={{ mt: 4, textAlign: 'center' }}>
+          <Button
+            variant="contained"
+            size="large"
+            color="primary"
+            onClick={handleProceedToContract}
+            startIcon={<ChevronRight size={20} />}
+            sx={{ px: 6, py: 1.5 }}
+          >
+            Proceed with {SERVICE_PLANS[selectedPlans[0]]?.name}
+          </Button>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            You'll review and sign the service agreement next
+          </Typography>
         </Box>
       )}
       
