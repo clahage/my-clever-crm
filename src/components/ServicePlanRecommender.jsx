@@ -1142,7 +1142,7 @@ const ServicePlanRecommender = ({
                 e.stopPropagation();
                 setShowDetails(prev => ({ ...prev, [planKey]: !prev[planKey] }));
               }}
-              endIcon={showDetails[planKey] ? <ExpandMore /> : <ChevronRight />}
+              endIcon={showDetails[planKey] ? <ChevronDown /> : <ChevronRight />}
               sx={{ mt: 1 }}
             >
               {showDetails[planKey] ? 'Show Less' : `+${plan.features.included.length - 5} More Features`}
