@@ -262,7 +262,7 @@ const AIReportGenerator = ({
           lastName: data.lastName || '',
           email: data.email || '',
           phone: data.phone || '',
-          score: data.idiqEnrollment?.vantageScore || data.creditScore || null,
+          score: data.idiqEnrollment?.vantageScore || data.idiqEnrollment?.creditScore || data.creditScore || null,
           hasReport: !!data.idiqEnrollment?.memberToken || !!data.idiqEnrollment?.vantageScore,
           enrollmentDate: data.idiqEnrollment?.enrolledAt || data.idiqEnrollment?.createdAt,
           ...data
@@ -325,16 +325,36 @@ const AIReportGenerator = ({
         
         // Extract score from IDIQ enrollment data
         const contactScore = 
-          contactData.idiqEnrollment?.vantageScore ||
-          contactData.creditScore ||
-          contactData.vantageScore ||
-          null;
+  contactData.idiqEnrollment?.vantageScore ||
+  contactData.idiqEnrollment?.creditScore ||
+  contactData.creditScore ||
+  contactData.vantageScore ||
+  null;
         
         if (contactScore) {
           setScore(contactScore);
         }
         
-        // Load latest credit report if not provided
+        // ===== CRITICAL FIX: Extract account counts from IDIQ enrollment data =====
+        // This ensures the card shows correct counts even when creditReports collection is empty
+        const accountCount = contactData.idiqEnrollment?.accountCount || 0;
+        const negativeCount = contactData.idiqEnrollment?.negativeItemCount || 0;
+        const inquiryCount = contactData.idiqEnrollment?.inquiryCount || 0;
+        
+        console.log('📊 IDIQ Enrollment counts:', { accountCount, negativeCount, inquiryCount });
+        
+        // Set placeholder arrays based on counts (for .length to work in UI and AI generation)
+        if (accountCount > 0) {
+          setAccounts(Array(accountCount).fill({ placeholder: true }));
+        }
+        if (negativeCount > 0) {
+          setNegativeItems(Array(negativeCount).fill({ placeholder: true }));
+        }
+        if (inquiryCount > 0) {
+          setInquiries(Array(inquiryCount).fill({ placeholder: true }));
+        }
+        
+        // Load latest credit report if not provided (may override above counts with actual data)
         if (!creditReportData) {
           const reportsQuery = query(
             collection(db, 'creditReports'),
@@ -482,10 +502,12 @@ const AIReportGenerator = ({
       setContactId(selectedContact.id);
       setContact(selectedContact);
       
-      // Set score if available
-      if (selectedContact.score) {
-        setScore(selectedContact.score);
-      }
+      // ===== CRITICAL: Reset ALL credit data when switching contacts =====
+      setScore(selectedContact.score || null);
+      setAccounts([]);
+      setNegativeItems([]);
+      setInquiries([]);
+      setReportData(null);
       
       // Reset generated review when switching contacts
       setGeneratedReview(null);
@@ -540,7 +562,7 @@ const AIReportGenerator = ({
           lastName: contact?.lastName || enrollmentData?.lastName,
           email: contact?.email || enrollmentData?.email,
           score: score,
-          scoreRange: getScoreRange(score),
+          scoreRange: getScoreRange(score)?.label || 'Unknown',
           accountCount: accounts.length,
           negativeItemCount: negativeItems.length,
           inquiryCount: inquiries.length,

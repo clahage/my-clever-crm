@@ -1652,6 +1652,10 @@ const CompleteEnrollmentFlow = ({
             membershipNumber: response.data.membershipNumber || null,
             enrolledAt: serverTimestamp(),
             creditScore: resData.vantageScore || resData.score || null,
+            // ===== CRITICAL: Save account counts for AI Review Generator =====
+            accountCount: extractedAccounts?.length || resData?.accounts?.length || 0,
+            negativeItemCount: resData?.negativeItems?.length || 0,
+            inquiryCount: resData?.inquiries?.length || 0,
             enrollmentSource: isCRMMode ? 'crm' : 'website',
             plan: selectedPlan || 'not_selected_yet'
           },
@@ -1810,6 +1814,10 @@ const submitVerificationAnswers = async () => {
             enrolledAt: serverTimestamp(),
             verifiedAt: serverTimestamp(),
             creditScore: resData.vantageScore || resData.score || null,
+            // ===== CRITICAL: Save account counts for AI Review Generator =====
+            accountCount: resData?.accounts?.length || resData?.data?.accounts?.length || 0,
+            negativeItemCount: resData?.negativeItems?.length || resData?.data?.negativeItems?.length || 0,
+            inquiryCount: resData?.inquiries?.length || resData?.data?.inquiries?.length || 0,
             enrollmentSource: isCRMMode ? 'crm' : 'website',
             plan: selectedPlan || 'not_selected_yet'
           },
@@ -2357,6 +2365,10 @@ const finalizeEnrollment = async () => {
           enrolledAt: serverTimestamp(),
           completedAt: serverTimestamp(),
           creditScore: creditReport?.vantageScore || null,
+          // ===== CRITICAL: Save account counts for AI Review Generator =====
+          accountCount: creditReport?.accounts?.length || 0,
+          negativeItemCount: creditReport?.negativeItems?.length || 0,
+          inquiryCount: creditReport?.inquiries?.length || 0,
           enrollmentSource: isCRMMode ? 'crm' : 'website',
           plan: selectedPlan
         },

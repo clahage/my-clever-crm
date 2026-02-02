@@ -65,6 +65,98 @@ const defaultConfig = {
 };
 
 // ============================================
+// SERVICE PLAN DEFINITIONS (Used by recommendServicePlan)
+// ============================================
+// These are the ACTUAL service plans offered by Speedy Credit Repair
+// DO NOT change without updating ServicePlanRecommender.jsx
+const SERVICE_PLANS_CONFIG = {
+  DIY: {
+    id: 'diy',
+    name: 'DIY Credit Repair',
+    tagline: 'Learn to repair your own credit',
+    monthlyPrice: 39,
+    setupFee: 0,
+    perDeletion: 0,
+    timeline: '6-12 months',
+    successRate: '45%',
+    avgPointIncrease: '40-60 points',
+    effortRequired: 'High (10+ hours/month)',
+    idealFor: ['Self-motivated individuals', 'Budget-conscious consumers', 'Simple credit issues'],
+    keyFeatures: ['Dispute letter templates', 'Educational video library', 'Email support', 'Progress tracking']
+  },
+  STANDARD: {
+    id: 'standard',
+    name: 'Standard Service',
+    tagline: 'Professional credit repair service',
+    monthlyPrice: 149,
+    setupFee: 0,
+    perDeletion: 25,
+    timeline: '4-6 months',
+    successRate: '73%',
+    avgPointIncrease: '80-120 points',
+    effortRequired: 'Low (30 min/month)',
+    idealFor: ['Most consumers', 'Multiple negative items', 'Busy professionals'],
+    keyFeatures: ['Unlimited disputes', 'All 3 bureaus', 'Dedicated account manager', 'Phone & email support', 'Credit monitoring']
+  },
+  ACCELERATION: {
+    id: 'acceleration',
+    name: 'Acceleration Plus',
+    tagline: 'Fast-track credit restoration',
+    monthlyPrice: 199,
+    setupFee: 0,
+    perDeletion: 0,
+    timeline: '2-4 months',
+    successRate: '85%',
+    avgPointIncrease: '120-180 points',
+    effortRequired: 'Minimal (15 min/month)',
+    idealFor: ['Urgent credit needs', 'Home buyers', 'Auto loan seekers', 'Business loan applicants'],
+    keyFeatures: ['Everything in Standard', 'Expedited processing', 'Weekly updates', 'All 3 bureau monitoring', 'Legal team consultations', 'Score simulator']
+  },
+  PFD: {
+    id: 'pfd',
+    name: 'Pay-for-Deletion',
+    tagline: 'Risk-free, pay only for results',
+    monthlyPrice: 0,
+    setupFee: 199,
+    perDeletion: 75,
+    timeline: '3-6 months',
+    successRate: '100% (pay for results only)',
+    avgPointIncrease: 'Varies by deletions',
+    effortRequired: 'Low',
+    idealFor: ['Risk-averse consumers', 'Limited negative items', 'Previous repair failures'],
+    keyFeatures: ['No monthly fees', 'Pay only for deletions', 'All 3 bureaus', 'Unlimited disputes', 'Deletion verification']
+  },
+  HYBRID: {
+    id: 'hybrid',
+    name: 'Hybrid AI Solution',
+    tagline: 'AI-powered with human oversight',
+    monthlyPrice: 99,
+    setupFee: 0,
+    perDeletion: 0,
+    timeline: '3-5 months',
+    successRate: '70%',
+    avgPointIncrease: '70-110 points',
+    effortRequired: 'Low (app-based)',
+    idealFor: ['Tech-savvy consumers', 'Moderate credit issues', 'Budget + automation'],
+    keyFeatures: ['AI dispute generation', 'Smart document analysis', 'Automated submissions', 'Human review monthly', 'Mobile app access']
+  },
+  PREMIUM: {
+    id: 'premium',
+    name: 'Premium White Glove',
+    tagline: 'Concierge credit restoration',
+    monthlyPrice: 349,
+    setupFee: 0,
+    perDeletion: 0,
+    timeline: '45-90 days',
+    successRate: '95%',
+    avgPointIncrease: '150-250 points',
+    effortRequired: 'Zero (full service)',
+    idealFor: ['Executives & professionals', 'Complex credit situations', 'Maximum speed needed'],
+    keyFeatures: ['Everything in Acceleration', 'Dedicated senior specialist', 'Daily updates', 'Attorney-backed disputes', 'Creditor negotiations', 'Spouse included free']
+  }
+};
+
+// ============================================
 // EMAIL HTML WRAPPER HELPER
 // ============================================
 function wrapEmailInHTML(subject, bodyText, recipientName = '') {
@@ -3023,6 +3115,13 @@ exports.aiContentGenerator = onCall(
     console.log('🤖 AI Content Generator:', type);
     
     try {
+      // ===== ENHANCED: Intercept recommendServicePlan BEFORE the regular fetch =====
+      // This type needs real Firestore data, so we handle it separately
+      if (type === 'recommendServicePlan') {
+        return await handleRecommendServicePlan(params, openaiApiKey);
+      }
+      
+      // ===== All other content types use the regular OpenAI flow =====
       const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -3089,14 +3188,9 @@ exports.aiContentGenerator = onCall(
                   content: `Create an ACH authorization form for: ${params.clientName}. Monthly amount: $${params.amount || '99'}. Bank: ${params.bankName || '[Bank Name]'}. Account ending in: ${params.accountLastFour || 'XXXX'}.`
                 }];
               
-              case 'recommendServicePlan':
-                return [{
-                  role: 'system',
-                  content: 'You are a credit repair expert. Recommend the best service plan based on credit profile. Available plans: Starter ($39/mo - DIY for good credit), Professional ($149/mo - Expert help for fair credit), VIP ($249/mo - Fast track for poor credit). Respond ONLY with valid JSON.'
-                }, {
-                  role: 'user',
-                  content: `Credit Score: ${params.creditScore || 'unknown'}, Negative Items: ${params.negativeItems || 0}, Utilization: ${params.utilization || 0}%. Recommend the best plan and explain why. Format your response as JSON: {"plan": "Professional", "confidence": "high", "reason": "Clear explanation of why this plan fits", "expectedResults": "What the client can expect"}`
-                }];
+              // ===== ENHANCED: recommendServicePlan redirects to handler =====
+              // This case now uses real data fetching - see handleRecommendServicePlan function
+              // DO NOT use the default OpenAI call for this type - it's handled separately above
               
               // ===== NEW: Full Credit Review Email Generation =====
               // Used by AIReportGenerator.jsx for personalized credit reviews
@@ -3209,6 +3303,412 @@ Respond with valid JSON containing "subject" and "body" fields.`
 );
 
 console.log('✅ Function 7/10: aiContentGenerator loaded');
+
+// ============================================
+// ENHANCED: handleRecommendServicePlan
+// ============================================
+// This function fetches REAL data from Firestore and builds a comprehensive
+// AI prompt for service plan recommendation
+// 
+// Data sources:
+// 1. Contact document (with idiqEnrollment)
+// 2. AI Receptionist call transcripts
+// 3. Email/interaction history
+// 4. Service plans configuration
+// ============================================
+
+async function handleRecommendServicePlan(params, openaiApiKey) {
+  const db = admin.firestore();
+  const { contactId } = params;
+  
+  console.log('🎯 Enhanced Service Plan Recommendation for contact:', contactId);
+  
+  // ===== VALIDATE CONTACT ID =====
+  if (!contactId) {
+    console.error('❌ Missing contactId parameter');
+    return {
+      success: false,
+      error: 'contactId is required for service plan recommendation'
+    };
+  }
+  
+  try {
+    // ===== 1. FETCH CONTACT DATA =====
+    console.log('📋 Fetching contact data...');
+    const contactDoc = await db.collection('contacts').doc(contactId).get();
+    
+    if (!contactDoc.exists) {
+      console.error('❌ Contact not found:', contactId);
+      return {
+        success: false,
+        error: `Contact not found: ${contactId}`
+      };
+    }
+    
+    const contact = contactDoc.data();
+    console.log('✅ Contact found:', contact.firstName, contact.lastName);
+    
+    // Extract credit data from idiqEnrollment
+    const idiqData = contact.idiqEnrollment || {};
+    const creditScore = idiqData.creditScore || contact.creditScore || null;
+    const accountCount = idiqData.accountCount || 0;
+    const negativeItemCount = idiqData.negativeItemCount || 0;
+    const inquiryCount = idiqData.inquiryCount || 0;
+    
+    // ===== 2. FETCH AI RECEPTIONIST TRANSCRIPTS =====
+    console.log('📞 Fetching AI receptionist call transcripts...');
+    let transcripts = [];
+    let callSummary = '';
+    
+    try {
+      const phoneToSearch = contact.phone || contact.phoneNumber || '';
+      if (phoneToSearch) {
+        const normalizedPhone = phoneToSearch.replace(/\D/g, '');
+        const phoneVariants = [
+          phoneToSearch,
+          normalizedPhone,
+          `+1${normalizedPhone}`,
+          normalizedPhone.slice(-10)
+        ];
+        
+        const callsQuery = await db.collection('aiReceptionistCalls')
+          .where('caller', 'in', phoneVariants.slice(0, 10))
+          .orderBy('timestamp', 'desc')
+          .limit(5)
+          .get();
+        
+        if (!callsQuery.empty) {
+          transcripts = callsQuery.docs.map(doc => {
+            const data = doc.data();
+            return {
+              timestamp: data.timestamp?.toDate?.() || data.timestamp,
+              transcript: data.transcript || '',
+              summary: data.summary || '',
+              sentiment: data.sentiment || 'neutral',
+              painPoints: data.painPoints || [],
+              urgencyLevel: data.urgencyLevel || 'medium',
+              primaryGoal: data.primaryGoal || ''
+            };
+          });
+          
+          console.log(`✅ Found ${transcripts.length} AI receptionist calls`);
+          
+          callSummary = transcripts.map((t, i) => 
+            `Call ${i + 1}:\n- Summary: ${t.summary}\n- Sentiment: ${t.sentiment}\n- Urgency: ${t.urgencyLevel}\n- Pain Points: ${t.painPoints.join(', ') || 'None identified'}\n- Primary Goal: ${t.primaryGoal || 'Not specified'}`
+          ).join('\n\n');
+        }
+      }
+    } catch (callError) {
+      console.warn('⚠️ Could not fetch AI calls (non-critical):', callError.message);
+    }
+    
+    // ===== 3. FETCH INTERACTION HISTORY =====
+    console.log('📧 Fetching interaction history...');
+    let interactionSummary = '';
+    
+    try {
+      const emailsQuery = await db.collection('emailLog')
+        .where('contactId', '==', contactId)
+        .orderBy('sentAt', 'desc')
+        .limit(10)
+        .get();
+      
+      if (!emailsQuery.empty) {
+        const emails = emailsQuery.docs.map(doc => doc.data());
+        const openedCount = emails.filter(e => e.opened).length;
+        const clickedCount = emails.filter(e => e.clicked).length;
+        
+        interactionSummary = `Email Engagement: ${emails.length} emails sent, ${openedCount} opened (${Math.round(openedCount/emails.length*100)}% open rate), ${clickedCount} clicked`;
+        console.log(`✅ Found ${emails.length} email interactions`);
+      }
+      
+      const notesQuery = await db.collection('contacts').doc(contactId)
+        .collection('notes')
+        .orderBy('createdAt', 'desc')
+        .limit(5)
+        .get();
+      
+      if (!notesQuery.empty) {
+        const notes = notesQuery.docs.map(doc => doc.data().content || '').join(' | ');
+        interactionSummary += `\nRecent Notes: ${notes.substring(0, 500)}`;
+      }
+    } catch (interactionError) {
+      console.warn('⚠️ Could not fetch interactions (non-critical):', interactionError.message);
+    }
+    
+    // ===== 4. BUILD SERVICE PLANS CONTEXT =====
+    const plansContext = Object.entries(SERVICE_PLANS_CONFIG).map(([key, plan]) => 
+      `${plan.name} ($${plan.monthlyPrice}/mo${plan.setupFee ? ` + $${plan.setupFee} setup` : ''}${plan.perDeletion ? ` + $${plan.perDeletion}/deletion` : ''}):
+- Timeline: ${plan.timeline}
+- Success Rate: ${plan.successRate}
+- Avg Improvement: ${plan.avgPointIncrease}
+- Effort: ${plan.effortRequired}
+- Ideal For: ${plan.idealFor.join(', ')}
+- Key Features: ${plan.keyFeatures.slice(0, 5).join(', ')}`
+    ).join('\n\n');
+    
+    // ===== 5. DETERMINE SCORE RANGE =====
+    let scoreRange = 'Unknown';
+    if (creditScore) {
+      if (creditScore >= 750) scoreRange = 'Excellent (750+)';
+      else if (creditScore >= 700) scoreRange = 'Good (700-749)';
+      else if (creditScore >= 650) scoreRange = 'Fair (650-699)';
+      else if (creditScore >= 600) scoreRange = 'Poor (600-649)';
+      else if (creditScore >= 500) scoreRange = 'Very Poor (500-599)';
+      else scoreRange = 'Deep Subprime (Below 500)';
+    }
+    
+    // ===== 6. BUILD COMPREHENSIVE AI PROMPT =====
+    const systemPrompt = `You are Chris Lahage, a credit repair expert with 30 years of experience and a former Toyota Finance Director. You work for Speedy Credit Repair Inc., a family-run business established in 1995 with an A+ BBB rating and 4.9-star Google reviews.
+
+Your task is to recommend the BEST service plan for this prospect based on ALL available data. Consider their credit situation, goals, urgency, budget indicators, and interaction history.
+
+CRITICAL: Respond ONLY with valid JSON in this EXACT format:
+{
+  "recommendedPlan": "PLAN_KEY",
+  "confidence": "high|medium|low",
+  "monthlyPrice": 149,
+  "reasoning": {
+    "primary": "Main reason for this recommendation",
+    "creditFactors": "How their credit profile influenced the choice",
+    "behavioralFactors": "How their interactions/calls influenced the choice",
+    "urgencyAssessment": "Assessment of their timeline/urgency"
+  },
+  "alternativePlan": {
+    "plan": "PLAN_KEY",
+    "reason": "Why this could also work"
+  },
+  "personalizedPitch": "A 2-3 sentence personalized pitch for why this plan is perfect for them",
+  "expectedResults": {
+    "timeline": "Expected timeline for results",
+    "pointIncrease": "Expected score improvement",
+    "keyMilestones": ["Milestone 1", "Milestone 2", "Milestone 3"]
+  },
+  "objectionHandlers": {
+    "price": "Response if they say it's too expensive",
+    "time": "Response if they want faster results",
+    "trust": "Response if they're skeptical"
+  }
+}
+
+PLAN KEYS (use exactly): DIY, STANDARD, ACCELERATION, PFD, HYBRID, PREMIUM`;
+
+    const userPrompt = `Analyze this prospect and recommend the best service plan:
+
+═══════════════════════════════════════════════════════════════
+PROSPECT PROFILE
+═══════════════════════════════════════════════════════════════
+Name: ${contact.firstName || 'Unknown'} ${contact.lastName || ''}
+Email: ${contact.email || 'Not provided'}
+Phone: ${contact.phone || contact.phoneNumber || 'Not provided'}
+Lead Score: ${contact.leadScore || 'Not scored'}/10
+Lead Source: ${contact.leadSource || 'Unknown'}
+State: ${contact.state || 'Unknown'}
+
+═══════════════════════════════════════════════════════════════
+CREDIT PROFILE
+═══════════════════════════════════════════════════════════════
+Credit Score: ${creditScore || 'Unknown'} (${scoreRange})
+Total Accounts: ${accountCount}
+Negative Items: ${negativeItemCount}
+Hard Inquiries: ${inquiryCount}
+Primary Goal: ${contact.primaryGoal || idiqData.primaryGoal || transcripts[0]?.primaryGoal || 'Not specified'}
+Timeline: ${contact.timeline || idiqData.timeline || 'Not specified'}
+
+═══════════════════════════════════════════════════════════════
+AI RECEPTIONIST CALL DATA
+═══════════════════════════════════════════════════════════════
+${callSummary || 'No AI receptionist calls recorded'}
+
+═══════════════════════════════════════════════════════════════
+INTERACTION HISTORY
+═══════════════════════════════════════════════════════════════
+${interactionSummary || 'No prior email interactions'}
+
+═══════════════════════════════════════════════════════════════
+AVAILABLE SERVICE PLANS
+═══════════════════════════════════════════════════════════════
+${plansContext}
+
+═══════════════════════════════════════════════════════════════
+RECOMMENDATION GUIDELINES
+═══════════════════════════════════════════════════════════════
+- Consider urgency: Home buyers and auto loan seekers need faster plans
+- Consider budget: Low lead scores may indicate budget sensitivity
+- Consider complexity: More negative items = more comprehensive plan needed
+- Consider engagement: High email engagement = more invested prospect
+- Consider sentiment: Frustrated callers may need Premium white-glove service
+- Consider previous failures: PFD builds trust with risk-averse prospects
+
+Provide your recommendation as valid JSON.`;
+
+    // ===== 7. CALL OPENAI =====
+    console.log('🤖 Calling OpenAI for recommendation...');
+    
+    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openaiApiKey.value()}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        temperature: 0.7,
+        max_tokens: 2000
+      })
+    });
+    
+    const aiData = await openaiResponse.json();
+    
+    if (!aiData.choices || !aiData.choices[0]) {
+      throw new Error('Invalid OpenAI response');
+    }
+    
+    const generatedContent = aiData.choices[0].message.content;
+    console.log('✅ AI recommendation received');
+    
+    // ===== 8. PARSE AND VALIDATE RESPONSE =====
+    let recommendation;
+    try {
+      const jsonMatch = generatedContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        recommendation = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error('No JSON found in response');
+      }
+      
+      if (!recommendation.recommendedPlan || !SERVICE_PLANS_CONFIG[recommendation.recommendedPlan]) {
+        console.warn('⚠️ Invalid plan key, defaulting to STANDARD');
+        recommendation.recommendedPlan = 'STANDARD';
+      }
+      
+      const planDetails = SERVICE_PLANS_CONFIG[recommendation.recommendedPlan];
+      recommendation.planDetails = planDetails;
+      recommendation.monthlyPrice = planDetails.monthlyPrice;
+      
+      if (recommendation.alternativePlan?.plan && SERVICE_PLANS_CONFIG[recommendation.alternativePlan.plan]) {
+        recommendation.alternativePlan.details = SERVICE_PLANS_CONFIG[recommendation.alternativePlan.plan];
+      }
+      
+    } catch (parseError) {
+      console.error('❌ Failed to parse AI response:', parseError.message);
+      recommendation = generateFallbackRecommendation(contact, creditScore, negativeItemCount, transcripts);
+    }
+    
+    // ===== 9. LOG AND RETURN =====
+    console.log(`🎯 Recommendation: ${recommendation.recommendedPlan} (${recommendation.confidence} confidence)`);
+    
+    try {
+      await db.collection('planRecommendations').add({
+        contactId,
+        recommendation: recommendation.recommendedPlan,
+        confidence: recommendation.confidence,
+        creditScore,
+        negativeItemCount,
+        leadScore: contact.leadScore,
+        timestamp: admin.firestore.FieldValue.serverTimestamp()
+      });
+    } catch (logError) {
+      console.warn('⚠️ Could not log recommendation (non-critical)');
+    }
+    
+    return {
+      success: true,
+      recommendation,
+      contactSummary: {
+        name: `${contact.firstName || ''} ${contact.lastName || ''}`.trim() || 'Unknown',
+        creditScore,
+        scoreRange,
+        negativeItemCount,
+        inquiryCount,
+        leadScore: contact.leadScore
+      },
+      dataSourcesUsed: {
+        contactData: true,
+        idiqEnrollment: !!idiqData.creditScore,
+        aiCalls: transcripts.length > 0,
+        emailHistory: !!interactionSummary
+      },
+      type: 'recommendServicePlan'
+    };
+    
+  } catch (error) {
+    console.error('❌ Service plan recommendation error:', error);
+    return {
+      success: false,
+      error: error.message,
+      type: 'recommendServicePlan'
+    };
+  }
+}
+
+// ============================================
+// FALLBACK RECOMMENDATION (Rule-Based)
+// ============================================
+// Used when AI parsing fails - ensures we always return something useful
+
+function generateFallbackRecommendation(contact, creditScore, negativeItemCount, transcripts) {
+  console.log('⚠️ Using fallback rule-based recommendation');
+  
+  let recommendedPlan = 'STANDARD';
+  let confidence = 'medium';
+  let primaryReason = 'Based on typical credit repair needs';
+  
+  if (creditScore && creditScore < 500 && negativeItemCount > 10) {
+    recommendedPlan = 'PREMIUM';
+    confidence = 'high';
+    primaryReason = 'Complex credit situation requires comprehensive support';
+  } else if (transcripts.some(t => t.urgencyLevel === 'high' || t.primaryGoal?.includes('home'))) {
+    recommendedPlan = 'ACCELERATION';
+    confidence = 'high';
+    primaryReason = 'Urgent timeline requires expedited service';
+  } else if (contact.leadScore >= 8) {
+    recommendedPlan = 'ACCELERATION';
+    confidence = 'medium';
+    primaryReason = 'High-value prospect benefits from premium speed';
+  } else if (contact.leadScore <= 3 || negativeItemCount <= 3) {
+    recommendedPlan = 'PFD';
+    confidence = 'medium';
+    primaryReason = 'Pay-for-delete offers risk-free results-based pricing';
+  }
+  
+  const planDetails = SERVICE_PLANS_CONFIG[recommendedPlan];
+  
+  return {
+    recommendedPlan,
+    confidence,
+    monthlyPrice: planDetails.monthlyPrice,
+    reasoning: {
+      primary: primaryReason,
+      creditFactors: `Score: ${creditScore || 'Unknown'}, Negative Items: ${negativeItemCount}`,
+      behavioralFactors: 'Based on available interaction data',
+      urgencyAssessment: 'Standard timeline assumed'
+    },
+    alternativePlan: {
+      plan: 'STANDARD',
+      reason: 'Solid choice for most credit repair needs'
+    },
+    personalizedPitch: `Based on your credit profile, the ${planDetails.name} plan offers the best balance of results and value. With ${planDetails.successRate} success rate and typical improvement of ${planDetails.avgPointIncrease}, you can expect meaningful progress within ${planDetails.timeline}.`,
+    expectedResults: {
+      timeline: planDetails.timeline,
+      pointIncrease: planDetails.avgPointIncrease,
+      keyMilestones: ['Initial disputes submitted', 'First deletions received', 'Score improvement verified']
+    },
+    objectionHandlers: {
+      price: `The ${planDetails.name} plan pays for itself when you consider the interest savings on future loans.`,
+      time: 'We offer expedited processing to prioritize your disputes.',
+      trust: 'We\'ve been in business since 1995 with an A+ BBB rating and over 580 five-star reviews.'
+    },
+    planDetails,
+    fallbackUsed: true
+  };
+}
+
+console.log('✅ Function 7/10: aiContentGenerator loaded (with ENHANCED recommendServicePlan)');
 
 // ============================================
 // FUNCTION 8: OPERATIONS MANAGER (Consolidated)
