@@ -391,6 +391,11 @@ const DisputeHub = () => {
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
 
+  // Populate Disputes state
+  const [populateDialogOpen, setPopulateDialogOpen] = useState(false);
+  const [populateContactId, setPopulateContactId] = useState('');
+  const [populateLoading, setPopulateLoading] = useState(false);
+
   // ═══════════════════════════════════════════════════════════════════════════
   // USER ROLE & PERMISSIONS
   // ═══════════════════════════════════════════════════════════════════════════
@@ -460,6 +465,58 @@ const DisputeHub = () => {
     localStorage.setItem('disputeHub_activeTab', activeTab);
   }, [activeTab]);
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // POPULATE DISPUTES FROM CREDIT REPORT
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  const handlePopulateDisputes = async () => {
+    if (!populateContactId) {
+      setSnackbar({ open: true, message: 'Please enter a Contact ID', severity: 'warning' });
+      return;
+    }
+    
+    setPopulateLoading(true);
+    
+    try {
+      console.log('🔍 Scanning credit report for contact:', populateContactId);
+      
+      const aiContentGenerator = httpsCallable(functions, 'aiContentGenerator');
+      const result = await aiContentGenerator({ 
+        type: 'populateDisputes', 
+        contactId: populateContactId 
+      });
+      
+      console.log('📊 Populate result:', result.data);
+      
+      if (result.data.success) {
+        setSnackbar({ 
+          open: true, 
+          message: `✅ Found ${result.data.disputeCount} disputable items! Check the Tracking tab.`, 
+          severity: 'success' 
+        });
+        setPopulateDialogOpen(false);
+        setPopulateContactId('');
+        
+        // Switch to tracking tab to see results
+        setActiveTab('tracking');
+      } else {
+        setSnackbar({ 
+          open: true, 
+          message: `❌ ${result.data.error || 'Failed to scan credit report'}`, 
+          severity: 'error' 
+        });
+      }
+    } catch (error) {
+      console.error('❌ Error populating disputes:', error);
+      setSnackbar({ 
+        open: true, 
+        message: `Error: ${error.message}`, 
+        severity: 'error' 
+      });
+    } finally {
+      setPopulateLoading(false);
+    }
+  };
   // ═══════════════════════════════════════════════════════════════════════════
   // TAB 5: TEMPLATES MANAGER - INLINE IMPLEMENTATION
   // ═══════════════════════════════════════════════════════════════════════════

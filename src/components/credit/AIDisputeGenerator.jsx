@@ -784,6 +784,86 @@ const AIDisputeGenerator = ({ clientId, creditReportData = null, onComplete }) =
   const [showComplianceDialog, setShowComplianceDialog] = useState(false);
   const [complianceResults, setComplianceResults] = useState(null);
   const [selectedTab, setSelectedTab] = useState(0);
+  // Populate from IDIQ state
+  const [showPopulateDialog, setShowPopulateDialog] = useState(false);
+  const [populateContactId, setPopulateContactId] = useState('');
+  const [populateLoading, setPopulateLoading] = useState(false);
+
+  // ===== HANDLER: Populate Disputes from IDIQ Credit Report =====
+  const handlePopulateFromIDIQ = async () => {
+    if (!populateContactId) {
+      setError('Please enter a Contact ID');
+      return;
+    }
+
+    setPopulateLoading(true);
+    setError(null);
+
+    try {
+      console.log('🔍 Scanning IDIQ credit report for contact:', populateContactId);
+
+      // Import httpsCallable dynamically to avoid breaking existing imports
+      const { httpsCallable } = await import('firebase/functions');
+      const { functions } = await import('../../lib/firebase');
+      
+      const aiContentGenerator = httpsCallable(functions, 'aiContentGenerator');
+      const result = await aiContentGenerator({
+        type: 'populateDisputes',
+        contactId: populateContactId
+      });
+
+      console.log('📊 Populate result:', result.data);
+
+      if (result.data.success) {
+        // Close dialog
+        setShowPopulateDialog(false);
+        setPopulateContactId('');
+        
+        // Show success message
+        setSuccess(`✅ Found ${result.data.disputeCount} disputable items! Loading into generator...`);
+
+        // Convert the saved disputes to our disputableItems format
+        // and advance to the next step
+        if (result.data.disputeCount > 0) {
+          // Fetch the newly created disputes from Firestore
+          const disputesQuery = query(
+            collection(db, 'disputes'),
+            where('contactId', '==', populateContactId)
+          );
+          const disputesSnap = await getDocs(disputesQuery);
+          
+          const loadedItems = disputesSnap.docs.map(doc => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              type: data.typeLabel || data.type || 'Unknown',
+              creditor: data.creditorName || 'Unknown',
+              accountNumber: data.accountNumber || 'N/A',
+              amount: data.balance || 0,
+              dateReported: data.dateOpened || new Date().toISOString().split('T')[0],
+              disputeReason: data.recommendedStrategy || 'Needs verification',
+              recommendedStrategy: data.recommendedStrategy?.toLowerCase()?.replace(/\s+/g, '_') || 'validation',
+              successProbability: data.successProbability || 70,
+              priority: data.priority || 'medium',
+              scoreImpact: data.scoreImpact?.max > 50 ? 'high' : data.scoreImpact?.max > 20 ? 'medium' : 'low',
+              bureaus: [data.bureau?.toLowerCase() || 'all'],
+              bureau: data.bureauName || data.bureau || 'Unknown Bureau'
+            };
+          });
+
+          setDisputableItems(loadedItems);
+          setActiveStep(1); // Move to item selection step
+        }
+      } else {
+        setError(result.data.error || 'Failed to scan credit report');
+      }
+    } catch (err) {
+      console.error('❌ Error populating from IDIQ:', err);
+      setError(`Error: ${err.message}`);
+    } finally {
+      setPopulateLoading(false);
+    }
+  };
 
   // ===== LOAD CLIENT INFO =====
   useEffect(() => {
@@ -1219,6 +1299,24 @@ const AIDisputeGenerator = ({ clientId, creditReportData = null, onComplete }) =
             >
               {loading ? 'Analyzing Report...' : 'Start AI Analysis'}
             </Button>
+            <Typography variant="body2" color="text.secondary" className="my-4">
+              — OR —
+            </Typography>
+
+            <Button
+              variant="outlined"
+              size="large"
+              onClick={() => setShowPopulateDialog(true)}
+              startIcon={<SparkleIcon />}
+              sx={{ px: 6, py: 2 }}
+              className="border-purple-600 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20"
+            >
+              Scan from IDIQ Credit Report
+            </Button>
+
+            <Typography variant="caption" color="text.secondary" className="mt-2 block">
+              Pull negative items directly from a contact's enrolled IDIQ report
+            </Typography>
           </Box>
         )}
 
@@ -2162,6 +2260,60 @@ const AIDisputeGenerator = ({ clientId, creditReportData = null, onComplete }) =
         </DialogContent>
         <DialogActions className="dark:bg-gray-800">
           <Button onClick={() => setShowComplianceDialog(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+      {/* ===== POPULATE FROM IDIQ DIALOG ===== */}
+      <Dialog
+        open={showPopulateDialog}
+        onClose={() => setShowPopulateDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle className="dark:bg-gray-800 dark:text-white">
+          <Box className="flex items-center gap-2">
+            <SparkleIcon className="text-purple-600" />
+            Scan IDIQ Credit Report
+          </Box>
+        </DialogTitle>
+        <DialogContent className="dark:bg-gray-800">
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Enter the Contact ID to scan their IDIQ credit report and automatically identify all disputable negative items.
+          </Typography>
+          <TextField
+            fullWidth
+            label="Contact ID"
+            value={populateContactId}
+            onChange={(e) => setPopulateContactId(e.target.value)}
+            placeholder="e.g., 20JlaX9NVp2G9Y5SasGn"
+            helperText="Find this in the contact's URL or details"
+            disabled={populateLoading}
+            className="dark:bg-gray-700"
+            InputProps={{
+              className: 'dark:text-white'
+            }}
+          />
+          {populateLoading && (
+            <Box className="flex items-center gap-3 mt-4">
+              <CircularProgress size={24} className="text-purple-600" />
+              <Typography variant="body2" color="text.secondary">
+                Scanning credit report and identifying negative items...
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions className="dark:bg-gray-800">
+          <Button onClick={() => setShowPopulateDialog(false)} disabled={populateLoading}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handlePopulateFromIDIQ}
+            disabled={!populateContactId || populateLoading}
+            startIcon={populateLoading ? <CircularProgress size={16} color="inherit" /> : <SparkleIcon />}
+            className="bg-gradient-to-r from-purple-600 to-indigo-600"
+          >
+            {populateLoading ? 'Scanning...' : 'Scan & Load Items'}
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

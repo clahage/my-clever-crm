@@ -9,6 +9,10 @@
  * UPDATED: Now calls aiContentGenerator backend for REAL AI-powered recommendations
  * using actual contact data, credit reports, AI call transcripts, and interaction history
  * 
+ * NEW INTEGRATIONS (Feb 2026):
+ * ✅ SavingsCalculator - Shows financial impact with 5 tabs
+ * ✅ ClientPortalPreview - Preview dashboard before signing up
+ * 
  * Features:
  * ✅ 6 Service Plans (DIY, Standard, Acceleration, PFD, Hybrid, Premium)
  * ✅ REAL AI-powered plan matching via aiContentGenerator
@@ -17,13 +21,14 @@
  * ✅ Considers email/interaction history
  * ✅ Dynamic pricing with promotional offers
  * ✅ Feature comparison matrix
- * ✅ ROI calculator
+ * ✅ Savings Calculator (5 tabs: Mortgage, Auto, Credit Card, Rental, Employment)
+ * ✅ Client Portal Preview
  * ✅ Success probability predictor
  * ✅ Payment plan options
  * ✅ Upsell/downsell intelligence
  * ✅ Real-time plan performance analytics
  * 
- * @version 2.0.0 MEGA ENTERPRISE WITH REAL AI
+ * @version 3.0.0 MEGA ENTERPRISE WITH INTEGRATIONS
  * @date February 2026
  * @author SpeedyCRM Engineering - Christopher
  * 
@@ -52,13 +57,24 @@ import {
   FileCheck, BookOpen, Lightbulb, UserCheck, CheckSquare,
   FastForward, Timer, School, Briefcase, Home, Car, GraduationCap,
   TrendingDown, ArrowUpRight, Lock, Unlock, RefreshCw, History,
-  AlertTriangle, Wifi, WifiOff
+  AlertTriangle, Wifi, WifiOff, Eye, X, Building2, Banknote, Percent
 } from 'lucide-react';
 
 import { db, functions } from '@/lib/firebase';
 import { httpsCallable } from 'firebase/functions';
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { format, addMonths, differenceInDays } from 'date-fns';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CHRIS LAHAGE CONTACT INFO (HUMAN TOUCH)
+// ═══════════════════════════════════════════════════════════════════════════
+const CHRIS_INFO = {
+  name: 'Chris Lahage',
+  title: 'Credit Expert & Owner',
+  phone: '(888) 724-7344',
+  experience: '30 Years Credit Repair Experience',
+  currentPosition: 'Current Finance Director at one of Toyota\'s top franchises'
+};
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SERVICE PLAN DEFINITIONS (Must match backend SERVICE_PLANS_CONFIG)
@@ -245,6 +261,8 @@ const SERVICE_PLANS = {
     price: 0,
     setupFee: 199,
     perDeletion: 75,
+    originalPrice: null,
+    discount: 0,
     color: '#9C27B0',
     icon: Target,
     recommended: false,
@@ -252,54 +270,52 @@ const SERVICE_PLANS = {
     bestValue: false,
     features: {
       included: [
-        'No monthly fees',
-        'Pay only for deletions',
-        'All 3 bureaus',
-        'Unlimited disputes',
-        'Basic email support',
-        'Monthly statements',
-        'Online portal access',
-        'Deletion verification'
+        'Pay ONLY for results',
+        '$199 setup + $75 per deletion',
+        'All 3 credit bureaus',
+        'Monthly progress reports',
+        'Account manager support',
+        'Email & chat support',
+        'Basic monitoring included',
+        'Creditor interventions',
+        'Debt validation letters'
       ],
       notIncluded: [
-        'Phone support',
-        'Credit monitoring',
+        'Expedited processing',
+        'Weekly updates',
+        'Phone support (email only)',
         'Score simulator',
-        'Expedited service',
-        'Legal consultations',
-        'Financial planning'
+        'Legal team access'
       ]
     },
     results: {
-      timeline: '3-6 months',
-      successRate: '100% (pay for results only)',
-      avgPointIncrease: 'Varies by deletions',
-      effortRequired: 'Low',
-      avgCost: '$300-900 total'
+      timeline: '4-8 months',
+      successRate: '68%',
+      avgPointIncrease: '60-100 points',
+      effortRequired: 'Low'
     },
     idealFor: [
-      'Risk-averse consumers',
-      'Limited negative items',
-      'Previous repair failures',
-      'Trust-building needed'
+      'Risk-averse clients',
+      'Those unsure about service',
+      'Budget flexibility',
+      'Few negative items'
     ],
     guarantees: [
-      'No results, no payment',
-      'Transparent pricing',
-      'Cancel anytime'
+      'No deletion = no charge',
+      '100% results-based',
+      'Setup fee refundable'
     ],
     paymentOptions: {
-      perDeletion: 75,
-      bulkDiscount: '10+ deletions: $65 each',
-      maxCharge: 'Capped at $1500 total'
+      setup: 199,
+      perDeletion: 75
     }
   },
 
   HYBRID: {
     id: 'hybrid',
     key: 'HYBRID',
-    name: 'Hybrid AI Solution',
-    tagline: 'AI-powered with human oversight',
+    name: 'AI Hybrid Plan',
+    tagline: 'AI-powered + human expertise',
     price: 99,
     originalPrice: 149,
     discount: 33,
@@ -310,45 +326,46 @@ const SERVICE_PLANS = {
     bestValue: false,
     features: {
       included: [
-        'AI dispute generation',
-        'Smart document analysis',
-        'Automated bureau submissions',
-        'Pattern recognition',
-        'Predictive scoring',
-        'Chat support with AI',
-        'Human review monthly',
-        'Mobile app access',
-        'Real-time alerts',
-        'Progress predictions'
+        'AI-powered dispute analysis',
+        'Automated letter generation',
+        'All 3 credit bureaus',
+        'Weekly AI insights',
+        'Email support',
+        'Chat support (AI + Human)',
+        'Progress tracking dashboard',
+        'Smart recommendations',
+        'Automated follow-ups',
+        'Document scanning AI'
       ],
       notIncluded: [
+        'Dedicated human manager',
         'Phone support',
-        'Dedicated manager',
-        'Legal consultations',
-        'Manual interventions'
+        'Expedited processing',
+        'Legal team access',
+        'Score simulator'
       ]
     },
     results: {
       timeline: '3-5 months',
-      successRate: '70%',
-      avgPointIncrease: '70-110 points',
-      effortRequired: 'Low (app-based)'
+      successRate: '72%',
+      avgPointIncrease: '70-100 points',
+      effortRequired: 'Low (automated)'
     },
     idealFor: [
-      'Tech-savvy consumers',
-      'Moderate credit issues',
-      'Budget + automation',
-      'Mobile-first users'
+      'Tech-savvy clients',
+      'Budget-conscious',
+      'Self-directed individuals',
+      'Moderate credit issues'
     ],
     guarantees: [
       '60-day money back',
       'AI accuracy guarantee',
-      'Data security pledge'
+      'Human escalation available'
     ],
     paymentOptions: {
       monthly: 99,
       quarterly: 269,
-      annual: 999
+      semiAnnual: 499
     }
   },
 
@@ -356,7 +373,7 @@ const SERVICE_PLANS = {
     id: 'premium',
     key: 'PREMIUM',
     name: 'Premium White Glove',
-    tagline: 'Concierge credit restoration',
+    tagline: 'VIP concierge credit repair',
     price: 349,
     originalPrice: 499,
     discount: 30,
@@ -368,33 +385,32 @@ const SERVICE_PLANS = {
     features: {
       included: [
         'Everything in Acceleration',
-        'Dedicated senior specialist',
+        'Dedicated VIP manager',
         'Daily progress updates',
+        'Direct legal team access',
         'Personal credit coach',
-        'Attorney-backed disputes',
-        'Court filing assistance',
-        'Creditor negotiations',
-        'Debt settlement support',
-        'Identity monitoring',
-        'Financial advisor access',
-        'VIP support line',
-        'Success guarantee',
-        'Spouse included free',
-        'Lifetime maintenance'
+        'Financial planning sessions',
+        'Identity monitoring (all 3)',
+        'Credit builder program',
+        'Debt negotiation service',
+        'Spouse included FREE',
+        'Priority processing',
+        '24/7 support access',
+        'Success guarantee'
       ],
-      notIncluded: [] // Everything included
+      notIncluded: []
     },
     results: {
-      timeline: '45-90 days',
-      successRate: '95%',
-      avgPointIncrease: '150-250 points',
-      effortRequired: 'Zero (full service)'
+      timeline: '1-3 months',
+      successRate: '92%',
+      avgPointIncrease: '150-220 points',
+      effortRequired: 'None (we handle everything)'
     },
     idealFor: [
-      'Executives & professionals',
       'Complex credit situations',
-      'Maximum speed needed',
-      'No time for involvement'
+      'High-net-worth individuals',
+      'Business owners',
+      'Those needing fastest results'
     ],
     guarantees: [
       '180-day money back',
@@ -409,6 +425,648 @@ const SERVICE_PLANS = {
       annual: 3299
     }
   }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SAVINGS CALCULATOR COMPONENT (INTEGRATED)
+// ═══════════════════════════════════════════════════════════════════════════
+const SavingsCalculatorDialog = ({ open, onClose, currentScore, projectedIncrease }) => {
+  const [activeTab, setActiveTab] = useState(0);
+  const [currentScoreValue, setCurrentScoreValue] = useState(currentScore || 580);
+  const [targetScoreValue, setTargetScoreValue] = useState(Math.min((currentScore || 580) + (projectedIncrease || 100), 800));
+
+  // ===== UPDATE WHEN PROPS CHANGE =====
+  useEffect(() => {
+    if (currentScore) setCurrentScoreValue(currentScore);
+    if (currentScore && projectedIncrease) {
+      setTargetScoreValue(Math.min(currentScore + projectedIncrease, 800));
+    }
+  }, [currentScore, projectedIncrease]);
+
+  // ===== INTEREST RATE TABLES =====
+  const getMortgageRate = (score) => {
+    if (score >= 760) return 6.5;
+    if (score >= 700) return 6.875;
+    if (score >= 680) return 7.25;
+    if (score >= 660) return 7.625;
+    if (score >= 620) return 8.125;
+    return 9.5;
+  };
+
+  const getAutoRate = (score) => {
+    if (score >= 720) return 5.5;
+    if (score >= 680) return 7.5;
+    if (score >= 640) return 10.5;
+    if (score >= 600) return 15.0;
+    return 20.0;
+  };
+
+  const getCreditCardRate = (score) => {
+    if (score >= 720) return 16.99;
+    if (score >= 680) return 21.99;
+    if (score >= 640) return 24.99;
+    return 29.99;
+  };
+
+  // ===== CALCULATE SAVINGS =====
+  const calculateMortgageSavings = () => {
+    const loanAmount = 400000;
+    const years = 30;
+    const currentRate = getMortgageRate(currentScoreValue);
+    const targetRate = getMortgageRate(targetScoreValue);
+    
+    const calcPayment = (principal, rate, yrs) => {
+      const monthlyRate = rate / 100 / 12;
+      const n = yrs * 12;
+      return principal * (monthlyRate * Math.pow(1 + monthlyRate, n)) / (Math.pow(1 + monthlyRate, n) - 1);
+    };
+
+    const currentPayment = calcPayment(loanAmount, currentRate, years);
+    const targetPayment = calcPayment(loanAmount, targetRate, years);
+    const monthlySavings = currentPayment - targetPayment;
+    const totalSavings = monthlySavings * years * 12;
+
+    return { currentRate, targetRate, monthlySavings, totalSavings, loanAmount };
+  };
+
+  const calculateAutoSavings = () => {
+    const loanAmount = 35000;
+    const years = 5;
+    const currentRate = getAutoRate(currentScoreValue);
+    const targetRate = getAutoRate(targetScoreValue);
+    
+    const calcInterest = (principal, rate, yrs) => {
+      const monthlyRate = rate / 100 / 12;
+      const n = yrs * 12;
+      const payment = principal * (monthlyRate * Math.pow(1 + monthlyRate, n)) / (Math.pow(1 + monthlyRate, n) - 1);
+      return (payment * n) - principal;
+    };
+
+    const currentInterest = calcInterest(loanAmount, currentRate, years);
+    const targetInterest = calcInterest(loanAmount, targetRate, years);
+    const totalSavings = currentInterest - targetInterest;
+
+    return { currentRate, targetRate, totalSavings, loanAmount };
+  };
+
+  const calculateCreditCardSavings = () => {
+    const balance = 8000;
+    const years = 3;
+    const currentRate = getCreditCardRate(currentScoreValue);
+    const targetRate = getCreditCardRate(targetScoreValue);
+    
+    const currentInterest = balance * (currentRate / 100) * years;
+    const targetInterest = balance * (targetRate / 100) * years;
+    const totalSavings = currentInterest - targetInterest;
+
+    return { currentRate, targetRate, totalSavings, balance };
+  };
+
+  const calculateRentalSavings = () => {
+    // Security deposits often reduced with good credit
+    const monthlyRent = 2000;
+    const currentDeposit = currentScoreValue < 650 ? monthlyRent * 3 : currentScoreValue < 700 ? monthlyRent * 2 : monthlyRent;
+    const targetDeposit = targetScoreValue < 650 ? monthlyRent * 3 : targetScoreValue < 700 ? monthlyRent * 2 : monthlyRent;
+    const depositSavings = currentDeposit - targetDeposit;
+
+    // Better rental options = lower rent
+    const rentPremium = currentScoreValue < 650 ? 200 : currentScoreValue < 700 ? 100 : 0;
+    const targetPremium = targetScoreValue < 650 ? 200 : targetScoreValue < 700 ? 100 : 0;
+    const monthlyRentSavings = rentPremium - targetPremium;
+
+    return { depositSavings, monthlyRentSavings, yearlyRentSavings: monthlyRentSavings * 12 };
+  };
+
+  const calculateEmploymentImpact = () => {
+    // Some employers check credit for certain positions
+    const potentialSalaryIncrease = currentScoreValue < 650 ? 5000 : currentScoreValue < 700 ? 2500 : 0;
+    const targetIncrease = targetScoreValue < 650 ? 5000 : targetScoreValue < 700 ? 2500 : 0;
+    const improvement = potentialSalaryIncrease - targetIncrease;
+
+    return { improvement, note: 'Access to better positions requiring credit checks' };
+  };
+
+  // ===== CALCULATE TOTALS =====
+  const mortgage = calculateMortgageSavings();
+  const auto = calculateAutoSavings();
+  const creditCard = calculateCreditCardSavings();
+  const rental = calculateRentalSavings();
+  const employment = calculateEmploymentImpact();
+
+  const totalLifetimeSavings = Math.round(
+    mortgage.totalSavings + auto.totalSavings + creditCard.totalSavings + 
+    (rental.yearlyRentSavings * 5) + (employment.improvement * 10)
+  );
+
+  const tabs = [
+    { label: 'Mortgage', icon: Home, color: '#3B82F6' },
+    { label: 'Auto Loan', icon: Car, color: '#10B981' },
+    { label: 'Credit Cards', icon: CreditCard, color: '#F59E0B' },
+    { label: 'Rentals', icon: Building2, color: '#8B5CF6' },
+    { label: 'Employment', icon: Briefcase, color: '#EF4444' }
+  ];
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle sx={{ 
+        background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+        color: 'white',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between'
+      }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Calculator size={28} />
+          <Box>
+            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>See How Much You Could Save</Typography>
+            <Typography variant="caption" sx={{ opacity: 0.9 }}>Calculate your potential savings with better credit</Typography>
+          </Box>
+        </Box>
+        <IconButton onClick={onClose} sx={{ color: 'white' }}>
+          <X size={24} />
+        </IconButton>
+      </DialogTitle>
+
+      <DialogContent sx={{ p: 0 }}>
+        {/* ===== SCORE SLIDERS ===== */}
+        <Box sx={{ p: 3, bgcolor: '#F8FAFC', borderBottom: '1px solid #E5E7EB' }}>
+          <Grid container spacing={4}>
+            <Grid item xs={12} md={6}>
+              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
+                Current Credit Score: <span style={{ color: '#EF4444' }}>{currentScoreValue}</span>
+              </Typography>
+              <Slider
+                value={currentScoreValue}
+                onChange={(e, val) => setCurrentScoreValue(val)}
+                min={300}
+                max={850}
+                step={10}
+                marks={[
+                  { value: 300, label: '300' },
+                  { value: 580, label: '580' },
+                  { value: 670, label: '670' },
+                  { value: 740, label: '740' },
+                  { value: 850, label: '850' }
+                ]}
+                sx={{ color: '#EF4444' }}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
+                Target Credit Score: <span style={{ color: '#10B981' }}>{targetScoreValue}</span>
+              </Typography>
+              <Slider
+                value={targetScoreValue}
+                onChange={(e, val) => setTargetScoreValue(val)}
+                min={300}
+                max={850}
+                step={10}
+                marks={[
+                  { value: 300, label: '300' },
+                  { value: 580, label: '580' },
+                  { value: 670, label: '670' },
+                  { value: 740, label: '740' },
+                  { value: 850, label: '850' }
+                ]}
+                sx={{ color: '#10B981' }}
+              />
+            </Grid>
+          </Grid>
+
+          {/* ===== TOTAL SAVINGS DISPLAY ===== */}
+          <Box sx={{ 
+            mt: 3, 
+            p: 2, 
+            bgcolor: '#D1FAE5', 
+            borderRadius: 2, 
+            textAlign: 'center',
+            border: '2px solid #10B981'
+          }}>
+            <Typography variant="body2" color="text.secondary">
+              Total Estimated Lifetime Savings
+            </Typography>
+            <Typography variant="h3" sx={{ fontWeight: 'bold', color: '#059669' }}>
+              ${totalLifetimeSavings.toLocaleString()}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Based on improving from {currentScoreValue} to {targetScoreValue} (+{targetScoreValue - currentScoreValue} points)
+            </Typography>
+          </Box>
+        </Box>
+
+        {/* ===== CATEGORY TABS ===== */}
+        <Tabs
+          value={activeTab}
+          onChange={(e, val) => setActiveTab(val)}
+          variant="fullWidth"
+          sx={{ borderBottom: '1px solid #E5E7EB' }}
+        >
+          {tabs.map((tab, idx) => (
+            <Tab
+              key={idx}
+              label={
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <tab.icon size={18} color={tab.color} />
+                  <span>{tab.label}</span>
+                </Box>
+              }
+            />
+          ))}
+        </Tabs>
+
+        {/* ===== TAB CONTENT ===== */}
+        <Box sx={{ p: 3 }}>
+          {/* MORTGAGE TAB */}
+          {activeTab === 0 && (
+            <Box>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Home size={24} color="#3B82F6" /> Mortgage Savings
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Based on a ${mortgage.loanAmount.toLocaleString()} 30-year fixed mortgage
+              </Typography>
+              
+              <Grid container spacing={3}>
+                <Grid item xs={6}>
+                  <Paper sx={{ p: 2, bgcolor: '#FEE2E2', textAlign: 'center' }}>
+                    <Typography variant="caption" color="text.secondary">Current Rate</Typography>
+                    <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#DC2626' }}>
+                      {mortgage.currentRate}%
+                    </Typography>
+                  </Paper>
+                </Grid>
+                <Grid item xs={6}>
+                  <Paper sx={{ p: 2, bgcolor: '#D1FAE5', textAlign: 'center' }}>
+                    <Typography variant="caption" color="text.secondary">New Rate</Typography>
+                    <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#059669' }}>
+                      {mortgage.targetRate}%
+                    </Typography>
+                  </Paper>
+                </Grid>
+              </Grid>
+
+              <Box sx={{ mt: 3, p: 2, bgcolor: '#F0FDF4', borderRadius: 2 }}>
+                <Typography variant="body1">
+                  Monthly Savings: <strong style={{ color: '#059669' }}>${Math.round(mortgage.monthlySavings).toLocaleString()}</strong>
+                </Typography>
+                <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#059669', mt: 1 }}>
+                  Lifetime Savings: ${Math.round(mortgage.totalSavings).toLocaleString()}
+                </Typography>
+              </Box>
+            </Box>
+          )}
+
+          {/* AUTO LOAN TAB */}
+          {activeTab === 1 && (
+            <Box>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Car size={24} color="#10B981" /> Auto Loan Savings
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Based on a ${auto.loanAmount.toLocaleString()} 5-year auto loan
+              </Typography>
+              
+              <Grid container spacing={3}>
+                <Grid item xs={6}>
+                  <Paper sx={{ p: 2, bgcolor: '#FEE2E2', textAlign: 'center' }}>
+                    <Typography variant="caption" color="text.secondary">Current APR</Typography>
+                    <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#DC2626' }}>
+                      {auto.currentRate}%
+                    </Typography>
+                  </Paper>
+                </Grid>
+                <Grid item xs={6}>
+                  <Paper sx={{ p: 2, bgcolor: '#D1FAE5', textAlign: 'center' }}>
+                    <Typography variant="caption" color="text.secondary">New APR</Typography>
+                    <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#059669' }}>
+                      {auto.targetRate}%
+                    </Typography>
+                  </Paper>
+                </Grid>
+              </Grid>
+
+              <Box sx={{ mt: 3, p: 2, bgcolor: '#F0FDF4', borderRadius: 2 }}>
+                <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#059669' }}>
+                  Total Interest Savings: ${Math.round(auto.totalSavings).toLocaleString()}
+                </Typography>
+              </Box>
+
+              {/* PRO TIP FROM CHRIS */}
+              <Alert severity="info" icon={<Lightbulb size={20} />} sx={{ mt: 3 }}>
+                <Typography variant="body2">
+                  <strong>Pro Tip from Chris:</strong> As a current Finance Director at one of Toyota's top franchises, 
+                  I see this every day. Even a 50-point improvement can save you thousands on your next vehicle!
+                </Typography>
+              </Alert>
+            </Box>
+          )}
+
+          {/* CREDIT CARD TAB */}
+          {activeTab === 2 && (
+            <Box>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
+                <CreditCard size={24} color="#F59E0B" /> Credit Card Savings
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Based on ${creditCard.balance.toLocaleString()} average balance over 3 years
+              </Typography>
+              
+              <Grid container spacing={3}>
+                <Grid item xs={6}>
+                  <Paper sx={{ p: 2, bgcolor: '#FEE2E2', textAlign: 'center' }}>
+                    <Typography variant="caption" color="text.secondary">Current APR</Typography>
+                    <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#DC2626' }}>
+                      {creditCard.currentRate}%
+                    </Typography>
+                  </Paper>
+                </Grid>
+                <Grid item xs={6}>
+                  <Paper sx={{ p: 2, bgcolor: '#D1FAE5', textAlign: 'center' }}>
+                    <Typography variant="caption" color="text.secondary">New APR</Typography>
+                    <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#059669' }}>
+                      {creditCard.targetRate}%
+                    </Typography>
+                  </Paper>
+                </Grid>
+              </Grid>
+
+              <Box sx={{ mt: 3, p: 2, bgcolor: '#F0FDF4', borderRadius: 2 }}>
+                <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#059669' }}>
+                  Interest Savings: ${Math.round(creditCard.totalSavings).toLocaleString()}
+                </Typography>
+              </Box>
+            </Box>
+          )}
+
+          {/* RENTALS TAB */}
+          {activeTab === 3 && (
+            <Box>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Building2 size={24} color="#8B5CF6" /> Rental Savings
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Better credit = lower deposits and better rental options
+              </Typography>
+              
+              <Grid container spacing={3}>
+                <Grid item xs={6}>
+                  <Paper sx={{ p: 2, textAlign: 'center' }}>
+                    <Typography variant="caption" color="text.secondary">Security Deposit Savings</Typography>
+                    <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#8B5CF6' }}>
+                      ${rental.depositSavings.toLocaleString()}
+                    </Typography>
+                  </Paper>
+                </Grid>
+                <Grid item xs={6}>
+                  <Paper sx={{ p: 2, textAlign: 'center' }}>
+                    <Typography variant="caption" color="text.secondary">Monthly Rent Savings</Typography>
+                    <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#8B5CF6' }}>
+                      ${rental.monthlyRentSavings}/mo
+                    </Typography>
+                  </Paper>
+                </Grid>
+              </Grid>
+
+              <Box sx={{ mt: 3, p: 2, bgcolor: '#F5F3FF', borderRadius: 2 }}>
+                <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#7C3AED' }}>
+                  Annual Rent Savings: ${rental.yearlyRentSavings.toLocaleString()}
+                </Typography>
+              </Box>
+            </Box>
+          )}
+
+          {/* EMPLOYMENT TAB */}
+          {activeTab === 4 && (
+            <Box>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Briefcase size={24} color="#EF4444" /> Employment Impact
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Many employers check credit for management and financial positions
+              </Typography>
+              
+              <Paper sx={{ p: 3, textAlign: 'center', bgcolor: '#FEF2F2' }}>
+                <Typography variant="caption" color="text.secondary">Potential Salary Impact</Typography>
+                <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#DC2626' }}>
+                  +${employment.improvement.toLocaleString()}/year
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  {employment.note}
+                </Typography>
+              </Paper>
+
+              <Alert severity="warning" sx={{ mt: 3 }}>
+                <Typography variant="body2">
+                  Poor credit can disqualify you from certain positions, especially in finance, 
+                  government, and management roles that require credit checks.
+                </Typography>
+              </Alert>
+            </Box>
+          )}
+        </Box>
+      </DialogContent>
+
+      <DialogActions sx={{ p: 2, borderTop: '1px solid #E5E7EB' }}>
+        <Button onClick={onClose}>Close</Button>
+        <Button 
+          variant="contained" 
+          color="success"
+          onClick={onClose}
+          startIcon={<Rocket size={18} />}
+        >
+          Start Saving Today
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CLIENT PORTAL PREVIEW DIALOG
+// ═══════════════════════════════════════════════════════════════════════════
+const ClientPortalPreviewDialog = ({ open, onClose, contactData, creditScore }) => {
+  const score = creditScore || contactData?.creditScore || 580;
+  const targetScore = Math.min(score + 100, 780);
+  const improvement = targetScore - score;
+
+  const getScoreColor = (s) => {
+    if (s >= 740) return '#10B981';
+    if (s >= 670) return '#3B82F6';
+    if (s >= 580) return '#F59E0B';
+    return '#EF4444';
+  };
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
+      <DialogTitle sx={{ 
+        background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)',
+        color: 'white',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between'
+      }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Eye size={28} />
+          <Box>
+            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>Preview Your Client Dashboard</Typography>
+            <Typography variant="caption" sx={{ opacity: 0.9 }}>
+              See what your personalized portal will look like
+            </Typography>
+          </Box>
+        </Box>
+        <IconButton onClick={onClose} sx={{ color: 'white' }}>
+          <X size={24} />
+        </IconButton>
+      </DialogTitle>
+
+      <DialogContent sx={{ p: 0, bgcolor: '#F8FAFC' }}>
+        {/* ===== MOCK DASHBOARD PREVIEW ===== */}
+        <Box sx={{ p: 3 }}>
+          {/* Welcome Header */}
+          <Paper sx={{ 
+            p: 3, 
+            mb: 3, 
+            background: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%)',
+            color: 'white',
+            borderRadius: 2
+          }}>
+            <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1 }}>
+              Welcome, {contactData?.firstName || 'Client'}! 👋
+            </Typography>
+            <Typography variant="body2" sx={{ opacity: 0.9 }}>
+              Your credit improvement journey starts here. We're here to help every step of the way.
+            </Typography>
+          </Paper>
+
+          {/* Score Preview */}
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={4}>
+              <Paper sx={{ p: 3, textAlign: 'center', borderRadius: 2 }}>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                  Your Current Score
+                </Typography>
+                <Typography 
+                  variant="h2" 
+                  sx={{ fontWeight: 'bold', color: getScoreColor(score) }}
+                >
+                  {score}
+                </Typography>
+                <Chip 
+                  label={score >= 670 ? 'Good' : score >= 580 ? 'Fair' : 'Needs Work'} 
+                  size="small"
+                  sx={{ mt: 1, bgcolor: getScoreColor(score), color: 'white' }}
+                />
+              </Paper>
+            </Grid>
+            
+            <Grid item xs={12} md={4}>
+              <Paper sx={{ p: 3, textAlign: 'center', borderRadius: 2, bgcolor: '#D1FAE5' }}>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                  Your Target Score
+                </Typography>
+                <Typography variant="h2" sx={{ fontWeight: 'bold', color: '#059669' }}>
+                  {targetScore}
+                </Typography>
+                <Chip 
+                  icon={<TrendingUp size={14} />}
+                  label={`+${improvement} points`} 
+                  size="small"
+                  sx={{ mt: 1, bgcolor: '#059669', color: 'white' }}
+                />
+              </Paper>
+            </Grid>
+            
+            <Grid item xs={12} md={4}>
+              <Paper sx={{ p: 3, textAlign: 'center', borderRadius: 2, bgcolor: '#FEF3C7' }}>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                  Estimated Timeline
+                </Typography>
+                <Typography variant="h2" sx={{ fontWeight: 'bold', color: '#D97706' }}>
+                  3-4
+                </Typography>
+                <Typography variant="body2" color="text.secondary">months</Typography>
+              </Paper>
+            </Grid>
+          </Grid>
+
+          {/* Progress Timeline Preview */}
+          <Paper sx={{ p: 3, mt: 3, borderRadius: 2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Rocket size={24} /> Your Journey Progress
+            </Typography>
+            
+            <Stepper activeStep={0} orientation="vertical">
+              <Step completed>
+                <StepLabel>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>Enrollment Complete</Typography>
+                </StepLabel>
+                <StepContent>
+                  <Typography variant="body2" color="text.secondary">
+                    Welcome to Speedy Credit Repair! 🎉
+                  </Typography>
+                </StepContent>
+              </Step>
+              <Step>
+                <StepLabel>
+                  <Typography variant="subtitle2">Credit Report Analysis</Typography>
+                </StepLabel>
+                <StepContent>
+                  <Typography variant="body2" color="text.secondary">
+                    Chris personally reviews your credit report
+                  </Typography>
+                </StepContent>
+              </Step>
+              <Step>
+                <StepLabel>
+                  <Typography variant="subtitle2">First Disputes Filed</Typography>
+                </StepLabel>
+              </Step>
+              <Step>
+                <StepLabel>
+                  <Typography variant="subtitle2">Results & Score Improvement</Typography>
+                </StepLabel>
+              </Step>
+            </Stepper>
+          </Paper>
+
+          {/* Features Preview */}
+          <Grid container spacing={2} sx={{ mt: 2 }}>
+            {[
+              { icon: BarChart3, label: 'Score Tracking', desc: 'Watch your score improve' },
+              { icon: Shield, label: 'Dispute Status', desc: 'Real-time updates' },
+              { icon: FileCheck, label: 'Documents', desc: 'Secure upload center' },
+              { icon: MessageSquare, label: 'Direct Support', desc: 'Chat with our team' }
+            ].map((feature, idx) => (
+              <Grid item xs={6} md={3} key={idx}>
+                <Paper sx={{ p: 2, textAlign: 'center', height: '100%' }}>
+                  <Avatar sx={{ mx: 'auto', mb: 1, bgcolor: 'primary.light', color: 'primary.main' }}>
+                    <feature.icon size={20} />
+                  </Avatar>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+                    {feature.label}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {feature.desc}
+                  </Typography>
+                </Paper>
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+      </DialogContent>
+
+      <DialogActions sx={{ p: 2, borderTop: '1px solid #E5E7EB', bgcolor: '#F8FAFC' }}>
+        <Button onClick={onClose}>Close Preview</Button>
+        <Button 
+          variant="contained" 
+          onClick={onClose}
+          startIcon={<CheckCircle size={18} />}
+        >
+          Become a Client
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -434,8 +1092,11 @@ const ServicePlanRecommender = ({
   const [paymentFrequency, setPaymentFrequency] = useState('monthly');
   const [includeSpouse, setIncludeSpouse] = useState(false);
   const [showDetails, setShowDetails] = useState({});
-  const [calculatorOpen, setCalculatorOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
+  
+  // ===== NEW: DIALOG STATES FOR INTEGRATIONS =====
+  const [savingsCalculatorOpen, setSavingsCalculatorOpen] = useState(false);
+  const [portalPreviewOpen, setPortalPreviewOpen] = useState(false);
   
   // AI Recommendation State
   const [aiRecommendation, setAiRecommendation] = useState(null);
@@ -794,6 +1455,23 @@ const ServicePlanRecommender = ({
   };
   
   // ═════════════════════════════════════════════════════════════════════════
+  // GET PROJECTED SCORE INCREASE
+  // ═════════════════════════════════════════════════════════════════════════
+  
+  const getProjectedIncrease = () => {
+    if (aiRecommendation?.expectedResults?.pointIncrease) {
+      const match = aiRecommendation.expectedResults.pointIncrease.match(/(\d+)/);
+      if (match) return parseInt(match[1]);
+    }
+    const selectedPlan = SERVICE_PLANS[selectedPlans[0]];
+    if (selectedPlan?.results?.avgPointIncrease) {
+      const match = selectedPlan.results.avgPointIncrease.match(/(\d+)/);
+      if (match) return parseInt(match[1]);
+    }
+    return 100;
+  };
+  
+  // ═════════════════════════════════════════════════════════════════════════
   // RENDER AI RECOMMENDATION CARD
   // ═════════════════════════════════════════════════════════════════════════
   
@@ -954,102 +1632,83 @@ const ServicePlanRecommender = ({
   
   const renderPlanCard = (planKey) => {
     const plan = SERVICE_PLANS[planKey];
-    const isSelected = selectedPlans.includes(planKey);
-    const isRecommended = aiRecommendation?.recommendedPlan === planKey;
-    const isAlternative = aiRecommendation?.alternativePlan?.plan === planKey;
     const planPricing = pricing[planKey] || {};
-    const prediction = successPredictions[planKey] || {};
+    const isSelected = selectedPlans.includes(planKey);
+    const isRecommended = plan.recommended;
     const Icon = plan.icon;
     
     return (
       <Card
-        key={planKey}
         sx={{
           height: '100%',
-          position: 'relative',
-          border: isSelected ? 3 : isRecommended ? 2 : 1,
-          borderColor: isSelected ? plan.color : isRecommended ? 'primary.main' : 'divider',
+          display: 'flex',
+          flexDirection: 'column',
+          border: isSelected ? '3px solid' : '1px solid',
+          borderColor: isSelected ? plan.color : 'divider',
           transform: isSelected ? 'scale(1.02)' : 'scale(1)',
           transition: 'all 0.3s ease',
-          cursor: 'pointer',
+          position: 'relative',
+          overflow: 'visible',
           '&:hover': {
-            transform: 'scale(1.03)',
-            boxShadow: 6
+            transform: 'scale(1.02)',
+            boxShadow: 4
           }
         }}
-        onClick={() => handlePlanSelect(planKey)}
       >
-        {/* AI Recommendation Badge */}
-        {isRecommended && (
-          <Box
-            sx={{
-              position: 'absolute',
-              top: -12,
-              right: 20,
-              bgcolor: 'primary.main',
-              color: 'white',
-              px: 2,
-              py: 0.5,
-              borderRadius: 2,
-              fontSize: '0.75rem',
-              fontWeight: 'bold',
-              zIndex: 1
-            }}
-          >
-            <Stack direction="row" spacing={0.5} alignItems="center">
-              <Sparkles size={14} />
-              <span>AI RECOMMENDED</span>
-            </Stack>
-          </Box>
-        )}
+        {/* Badges */}
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{
+            position: 'absolute',
+            top: -12,
+            left: 8,
+            right: 8,
+            justifyContent: 'center'
+          }}
+        >
+          {isRecommended && (
+            <Chip
+              icon={<Sparkles size={14} />}
+              label="AI RECOMMENDED"
+              size="small"
+              sx={{
+                bgcolor: plan.color,
+                color: 'white',
+                fontWeight: 'bold'
+              }}
+            />
+          )}
+          {plan.bestValue && (
+            <Chip
+              icon={<Award size={14} />}
+              label="BEST VALUE"
+              size="small"
+              sx={{
+                bgcolor: '#F59E0B',
+                color: 'white',
+                fontWeight: 'bold'
+              }}
+            />
+          )}
+          {plan.popular && (
+            <Chip
+              icon={<Star size={14} />}
+              label="MOST POPULAR"
+              size="small"
+              sx={{
+                bgcolor: '#6366F1',
+                color: 'white',
+                fontWeight: 'bold'
+              }}
+            />
+          )}
+        </Stack>
         
-        {/* Alternative Badge */}
-        {isAlternative && !isRecommended && (
-          <Box
-            sx={{
-              position: 'absolute',
-              top: -12,
-              right: 20,
-              bgcolor: 'secondary.main',
-              color: 'white',
-              px: 2,
-              py: 0.5,
-              borderRadius: 2,
-              fontSize: '0.7rem',
-              fontWeight: 'bold',
-              zIndex: 1
-            }}
-          >
-            ALTERNATIVE
-          </Box>
-        )}
-        
-        {/* Popular Badge */}
-        {plan.popular && !isRecommended && (
-          <Box
-            sx={{
-              position: 'absolute',
-              top: -12,
-              left: 20,
-              bgcolor: 'warning.main',
-              color: 'white',
-              px: 1.5,
-              py: 0.5,
-              borderRadius: 2,
-              fontSize: '0.7rem',
-              fontWeight: 'bold',
-              zIndex: 1
-            }}
-          >
-            POPULAR
-          </Box>
-        )}
-        
-        <CardContent>
-          {/* Plan Header */}
-          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-            <Avatar sx={{ bgcolor: plan.color, width: 40, height: 40 }}>
-              <Icon size={20} />
+        <CardContent sx={{ flex: 1, pt: 4 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            <Avatar sx={{ bgcolor: plan.color, mr: 2 }}>
+              <Icon size={24} />
             </Avatar>
             <Box>
               <Typography variant="h6" fontWeight="bold">
@@ -1059,139 +1718,75 @@ const ServicePlanRecommender = ({
                 {plan.tagline}
               </Typography>
             </Box>
-          </Stack>
+          </Box>
           
           {/* Pricing */}
-          <Box sx={{ mb: 2 }}>
-            {plan.setupFee !== undefined ? (
-              <>
+          <Box sx={{ mb: 3 }}>
+            {plan.price > 0 ? (
+              <Stack direction="row" alignItems="baseline" spacing={1}>
                 <Typography variant="h4" fontWeight="bold" color={plan.color}>
-                  ${plan.perDeletion}
+                  ${plan.price}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  per deletion + ${plan.setupFee} setup
+                  /month
                 </Typography>
-              </>
-            ) : (
-              <>
-                <Stack direction="row" alignItems="baseline" spacing={1}>
-                  <Typography variant="h4" fontWeight="bold" color={plan.color}>
-                    ${plan.price}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">/month</Typography>
-                </Stack>
-                {plan.originalPrice && plan.originalPrice > plan.price && (
-                  <Typography 
-                    variant="body2" 
-                    sx={{ textDecoration: 'line-through', color: 'text.disabled' }}
-                  >
-                    Was ${plan.originalPrice}/mo
-                  </Typography>
+                {plan.discount > 0 && (
+                  <Chip
+                    label={`${plan.discount}% OFF`}
+                    size="small"
+                    sx={{ bgcolor: '#D1FAE5', color: '#059669' }}
+                  />
                 )}
-              </>
+              </Stack>
+            ) : (
+              <Stack>
+                <Typography variant="h4" fontWeight="bold" color={plan.color}>
+                  $0/mo
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  ${plan.setupFee} setup + ${plan.perDeletion}/deletion
+                </Typography>
+              </Stack>
             )}
           </Box>
           
-          {/* Success Prediction */}
-          {prediction.probability && (
-            <Box sx={{ mb: 2 }}>
-              <Stack direction="row" justifyContent="space-between" alignItems="center">
-                <Typography variant="body2" color="text.secondary">
-                  Success Probability
-                </Typography>
-                <Typography variant="body2" fontWeight="bold" color="success.main">
-                  {prediction.probability}%
-                </Typography>
-              </Stack>
-              <LinearProgress 
-                variant="determinate" 
-                value={prediction.probability} 
-                sx={{ 
-                  mt: 0.5, 
-                  height: 6, 
-                  borderRadius: 3,
-                  bgcolor: 'grey.200',
-                  '& .MuiLinearProgress-bar': { bgcolor: plan.color }
-                }}
-              />
-            </Box>
-          )}
-          
+          {/* Features List */}
           <Divider sx={{ my: 2 }} />
-          
-          {/* Top Features */}
-          <List dense disablePadding>
-            {plan.features.included.slice(0, 5).map((feature, idx) => (
-              <ListItem key={idx} disablePadding sx={{ py: 0.25 }}>
+          <List dense>
+            {plan.features.included.slice(0, 6).map((feature, idx) => (
+              <ListItem key={idx} sx={{ px: 0 }}>
                 <ListItemIcon sx={{ minWidth: 28 }}>
-                  <CheckCircle size={16} style={{ color: plan.color }} />
+                  <CheckCircle size={16} style={{ color: '#10B981' }} />
                 </ListItemIcon>
-                <ListItemText
-                  primary={feature}
+                <ListItemText 
+                  primary={feature} 
                   primaryTypographyProps={{ variant: 'body2' }}
                 />
               </ListItem>
             ))}
           </List>
           
-          {/* Show More */}
-          {plan.features.included.length > 5 && (
-            <Button
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowDetails(prev => ({ ...prev, [planKey]: !prev[planKey] }));
-              }}
-              endIcon={showDetails[planKey] ? <ChevronDown /> : <ChevronRight />}
-              sx={{ mt: 1 }}
-            >
-              {showDetails[planKey] ? 'Show Less' : `+${plan.features.included.length - 5} More Features`}
-            </Button>
-          )}
-          
-          <Collapse in={showDetails[planKey]}>
-            <List dense disablePadding sx={{ mt: 1 }}>
-              {plan.features.included.slice(5).map((feature, idx) => (
-                <ListItem key={idx} disablePadding sx={{ py: 0.25 }}>
-                  <ListItemIcon sx={{ minWidth: 28 }}>
-                    <CheckCircle size={16} style={{ color: plan.color }} />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={feature}
-                    primaryTypographyProps={{ variant: 'body2' }}
-                  />
-                </ListItem>
-              ))}
-            </List>
-          </Collapse>
-          
-          {/* Results Timeline */}
-          <Box sx={{ mt: 2 }}>
-            <Stack spacing={0.5}>
-              <Stack direction="row" justifyContent="space-between">
-                <Typography variant="caption" color="text.secondary">Timeline</Typography>
-                <Typography variant="caption" fontWeight="bold">{plan.results.timeline}</Typography>
-              </Stack>
-              <Stack direction="row" justifyContent="space-between">
-                <Typography variant="caption" color="text.secondary">Avg Improvement</Typography>
-                <Typography variant="caption" fontWeight="bold">{plan.results.avgPointIncrease}</Typography>
-              </Stack>
-            </Stack>
+          {/* Results Preview */}
+          <Box sx={{ mt: 2, p: 1.5, bgcolor: 'grey.100', borderRadius: 1 }}>
+            <Typography variant="caption" color="text.secondary">Expected Results</Typography>
+            <Typography variant="body2" fontWeight="medium">
+              {plan.results.avgPointIncrease} in {plan.results.timeline}
+            </Typography>
           </Box>
         </CardContent>
         
-        <CardActions sx={{ justifyContent: 'center', pb: 2 }}>
+        <CardActions sx={{ p: 2 }}>
           <Button
-            variant={isSelected ? "contained" : "outlined"}
-            size="large"
             fullWidth
-            sx={{
+            variant={isSelected ? 'contained' : 'outlined'}
+            color={isSelected ? 'primary' : 'inherit'}
+            onClick={() => handlePlanSelect(planKey)}
+            sx={{ 
               bgcolor: isSelected ? plan.color : 'transparent',
               borderColor: plan.color,
               color: isSelected ? 'white' : plan.color,
               '&:hover': {
-                bgcolor: plan.color,
-                color: 'white'
+                bgcolor: isSelected ? plan.color : `${plan.color}10`
               }
             }}
           >
@@ -1406,6 +2001,45 @@ const ServicePlanRecommender = ({
         </Box>
       )}
       
+      {/* ═══════════════════════════════════════════════════════════════════════════ */}
+      {/* NEW: ACTION BUTTONS WITH INTEGRATIONS */}
+      {/* ═══════════════════════════════════════════════════════════════════════════ */}
+      <Box sx={{ mt: 4, textAlign: 'center' }}>
+        <Stack direction="row" spacing={2} justifyContent="center" flexWrap="wrap" useFlexGap>
+          {/* Savings Calculator Button */}
+          {showCalculator && (
+            <Button
+              variant="outlined"
+              size="large"
+              startIcon={<Calculator size={20} />}
+              onClick={() => setSavingsCalculatorOpen(true)}
+              sx={{ 
+                borderColor: '#10B981', 
+                color: '#10B981',
+                '&:hover': { bgcolor: '#D1FAE5', borderColor: '#059669' }
+              }}
+            >
+              See How Much You Could Save
+            </Button>
+          )}
+          
+          {/* Portal Preview Button */}
+          <Button
+            variant="outlined"
+            size="large"
+            startIcon={<Eye size={20} />}
+            onClick={() => setPortalPreviewOpen(true)}
+            sx={{ 
+              borderColor: '#3B82F6', 
+              color: '#3B82F6',
+              '&:hover': { bgcolor: '#DBEAFE', borderColor: '#2563EB' }
+            }}
+          >
+            Preview Your Dashboard
+          </Button>
+        </Stack>
+      </Box>
+      
       {/* Proceed Button */}
       {contactId && selectedPlans.length === 1 && !comparisonMode && (
         <Box sx={{ mt: 4, textAlign: 'center' }}>
@@ -1425,19 +2059,25 @@ const ServicePlanRecommender = ({
         </Box>
       )}
       
-      {/* ROI Calculator */}
-      {showCalculator && (
-        <Box sx={{ mt: 4, textAlign: 'center' }}>
-          <Button
-            variant="outlined"
-            startIcon={<Calculator />}
-            onClick={() => setCalculatorOpen(true)}
-            size="large"
-          >
-            Calculate Your ROI
-          </Button>
-        </Box>
-      )}
+      {/* ═══════════════════════════════════════════════════════════════════════════ */}
+      {/* INTEGRATED DIALOGS */}
+      {/* ═══════════════════════════════════════════════════════════════════════════ */}
+      
+      {/* Savings Calculator Dialog */}
+      <SavingsCalculatorDialog
+        open={savingsCalculatorOpen}
+        onClose={() => setSavingsCalculatorOpen(false)}
+        currentScore={contactSummary?.creditScore || contactData?.creditScore}
+        projectedIncrease={getProjectedIncrease()}
+      />
+      
+      {/* Client Portal Preview Dialog */}
+      <ClientPortalPreviewDialog
+        open={portalPreviewOpen}
+        onClose={() => setPortalPreviewOpen(false)}
+        contactData={contactData}
+        creditScore={contactSummary?.creditScore || contactData?.creditScore}
+      />
     </Box>
   );
 };

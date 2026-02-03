@@ -3121,6 +3121,16 @@ exports.aiContentGenerator = onCall(
         return await handleRecommendServicePlan(params, openaiApiKey);
       }
       
+      // ===== DISPUTE POPULATION TYPES =====
+      // These use the disputePopulationService module - NO new Cloud Functions!
+      if (type === 'populateDisputes') {
+        return await handlePopulateDisputes(params);
+      }
+      
+      if (type === 'getDisputeSummary') {
+        return await handleGetDisputeSummary(params);
+      }
+      
       // ===== All other content types use the regular OpenAI flow =====
       const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -3707,7 +3717,147 @@ function generateFallbackRecommendation(contact, creditScore, negativeItemCount,
     fallbackUsed: true
   };
 }
+// ============================================
+// DISPUTE POPULATION HANDLERS
+// ============================================
+// Integrated into aiContentGenerator to avoid adding new Cloud Functions
+// Uses disputePopulationService module for IDIQ HTML parsing
+// ============================================
 
+async function handlePopulateDisputes(params) {
+  const { contactId } = params;
+  
+  console.log('🔍 Populating disputes for contact:', contactId);
+  
+  if (!contactId) {
+    return { success: false, error: 'contactId is required' };
+  }
+  
+  try {
+    const disputePopulationService = require('./disputePopulationService');
+    const result = await disputePopulationService.populateDisputesFromIDIQ(contactId);
+    
+    if (!result.success) {
+      console.error('❌ Dispute population failed:', result.error);
+      return result;
+    }
+    
+    console.log(`✅ Found ${result.negativeItems} disputable items`);
+    
+    return {
+      success: true,
+      contactId,
+      disputeCount: result.negativeItems,
+      disputeIds: result.disputeIds,
+      summary: result.summary,
+      creditScores: result.creditScores,
+      message: `Found ${result.negativeItems} disputable items across ${result.tradelines} tradelines`
+    };
+    
+  } catch (error) {
+    console.error('❌ Error in handlePopulateDisputes:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+async function handleGetDisputeSummary(params) {
+  const { contactId } = params;
+  const db = admin.firestore();
+  
+  console.log('📊 Getting dispute summary for contact:', contactId);
+  
+  if (!contactId) {
+    return { success: false, error: 'contactId is required' };
+  }
+  
+  try {
+    // Fetch all disputes for this contact
+    const disputesQuery = await db.collection('disputes')
+      .where('contactId', '==', contactId)
+      .get();
+    
+    if (disputesQuery.empty) {
+      return {
+        success: true,
+        contactId,
+        hasDisputes: false,
+        summary: {
+          total: 0,
+          byType: {},
+          byBureau: {},
+          byStatus: {},
+          byPriority: { high: 0, medium: 0, low: 0 }
+        }
+      };
+    }
+    
+    // Process disputes into summary
+    const disputes = disputesQuery.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    
+    const summary = {
+      total: disputes.length,
+      byType: {},
+      byBureau: {},
+      byStatus: {},
+      byPriority: { high: 0, medium: 0, low: 0 },
+      totalScoreImpact: { min: 0, max: 0 },
+      avgSuccessRate: 0
+    };
+    
+    let totalSuccessRate = 0;
+    
+    for (const dispute of disputes) {
+      // By type
+      summary.byType[dispute.type] = (summary.byType[dispute.type] || 0) + 1;
+      
+      // By bureau
+      summary.byBureau[dispute.bureau] = (summary.byBureau[dispute.bureau] || 0) + 1;
+      
+      // By status
+      summary.byStatus[dispute.status] = (summary.byStatus[dispute.status] || 0) + 1;
+      
+      // By priority
+      if (dispute.priority) {
+        summary.byPriority[dispute.priority] = (summary.byPriority[dispute.priority] || 0) + 1;
+      }
+      
+      // Score impact
+      if (dispute.scoreImpact) {
+        summary.totalScoreImpact.min += dispute.scoreImpact.min || 0;
+        summary.totalScoreImpact.max += dispute.scoreImpact.max || 0;
+      }
+      
+      // Success rate
+      totalSuccessRate += dispute.successProbability || 70;
+    }
+    
+    summary.avgSuccessRate = Math.round(totalSuccessRate / disputes.length);
+    
+    return {
+      success: true,
+      contactId,
+      hasDisputes: true,
+      summary,
+      disputes: disputes.map(d => ({
+        id: d.id,
+        creditorName: d.creditorName,
+        type: d.type,
+        typeLabel: d.typeLabel,
+        bureau: d.bureau,
+        bureauName: d.bureauName,
+        balance: d.balance,
+        status: d.status,
+        priority: d.priority,
+        successProbability: d.successProbability,
+        recommendedStrategy: d.recommendedStrategy
+      }))
+    };
+    
+  } catch (error) {
+    console.error('❌ Error in handleGetDisputeSummary:', error);
+    return { success: false, error: error.message };
+  }
+}
 console.log('✅ Function 7/10: aiContentGenerator loaded (with ENHANCED recommendServicePlan)');
 
 // ============================================
