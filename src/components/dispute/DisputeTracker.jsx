@@ -206,13 +206,16 @@ const DisputeTracker = () => {
   // ===== FILTERED & SORTED DISPUTES =====
   const filteredDisputes = useMemo(() => {
     return disputes.filter((dispute) => {
-      // Search filter
+      // Search filter - supports both old and new field names
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
+        const creditorName = (dispute.creditorName || dispute.creditor || '').toLowerCase();
+        const contactName = (dispute.contactName || '').toLowerCase();
+        const reason = (dispute.negativeReason || dispute.reason || '').toLowerCase();
         if (
-          !dispute.creditor?.toLowerCase().includes(query) &&
-          !dispute.contactName?.toLowerCase().includes(query) &&
-          !dispute.reason?.toLowerCase().includes(query)
+          !creditorName.includes(query) &&
+          !contactName.includes(query) &&
+          !reason.includes(query)
         ) {
           return false;
         }
@@ -233,9 +236,12 @@ const DisputeTracker = () => {
         return false;
       }
 
-      // Type filter
-      if (typeFilter !== 'all' && dispute.disputeType !== typeFilter) {
-        return false;
+      // Type filter - supports both old and new field names
+      if (typeFilter !== 'all') {
+        const disputeType = dispute.accountType || dispute.disputeType || dispute.negativeReason || '';
+        if (disputeType !== typeFilter) {
+          return false;
+        }
       }
 
       return true;
@@ -483,9 +489,9 @@ const DisputeTracker = () => {
           <TableRow sx={{ bgcolor: 'action.hover' }}>
             <TableCell>
               <TableSortLabel
-                active={sortBy === 'creditor'}
-                direction={sortBy === 'creditor' ? sortOrder : 'asc'}
-                onClick={() => handleSort('creditor')}
+                active={sortBy === 'creditorName' || sortBy === 'creditor'}
+                direction={(sortBy === 'creditorName' || sortBy === 'creditor') ? sortOrder : 'asc'}
+                onClick={() => handleSort('creditorName')}
               >
                 Creditor
               </TableSortLabel>
@@ -560,7 +566,7 @@ const DisputeTracker = () => {
                     <TableCell>
                       <Box>
                         <Typography variant="body2" fontWeight="medium">
-                          {dispute.creditor}
+                          {dispute.creditorName || dispute.creditor || 'Unknown'}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
                           {dispute.accountNumber}
@@ -582,14 +588,14 @@ const DisputeTracker = () => {
                     </TableCell>
                     <TableCell>
                       <Chip
-                        label={dispute.disputeType}
+                        label={dispute.accountType || dispute.disputeType || dispute.negativeReason || 'Account'}
                         size="small"
                         variant="outlined"
                       />
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2" noWrap sx={{ maxWidth: 150 }}>
-                        {dispute.reason}
+                        {dispute.negativeReason || dispute.reason || 'Inaccurate information'}
                       </Typography>
                     </TableCell>
                     <TableCell>
@@ -662,7 +668,7 @@ const DisputeTracker = () => {
                   <DisputeIcon />
                 </Avatar>
                 <Box>
-                  <Typography variant="h6">{selectedDispute.creditor}</Typography>
+                  <Typography variant="h6">{selectedDispute.creditorName || selectedDispute.creditor || 'Unknown'}</Typography>
                   <Typography variant="body2" color="text.secondary">
                     {selectedDispute.contactName}
                   </Typography>
@@ -692,16 +698,16 @@ const DisputeTracker = () => {
               </Grid>
               <Grid item xs={12} md={6}>
                 <Typography variant="subtitle2" color="text.secondary">Dispute Type</Typography>
-                <Typography variant="body1">{selectedDispute.disputeType}</Typography>
+                <Typography variant="body1">{selectedDispute.accountType || selectedDispute.disputeType || selectedDispute.negativeReason || 'Account'}</Typography>
               </Grid>
               <Grid item xs={12} md={6}>
                 <Typography variant="subtitle2" color="text.secondary">Account Number</Typography>
                 <Typography variant="body1">{selectedDispute.accountNumber || 'N/A'}</Typography>
               </Grid>
               <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" color="text.secondary">Amount</Typography>
+                <Typography variant="subtitle2" color="text.secondary">Balance</Typography>
                 <Typography variant="body1">
-                  {selectedDispute.amount ? `$${selectedDispute.amount.toLocaleString()}` : 'N/A'}
+                  {(selectedDispute.balance || selectedDispute.amount) ? `$${(selectedDispute.balance || selectedDispute.amount).toLocaleString()}` : 'N/A'}
                 </Typography>
               </Grid>
               <Grid item xs={12} md={6}>
@@ -714,13 +720,43 @@ const DisputeTracker = () => {
               </Grid>
               <Grid item xs={12}>
                 <Typography variant="subtitle2" color="text.secondary">Dispute Reason</Typography>
-                <Typography variant="body1">{selectedDispute.reason}</Typography>
-                {selectedDispute.reasonDescription && (
+                <Typography variant="body1">{selectedDispute.negativeReason || selectedDispute.reason || 'Inaccurate information'}</Typography>
+                {(selectedDispute.suggestedDisputeReason || selectedDispute.reasonDescription) && (
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                    {selectedDispute.reasonDescription}
+                    {selectedDispute.suggestedDisputeReason || selectedDispute.reasonDescription}
                   </Typography>
                 )}
               </Grid>
+              
+              {/* ===== AI-GENERATED INSIGHTS ===== */}
+              {(selectedDispute.recommendedStrategy || selectedDispute.estimatedScoreImpact) && (
+                <>
+                  <Grid item xs={12}>
+                    <Divider sx={{ my: 1 }} />
+                    <Typography variant="subtitle2" color="primary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <AnalyticsIcon fontSize="small" /> AI Insights
+                    </Typography>
+                  </Grid>
+                  {selectedDispute.recommendedStrategy && (
+                    <Grid item xs={12}>
+                      <Typography variant="subtitle2" color="text.secondary">Recommended Strategy</Typography>
+                      <Typography variant="body2">{selectedDispute.recommendedStrategy}</Typography>
+                    </Grid>
+                  )}
+                  {selectedDispute.estimatedScoreImpact && (
+                    <Grid item xs={12} md={6}>
+                      <Typography variant="subtitle2" color="text.secondary">Estimated Score Impact</Typography>
+                      <Chip 
+                        label={`+${selectedDispute.estimatedScoreImpact.min || 0} to +${selectedDispute.estimatedScoreImpact.max || 0} points`}
+                        color="success"
+                        size="small"
+                        icon={<TrendingUpIcon />}
+                      />
+                    </Grid>
+                  )}
+                </>
+              )}
+              
               <Grid item xs={12}>
                 <Divider sx={{ my: 1 }} />
                 <Typography variant="subtitle2" color="text.secondary" gutterBottom>Timeline</Typography>

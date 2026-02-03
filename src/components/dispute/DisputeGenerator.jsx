@@ -1,3 +1,4 @@
+
 // Path: /src/components/dispute/DisputeGenerator.jsx
 // ============================================================================
 // DISPUTE GENERATOR - ADMIN DISPUTE CREATION INTERFACE
@@ -155,7 +156,7 @@ const BUREAUS = [
   { id: 'equifax', name: 'Equifax', color: '#b50f2e' },
 ];
 
-const STEPS = ['Select Client', 'Select Items', 'Configure Disputes', 'Review & Generate'];
+const STEPS = ['Select Contact', 'Select Items', 'Configure Disputes', 'Review & Generate'];
 
 // ============================================================================
 // MAIN COMPONENT
@@ -201,21 +202,35 @@ const DisputeGenerator = () => {
     const fetchClients = async () => {
       console.log('[DisputeGenerator] Fetching clients...');
       try {
-        // Query ALL contacts - filtering by roles array would require composite index
-        // Instead, fetch all and let the user search/filter
+        // ═══════════════════════════════════════════════════════════════════════
+        // FIXED: Query ALL contacts without orderBy (avoids index requirement)
+        // Many contacts may not have lastName field populated
+        // Sort client-side instead for reliability
+        // ═══════════════════════════════════════════════════════════════════════
         const clientsQuery = query(
           collection(db, 'contacts'),
-          orderBy('lastName', 'asc'),
           limit(500)
         );
         const snapshot = await getDocs(clientsQuery);
-        const clientsData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-          displayName: `${doc.data().firstName || ''} ${doc.data().lastName || ''}`.trim() || doc.data().email || 'Unknown',
-        }));
+        const clientsData = snapshot.docs.map((doc) => {
+          const data = doc.data();
+          // Build displayName from multiple possible fields
+          const firstName = data.firstName || '';
+          const lastName = data.lastName || '';
+          const fullName = data.fullName || data.name || '';
+          const displayName = fullName || `${firstName} ${lastName}`.trim() || data.email || 'Unknown Contact';
+          return {
+            id: doc.id,
+            ...data,
+            displayName,
+            // Add sortName for client-side sorting
+            sortName: (lastName || firstName || fullName || data.email || '').toLowerCase()
+          };
+        });
+        // Sort client-side alphabetically
+        clientsData.sort((a, b) => a.sortName.localeCompare(b.sortName));
         setClients(clientsData);
-        console.log(`[DisputeGenerator] Loaded ${clientsData.length} clients`);
+        console.log(`[DisputeGenerator] Loaded ${clientsData.length} contacts`);
       } catch (err) {
         console.error('[DisputeGenerator] Error:', err);
         setError('Failed to load clients');
@@ -375,7 +390,7 @@ const DisputeGenerator = () => {
 
   const handleNext = () => {
     if (activeStep === 0 && !selectedReport) {
-      setError('Please select a client and credit report');
+      setError('Please select a contact and credit report');
       return;
     }
     if (activeStep === 1 && selectedItems.length === 0) {
@@ -461,7 +476,7 @@ const DisputeGenerator = () => {
       setGeneratedDisputes(generated);
       setSuccess(`Successfully generated ${generated.length} dispute(s)!`);
 
-      // Update client workflow
+      // Update contact workflow
       await updateDoc(doc(db, 'contacts', selectedClient.id), {
         'workflow.stage': 'disputes_generated',
         'workflow.disputesGeneratedAt': serverTimestamp(),
@@ -529,7 +544,7 @@ const DisputeGenerator = () => {
             <CardHeader
               avatar={<Avatar sx={{ bgcolor: 'secondary.main' }}><ReportIcon /></Avatar>}
               title="Select Credit Report"
-              subheader={selectedClient ? `${reports.length} report(s) available` : 'Select a client first'}
+              subheader={selectedClient ? `${reports.length} report(s) available` : 'Select a contact first'}
             />
             <CardContent>
               {reportsLoading ? (
@@ -537,7 +552,7 @@ const DisputeGenerator = () => {
               ) : !selectedClient ? (
                 <Alert severity="info">Select a contact to view their credit reports</Alert>
               ) : reports.length === 0 ? (
-                <Alert severity="warning">No parsed credit reports found for this client</Alert>
+                <Alert severity="warning">No parsed credit reports found for this contact</Alert>
               ) : (
                 <FormControl fullWidth>
                   <InputLabel>Credit Report</InputLabel>
@@ -924,7 +939,7 @@ const DisputeGenerator = () => {
         <CardContent>
           <Grid container spacing={2}>
             <Grid item xs={12} md={6}>
-              <Typography variant="subtitle2" gutterBottom>Client</Typography>
+              <Typography variant="subtitle2" gutterBottom>Contact</Typography>
               <Typography variant="body1">{selectedClient?.displayName}</Typography>
             </Grid>
             <Grid item xs={12} md={6}>

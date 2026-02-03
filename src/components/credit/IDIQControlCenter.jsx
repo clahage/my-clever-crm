@@ -70,6 +70,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { db } from '@/lib/firebase';
+import LinkExistingIDIQClient from '@/components/idiq/LinkExistingIDIQClient';
 import {
   collection,
   query,

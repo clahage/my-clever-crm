@@ -932,21 +932,85 @@ const ACHIEVEMENTS = {
 
   const loadDisputes = async () => {
     try {
-      const q = query(
+      // ═══════════════════════════════════════════════════════════════════════
+      // ENHANCED: Query disputes by userId, clientId, AND contactId
+      // The dispute scanner saves with contactId, so we need to find that too
+      // ═══════════════════════════════════════════════════════════════════════
+      
+      const allDisputes = new Map(); // Use Map to dedupe by ID
+      const unsubscribes = [];
+      
+      // Query 1: By userId (original)
+      const q1 = query(
         collection(db, 'disputes'),
         where('userId', '==', user.uid),
         orderBy('createdAt', 'desc')
       );
-
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        const disputesData = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        setDisputes(disputesData);
+      
+      const unsub1 = onSnapshot(q1, (snapshot) => {
+        snapshot.docs.forEach(doc => {
+          allDisputes.set(doc.id, { id: doc.id, ...doc.data() });
+        });
+        setDisputes(Array.from(allDisputes.values()).sort((a, b) => 
+          (b.createdAt?.toDate?.() || 0) - (a.createdAt?.toDate?.() || 0)
+        ));
       });
-
-      return unsubscribe;
+      unsubscribes.push(unsub1);
+      
+      // Query 2: By clientId (for legacy data)
+      try {
+        const q2 = query(
+          collection(db, 'disputes'),
+          where('clientId', '==', user.uid)
+        );
+        
+        const unsub2 = onSnapshot(q2, (snapshot) => {
+          snapshot.docs.forEach(doc => {
+            allDisputes.set(doc.id, { id: doc.id, ...doc.data() });
+          });
+          setDisputes(Array.from(allDisputes.values()).sort((a, b) => 
+            (b.createdAt?.toDate?.() || 0) - (a.createdAt?.toDate?.() || 0)
+          ));
+        });
+        unsubscribes.push(unsub2);
+      } catch (e) {
+        console.log('[ClientPortal] clientId query not available');
+      }
+      
+      // Query 3: Find contactId by email and query disputes
+      try {
+        const contactQuery = query(
+          collection(db, 'contacts'),
+          where('email', '==', user.email)
+        );
+        const contactSnap = await getDocs(contactQuery);
+        
+        if (!contactSnap.empty) {
+          const contactId = contactSnap.docs[0].id;
+          console.log('[ClientPortal] Found contactId by email:', contactId);
+          
+          const q3 = query(
+            collection(db, 'disputes'),
+            where('contactId', '==', contactId)
+          );
+          
+          const unsub3 = onSnapshot(q3, (snapshot) => {
+            snapshot.docs.forEach(doc => {
+              allDisputes.set(doc.id, { id: doc.id, ...doc.data() });
+            });
+            setDisputes(Array.from(allDisputes.values()).sort((a, b) => 
+              (b.createdAt?.toDate?.() || 0) - (a.createdAt?.toDate?.() || 0)
+            ));
+          });
+          unsubscribes.push(unsub3);
+        }
+      } catch (e) {
+        console.log('[ClientPortal] contactId lookup error:', e.message);
+      }
+      
+      // Return cleanup function for all listeners
+      return () => unsubscribes.forEach(unsub => unsub && unsub());
+      
     } catch (error) {
       console.error('Error loading disputes:', error);
     }
