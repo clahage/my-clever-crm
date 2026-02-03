@@ -1663,6 +1663,11 @@ const DisputeHub = () => {
           onClick={() => setActiveTab('generator')}
         />
         <SpeedDialAction
+          icon={<Sparkles />}
+          tooltipTitle="Scan Credit Report"
+          onClick={() => setPopulateDialogOpen(true)}
+        />
+        <SpeedDialAction
           icon={<Brain />}
           tooltipTitle="AI Coach"
           onClick={() => setActiveTab('coach')}
