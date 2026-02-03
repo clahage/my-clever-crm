@@ -1684,6 +1684,57 @@ const DisputeHub = () => {
         />
       </SpeedDial>
 
+      {/* Populate Disputes Dialog */}
+      <Dialog
+        open={populateDialogOpen}
+        onClose={() => setPopulateDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Sparkles size={24} color="#9c27b0" />
+            Scan Credit Report for Disputes
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3, mt: 1 }}>
+            Enter a Contact ID to scan their IDIQ credit report and automatically populate disputable items.
+          </Typography>
+          <TextField
+            fullWidth
+            label="Contact ID"
+            value={populateContactId}
+            onChange={(e) => setPopulateContactId(e.target.value)}
+            placeholder="e.g., 20JlaX9NVp2G9Y5SasGn"
+            helperText="Find this in the contact's profile URL or details"
+            disabled={populateLoading}
+          />
+          {populateLoading && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2 }}>
+              <CircularProgress size={20} />
+              <Typography variant="body2" color="text.secondary">
+                Scanning credit report and identifying negative items...
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPopulateDialogOpen(false)} disabled={populateLoading}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={populateLoading ? <CircularProgress size={16} color="inherit" /> : <Sparkles size={18} />}
+            onClick={handlePopulateDisputes}
+            disabled={!populateContactId || populateLoading}
+          >
+            {populateLoading ? 'Scanning...' : 'Scan & Populate'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       {/* Snackbar Notifications */}
       <Snackbar
         open={snackbar.open}
