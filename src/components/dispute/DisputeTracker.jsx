@@ -129,6 +129,48 @@ const BUREAU_COLORS = {
   equifax: '#b50f2e',
 };
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// HELPER: Convert bureaus array or string to displayable format
+// Handles both old format (bureau: "experian") and new format (bureaus: ["TUC", "EXP"])
+// ═══════════════════════════════════════════════════════════════════════════════
+const getBureauDisplay = (dispute) => {
+  // If old format with single bureau string
+  if (dispute.bureau && typeof dispute.bureau === 'string') {
+    return {
+      label: dispute.bureau.charAt(0).toUpperCase() + dispute.bureau.slice(1),
+      color: BUREAU_COLORS[dispute.bureau.toLowerCase()] || '#666'
+    };
+  }
+  
+  // If new format with bureaus array
+  if (dispute.bureaus && Array.isArray(dispute.bureaus)) {
+    const bureauMap = {
+      'TUC': { name: 'TransUnion', key: 'transunion' },
+      'TU': { name: 'TransUnion', key: 'transunion' },
+      'TransUnion': { name: 'TransUnion', key: 'transunion' },
+      'EXP': { name: 'Experian', key: 'experian' },
+      'Experian': { name: 'Experian', key: 'experian' },
+      'EQF': { name: 'Equifax', key: 'equifax' },
+      'Equifax': { name: 'Equifax', key: 'equifax' }
+    };
+    
+    // Get unique bureau names
+    const bureauNames = [...new Set(dispute.bureaus.map(b => bureauMap[b]?.name || b))];
+    
+    if (bureauNames.length === 3) {
+      return { label: 'All 3', color: '#9c27b0' }; // Purple for all bureaus
+    } else if (bureauNames.length === 2) {
+      return { label: bureauNames.join(', '), color: '#ff9800' }; // Orange for 2 bureaus
+    } else if (bureauNames.length === 1) {
+      const key = bureauMap[dispute.bureaus[0]]?.key || 'experian';
+      return { label: bureauNames[0], color: BUREAU_COLORS[key] || '#666' };
+    }
+  }
+  
+  // Fallback
+  return { label: 'Unknown', color: '#666' };
+};
+
 const FILTER_OPTIONS = {
   status: ['all', 'draft', 'submitted', 'pending', 'verified', 'deleted', 'updated'],
   bureau: ['all', 'experian', 'transunion', 'equifax'],
@@ -226,9 +268,25 @@ const DisputeTracker = () => {
         return false;
       }
 
-      // Bureau filter
-      if (bureauFilter !== 'all' && dispute.bureau !== bureauFilter) {
-        return false;
+      // Bureau filter - supports both old (bureau string) and new (bureaus array) format
+      if (bureauFilter !== 'all') {
+        const bureauMap = {
+          'experian': ['EXP', 'Experian'],
+          'transunion': ['TUC', 'TU', 'TransUnion'],
+          'equifax': ['EQF', 'Equifax']
+        };
+        const matchCodes = bureauMap[bureauFilter] || [];
+        
+        // Check old format (single bureau string)
+        const matchesOldFormat = dispute.bureau === bureauFilter;
+        
+        // Check new format (bureaus array)
+        const matchesNewFormat = dispute.bureaus && Array.isArray(dispute.bureaus) && 
+          dispute.bureaus.some(b => matchCodes.includes(b) || b.toLowerCase() === bureauFilter);
+        
+        if (!matchesOldFormat && !matchesNewFormat) {
+          return false;
+        }
       }
 
       // Priority filter
@@ -281,9 +339,18 @@ const DisputeTracker = () => {
     const successRate = total > 0 ? Math.round((byStatus.deleted / (resolved || 1)) * 100) : 0;
 
     const byBureau = {
-      experian: disputes.filter(d => d.bureau === 'experian').length,
-      transunion: disputes.filter(d => d.bureau === 'transunion').length,
-      equifax: disputes.filter(d => d.bureau === 'equifax').length,
+      experian: disputes.filter(d => 
+        d.bureau === 'experian' || 
+        (d.bureaus && Array.isArray(d.bureaus) && d.bureaus.some(b => ['EXP', 'Experian'].includes(b)))
+      ).length,
+      transunion: disputes.filter(d => 
+        d.bureau === 'transunion' || 
+        (d.bureaus && Array.isArray(d.bureaus) && d.bureaus.some(b => ['TUC', 'TU', 'TransUnion'].includes(b)))
+      ).length,
+      equifax: disputes.filter(d => 
+        d.bureau === 'equifax' || 
+        (d.bureaus && Array.isArray(d.bureaus) && d.bureaus.some(b => ['EQF', 'Equifax'].includes(b)))
+      ).length,
     };
 
     const overdueCount = disputes.filter(d => {
@@ -498,6 +565,7 @@ const DisputeTracker = () => {
             </TableCell>
             <TableCell>Client</TableCell>
             <TableCell>Bureau</TableCell>
+            <TableCell align="right">Balance</TableCell>
             <TableCell>Type</TableCell>
             <TableCell>Reason</TableCell>
             <TableCell>
@@ -526,7 +594,7 @@ const DisputeTracker = () => {
           {loading ? (
             [...Array(5)].map((_, i) => (
               <TableRow key={i}>
-                {[...Array(9)].map((_, j) => (
+                {[...Array(10)].map((_, j) => (
                   <TableCell key={j}><Skeleton /></TableCell>
                 ))}
               </TableRow>
@@ -577,14 +645,26 @@ const DisputeTracker = () => {
                       <Typography variant="body2">{dispute.contactName}</Typography>
                     </TableCell>
                     <TableCell>
-                      <Chip
-                        label={dispute.bureau?.charAt(0).toUpperCase() + dispute.bureau?.slice(1)}
-                        size="small"
-                        sx={{
-                          bgcolor: BUREAU_COLORS[dispute.bureau],
-                          color: 'white',
-                        }}
-                      />
+                      {(() => {
+                        const bureauInfo = getBureauDisplay(dispute);
+                        return (
+                          <Chip
+                            label={bureauInfo.label}
+                            size="small"
+                            sx={{
+                              bgcolor: bureauInfo.color,
+                              color: 'white',
+                            }}
+                          />
+                        );
+                      })()}
+                    </TableCell>
+                    <TableCell align="right">
+                      <Typography variant="body2" fontWeight="medium" color={dispute.balance > 0 ? 'error.main' : 'text.secondary'}>
+                        {dispute.balance || dispute.amount 
+                          ? `$${(dispute.balance || dispute.amount).toLocaleString()}` 
+                          : '—'}
+                      </Typography>
                     </TableCell>
                     <TableCell>
                       <Chip
@@ -664,7 +744,7 @@ const DisputeTracker = () => {
           <DialogTitle>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Avatar sx={{ bgcolor: BUREAU_COLORS[selectedDispute.bureau] }}>
+                <Avatar sx={{ bgcolor: getBureauDisplay(selectedDispute).color }}>
                   <DisputeIcon />
                 </Avatar>
                 <Box>
@@ -691,10 +771,15 @@ const DisputeTracker = () => {
               </Grid>
               <Grid item xs={12} md={6}>
                 <Typography variant="subtitle2" color="text.secondary">Bureau</Typography>
-                <Chip
-                  label={selectedDispute.bureau?.charAt(0).toUpperCase() + selectedDispute.bureau?.slice(1)}
-                  sx={{ bgcolor: BUREAU_COLORS[selectedDispute.bureau], color: 'white', mt: 0.5 }}
-                />
+                {(() => {
+                  const bureauInfo = getBureauDisplay(selectedDispute);
+                  return (
+                    <Chip
+                      label={bureauInfo.label}
+                      sx={{ bgcolor: bureauInfo.color, color: 'white', mt: 0.5 }}
+                    />
+                  );
+                })()}
               </Grid>
               <Grid item xs={12} md={6}>
                 <Typography variant="subtitle2" color="text.secondary">Dispute Type</Typography>

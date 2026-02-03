@@ -258,7 +258,37 @@ async function populateDisputesFromIDIQ(contactId, dbInstance = null) {
       }
     };
     
+    // ═══════════════════════════════════════════════════════════════════════════
+    // DUPLICATE DETECTION: Get existing disputes for this contact
+    // ═══════════════════════════════════════════════════════════════════════════
+    console.log('🔍 Checking for existing disputes to prevent duplicates...');
+    
+    const existingDisputesSnap = await db.collection('disputes')
+      .where('contactId', '==', contactId)
+      .get();
+    
+    const existingAccountNumbers = new Set();
+    existingDisputesSnap.docs.forEach(doc => {
+      const data = doc.data();
+      if (data.accountNumber) {
+        existingAccountNumbers.add(data.accountNumber);
+      }
+    });
+    
+    console.log(`📋 Found ${existingAccountNumbers.size} existing disputes for this contact`);
+    
+    let skippedDuplicates = 0;
+    
     for (const item of negativeItems) {
+      // ═══════════════════════════════════════════════════════════════════════
+      // SKIP if dispute already exists for this account number
+      // ═══════════════════════════════════════════════════════════════════════
+      if (existingAccountNumbers.has(item.accountNumber)) {
+        console.log(`⏭️ Skipping duplicate: ${item.creditorName} (${item.accountNumber})`);
+        skippedDuplicates++;
+        continue;
+      }
+      
       const disputeDoc = {
         contactId,
         creditReportId: enrollmentId,
@@ -348,6 +378,7 @@ async function populateDisputesFromIDIQ(contactId, dbInstance = null) {
     console.log('   Negative Items:', negativeItems.length);
     console.log('   Disputes Created:', disputeIds.length);
     console.log('   Est. Score Impact:', disputeSummary.totalScoreImpact.min, '-', disputeSummary.totalScoreImpact.max, 'points');
+    console.log('   Duplicates Skipped:', skippedDuplicates);
     console.log('═══════════════════════════════════════════════════════════════════');
     
     return {
@@ -359,7 +390,9 @@ async function populateDisputesFromIDIQ(contactId, dbInstance = null) {
       disputeIds,
       summary: disputeSummary,
       creditScores: parsedData.scores,
-      message: `Found ${negativeItems.length} disputable items across ${parsedData.tradelines.length} tradelines`
+      skippedDuplicates,
+      totalScanned: negativeItems.length,
+      message: `Created ${disputeIds.length} new disputes from ${negativeItems.length} negative items${skippedDuplicates > 0 ? ` (${skippedDuplicates} duplicates skipped)` : ''}`
     };
     
   } catch (error) {
