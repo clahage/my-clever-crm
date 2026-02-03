@@ -201,9 +201,10 @@ const DisputeGenerator = () => {
     const fetchClients = async () => {
       console.log('[DisputeGenerator] Fetching clients...');
       try {
+        // Query ALL contacts - filtering by roles array would require composite index
+        // Instead, fetch all and let the user search/filter
         const clientsQuery = query(
           collection(db, 'contacts'),
-          where('role', 'in', ['client', 'prospect']),
           orderBy('lastName', 'asc'),
           limit(500)
         );
@@ -484,8 +485,8 @@ const DisputeGenerator = () => {
           <Card>
             <CardHeader
               avatar={<Avatar sx={{ bgcolor: 'primary.main' }}><PersonIcon /></Avatar>}
-              title="Select Client"
-              subheader="Choose a client to generate disputes for"
+              title="Select Contact"
+              subheader="Choose a contact to generate disputes for"
             />
             <CardContent>
               <Autocomplete
@@ -510,7 +511,7 @@ const DisputeGenerator = () => {
                 renderInput={(params) => (
                   <TextField
                     {...params}
-                    label="Search Clients"
+                    label="Search Contacts"
                     placeholder="Type to search..."
                     InputProps={{
                       ...params.InputProps,
@@ -534,7 +535,7 @@ const DisputeGenerator = () => {
               {reportsLoading ? (
                 <CircularProgress />
               ) : !selectedClient ? (
-                <Alert severity="info">Select a client to view their credit reports</Alert>
+                <Alert severity="info">Select a contact to view their credit reports</Alert>
               ) : reports.length === 0 ? (
                 <Alert severity="warning">No parsed credit reports found for this client</Alert>
               ) : (
