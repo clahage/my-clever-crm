@@ -211,6 +211,13 @@ const DisputeTracker = () => {
   const [statusMenuAnchor, setStatusMenuAnchor] = useState(null);
   const [activeDisputeForMenu, setActiveDisputeForMenu] = useState(null);
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // HARD DELETE - Admin-only complete removal (not a status change)
+  // ═══════════════════════════════════════════════════════════════════════════
+  const [hardDeleteDialogOpen, setHardDeleteDialogOpen] = useState(false);
+  const [disputeToDelete, setDisputeToDelete] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
   // Analytics
   const [showAnalytics, setShowAnalytics] = useState(true);
 
@@ -403,6 +410,44 @@ const DisputeTracker = () => {
     } catch (err) {
       setError(`Failed to delete: ${err.message}`);
     }
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // HARD DELETE - Admin-only complete removal from database
+  // This is different from marking as "Deleted" (which means successful removal from credit report)
+  // Use this for: duplicates, test entries, data cleanup, errors
+  // ═══════════════════════════════════════════════════════════════════════════
+  const handleHardDelete = async () => {
+    if (!disputeToDelete) return;
+    
+    setDeleteLoading(true);
+    try {
+      console.log(`🗑️ [Admin] Hard deleting dispute: ${disputeToDelete.id}`);
+      console.log(`   Creditor: ${disputeToDelete.creditorName}`);
+      console.log(`   Account: ${disputeToDelete.accountNumber}`);
+      console.log(`   Deleted by: ${currentUser?.email}`);
+      
+      // Delete the document completely
+      await deleteDoc(doc(db, 'disputes', disputeToDelete.id));
+      
+      setSuccess(`✅ Entry removed: ${disputeToDelete.creditorName || 'Unknown'} - This was a hard delete, not a credit report success.`);
+      setHardDeleteDialogOpen(false);
+      setDisputeToDelete(null);
+      setStatusMenuAnchor(null);
+      
+      console.log('✅ Hard delete complete');
+    } catch (err) {
+      console.error('❌ Hard delete failed:', err);
+      setError(`Failed to remove entry: ${err.message}`);
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const openHardDeleteDialog = (dispute) => {
+    setDisputeToDelete(dispute);
+    setHardDeleteDialogOpen(true);
+    setStatusMenuAnchor(null); // Close the menu
   };
 
   const handleViewDetails = (dispute) => {
@@ -956,7 +1001,113 @@ const DisputeTracker = () => {
             <ListItemText>{config.label}</ListItemText>
           </MenuItem>
         ))}
+        
+        {/* ═══════════════════════════════════════════════════════════════════════
+            ADMIN-ONLY: Hard Delete / Remove Entry
+            Only visible to masterAdmin and admin roles
+            Completely removes from database - NOT a status change
+        ═══════════════════════════════════════════════════════════════════════ */}
+        {(() => {
+          // Flexible role check - handles various admin role spellings
+          const role = (userProfile?.role || '').toLowerCase().replace(/[\s_-]/g, '');
+          const isAdmin = role.includes('admin') || role.includes('master') || role === 'administrator';
+          
+          // Debug log (remove after testing)
+          if (activeDisputeForMenu) {
+            console.log('[DisputeTracker] Role check for Hard Delete:', {
+              rawRole: userProfile?.role,
+              normalizedRole: role,
+              isAdmin,
+              userEmail: currentUser?.email
+            });
+          }
+          
+          return isAdmin ? (
+            <>
+              <Divider sx={{ my: 1 }} />
+              <MenuItem
+                onClick={() => openHardDeleteDialog(activeDisputeForMenu)}
+                sx={{ 
+                  color: 'error.main',
+                  '&:hover': { bgcolor: 'error.light', color: 'error.dark' }
+                }}
+              >
+                <ListItemIcon>
+                  <DeleteIcon fontSize="small" sx={{ color: 'error.main' }} />
+                </ListItemIcon>
+                <ListItemText>
+                  <Typography variant="body2" fontWeight="medium">Remove Entry</Typography>
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    Hard delete (for duplicates/errors)
+                  </Typography>
+                </ListItemText>
+              </MenuItem>
+            </>
+          ) : null;
+        })()}
       </Menu>
+
+      {/* ═══════════════════════════════════════════════════════════════════════════
+          HARD DELETE CONFIRMATION DIALOG
+          Admin-only - completely removes dispute from database
+          Different from "Deleted" status which means successful credit report removal
+      ═══════════════════════════════════════════════════════════════════════════ */}
+      <Dialog
+        open={hardDeleteDialogOpen}
+        onClose={() => !deleteLoading && setHardDeleteDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ bgcolor: 'error.light', color: 'error.dark' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <DeleteIcon />
+            Remove Entry Permanently
+          </Box>
+        </DialogTitle>
+        <DialogContent sx={{ mt: 2 }}>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            <AlertTitle>This is a HARD DELETE - Not a Status Change</AlertTitle>
+            This action will completely remove this entry from the database. 
+            Use this for duplicates, test data, or entries created in error.
+            <br /><br />
+            <strong>This will NOT:</strong>
+            <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
+              <li>Count as a successful deletion from credit report</li>
+              <li>Trigger any billing or invoicing</li>
+              <li>Affect success rate metrics</li>
+            </ul>
+          </Alert>
+          
+          {disputeToDelete && (
+            <Box sx={{ bgcolor: 'grey.100', p: 2, borderRadius: 1 }}>
+              <Typography variant="subtitle2" gutterBottom>Entry to be removed:</Typography>
+              <Typography variant="body2"><strong>Creditor:</strong> {disputeToDelete.creditorName || 'Unknown'}</Typography>
+              <Typography variant="body2"><strong>Account:</strong> {disputeToDelete.accountNumber || 'N/A'}</Typography>
+              <Typography variant="body2"><strong>Balance:</strong> {disputeToDelete.balance ? `$${disputeToDelete.balance.toLocaleString()}` : 'N/A'}</Typography>
+              <Typography variant="body2"><strong>Status:</strong> {disputeToDelete.status}</Typography>
+              <Typography variant="body2"><strong>Contact:</strong> {disputeToDelete.contactName || disputeToDelete.contactId}</Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 2, gap: 1 }}>
+          <Button 
+            onClick={() => setHardDeleteDialogOpen(false)} 
+            disabled={deleteLoading}
+            variant="outlined"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleHardDelete}
+            disabled={deleteLoading}
+            variant="contained"
+            color="error"
+            startIcon={deleteLoading ? <CircularProgress size={16} color="inherit" /> : <DeleteIcon />}
+          >
+            {deleteLoading ? 'Removing...' : 'Yes, Remove Entry'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
@@ -966,10 +1117,12 @@ export default DisputeTracker;
 // ============================================================================
 // END OF FILE
 // ============================================================================
-// Total Lines: ~700+ lines
+// Total Lines: ~1100+ lines
 // Production-ready dispute tracking
 // Real-time updates via Firestore
 // Comprehensive filtering and sorting
 // Analytics dashboard
 // Status management
+// Admin-only hard delete for duplicates/errors
+// © 1995-2026 Speedy Credit Repair Inc. | Chris Lahage | All Rights Reserved
 // ============================================================================
