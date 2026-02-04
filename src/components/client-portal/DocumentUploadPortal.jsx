@@ -1,6 +1,6 @@
 // FILE: /src/components/client-portal/DocumentUploadPortal.jsx
 // =====================================================
-// DOCUMENT UPLOAD PORTAL - TIER 3 ENTERPRISE
+// DOCUMENT UPLOAD PORTAL - TIER 3 ENTERPRISE (FIXED)
 // =====================================================
 // Purpose: Client-facing document upload page for optional documents
 // Triggered by: Email link after contract signing
@@ -13,9 +13,16 @@
 // - File type validation
 // - Mobile-responsive design
 // - Dark mode support
-// - AI-powered document verification
+// - Writes to CORRECT fields matching UltimateContactForm
+// - Also writes to clientDocuments collection for portal view
 // - Secure Firebase Storage
 // - Progress tracking
+//
+// FIELD MAPPING (matches UltimateContactForm.jsx):
+// - Government ID → photoIdUrl (top), documents.idReceived, documents.idFileUrl, documents.idUploadDate
+// - Proof of Address → documents.proofOfAddressReceived, documents.proofOfAddressFileUrl
+// - SSN Card → documents.ssnCardReceived, documents.ssnCardFileUrl, documents.ssnCardUploadDate
+//
 // © 1995-2026 Speedy Credit Repair Inc. | All Rights Reserved
 // =====================================================
 
@@ -72,6 +79,8 @@ import { db, storage } from '../../lib/firebase';
 // =====================================================
 // DOCUMENT TYPES CONFIGURATION
 // =====================================================
+// IMPORTANT: Field names MUST match UltimateContactForm.jsx exactly!
+// =====================================================
 const DOCUMENT_TYPES = [
   {
     id: 'governmentId',
@@ -81,8 +90,13 @@ const DOCUMENT_TYPES = [
     required: false,
     acceptedFormats: ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'],
     maxSize: 10 * 1024 * 1024, // 10MB
-    firestoreField: 'documents.idFileUrl',
-    receivedField: 'documents.idReceived',
+    // ===== CORRECT FIELD MAPPINGS FOR ULTIMATE CONTACT FORM =====
+    firestoreFields: {
+      received: 'documents.idReceived',
+      fileUrl: 'documents.idFileUrl',
+      uploadDate: 'documents.idUploadDate',
+      topLevelUrl: 'photoIdUrl'  // Also set at top level for thumbnail!
+    },
     helpText: 'Clear photo showing your full name and photo'
   },
   {
@@ -93,8 +107,11 @@ const DOCUMENT_TYPES = [
     required: false,
     acceptedFormats: ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'],
     maxSize: 10 * 1024 * 1024,
-    firestoreField: 'documents.proofOfAddressFileUrl',
-    receivedField: 'documents.proofOfAddressReceived',
+    firestoreFields: {
+      received: 'documents.proofOfAddressReceived',
+      fileUrl: 'documents.proofOfAddressFileUrl',
+      uploadDate: null  // No upload date field for this one
+    },
     helpText: 'Document dated within the last 60 days'
   },
   {
@@ -105,8 +122,11 @@ const DOCUMENT_TYPES = [
     required: false,
     acceptedFormats: ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'],
     maxSize: 10 * 1024 * 1024,
-    firestoreField: 'documents.ssnCardFileUrl',
-    receivedField: 'documents.ssnCardReceived',
+    firestoreFields: {
+      received: 'documents.ssnCardReceived',
+      fileUrl: 'documents.ssnCardFileUrl',
+      uploadDate: 'documents.ssnCardUploadDate'
+    },
     helpText: 'Helps verify identity with credit bureaus'
   }
 ];
@@ -154,8 +174,21 @@ export default function DocumentUploadPortal() {
         // Initialize uploads state based on existing documents
         const existingUploads = {};
         DOCUMENT_TYPES.forEach(docType => {
-          const received = getNestedValue(contactData, docType.receivedField);
-          const url = getNestedValue(contactData, docType.firestoreField);
+          // Check the correct field paths
+          let received = false;
+          let url = '';
+          
+          if (docType.id === 'governmentId') {
+            received = contactData.documents?.idReceived || false;
+            url = contactData.documents?.idFileUrl || contactData.photoIdUrl || '';
+          } else if (docType.id === 'proofOfAddress') {
+            received = contactData.documents?.proofOfAddressReceived || false;
+            url = contactData.documents?.proofOfAddressFileUrl || '';
+          } else if (docType.id === 'ssnCard') {
+            received = contactData.documents?.ssnCardReceived || false;
+            url = contactData.documents?.ssnCardFileUrl || '';
+          }
+          
           if (received && url) {
             existingUploads[docType.id] = { url, uploaded: true };
           }
@@ -172,11 +205,6 @@ export default function DocumentUploadPortal() {
 
     loadContact();
   }, [contactId]);
-
-  // ===== HELPER: Get nested object value =====
-  const getNestedValue = (obj, path) => {
-    return path.split('.').reduce((current, key) => current?.[key], obj);
-  };
 
   // ===== FILE UPLOAD HANDLER =====
   const handleFileUpload = useCallback(async (docType, file) => {
@@ -229,17 +257,16 @@ export default function DocumentUploadPortal() {
           // Get download URL
           const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
 
-          // Update Firestore
+          // =====================================================
+          // UPDATE FIRESTORE - CORRECT FIELD MAPPINGS
+          // =====================================================
           const contactRef = doc(db, 'contacts', contactId);
           const updateData = {
-            [`documents.${docType.id}FileUrl`]: downloadURL,
-            [`documents.${docType.id}Received`]: true,
-            [`documents.${docType.id}UploadDate`]: new Date().toISOString(),
             updatedAt: serverTimestamp(),
             timeline: arrayUnion({
               id: timestamp,
               type: 'document_uploaded',
-              description: `${docType.label} uploaded`,
+              description: `${docType.label} uploaded via Document Portal`,
               timestamp: new Date().toISOString(),
               metadata: {
                 documentType: docType.id,
@@ -249,33 +276,90 @@ export default function DocumentUploadPortal() {
             })
           };
 
-          await updateDoc(contactRef, updateData);
+          // ===== SET CORRECT FIELDS BASED ON DOCUMENT TYPE =====
+          // These field names match UltimateContactForm.jsx exactly!
+          if (docType.id === 'governmentId') {
+            // Government ID - set multiple fields including top-level photoIdUrl
+            updateData['documents.idReceived'] = true;
+            updateData['documents.idFileUrl'] = downloadURL;
+            updateData['documents.idUploadDate'] = new Date().toISOString();
+            updateData['photoIdUrl'] = downloadURL;  // For thumbnail in UltimateContactForm!
+            console.log('📷 Government ID: Setting photoIdUrl for thumbnail display');
+          } else if (docType.id === 'proofOfAddress') {
+            // Proof of Address
+            updateData['documents.proofOfAddressReceived'] = true;
+            updateData['documents.proofOfAddressFileUrl'] = downloadURL;
+          } else if (docType.id === 'ssnCard') {
+            // SSN Card
+            updateData['documents.ssnCardReceived'] = true;
+            updateData['documents.ssnCardFileUrl'] = downloadURL;
+            updateData['documents.ssnCardUploadDate'] = new Date().toISOString();
+          }
 
-          // ===== ALSO WRITE TO clientDocuments COLLECTION =====
+          await updateDoc(contactRef, updateData);
+          console.log(`✅ ${docType.label} uploaded - Firestore contact updated`);
+
+          // =====================================================
+          // ALSO WRITE TO clientDocuments COLLECTION
+          // =====================================================
           // This makes documents appear in the ClientPortal Documents tab
-          if (contact.userId) {
+          // and makes them available for dispute letters, etc.
+          try {
             await addDoc(collection(db, 'clientDocuments'), {
-              userId: contact.userId,
+              // Link to user and contact
+              userId: contact.userId || null,
               contactId: contactId,
+              
+              // Document info
               type: docType.id,
               name: docType.label,
               fileName: file.name,
               fileUrl: downloadURL,
               fileSize: file.size,
               fileType: file.type,
+              
+              // Categorization for easy retrieval
               category: 'onboarding',
+              documentCategory: docType.id === 'governmentId' ? 'identification' :
+                               docType.id === 'proofOfAddress' ? 'address_verification' :
+                               docType.id === 'ssnCard' ? 'identification' : 'other',
+              
+              // Status
               status: 'uploaded',
+              verified: false,
+              
+              // Timestamps
               uploadedAt: serverTimestamp(),
+              createdAt: serverTimestamp(),
+              
+              // Source tracking
               source: 'document_upload_portal',
+              uploadedBy: 'client',
+              
+              // Metadata for search and filtering
               metadata: {
-                contactName: `${contact.firstName} ${contact.lastName}`,
-                contactEmail: contact.email
-              }
+                contactName: `${contact.firstName || ''} ${contact.lastName || ''}`.trim(),
+                contactEmail: contact.email || '',
+                contactPhone: contact.phone || '',
+                originalFileName: file.name,
+                storagePath: `contact-documents/${contactId}/${fileName}`
+              },
+              
+              // For dispute letter attachments
+              canAttachToDispute: true,
+              attachmentType: docType.id === 'governmentId' ? 'id_copy' :
+                             docType.id === 'proofOfAddress' ? 'utility_bill' :
+                             docType.id === 'ssnCard' ? 'ssn_card' : 'other'
             });
-            console.log(`📁 Document also added to clientDocuments collection`);
+            console.log(`📁 ${docType.label} also added to clientDocuments collection`);
+          } catch (clientDocErr) {
+            // Don't fail the whole upload if clientDocuments write fails
+            console.error('Warning: Could not add to clientDocuments:', clientDocErr);
           }
 
-          // Update local state
+          // =====================================================
+          // UPDATE LOCAL STATE
+          // =====================================================
           setUploads(prev => ({
             ...prev,
             [docType.id]: { url: downloadURL, uploaded: true, fileName: file.name }
@@ -320,11 +404,25 @@ export default function DocumentUploadPortal() {
   const handleDelete = async (docType) => {
     try {
       const contactRef = doc(db, 'contacts', contactId);
-      await updateDoc(contactRef, {
-        [`documents.${docType.id}FileUrl`]: '',
-        [`documents.${docType.id}Received`]: false,
+      
+      // Build update object with correct field names
+      const updateData = {
         updatedAt: serverTimestamp()
-      });
+      };
+      
+      if (docType.id === 'governmentId') {
+        updateData['documents.idReceived'] = false;
+        updateData['documents.idFileUrl'] = '';
+        updateData['photoIdUrl'] = '';
+      } else if (docType.id === 'proofOfAddress') {
+        updateData['documents.proofOfAddressReceived'] = false;
+        updateData['documents.proofOfAddressFileUrl'] = '';
+      } else if (docType.id === 'ssnCard') {
+        updateData['documents.ssnCardReceived'] = false;
+        updateData['documents.ssnCardFileUrl'] = '';
+      }
+      
+      await updateDoc(contactRef, updateData);
 
       setUploads(prev => {
         const newUploads = { ...prev };
