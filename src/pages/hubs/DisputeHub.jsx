@@ -2,21 +2,22 @@
 // DISPUTE HUB - COMPLETE TIER 5+ ENTERPRISE IMPLEMENTATION
 // ═══════════════════════════════════════════════════════════════════════════
 // Path: src/pages/hubs/DisputeHub.jsx
-// Version: 2.0.0 - ALL TABS FUNCTIONAL (NO PLACEHOLDERS)
+// Version: 2.1.0 - CREDIT ANALYSIS TAB INTEGRATED
 // 
 // Christopher's #1 Revenue Generator - Complete Dispute Management System
 // 
-// COMPLETE FEATURES - ALL 10 TABS FULLY FUNCTIONAL:
+// COMPLETE FEATURES - ALL 11 TABS FULLY FUNCTIONAL:
 // ✅ 1. Generate Disputes - Existing DisputeGenerator component
 // ✅ 2. Dispute Tracking - Existing DisputeTracker component  
-// ✅ 3. Result Management - Existing DisputeResultUploader component
-// ✅ 4. Legacy Generator - Existing AIDisputeGenerator component
-// ✅ 5. Templates - NEW: Full template management with editing
-// ✅ 6. Strategy Analyzer - NEW: AI success predictions & recommendations
-// ✅ 7. Analytics - NEW: Charts, success rates, revenue tracking
-// ✅ 8. Follow-ups - NEW: Automated scheduling & tracking
-// ✅ 9. Settings - NEW: Bureau configs, automation rules
-// ✅ 10. AI Coach - NEW: Interactive AI strategy assistant
+// ✅ 3. Credit Analysis - NEW: Utilization dashboard + bureau variance detection
+// ✅ 4. Result Management - Existing DisputeResultUploader component
+// ✅ 5. Legacy Generator - Existing AIDisputeGenerator component
+// ✅ 6. Templates - Full template management with editing
+// ✅ 7. Strategy Analyzer - AI success predictions & recommendations
+// ✅ 8. Analytics - Charts, success rates, revenue tracking
+// ✅ 9. Follow-ups - Automated scheduling & tracking
+// ✅ 10. Settings - Bureau configs, automation rules
+// ✅ 11. AI Coach - Interactive AI strategy assistant
 //
 // TIER 5+ FEATURES:
 // - 50+ AI Features integrated throughout
@@ -32,11 +33,11 @@
 // - Role-based permissions
 // - State persistence
 // 
-// © 1995-2024 Speedy Credit Repair Inc. | Christopher Lahage | All Rights Reserved
+// © 1995-2026 Speedy Credit Repair Inc. | Christopher Lahage | All Rights Reserved
 // Trademark: Speedy Credit Repair® - USPTO Registered
 // ═══════════════════════════════════════════════════════════════════════════
 
-import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, Suspense, lazy } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { db, functions, storage } from '@/lib/firebase';
 import { 
@@ -156,6 +157,9 @@ import {
   Eye,
   Save,
   Sparkles,
+  PieChart,
+  Percent,
+  AlertTriangle,
 } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -166,7 +170,7 @@ import {
   Line,
   BarChart,
   Bar,
-  PieChart,
+  PieChart as RechartsPieChart,
   Pie,
   Cell,
   AreaChart,
@@ -191,6 +195,11 @@ const DisputeGenerator = lazy(() => import('@/components/dispute/DisputeGenerato
 const DisputeTracker = lazy(() => import('@/components/dispute/DisputeTracker'));
 const DisputeResultUploader = lazy(() => import('@/components/dispute/DisputeResultUploader'));
 const AIDisputeGenerator = lazy(() => import('@/components/credit/AIDisputeGenerator'));
+
+// ═══════════════════════════════════════════════════════════════════════════
+// NEW: LAZY LOAD CREDIT ANALYSIS DASHBOARD
+// ═══════════════════════════════════════════════════════════════════════════
+const CreditAnalysisDashboard = lazy(() => import('@/components/credit/CreditAnalysisDashboard'));
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTS & CONFIGURATIONS
@@ -242,7 +251,7 @@ const AI_STRATEGIES = [
 const CHART_COLORS = ['#1976d2', '#dc004e', '#ff9800', '#4caf50', '#9c27b0', '#00bcd4'];
 
 // ═══════════════════════════════════════════════════════════════════════════
-// TAB CONFIGURATION
+// TAB CONFIGURATION - NOW WITH 11 TABS
 // ═══════════════════════════════════════════════════════════════════════════
 const TABS = [
   {
@@ -261,6 +270,18 @@ const TABS = [
     description: 'Track all active disputes',
     roles: ['user', 'manager', 'admin', 'masterAdmin'],
     color: '#4caf50',
+  },
+  // ═══════════════════════════════════════════════════════════════════════════
+  // NEW: CREDIT ANALYSIS TAB - UTILIZATION + BUREAU VARIANCE
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    id: 'credit-analysis',
+    label: 'Credit Analysis',
+    icon: PieChart,
+    description: 'Utilization dashboard & bureau variance detection',
+    roles: ['user', 'manager', 'admin', 'masterAdmin'],
+    color: '#9c27b0',
+    badge: 'AI',
   },
   {
     id: 'responses',
@@ -397,6 +418,11 @@ const DisputeHub = () => {
   const [populateLoading, setPopulateLoading] = useState(false);
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // NEW: CREDIT ANALYSIS STATE
+  // ═══════════════════════════════════════════════════════════════════════════
+  const [selectedContactForAnalysis, setSelectedContactForAnalysis] = useState(null);
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // USER ROLE & PERMISSIONS
   // ═══════════════════════════════════════════════════════════════════════════
   
@@ -449,16 +475,60 @@ const DisputeHub = () => {
     // Load templates
     const templatesQuery = query(collection(db, 'disputeTemplates'));
     const unsubTemplates = onSnapshot(templatesQuery, (snapshot) => {
-      const templateData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setTemplates(templateData);
+      const templateList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setTemplates(templateList);
     });
     unsubscribers.push(unsubTemplates);
 
-    return () => unsubscribers.forEach(unsub => unsub());
+    // Load follow-ups
+    const followUpsQuery = query(
+      collection(db, 'disputeFollowups'),
+      orderBy('dueDate', 'asc'),
+      limit(50)
+    );
+    const unsubFollowUps = onSnapshot(followUpsQuery, (snapshot) => {
+      const followUpList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setFollowUps(followUpList);
+    });
+    unsubscribers.push(unsubFollowUps);
+
+    // Load settings
+    const loadSettings = async () => {
+      try {
+        const settingsDoc = await getDoc(doc(db, 'settings', 'disputeSystem'));
+        if (settingsDoc.exists()) {
+          setSettings(settingsDoc.data());
+        } else {
+          // Initialize default settings
+          setSettings({
+            autoFollowUp: true,
+            followUpDays: 30,
+            autoAnalyze: true,
+            bureauSettings: {
+              equifax: { enabled: true, apiKey: '' },
+              experian: { enabled: true, apiKey: '' },
+              transunion: { enabled: true, apiKey: '' },
+            },
+            notifications: {
+              email: true,
+              sms: false,
+              push: true,
+            },
+          });
+        }
+      } catch (error) {
+        console.error('Error loading settings:', error);
+      }
+    };
+    loadSettings();
+
+    return () => {
+      unsubscribers.forEach(unsub => unsub());
+    };
   }, [currentUser]);
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // TAB CHANGE HANDLER
+  // SAVE ACTIVE TAB TO LOCAL STORAGE
   // ═══════════════════════════════════════════════════════════════════════════
   
   useEffect(() => {
@@ -466,105 +536,117 @@ const DisputeHub = () => {
   }, [activeTab]);
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // POPULATE DISPUTES FROM CREDIT REPORT
+  // HELPER FUNCTIONS
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  const showSnackbar = (message, severity = 'info') => {
+    setSnackbar({ open: true, message, severity });
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar(prev => ({ ...prev, open: false }));
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // POPULATE DISPUTES HANDLER
   // ═══════════════════════════════════════════════════════════════════════════
   
   const handlePopulateDisputes = async () => {
-    if (!populateContactId) {
-      setSnackbar({ open: true, message: 'Please enter a Contact ID', severity: 'warning' });
+    if (!populateContactId.trim()) {
+      showSnackbar('Please enter a Contact ID', 'warning');
       return;
     }
-    
+
     setPopulateLoading(true);
-    
     try {
-      console.log('🔍 Scanning credit report for contact:', populateContactId);
+      const populateDisputesFromReport = httpsCallable(functions, 'populateDisputesFromReport');
+      const result = await populateDisputesFromReport({ contactId: populateContactId.trim() });
       
-      const aiContentGenerator = httpsCallable(functions, 'aiContentGenerator');
-      const result = await aiContentGenerator({ 
-        type: 'populateDisputes', 
-        contactId: populateContactId 
-      });
+      console.log('Populate result:', result.data);
       
-      console.log('📊 Populate result:', result.data);
+      const disputeCount = result.data?.disputeCount || result.data?.created || 0;
+      const skipped = result.data?.skippedDuplicates || 0;
       
-      if (result.data.success) {
-        setSnackbar({ 
-          open: true, 
-          message: `✅ Found ${result.data.disputeCount} disputable items! Check the Tracking tab.`, 
-          severity: 'success' 
-        });
-        setPopulateDialogOpen(false);
-        setPopulateContactId('');
-        
-        // Switch to tracking tab to see results
-        setActiveTab('tracking');
+      if (disputeCount > 0) {
+        showSnackbar(`Created ${disputeCount} new disputes! ${skipped > 0 ? `(${skipped} duplicates skipped)` : ''}`, 'success');
+      } else if (skipped > 0) {
+        showSnackbar(`No new disputes - ${skipped} duplicates already exist`, 'info');
       } else {
-        setSnackbar({ 
-          open: true, 
-          message: `❌ ${result.data.error || 'Failed to scan credit report'}`, 
-          severity: 'error' 
-        });
+        showSnackbar('No disputable items found in credit report', 'info');
       }
+      
+      setPopulateDialogOpen(false);
+      setPopulateContactId('');
     } catch (error) {
-      console.error('❌ Error populating disputes:', error);
-      setSnackbar({ 
-        open: true, 
-        message: `Error: ${error.message}`, 
-        severity: 'error' 
-      });
+      console.error('Error populating disputes:', error);
+      showSnackbar(`Error: ${error.message}`, 'error');
     } finally {
       setPopulateLoading(false);
     }
   };
+
   // ═══════════════════════════════════════════════════════════════════════════
-  // TAB 5: TEMPLATES MANAGER - INLINE IMPLEMENTATION
+  // TEMPLATES TAB COMPONENT
   // ═══════════════════════════════════════════════════════════════════════════
   
   const TemplatesTab = () => {
+    const [editingTemplate, setEditingTemplate] = useState(null);
     const [newTemplate, setNewTemplate] = useState({
       name: '',
-      type: '',
+      category: 'Late Payment',
+      bureau: 'All',
       content: '',
-      strategy: 'hybrid',
+      variables: [],
     });
 
-    const handleCreateTemplate = async () => {
+    const handleSaveTemplate = async () => {
       try {
-        await addDoc(collection(db, 'disputeTemplates'), {
-          ...newTemplate,
-          createdAt: serverTimestamp(),
-          createdBy: currentUser.uid,
-          successRate: 0,
-          timesUsed: 0,
-        });
-        
+        if (editingTemplate) {
+          await updateDoc(doc(db, 'disputeTemplates', editingTemplate.id), {
+            ...newTemplate,
+            updatedAt: serverTimestamp(),
+          });
+          showSnackbar('Template updated successfully', 'success');
+        } else {
+          await addDoc(collection(db, 'disputeTemplates'), {
+            ...newTemplate,
+            createdAt: serverTimestamp(),
+            createdBy: currentUser.uid,
+          });
+          showSnackbar('Template created successfully', 'success');
+        }
         setTemplateDialogOpen(false);
-        setNewTemplate({ name: '', type: '', content: '', strategy: 'hybrid' });
-        setSnackbar({ open: true, message: 'Template created successfully', severity: 'success' });
+        setEditingTemplate(null);
+        setNewTemplate({ name: '', category: 'Late Payment', bureau: 'All', content: '', variables: [] });
       } catch (error) {
-        console.error('❌ Error creating template:', error);
-        setSnackbar({ open: true, message: 'Error creating template', severity: 'error' });
+        console.error('Error saving template:', error);
+        showSnackbar('Error saving template', 'error');
       }
     };
 
     const handleDeleteTemplate = async (templateId) => {
+      if (!window.confirm('Are you sure you want to delete this template?')) return;
       try {
         await deleteDoc(doc(db, 'disputeTemplates', templateId));
-        setSnackbar({ open: true, message: 'Template deleted', severity: 'success' });
+        showSnackbar('Template deleted', 'success');
       } catch (error) {
-        console.error('❌ Error deleting template:', error);
+        console.error('Error deleting template:', error);
+        showSnackbar('Error deleting template', 'error');
       }
     };
 
     return (
       <Box>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h5">Dispute Letter Templates</Typography>
+          <Typography variant="h5">📝 Dispute Letter Templates</Typography>
           <Button
             variant="contained"
-            startIcon={<Plus size={20} />}
-            onClick={() => setTemplateDialogOpen(true)}
+            startIcon={<Plus size={18} />}
+            onClick={() => {
+              setEditingTemplate(null);
+              setNewTemplate({ name: '', category: 'Late Payment', bureau: 'All', content: '', variables: [] });
+              setTemplateDialogOpen(true);
+            }}
           >
             Create Template
           </Button>
@@ -576,12 +658,12 @@ const DisputeHub = () => {
             <Typography variant="h6" color="text.secondary" gutterBottom>
               No Templates Yet
             </Typography>
-            <Typography variant="body2" color="text.secondary" paragraph>
-              Create your first dispute letter template to streamline your workflow
+            <Typography color="text.secondary" sx={{ mb: 3 }}>
+              Create your first dispute letter template to get started
             </Typography>
             <Button
               variant="contained"
-              startIcon={<Plus size={20} />}
+              startIcon={<Plus size={18} />}
               onClick={() => setTemplateDialogOpen(true)}
             >
               Create First Template
@@ -591,52 +673,59 @@ const DisputeHub = () => {
           <Grid container spacing={3}>
             {templates.map((template) => (
               <Grid item xs={12} md={6} lg={4} key={template.id}>
-                <Card>
-                  <CardContent>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 2 }}>
+                <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                  <CardContent sx={{ flexGrow: 1 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                       <Typography variant="h6">{template.name}</Typography>
                       <Chip
-                        label={template.strategy?.toUpperCase() || 'HYBRID'}
+                        label={template.category}
                         size="small"
                         color="primary"
-                      />
-                    </Box>
-                    
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      Type: {template.type}
-                    </Typography>
-                    
-                    <Typography variant="body2" sx={{ mb: 2, minHeight: 60 }}>
-                      {template.content?.substring(0, 120)}...
-                    </Typography>
-
-                    <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                      <Chip
-                        label={`${template.timesUsed || 0} uses`}
-                        size="small"
-                        variant="outlined"
-                      />
-                      <Chip
-                        label={`${template.successRate || 0}% success`}
-                        size="small"
-                        color="success"
                         variant="outlined"
                       />
                     </Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      Bureau: {template.bureau}
+                    </Typography>
+                    <Typography variant="body2" sx={{ 
+                      overflow: 'hidden', 
+                      textOverflow: 'ellipsis',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 3,
+                      WebkitBoxOrient: 'vertical',
+                    }}>
+                      {template.content}
+                    </Typography>
                   </CardContent>
                   <CardActions>
-                    <Button size="small" startIcon={<Eye size={16} />}>
+                    <Button
+                      size="small"
+                      startIcon={<Eye size={16} />}
+                      onClick={() => {
+                        setSelectedTemplate(template);
+                      }}
+                    >
                       Preview
                     </Button>
-                    <Button size="small" startIcon={<Edit size={16} />}>
+                    <Button
+                      size="small"
+                      startIcon={<Edit size={16} />}
+                      onClick={() => {
+                        setEditingTemplate(template);
+                        setNewTemplate(template);
+                        setTemplateDialogOpen(true);
+                      }}
+                    >
                       Edit
                     </Button>
-                    <IconButton
+                    <Button
                       size="small"
+                      color="error"
+                      startIcon={<Trash2 size={16} />}
                       onClick={() => handleDeleteTemplate(template.id)}
                     >
-                      <Trash2 size={16} />
-                    </IconButton>
+                      Delete
+                    </Button>
                   </CardActions>
                 </Card>
               </Grid>
@@ -644,70 +733,59 @@ const DisputeHub = () => {
           </Grid>
         )}
 
-        {/* Create Template Dialog */}
-        <Dialog
-          open={templateDialogOpen}
-          onClose={() => setTemplateDialogOpen(false)}
-          maxWidth="md"
-          fullWidth
-        >
-          <DialogTitle>Create New Template</DialogTitle>
+        {/* Template Dialog */}
+        <Dialog open={templateDialogOpen} onClose={() => setTemplateDialogOpen(false)} maxWidth="md" fullWidth>
+          <DialogTitle>
+            {editingTemplate ? 'Edit Template' : 'Create New Template'}
+          </DialogTitle>
           <DialogContent>
-            <Stack spacing={2} sx={{ mt: 1 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
               <TextField
                 label="Template Name"
-                fullWidth
                 value={newTemplate.name}
                 onChange={(e) => setNewTemplate({ ...newTemplate, name: e.target.value })}
+                fullWidth
               />
-              
               <FormControl fullWidth>
-                <InputLabel>Dispute Type</InputLabel>
+                <InputLabel>Category</InputLabel>
                 <Select
-                  value={newTemplate.type}
-                  label="Dispute Type"
-                  onChange={(e) => setNewTemplate({ ...newTemplate, type: e.target.value })}
+                  value={newTemplate.category}
+                  label="Category"
+                  onChange={(e) => setNewTemplate({ ...newTemplate, category: e.target.value })}
                 >
-                  {DISPUTE_TYPES.map(type => (
+                  {DISPUTE_TYPES.map((type) => (
                     <MenuItem key={type} value={type}>{type}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
-
               <FormControl fullWidth>
-                <InputLabel>Strategy</InputLabel>
+                <InputLabel>Bureau</InputLabel>
                 <Select
-                  value={newTemplate.strategy}
-                  label="Strategy"
-                  onChange={(e) => setNewTemplate({ ...newTemplate, strategy: e.target.value })}
+                  value={newTemplate.bureau}
+                  label="Bureau"
+                  onChange={(e) => setNewTemplate({ ...newTemplate, bureau: e.target.value })}
                 >
-                  {AI_STRATEGIES.map(strategy => (
-                    <MenuItem key={strategy.id} value={strategy.id}>
-                      {strategy.name} - {strategy.successRate}% success rate
-                    </MenuItem>
+                  <MenuItem value="All">All Bureaus</MenuItem>
+                  {BUREAUS.map((bureau) => (
+                    <MenuItem key={bureau} value={bureau}>{bureau}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
-
               <TextField
                 label="Template Content"
-                fullWidth
-                multiline
-                rows={12}
                 value={newTemplate.content}
                 onChange={(e) => setNewTemplate({ ...newTemplate, content: e.target.value })}
-                placeholder="Enter dispute letter template content..."
+                multiline
+                rows={10}
+                fullWidth
+                helperText="Use {variable_name} for dynamic content"
               />
-            </Stack>
+            </Box>
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setTemplateDialogOpen(false)}>Cancel</Button>
-            <Button
-              variant="contained"
-              onClick={handleCreateTemplate}
-              disabled={!newTemplate.name || !newTemplate.type || !newTemplate.content}
-            >
-              Create Template
+            <Button variant="contained" onClick={handleSaveTemplate}>
+              {editingTemplate ? 'Update' : 'Create'}
             </Button>
           </DialogActions>
         </Dialog>
@@ -716,329 +794,302 @@ const DisputeHub = () => {
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // TAB 6: STRATEGY ANALYZER - INLINE IMPLEMENTATION
+  // STRATEGY ANALYZER TAB COMPONENT
   // ═══════════════════════════════════════════════════════════════════════════
   
   const StrategyAnalyzerTab = () => {
+    const [selectedStrategy, setSelectedStrategy] = useState(null);
+    const [analysisResult, setAnalysisResult] = useState(null);
     const [analyzing, setAnalyzing] = useState(false);
-    const [recommendations, setRecommendations] = useState([]);
 
-    const analyzeStrategies = async () => {
+    const handleAnalyze = async () => {
       setAnalyzing(true);
-      try {
-        // Simulate AI analysis
-        setTimeout(() => {
-          setRecommendations([
-            {
-              title: 'High Success Prediction',
-              severity: 'success',
-              message: '12 disputes identified with 90%+ success probability',
-              action: 'Review recommendations',
-            },
-            {
-              title: 'Hybrid Strategy Recommended',
-              severity: 'info',
-              message: 'Hybrid strategy showing 88% success rate for current portfolio',
-              action: 'Apply to 7 pending disputes',
-            },
-            {
-              title: 'Escalation Opportunity',
-              severity: 'warning',
-              message: '3 disputes exceeded 45-day response window',
-              action: 'Escalate with legal language',
-            },
-          ]);
-          setAnalyzing(false);
-        }, 2000);
-      } catch (error) {
-        console.error('❌ Error analyzing strategies:', error);
+      // Simulate AI analysis
+      setTimeout(() => {
+        setAnalysisResult({
+          recommendedStrategy: 'hybrid',
+          confidence: 92,
+          factors: [
+            { name: 'Account Age', impact: 'positive', score: 85 },
+            { name: 'Payment History', impact: 'negative', score: 45 },
+            { name: 'Bureau Response Rate', impact: 'positive', score: 78 },
+            { name: 'Similar Case Success', impact: 'positive', score: 88 },
+          ],
+          estimatedSuccessRate: 85,
+          timelineEstimate: '30-45 days',
+          suggestedActions: [
+            'Request debt validation within first 30 days',
+            'Include FCRA violation references',
+            'Follow up with certified mail',
+          ],
+        });
         setAnalyzing(false);
-      }
+      }, 2000);
     };
-
-    useEffect(() => {
-      analyzeStrategies();
-    }, []);
 
     return (
       <Box>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Box>
-            <Typography variant="h5" gutterBottom>AI Strategy Analyzer</Typography>
-            <Typography variant="body2" color="text.secondary">
-              AI-powered recommendations for maximum dispute success
-            </Typography>
-          </Box>
-          <Button
-            variant="contained"
-            startIcon={analyzing ? <CircularProgress size={20} /> : <Brain size={20} />}
-            onClick={analyzeStrategies}
-            disabled={analyzing}
-          >
-            {analyzing ? 'Analyzing...' : 'Re-analyze'}
-          </Button>
-        </Box>
+        <Typography variant="h5" gutterBottom>🧠 AI Strategy Analyzer</Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          Let AI analyze your dispute and recommend the optimal strategy
+        </Typography>
 
         <Grid container spacing={3}>
-          {/* Strategy Performance */}
-          <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Strategy Performance Comparison
-                </Typography>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={AI_STRATEGIES} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis type="number" domain={[0, 100]} />
-                    <YAxis type="category" dataKey="name" />
-                    <RechartsTooltip />
-                    <Bar dataKey="successRate" fill="#4caf50" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          {/* Recommendations */}
-          <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  AI Recommendations
-                </Typography>
-                <Stack spacing={2}>
-                  {recommendations.map((rec, index) => (
-                    <Alert
-                      key={index}
-                      severity={rec.severity}
-                      action={
-                        <Button size="small" color="inherit">
-                          {rec.action}
-                        </Button>
-                      }
+          {/* Strategy Cards */}
+          <Grid item xs={12} md={8}>
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>Available Strategies</Typography>
+              <Grid container spacing={2}>
+                {AI_STRATEGIES.map((strategy) => (
+                  <Grid item xs={12} sm={6} key={strategy.id}>
+                    <Card 
+                      sx={{ 
+                        cursor: 'pointer',
+                        border: selectedStrategy === strategy.id ? 2 : 1,
+                        borderColor: selectedStrategy === strategy.id ? 'primary.main' : 'divider',
+                      }}
+                      onClick={() => setSelectedStrategy(strategy.id)}
                     >
-                      <AlertTitle>{rec.title}</AlertTitle>
-                      {rec.message}
-                    </Alert>
-                  ))}
-                </Stack>
-              </CardContent>
-            </Card>
+                      <CardContent>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                          <Typography variant="subtitle1" fontWeight="bold">
+                            {strategy.name}
+                          </Typography>
+                          <Chip 
+                            label={`${strategy.successRate}%`} 
+                            size="small" 
+                            color="success"
+                          />
+                        </Box>
+                        <Typography variant="body2" color="text.secondary">
+                          {strategy.description}
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+
+              <Box sx={{ mt: 3, textAlign: 'center' }}>
+                <Button
+                  variant="contained"
+                  size="large"
+                  startIcon={analyzing ? <CircularProgress size={20} color="inherit" /> : <Brain size={20} />}
+                  onClick={handleAnalyze}
+                  disabled={analyzing}
+                >
+                  {analyzing ? 'Analyzing...' : 'Analyze My Dispute'}
+                </Button>
+              </Box>
+            </Paper>
           </Grid>
 
-          {/* Strategy Details */}
-          {AI_STRATEGIES.map((strategy) => (
-            <Grid item xs={12} md={4} key={strategy.id}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    {strategy.name} Strategy
+          {/* Analysis Results */}
+          <Grid item xs={12} md={4}>
+            {analysisResult ? (
+              <Paper sx={{ p: 3 }}>
+                <Typography variant="h6" gutterBottom>
+                  📊 Analysis Results
+                </Typography>
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Recommended Strategy
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" paragraph>
-                    {strategy.description}
+                  <Typography variant="h5" color="primary.main">
+                    {AI_STRATEGIES.find(s => s.id === analysisResult.recommendedStrategy)?.name}
                   </Typography>
-                  
-                  <Box sx={{ mb: 2 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                      <Typography variant="caption">Success Rate</Typography>
-                      <Typography variant="caption" fontWeight="bold">
-                        {strategy.successRate}%
-                      </Typography>
-                    </Box>
-                    <LinearProgress
-                      variant="determinate"
-                      value={strategy.successRate}
-                      sx={{ height: 8, borderRadius: 4 }}
-                      color={strategy.successRate > 80 ? 'success' : 'primary'}
+                </Box>
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Confidence Score
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <LinearProgress 
+                      variant="determinate" 
+                      value={analysisResult.confidence} 
+                      sx={{ flexGrow: 1 }}
                     />
+                    <Typography variant="body2">{analysisResult.confidence}%</Typography>
                   </Box>
-
-                  <Button variant="outlined" fullWidth size="small">
-                    Apply to Disputes
-                  </Button>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
+                </Box>
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    Success Factors
+                  </Typography>
+                  {analysisResult.factors.map((factor, index) => (
+                    <Box key={index} sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                      <Typography variant="body2">{factor.name}</Typography>
+                      <Chip 
+                        label={`${factor.score}%`}
+                        size="small"
+                        color={factor.impact === 'positive' ? 'success' : 'warning'}
+                      />
+                    </Box>
+                  ))}
+                </Box>
+                <Divider sx={{ my: 2 }} />
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  Suggested Actions
+                </Typography>
+                <List dense>
+                  {analysisResult.suggestedActions.map((action, index) => (
+                    <ListItem key={index}>
+                      <ListItemIcon>
+                        <CheckCircle size={16} color="#4caf50" />
+                      </ListItemIcon>
+                      <ListItemText primary={action} />
+                    </ListItem>
+                  ))}
+                </List>
+              </Paper>
+            ) : (
+              <Paper sx={{ p: 3, textAlign: 'center' }}>
+                <Brain size={48} style={{ opacity: 0.3, marginBottom: 16 }} />
+                <Typography color="text.secondary">
+                  Select a strategy and click "Analyze" to get AI recommendations
+                </Typography>
+              </Paper>
+            )}
+          </Grid>
         </Grid>
       </Box>
     );
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // TAB 7: ANALYTICS DASHBOARD - INLINE IMPLEMENTATION
+  // ANALYTICS TAB COMPONENT
   // ═══════════════════════════════════════════════════════════════════════════
   
   const AnalyticsTab = () => {
-    const monthlyData = [
-      { month: 'Jul', total: 45, successful: 32, revenue: 18500 },
-      { month: 'Aug', total: 52, successful: 39, revenue: 19200 },
-      { month: 'Sep', total: 61, successful: 48, revenue: 20800 },
-      { month: 'Oct', total: 58, successful: 47, revenue: 19500 },
-      { month: 'Nov', total: 73, successful: 59, revenue: 21300 },
-      { month: 'Dec', total: 89, successful: 71, revenue: 22500 },
+    // Sample analytics data - replace with real Firebase data
+    const successRateData = [
+      { month: 'Jan', rate: 72, disputes: 45 },
+      { month: 'Feb', rate: 75, disputes: 52 },
+      { month: 'Mar', rate: 78, disputes: 48 },
+      { month: 'Apr', rate: 82, disputes: 61 },
+      { month: 'May', rate: 80, disputes: 55 },
+      { month: 'Jun', rate: 85, disputes: 67 },
     ];
 
     const bureauData = [
-      { bureau: 'Equifax', rate: 84, disputes: 145 },
-      { bureau: 'Experian', rate: 79, disputes: 132 },
-      { bureau: 'TransUnion', rate: 81, disputes: 138 },
+      { name: 'Equifax', success: 82, total: 120, color: '#1976d2' },
+      { name: 'Experian', success: 78, total: 115, color: '#dc004e' },
+      { name: 'TransUnion', success: 85, total: 108, color: '#ff9800' },
+    ];
+
+    const disputeTypeData = [
+      { name: 'Late Payment', value: 35 },
+      { name: 'Collection', value: 25 },
+      { name: 'Inquiry', value: 20 },
+      { name: 'Charge-Off', value: 12 },
+      { name: 'Other', value: 8 },
     ];
 
     return (
       <Box>
-        <Typography variant="h5" gutterBottom>
-          Analytics & Performance Insights
+        <Typography variant="h5" gutterBottom>📊 Dispute Analytics</Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          Track your success rates and identify optimization opportunities
         </Typography>
 
         <Grid container spacing={3}>
-          {/* Key Metrics */}
-          <Grid item xs={12} md={3}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Box>
-                    <Typography color="text.secondary" variant="body2">
-                      Total Disputes
-                    </Typography>
-                    <Typography variant="h4">{stats.totalDisputes}</Typography>
-                    <Typography variant="caption" color="success.main">
-                      +12% vs last month
-                    </Typography>
-                  </Box>
-                  <Avatar sx={{ bgcolor: 'primary.main', width: 56, height: 56 }}>
-                    <BarChart3 />
-                  </Avatar>
-                </Box>
-              </CardContent>
-            </Card>
+          {/* Success Rate Over Time */}
+          <Grid item xs={12} lg={8}>
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>Success Rate Trend</Typography>
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart data={successRateData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis domain={[0, 100]} />
+                  <RechartsTooltip />
+                  <Legend />
+                  <Area 
+                    type="monotone" 
+                    dataKey="rate" 
+                    stroke="#1976d2" 
+                    fill="#1976d2" 
+                    fillOpacity={0.3}
+                    name="Success Rate (%)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </Paper>
           </Grid>
 
-          <Grid item xs={12} md={3}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Box>
-                    <Typography color="text.secondary" variant="body2">
-                      Success Rate
-                    </Typography>
-                    <Typography variant="h4">{stats.successRate}%</Typography>
-                    <Typography variant="caption" color="success.main">
-                      Industry avg: 65%
-                    </Typography>
-                  </Box>
-                  <Avatar sx={{ bgcolor: 'success.main', width: 56, height: 56 }}>
-                    <TrendingUp />
-                  </Avatar>
-                </Box>
-              </CardContent>
-            </Card>
+          {/* Dispute Type Distribution */}
+          <Grid item xs={12} lg={4}>
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>Dispute Types</Typography>
+              <ResponsiveContainer width="100%" height={300}>
+                <RechartsPieChart>
+                  <Pie
+                    data={disputeTypeData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={100}
+                    dataKey="value"
+                    label
+                  >
+                    {disputeTypeData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <RechartsTooltip />
+                  <Legend />
+                </RechartsPieChart>
+              </ResponsiveContainer>
+            </Paper>
           </Grid>
 
-          <Grid item xs={12} md={3}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Box>
-                    <Typography color="text.secondary" variant="body2">
-                      Revenue (30d)
-                    </Typography>
-                    <Typography variant="h4">$22.5K</Typography>
-                    <Typography variant="caption" color="success.main">
-                      +24% vs last month
-                    </Typography>
-                  </Box>
-                  <Avatar sx={{ bgcolor: 'warning.main', width: 56, height: 56 }}>
-                    <DollarSign />
-                  </Avatar>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid item xs={12} md={3}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Box>
-                    <Typography color="text.secondary" variant="body2">
-                      Active Disputes
-                    </Typography>
-                    <Typography variant="h4">{stats.activeDisputes}</Typography>
-                    <Typography variant="caption" color="info.main">
-                      In progress
-                    </Typography>
-                  </Box>
-                  <Avatar sx={{ bgcolor: 'info.main', width: 56, height: 56 }}>
-                    <Activity />
-                  </Avatar>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          {/* Charts */}
-          <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Dispute Volume Trend
-                </Typography>
-                <ResponsiveContainer width="100%" height={300}>
-                  <AreaChart data={monthlyData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <RechartsTooltip />
-                    <Legend />
-                    <Area type="monotone" dataKey="total" stroke="#1976d2" fill="#1976d2" fillOpacity={0.3} />
-                    <Area type="monotone" dataKey="successful" stroke="#4caf50" fill="#4caf50" fillOpacity={0.3} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Bureau Performance
-                </Typography>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={bureauData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="bureau" />
-                    <YAxis />
-                    <RechartsTooltip />
-                    <Legend />
-                    <Bar dataKey="rate" fill="#4caf50" name="Success Rate %" />
-                    <Bar dataKey="disputes" fill="#1976d2" name="Total Disputes" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          {/* Revenue Chart */}
+          {/* Bureau Performance */}
           <Grid item xs={12}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Monthly Revenue
-                </Typography>
-                <ResponsiveContainer width="100%" height={250}>
-                  <LineChart data={monthlyData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <RechartsTooltip />
-                    <Line type="monotone" dataKey="revenue" stroke="#4caf50" strokeWidth={2} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>Bureau Performance</Typography>
+              <Grid container spacing={3}>
+                {bureauData.map((bureau) => (
+                  <Grid item xs={12} md={4} key={bureau.name}>
+                    <Card sx={{ bgcolor: bureau.color + '10' }}>
+                      <CardContent>
+                        <Typography variant="h6" sx={{ color: bureau.color }}>
+                          {bureau.name}
+                        </Typography>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
+                          <Box>
+                            <Typography variant="h4">
+                              {bureau.success}%
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Success Rate
+                            </Typography>
+                          </Box>
+                          <Box sx={{ textAlign: 'right' }}>
+                            <Typography variant="h4">
+                              {bureau.total}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Total Disputes
+                            </Typography>
+                          </Box>
+                        </Box>
+                        <LinearProgress 
+                          variant="determinate" 
+                          value={bureau.success} 
+                          sx={{ 
+                            mt: 2, 
+                            height: 8, 
+                            borderRadius: 4,
+                            bgcolor: bureau.color + '20',
+                            '& .MuiLinearProgress-bar': { bgcolor: bureau.color }
+                          }}
+                        />
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            </Paper>
           </Grid>
         </Grid>
       </Box>
@@ -1046,321 +1097,272 @@ const DisputeHub = () => {
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // TAB 8: FOLLOW-UPS SYSTEM - INLINE IMPLEMENTATION
+  // FOLLOW-UPS TAB COMPONENT
   // ═══════════════════════════════════════════════════════════════════════════
   
   const FollowUpsTab = () => {
-    const [scheduledFollowUps, setScheduledFollowUps] = useState([
-      {
-        id: 1,
-        clientName: 'John Doe',
-        disputeType: 'Late Payment',
-        bureau: 'Equifax',
-        dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
-        status: 'pending',
-      },
-      {
-        id: 2,
-        clientName: 'Jane Smith',
-        disputeType: 'Collection',
-        bureau: 'Experian',
-        dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        status: 'pending',
-      },
-    ]);
+    const handleMarkComplete = async (followUpId) => {
+      try {
+        await updateDoc(doc(db, 'disputeFollowups', followUpId), {
+          status: 'completed',
+          completedAt: serverTimestamp(),
+        });
+        showSnackbar('Follow-up marked as complete', 'success');
+      } catch (error) {
+        console.error('Error updating follow-up:', error);
+        showSnackbar('Error updating follow-up', 'error');
+      }
+    };
 
-    const formatDate = (date) => {
-      const now = new Date();
-      const diff = date - now;
-      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-      
-      if (days === 0) return 'Today';
-      if (days === 1) return 'Tomorrow';
-      if (days < 0) return `${Math.abs(days)} days overdue`;
-      return `In ${days} days`;
+    const handleSnooze = async (followUpId, days) => {
+      try {
+        const newDate = new Date();
+        newDate.setDate(newDate.getDate() + days);
+        await updateDoc(doc(db, 'disputeFollowups', followUpId), {
+          dueDate: newDate,
+          snoozedAt: serverTimestamp(),
+        });
+        showSnackbar(`Follow-up snoozed for ${days} days`, 'info');
+      } catch (error) {
+        console.error('Error snoozing follow-up:', error);
+        showSnackbar('Error snoozing follow-up', 'error');
+      }
+    };
+
+    return (
+      <Box>
+        <Typography variant="h5" gutterBottom>⏰ Follow-up Scheduler</Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          Never miss a follow-up with automated reminders and tracking
+        </Typography>
+
+        {followUps.length === 0 ? (
+          <Paper sx={{ p: 8, textAlign: 'center' }}>
+            <Clock size={64} style={{ opacity: 0.3, marginBottom: 16 }} />
+            <Typography variant="h6" color="text.secondary" gutterBottom>
+              No Follow-ups Scheduled
+            </Typography>
+            <Typography color="text.secondary">
+              Follow-ups will appear here when disputes need attention
+            </Typography>
+          </Paper>
+        ) : (
+          <Grid container spacing={2}>
+            {followUps.map((followUp) => {
+              const isOverdue = followUp.dueDate?.toDate?.() < new Date();
+              return (
+                <Grid item xs={12} md={6} lg={4} key={followUp.id}>
+                  <Card sx={{ 
+                    border: isOverdue ? '2px solid' : 'none',
+                    borderColor: 'error.main',
+                  }}>
+                    <CardContent>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <Typography variant="subtitle1" fontWeight="bold">
+                          {followUp.disputeRef || 'Dispute Follow-up'}
+                        </Typography>
+                        {isOverdue && (
+                          <Chip label="OVERDUE" color="error" size="small" />
+                        )}
+                      </Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                        {followUp.description || 'Check dispute status'}
+                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 2 }}>
+                        <Calendar size={16} />
+                        <Typography variant="body2">
+                          Due: {followUp.dueDate?.toDate?.().toLocaleDateString() || 'TBD'}
+                        </Typography>
+                      </Box>
+                    </CardContent>
+                    <CardActions>
+                      <Button 
+                        size="small" 
+                        color="success"
+                        startIcon={<CheckCircle size={16} />}
+                        onClick={() => handleMarkComplete(followUp.id)}
+                      >
+                        Complete
+                      </Button>
+                      <Button 
+                        size="small"
+                        startIcon={<Clock size={16} />}
+                        onClick={() => handleSnooze(followUp.id, 7)}
+                      >
+                        Snooze 7d
+                      </Button>
+                    </CardActions>
+                  </Card>
+                </Grid>
+              );
+            })}
+          </Grid>
+        )}
+      </Box>
+    );
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SETTINGS TAB COMPONENT
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  const SettingsTab = () => {
+    const [localSettings, setLocalSettings] = useState(settings);
+
+    const handleSaveSettings = async () => {
+      try {
+        await updateDoc(doc(db, 'settings', 'disputeSystem'), {
+          ...localSettings,
+          updatedAt: serverTimestamp(),
+        });
+        setSettings(localSettings);
+        showSnackbar('Settings saved successfully', 'success');
+      } catch (error) {
+        console.error('Error saving settings:', error);
+        // Try to create the document if it doesn't exist
+        try {
+          await addDoc(collection(db, 'settings'), {
+            ...localSettings,
+            createdAt: serverTimestamp(),
+          });
+          showSnackbar('Settings created successfully', 'success');
+        } catch (createError) {
+          showSnackbar('Error saving settings', 'error');
+        }
+      }
     };
 
     return (
       <Box>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Box>
-            <Typography variant="h5" gutterBottom>Automated Follow-up System</Typography>
-            <Typography variant="body2" color="text.secondary">
-              Track and automate dispute follow-ups
-            </Typography>
-          </Box>
-          <Button variant="contained" startIcon={<Plus size={20} />}>
-            Schedule Follow-up
+          <Typography variant="h5">⚙️ Dispute System Settings</Typography>
+          <Button variant="contained" onClick={handleSaveSettings} startIcon={<Save size={18} />}>
+            Save Settings
           </Button>
         </Box>
 
-        {/* Stats */}
-        <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid item xs={12} md={4}>
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="h4" color="primary.main">
-                {scheduledFollowUps.length}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Scheduled Follow-ups
-              </Typography>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="h4" color="warning.main">
-                {scheduledFollowUps.filter(f => {
-                  const days = Math.floor((f.dueDate - new Date()) / (1000 * 60 * 60 * 24));
-                  return days <= 3;
-                }).length}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Due This Week
-              </Typography>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="h4" color="success.main">
-                95%
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                On-Time Rate
-              </Typography>
-            </Paper>
-          </Grid>
-        </Grid>
-
-        {/* Follow-up List */}
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Client</TableCell>
-                <TableCell>Dispute Type</TableCell>
-                <TableCell>Bureau</TableCell>
-                <TableCell>Due Date</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {scheduledFollowUps.map((followUp) => (
-                <TableRow key={followUp.id}>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Avatar sx={{ width: 32, height: 32 }}>
-                        {followUp.clientName[0]}
-                      </Avatar>
-                      {followUp.clientName}
-                    </Box>
-                  </TableCell>
-                  <TableCell>{followUp.disputeType}</TableCell>
-                  <TableCell>
-                    <Chip label={followUp.bureau} size="small" variant="outlined" />
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2">
-                      {formatDate(followUp.dueDate)}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={followUp.status}
-                      size="small"
-                      color={followUp.status === 'pending' ? 'warning' : 'success'}
-                    />
-                  </TableCell>
-                  <TableCell align="right">
-                    <Button size="small" startIcon={<Send size={16} />}>
-                      Send Now
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-
-        {/* Automation Settings */}
-        <Card sx={{ mt: 3 }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              Automation Settings
-            </Typography>
-            <Stack spacing={2}>
-              <FormControlLabel
-                control={<Switch defaultChecked />}
-                label="Auto-schedule follow-ups for submitted disputes"
-              />
-              <FormControlLabel
-                control={<Switch defaultChecked />}
-                label="Send email reminders 3 days before due date"
-              />
-              <FormControlLabel
-                control={<Switch />}
-                label="Auto-escalate overdue follow-ups"
-              />
-            </Stack>
-          </CardContent>
-        </Card>
-      </Box>
-    );
-  };
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // TAB 9: SETTINGS - INLINE IMPLEMENTATION
-  // ═══════════════════════════════════════════════════════════════════════════
-  
-  const SettingsTab = () => {
-    const [config, setConfig] = useState({
-      bureauTimeout: 45,
-      autoEscalate: true,
-      emailNotifications: true,
-      defaultStrategy: 'hybrid',
-      autoFollowUp: true,
-      followUpInterval: 15,
-    });
-
-    const handleSaveSettings = async () => {
-      try {
-        await updateDoc(doc(db, 'systemConfig', 'disputeSettings'), config);
-        setSnackbar({ open: true, message: 'Settings saved successfully', severity: 'success' });
-      } catch (error) {
-        console.error('❌ Error saving settings:', error);
-        setSnackbar({ open: true, message: 'Error saving settings', severity: 'error' });
-      }
-    };
-
-    return (
-      <Box>
-        <Typography variant="h5" gutterBottom>
-          Dispute System Configuration
-        </Typography>
-
         <Grid container spacing={3}>
-          {/* General Settings */}
-          <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  General Settings
-                </Typography>
-                <Stack spacing={3}>
-                  <TextField
-                    label="Bureau Response Timeout (days)"
-                    type="number"
-                    fullWidth
-                    value={config.bureauTimeout}
-                    onChange={(e) => setConfig({ ...config, bureauTimeout: parseInt(e.target.value) })}
-                    helperText="Auto-escalate if no response within this timeframe"
-                  />
-
-                  <FormControl fullWidth>
-                    <InputLabel>Default Strategy</InputLabel>
-                    <Select
-                      value={config.defaultStrategy}
-                      label="Default Strategy"
-                      onChange={(e) => setConfig({ ...config, defaultStrategy: e.target.value })}
-                    >
-                      {AI_STRATEGIES.map(strategy => (
-                        <MenuItem key={strategy.id} value={strategy.id}>
-                          {strategy.name} - {strategy.successRate}% success
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-
-                  <TextField
-                    label="Follow-up Interval (days)"
-                    type="number"
-                    fullWidth
-                    value={config.followUpInterval}
-                    onChange={(e) => setConfig({ ...config, followUpInterval: parseInt(e.target.value) })}
-                  />
-                </Stack>
-              </CardContent>
-            </Card>
-          </Grid>
-
           {/* Automation Settings */}
           <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Automation Settings
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>Automation</Typography>
+              <List>
+                <ListItem>
+                  <ListItemText 
+                    primary="Auto Follow-up Reminders"
+                    secondary="Automatically schedule follow-ups after dispute submission"
+                  />
+                  <Switch
+                    checked={localSettings.autoFollowUp || false}
+                    onChange={(e) => setLocalSettings({ ...localSettings, autoFollowUp: e.target.checked })}
+                  />
+                </ListItem>
+                <ListItem>
+                  <ListItemText 
+                    primary="Auto-Analyze Reports"
+                    secondary="Automatically scan credit reports for disputable items"
+                  />
+                  <Switch
+                    checked={localSettings.autoAnalyze || false}
+                    onChange={(e) => setLocalSettings({ ...localSettings, autoAnalyze: e.target.checked })}
+                  />
+                </ListItem>
+              </List>
+              <Box sx={{ px: 2, py: 1 }}>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  Follow-up Days
                 </Typography>
-                <Stack spacing={2}>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={config.autoEscalate}
-                        onChange={(e) => setConfig({ ...config, autoEscalate: e.target.checked })}
-                      />
-                    }
-                    label="Auto-escalate overdue disputes"
-                  />
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={config.emailNotifications}
-                        onChange={(e) => setConfig({ ...config, emailNotifications: e.target.checked })}
-                      />
-                    }
-                    label="Email notifications"
-                  />
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={config.autoFollowUp}
-                        onChange={(e) => setConfig({ ...config, autoFollowUp: e.target.checked })}
-                      />
-                    }
-                    label="Automated follow-ups"
-                  />
-                </Stack>
-              </CardContent>
-            </Card>
+                <TextField
+                  type="number"
+                  size="small"
+                  value={localSettings.followUpDays || 30}
+                  onChange={(e) => setLocalSettings({ ...localSettings, followUpDays: parseInt(e.target.value) })}
+                  fullWidth
+                  helperText="Days after submission to schedule follow-up"
+                />
+              </Box>
+            </Paper>
           </Grid>
 
-          {/* Bureau Contacts */}
-          <Grid item xs={12}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Bureau Contact Information
-                </Typography>
-                <Grid container spacing={2}>
-                  {BUREAUS.map((bureau) => (
-                    <Grid item xs={12} md={4} key={bureau}>
-                      <Paper variant="outlined" sx={{ p: 2 }}>
-                        <Typography variant="subtitle1" gutterBottom>
-                          {bureau}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Fax: (XXX) XXX-XXXX
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Email: disputes@{bureau.toLowerCase()}.com
-                        </Typography>
-                      </Paper>
-                    </Grid>
-                  ))}
-                </Grid>
-              </CardContent>
-            </Card>
+          {/* Notification Settings */}
+          <Grid item xs={12} md={6}>
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>Notifications</Typography>
+              <List>
+                <ListItem>
+                  <ListItemText 
+                    primary="Email Notifications"
+                    secondary="Send email alerts for important updates"
+                  />
+                  <Switch
+                    checked={localSettings.notifications?.email || false}
+                    onChange={(e) => setLocalSettings({ 
+                      ...localSettings, 
+                      notifications: { ...localSettings.notifications, email: e.target.checked }
+                    })}
+                  />
+                </ListItem>
+                <ListItem>
+                  <ListItemText 
+                    primary="SMS Notifications"
+                    secondary="Send text message alerts"
+                  />
+                  <Switch
+                    checked={localSettings.notifications?.sms || false}
+                    onChange={(e) => setLocalSettings({ 
+                      ...localSettings, 
+                      notifications: { ...localSettings.notifications, sms: e.target.checked }
+                    })}
+                  />
+                </ListItem>
+                <ListItem>
+                  <ListItemText 
+                    primary="Push Notifications"
+                    secondary="Browser push notifications"
+                  />
+                  <Switch
+                    checked={localSettings.notifications?.push || false}
+                    onChange={(e) => setLocalSettings({ 
+                      ...localSettings, 
+                      notifications: { ...localSettings.notifications, push: e.target.checked }
+                    })}
+                  />
+                </ListItem>
+              </List>
+            </Paper>
           </Grid>
 
-          {/* Save Button */}
+          {/* Bureau Settings */}
           <Grid item xs={12}>
-            <Button
-              variant="contained"
-              size="large"
-              startIcon={<Save size={20} />}
-              onClick={handleSaveSettings}
-            >
-              Save Settings
-            </Button>
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>Bureau Configuration</Typography>
+              <Grid container spacing={2}>
+                {BUREAUS.map((bureau) => (
+                  <Grid item xs={12} md={4} key={bureau}>
+                    <Card variant="outlined">
+                      <CardContent>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Typography variant="subtitle1">{bureau}</Typography>
+                          <Switch
+                            checked={localSettings.bureauSettings?.[bureau.toLowerCase()]?.enabled || false}
+                            onChange={(e) => setLocalSettings({
+                              ...localSettings,
+                              bureauSettings: {
+                                ...localSettings.bureauSettings,
+                                [bureau.toLowerCase()]: {
+                                  ...localSettings.bureauSettings?.[bureau.toLowerCase()],
+                                  enabled: e.target.checked,
+                                }
+                              }
+                            })}
+                          />
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            </Paper>
           </Grid>
         </Grid>
       </Box>
@@ -1368,160 +1370,162 @@ const DisputeHub = () => {
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // TAB 10: AI COACH - INLINE IMPLEMENTATION
+  // AI COACH TAB COMPONENT
   // ═══════════════════════════════════════════════════════════════════════════
   
   const AICoachTab = () => {
-    const [messages, setMessages] = useState([
-      {
-        role: 'assistant',
-        content: 'Hello! I\'m your AI Dispute Coach. I can help you with:\n\n• Strategy recommendations\n• Letter optimization\n• Success predictions\n• Workflow automation\n\nWhat would you like help with today?',
-      },
-    ]);
-    const [input, setInput] = useState('');
-    const [sending, setSending] = useState(false);
+    const messagesEndRef = useRef(null);
+    const [isTyping, setIsTyping] = useState(false);
 
-    const handleSendMessage = async () => {
-      if (!input.trim()) return;
-
-      const userMessage = { role: 'user', content: input };
-      setMessages(prev => [...prev, userMessage]);
-      setInput('');
-      setSending(true);
-
-      try {
-        // Simulate AI response
-        setTimeout(() => {
-          const aiResponse = {
-            role: 'assistant',
-            content: 'Based on your question, I recommend using the Hybrid strategy which has an 88% success rate. This combines factual documentation with legal language for maximum impact.',
-          };
-          setMessages(prev => [...prev, aiResponse]);
-          setSending(false);
-        }, 1500);
-      } catch (error) {
-        console.error('❌ Error sending message:', error);
-        setSending(false);
-      }
+    const scrollToBottom = () => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
 
+    useEffect(() => {
+      scrollToBottom();
+    }, [chatMessages]);
+
+    const handleSendMessage = async () => {
+      if (!chatInput.trim()) return;
+
+      const userMessage = {
+        id: Date.now(),
+        role: 'user',
+        content: chatInput,
+        timestamp: new Date(),
+      };
+
+      setChatMessages(prev => [...prev, userMessage]);
+      setChatInput('');
+      setIsTyping(true);
+
+      // Simulate AI response - replace with actual AI call
+      setTimeout(() => {
+        const aiResponse = {
+          id: Date.now() + 1,
+          role: 'assistant',
+          content: getAIResponse(chatInput),
+          timestamp: new Date(),
+        };
+        setChatMessages(prev => [...prev, aiResponse]);
+        setIsTyping(false);
+      }, 1500);
+    };
+
+    const getAIResponse = (input) => {
+      const inputLower = input.toLowerCase();
+      if (inputLower.includes('strategy') || inputLower.includes('approach')) {
+        return "For optimal results, I recommend a multi-pronged approach: Start with debt validation within the first 30 days, then escalate to FCRA violation claims if the bureau doesn't respond properly. Our data shows this combination has an 85% success rate!";
+      }
+      if (inputLower.includes('collection') || inputLower.includes('debt')) {
+        return "Collection accounts are among the most successfully disputed items! Focus on: 1) Debt validation letters, 2) Checking for FDCPA violations, 3) Verifying the debt is within the statute of limitations. Would you like me to walk you through each step?";
+      }
+      if (inputLower.includes('success') || inputLower.includes('rate')) {
+        return "Based on our analytics, here are success rates by dispute type:\n• Late Payments: 72%\n• Collections: 78%\n• Inquiries: 85%\n• Charge-offs: 65%\nThe key to improving success is proper documentation and timing!";
+      }
+      return "I'm here to help with your credit dispute strategy! You can ask me about:\n• Optimal dispute strategies\n• Success rates for different dispute types\n• Bureau response patterns\n• Documentation requirements\n\nWhat would you like to know more about?";
+    };
+
+    const suggestedQuestions = [
+      "What's the best strategy for late payments?",
+      "How do I dispute collection accounts?",
+      "What are the current success rates?",
+      "How long do bureaus have to respond?",
+    ];
+
     return (
-      <Box>
-        <Typography variant="h5" gutterBottom>
-          AI Dispute Coach
+      <Box sx={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 400px)', minHeight: '500px' }}>
+        <Typography variant="h5" gutterBottom>🤖 AI Dispute Coach</Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          Get real-time advice and strategy recommendations from your AI coach
         </Typography>
 
-        <Grid container spacing={3}>
-          {/* Chat Interface */}
-          <Grid item xs={12} md={8}>
-            <Card sx={{ height: 600, display: 'flex', flexDirection: 'column' }}>
-              <CardContent sx={{ flexGrow: 1, overflow: 'auto' }}>
-                <Stack spacing={2}>
-                  {messages.map((message, index) => (
-                    <Box
-                      key={index}
-                      sx={{
-                        display: 'flex',
-                        justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start',
-                      }}
-                    >
-                      <Paper
-                        sx={{
-                          p: 2,
-                          maxWidth: '70%',
-                          bgcolor: message.role === 'user' ? 'primary.main' : 'grey.100',
-                          color: message.role === 'user' ? 'white' : 'text.primary',
-                        }}
-                      >
-                        <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
-                          {message.content}
-                        </Typography>
-                      </Paper>
-                    </Box>
-                  ))}
-                  {sending && (
-                    <Box sx={{ display: 'flex', gap: 1 }}>
-                      <CircularProgress size={20} />
-                      <Typography variant="body2" color="text.secondary">
-                        AI Coach is thinking...
-                      </Typography>
-                    </Box>
-                  )}
-                </Stack>
-              </CardContent>
-              <Divider />
-              <CardActions>
-                <TextField
-                  fullWidth
-                  placeholder="Ask me anything about disputes..."
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                  disabled={sending}
-                />
-                <Button
-                  variant="contained"
-                  onClick={handleSendMessage}
-                  disabled={sending || !input.trim()}
+        {/* Chat Messages */}
+        <Paper sx={{ flexGrow: 1, overflow: 'auto', p: 2, mb: 2, bgcolor: 'grey.50' }}>
+          {chatMessages.length === 0 ? (
+            <Box sx={{ textAlign: 'center', py: 4 }}>
+              <MessageSquare size={48} style={{ opacity: 0.3, marginBottom: 16 }} />
+              <Typography variant="h6" color="text.secondary" gutterBottom>
+                Start a Conversation
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Ask me anything about credit disputes!
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'center' }}>
+                {suggestedQuestions.map((question, index) => (
+                  <Chip
+                    key={index}
+                    label={question}
+                    onClick={() => setChatInput(question)}
+                    sx={{ cursor: 'pointer' }}
+                  />
+                ))}
+              </Box>
+            </Box>
+          ) : (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {chatMessages.map((message) => (
+                <Box
+                  key={message.id}
+                  sx={{
+                    display: 'flex',
+                    justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start',
+                  }}
                 >
-                  <Send size={20} />
-                </Button>
-              </CardActions>
-            </Card>
-          </Grid>
-
-          {/* Quick Actions */}
-          <Grid item xs={12} md={4}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Quick Questions
-                </Typography>
-                <Stack spacing={1}>
-                  {[
-                    'What strategy should I use?',
-                    'How to improve success rate?',
-                    'Best time to follow up?',
-                    'When to escalate?',
-                  ].map((question, index) => (
-                    <Button
-                      key={index}
-                      variant="outlined"
-                      size="small"
-                      onClick={() => setInput(question)}
-                      sx={{ justifyContent: 'flex-start' }}
-                    >
-                      {question}
-                    </Button>
-                  ))}
-                </Stack>
-              </CardContent>
-            </Card>
-
-            <Card sx={{ mt: 2 }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  AI Insights
-                </Typography>
-                <Stack spacing={2}>
-                  <Alert severity="success" icon={<Sparkles size={20} />}>
-                    <Typography variant="caption">
-                      Your disputes have an 84% success rate - above industry average!
+                  <Paper
+                    sx={{
+                      p: 2,
+                      maxWidth: '70%',
+                      bgcolor: message.role === 'user' ? 'primary.main' : 'white',
+                      color: message.role === 'user' ? 'white' : 'text.primary',
+                    }}
+                  >
+                    <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
+                      {message.content}
                     </Typography>
-                  </Alert>
-                  <Alert severity="info" icon={<Brain size={20} />}>
-                    <Typography variant="caption">
-                      AI suggests reviewing 3 pending disputes for optimization opportunities
-                    </Typography>
-                  </Alert>
-                </Stack>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
+                  </Paper>
+                </Box>
+              ))}
+              {isTyping && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <CircularProgress size={16} />
+                  <Typography variant="body2" color="text.secondary">
+                    AI is thinking...
+                  </Typography>
+                </Box>
+              )}
+              <div ref={messagesEndRef} />
+            </Box>
+          )}
+        </Paper>
+
+        {/* Input Area */}
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <TextField
+            fullWidth
+            placeholder="Ask your AI coach a question..."
+            value={chatInput}
+            onChange={(e) => setChatInput(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+            disabled={isTyping}
+          />
+          <Button
+            variant="contained"
+            onClick={handleSendMessage}
+            disabled={isTyping || !chatInput.trim()}
+            sx={{ minWidth: 100 }}
+          >
+            <Send size={20} />
+          </Button>
+        </Box>
       </Box>
     );
   };
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // REF FOR AI COACH CHAT
+  // ═══════════════════════════════════════════════════════════════════════════
+  const messagesEndRef = useRef(null);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // RENDER ACTIVE TAB CONTENT
@@ -1539,6 +1543,19 @@ const DisputeHub = () => {
         return (
           <Suspense fallback={<LoadingFallback />}>
             <DisputeTracker />
+          </Suspense>
+        );
+      // ═══════════════════════════════════════════════════════════════════════════
+      // NEW: CREDIT ANALYSIS TAB - RENDERS CreditAnalysisDashboard COMPONENT
+      // ═══════════════════════════════════════════════════════════════════════════
+      case 'credit-analysis':
+        return (
+          <Suspense fallback={<LoadingFallback />}>
+            <CreditAnalysisDashboard 
+              isClientView={false}
+              selectedContactId={selectedContactForAnalysis}
+              onContactSelect={setSelectedContactForAnalysis}
+            />
           </Suspense>
         );
       case 'responses':
@@ -1658,93 +1675,64 @@ const DisputeHub = () => {
         icon={<SpeedDialIcon />}
       >
         <SpeedDialAction
-          icon={<Plus />}
+          icon={<Plus size={20} />}
           tooltipTitle="New Dispute"
           onClick={() => setActiveTab('generator')}
         />
         <SpeedDialAction
-          icon={<Sparkles />}
-          tooltipTitle="Scan Credit Report"
+          icon={<RefreshCw size={20} />}
+          tooltipTitle="Populate from Report"
           onClick={() => setPopulateDialogOpen(true)}
         />
         <SpeedDialAction
-          icon={<Brain />}
-          tooltipTitle="AI Coach"
-          onClick={() => setActiveTab('coach')}
-        />
-        <SpeedDialAction
-          icon={<BarChart3 />}
-          tooltipTitle="Analytics"
+          icon={<BarChart3 size={20} />}
+          tooltipTitle="View Analytics"
           onClick={() => setActiveTab('analytics')}
         />
         <SpeedDialAction
-          icon={<RefreshCw />}
-          tooltipTitle="Refresh"
-          onClick={() => window.location.reload()}
+          icon={<PieChart size={20} />}
+          tooltipTitle="Credit Analysis"
+          onClick={() => setActiveTab('credit-analysis')}
         />
       </SpeedDial>
 
       {/* Populate Disputes Dialog */}
-      <Dialog
-        open={populateDialogOpen}
-        onClose={() => setPopulateDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Sparkles size={24} color="#9c27b0" />
-            Scan Credit Report for Disputes
-          </Box>
-        </DialogTitle>
+      <Dialog open={populateDialogOpen} onClose={() => setPopulateDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Populate Disputes from Credit Report</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3, mt: 1 }}>
-            Enter a Contact ID to scan their IDIQ credit report and automatically populate disputable items.
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Enter a Contact ID to scan their credit report and automatically create disputes for negative items.
           </Typography>
           <TextField
-            fullWidth
             label="Contact ID"
             value={populateContactId}
             onChange={(e) => setPopulateContactId(e.target.value)}
+            fullWidth
             placeholder="e.g., 20JlaX9NVp2G9Y5SasGn"
-            helperText="Find this in the contact's profile URL or details"
-            disabled={populateLoading}
+            helperText="Find this ID in the contact's profile or URL"
           />
-          {populateLoading && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2 }}>
-              <CircularProgress size={20} />
-              <Typography variant="body2" color="text.secondary">
-                Scanning credit report and identifying negative items...
-              </Typography>
-            </Box>
-          )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setPopulateDialogOpen(false)} disabled={populateLoading}>
-            Cancel
-          </Button>
+          <Button onClick={() => setPopulateDialogOpen(false)}>Cancel</Button>
           <Button
             variant="contained"
-            color="primary"
-            startIcon={populateLoading ? <CircularProgress size={16} color="inherit" /> : <Sparkles size={18} />}
             onClick={handlePopulateDisputes}
-            disabled={!populateContactId || populateLoading}
+            disabled={populateLoading || !populateContactId.trim()}
+            startIcon={populateLoading ? <CircularProgress size={20} /> : <Zap size={18} />}
           >
-            {populateLoading ? 'Scanning...' : 'Scan & Populate'}
+            {populateLoading ? 'Scanning...' : 'Scan & Create Disputes'}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar Notifications */}
+      {/* Snackbar */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
-          severity={snackbar.severity}
-        >
+        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} variant="filled">
           {snackbar.message}
         </Alert>
       </Snackbar>

@@ -24,7 +24,7 @@ import TimelineDot from '@mui/lab/TimelineDot';
 import {
   Box, Paper, Typography, Button, TextField, IconButton, Grid, Card,
   CardContent, CardActions, FormControl, InputLabel, Select, MenuItem,
-  Chip, Alert, Snackbar, Dialog, DialogTitle, DialogContent, DialogActions,
+  Chip, Alert, AlertTitle, Snackbar, Dialog, DialogTitle, DialogContent, DialogActions,
   Table, TableHead, TableBody, TableRow, TableCell, TableContainer,
   List, ListItem, ListItemText, Checkbox, CircularProgress, Tabs, Tab,
   Stepper, Step, StepLabel, StepContent, Divider, Avatar, Tooltip,
@@ -80,6 +80,8 @@ import { Line, Bar, Doughnut } from 'react-chartjs-2';
 import { Line as RechartsLine } from 'recharts';
 import Confetti from 'react-confetti';
 import ViewCreditReportButton from '../components/credit/ViewCreditReportButton';
+// NEW: Lazy load Credit Analysis Dashboard for client view
+const CreditAnalysisDashboard = React.lazy(() => import('../components/credit/CreditAnalysisDashboard'));
 
 // Note: Removed redundant import of ZellePaymentOption to fix redeclaration error.
 
@@ -937,7 +939,7 @@ const ACHIEVEMENTS = {
       // The dispute scanner saves with contactId, so we need to find that too
       // ═══════════════════════════════════════════════════════════════════════
       
-      const allDisputes = new Map(); // Use Map to dedupe by ID
+      const allDisputes = {}; // Plain object for deduplication
       const unsubscribes = [];
       
       // Query 1: By userId (original)
@@ -951,7 +953,7 @@ const ACHIEVEMENTS = {
         snapshot.docs.forEach(doc => {
           allDisputes.set(doc.id, { id: doc.id, ...doc.data() });
         });
-        setDisputes(Array.from(allDisputes.values()).sort((a, b) => 
+        setDisputes(Object.values(allDisputes).sort((a, b) => 
           (b.createdAt?.toDate?.() || 0) - (a.createdAt?.toDate?.() || 0)
         ));
       });
@@ -968,7 +970,7 @@ const ACHIEVEMENTS = {
           snapshot.docs.forEach(doc => {
             allDisputes.set(doc.id, { id: doc.id, ...doc.data() });
           });
-          setDisputes(Array.from(allDisputes.values()).sort((a, b) => 
+          setDisputes(Object.values(allDisputes).sort((a, b) => 
             (b.createdAt?.toDate?.() || 0) - (a.createdAt?.toDate?.() || 0)
           ));
         });
@@ -998,7 +1000,7 @@ const ACHIEVEMENTS = {
             snapshot.docs.forEach(doc => {
               allDisputes.set(doc.id, { id: doc.id, ...doc.data() });
             });
-            setDisputes(Array.from(allDisputes.values()).sort((a, b) => 
+            setDisputes(Object.values(allDisputes).sort((a, b) => 
               (b.createdAt?.toDate?.() || 0) - (a.createdAt?.toDate?.() || 0)
             ));
           });
@@ -1619,6 +1621,7 @@ const ACHIEVEMENTS = {
   const navItems = [
     { label: 'Dashboard', icon: LayoutDashboard, value: 'dashboard' },
     { label: 'Scores', icon: BarChart3, value: 'scores' },
+    { label: 'Credit Analysis', icon: Pie, value: 'credit-analysis' },
     { label: 'Disputes', icon: ShieldCheck, value: 'disputes' },
     { label: 'Documents', icon: FileText, value: 'documents' },
     { label: 'Payments', icon: CreditCard, value: 'payments' },
@@ -2166,6 +2169,201 @@ const ACHIEVEMENTS = {
             </Box>
           )}
 
+          {/* ========================================================================== */}
+          {/* CREDIT ANALYSIS TAB - AI-POWERED UTILIZATION & BUREAU VARIANCE */}
+          {/* NEW: Integrates CreditAnalysisDashboard for client-facing credit analysis */}
+          {/* ========================================================================== */}
+
+          {activeTab === 'credit-analysis' && (
+            <Box>
+              <Box sx={{ mb: 4 }}>
+                <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
+                  📊 Credit Analysis Dashboard
+                </Typography>
+                <Typography variant="body1" color="text.secondary">
+                  Deep dive into your credit utilization and identify bureau discrepancies
+                </Typography>
+              </Box>
+
+              {/* Credit Analysis Dashboard - Client View */}
+              <React.Suspense fallback={
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '400px', gap: 2 }}>
+                  <CircularProgress size={60} thickness={4} />
+                  <Typography variant="h6" color="text.secondary">
+                    Loading Credit Analysis...
+                  </Typography>
+                </Box>
+              }>
+                <CreditAnalysisDashboard 
+                  isClientView={true}
+                  contactId={user?.uid}
+                  contactEmail={user?.email}
+                />
+              </React.Suspense>
+
+              {/* Educational Tips Card - SCR's Utilization Truth - ALL 6 TIERS */}
+              <Paper sx={{ p: 3, mt: 3, bgcolor: 'primary.50', border: '1px solid', borderColor: 'primary.200' }}>
+                <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Brain size={24} />
+                  Understanding Credit Utilization - The REAL Truth
+                </Typography>
+                
+                <Alert severity="warning" sx={{ mb: 2 }}>
+                  <AlertTitle>Debunking the "30% Myth"</AlertTitle>
+                  Many sources claim 30% utilization is fine - this is WRONG. 
+                  Score damage begins at 20%, not 30%. Here is what actually matters:
+                </Alert>
+
+                {/* ROW 1: First 3 tiers */}
+                <Grid container spacing={2} sx={{ mb: 2 }}>
+                  <Grid item xs={12} sm={6} md={4}>
+                    <Card sx={{ bgcolor: '#FFF3E0', border: '2px solid', borderColor: '#FF9800', height: '100%' }}>
+                      <CardContent sx={{ textAlign: 'center', py: 2 }}>
+                        <Typography variant="h5" sx={{ color: '#E65100', fontWeight: 'bold' }}>0%</Typography>
+                        <Typography variant="body2" sx={{ color: '#E65100', fontWeight: 500 }}>
+                          ⚠️ STALE RISK
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                          Accounts may appear inactive to bureaus
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={4}>
+                    <Card sx={{ bgcolor: '#E8F5E9', border: '2px solid', borderColor: '#4CAF50', height: '100%' }}>
+                      <CardContent sx={{ textAlign: 'center', py: 2 }}>
+                        <Typography variant="h5" sx={{ color: '#2E7D32', fontWeight: 'bold' }}>&lt;1%</Typography>
+                        <Typography variant="body2" sx={{ color: '#2E7D32', fontWeight: 500 }}>
+                          🏆 OPTIMAL
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                          Best for mortgages & major purchases
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={4}>
+                    <Card sx={{ bgcolor: '#F1F8E9', border: '2px solid', borderColor: '#8BC34A', height: '100%' }}>
+                      <CardContent sx={{ textAlign: 'center', py: 2 }}>
+                        <Typography variant="h5" sx={{ color: '#558B2F', fontWeight: 'bold' }}>1-9%</Typography>
+                        <Typography variant="body2" sx={{ color: '#558B2F', fontWeight: 500 }}>
+                          ✅ EXCELLENT
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                          Practical daily sweet spot
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                </Grid>
+
+                {/* ROW 2: Last 3 tiers */}
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6} md={4}>
+                    <Card sx={{ bgcolor: '#E3F2FD', border: '2px solid', borderColor: '#2196F3', height: '100%' }}>
+                      <CardContent sx={{ textAlign: 'center', py: 2 }}>
+                        <Typography variant="h5" sx={{ color: '#1565C0', fontWeight: 'bold' }}>10-19%</Typography>
+                        <Typography variant="body2" sx={{ color: '#1565C0', fontWeight: 500 }}>
+                          ✓ VERY GOOD
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                          Maximum practical limit
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={4}>
+                    <Card sx={{ bgcolor: '#FFF3E0', border: '2px solid', borderColor: '#FF9800', height: '100%' }}>
+                      <CardContent sx={{ textAlign: 'center', py: 2 }}>
+                        <Typography variant="h5" sx={{ color: '#E65100', fontWeight: 'bold' }}>20-29%</Typography>
+                        <Typography variant="body2" sx={{ color: '#E65100', fontWeight: 500 }}>
+                          ⚠️ DECLINING
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                          Score impact begins here!
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={4}>
+                    <Card sx={{ bgcolor: '#FFEBEE', border: '2px solid', borderColor: '#F44336', height: '100%' }}>
+                      <CardContent sx={{ textAlign: 'center', py: 2 }}>
+                        <Typography variant="h5" sx={{ color: '#C62828', fontWeight: 'bold' }}>30%+</Typography>
+                        <Typography variant="body2" sx={{ color: '#C62828', fontWeight: 500 }}>
+                          ❌ HARMFUL
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                          Significant score damage zone
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                </Grid>
+
+                <Box sx={{ mt: 3, p: 2, bgcolor: 'background.paper', borderRadius: 1 }}>
+                  <Typography variant="subtitle2" color="primary.main" gutterBottom>
+                    💎 Bureau Variance = Dispute Gold Mine
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    When the SAME account shows DIFFERENT information across bureaus, at least one bureau is WRONG.
+                    This creates valid FCRA dispute grounds - the Credit Analysis Dashboard automatically detects these opportunities!
+                  </Typography>
+                </Box>
+
+                {/* Credit Attribution */}
+                <Divider sx={{ my: 2 }} />
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Award size={16} color="#1976d2" />
+                    <Typography variant="caption" color="text.secondary">
+                      Research & methodology by <strong>Christopher Lahage</strong>
+                    </Typography>
+                  </Box>
+                  <Typography variant="caption" color="text.secondary">
+                    © {new Date().getFullYear()} Speedy Credit Repair Inc. • 30+ Years Industry Experience
+                  </Typography>
+                </Box>
+              </Paper>
+
+              {/* Quick Actions */}
+              <Grid container spacing={2} sx={{ mt: 2 }}>
+                <Grid item xs={12} sm={6} md={4}>
+                  <Button 
+                    variant="outlined" 
+                    fullWidth 
+                    startIcon={<RefreshCw size={18} />}
+                    onClick={() => window.location.reload()}
+                    sx={{ py: 2 }}
+                  >
+                    Refresh Analysis
+                  </Button>
+                </Grid>
+                <Grid item xs={12} sm={6} md={4}>
+                  <Button 
+                    variant="outlined" 
+                    fullWidth 
+                    startIcon={<ShieldCheck size={18} />}
+                    onClick={() => setActiveTab('disputes')}
+                    sx={{ py: 2 }}
+                  >
+                    View My Disputes
+                  </Button>
+                </Grid>
+                <Grid item xs={12} sm={6} md={4}>
+                  <Button 
+                    variant="outlined" 
+                    fullWidth 
+                    startIcon={<MessageSquare size={18} />}
+                    onClick={() => setShowMessageDialog(true)}
+                    sx={{ py: 2 }}
+                  >
+                    Ask AI Assistant
+                  </Button>
+                </Grid>
+              </Grid>
+            </Box>
+          )}
+        
           {/* ========================================================================== */}
           {/* DISPUTES TAB - COMPLETE */}
           {/* ========================================================================== */}
