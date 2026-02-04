@@ -65,7 +65,7 @@ import {
   Celebration
 } from '@mui/icons-material';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { doc, getDoc, updateDoc, serverTimestamp, arrayUnion } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, serverTimestamp, arrayUnion, collection, addDoc } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../../lib/firebase';
 
@@ -250,6 +250,30 @@ export default function DocumentUploadPortal() {
           };
 
           await updateDoc(contactRef, updateData);
+
+          // ===== ALSO WRITE TO clientDocuments COLLECTION =====
+          // This makes documents appear in the ClientPortal Documents tab
+          if (contact.userId) {
+            await addDoc(collection(db, 'clientDocuments'), {
+              userId: contact.userId,
+              contactId: contactId,
+              type: docType.id,
+              name: docType.label,
+              fileName: file.name,
+              fileUrl: downloadURL,
+              fileSize: file.size,
+              fileType: file.type,
+              category: 'onboarding',
+              status: 'uploaded',
+              uploadedAt: serverTimestamp(),
+              source: 'document_upload_portal',
+              metadata: {
+                contactName: `${contact.firstName} ${contact.lastName}`,
+                contactEmail: contact.email
+              }
+            });
+            console.log(`📁 Document also added to clientDocuments collection`);
+          }
 
           // Update local state
           setUploads(prev => ({
