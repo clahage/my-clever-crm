@@ -157,7 +157,7 @@ const SERVICE_PLANS_CONFIG = {
 };
 
 // ============================================
-// EMAIL HTML WRAPPER HELPER (Original - Keep for backward compatibility)
+// EMAIL HTML WRAPPER HELPER
 // ============================================
 function wrapEmailInHTML(subject, bodyText, recipientName = '') {
   const htmlBody = bodyText
@@ -193,389 +193,6 @@ function wrapEmailInHTML(subject, bodyText, recipientName = '') {
 </body>
 </html>`;
 }
-
-// ============================================
-// RICH PROFESSIONAL EMAIL TEMPLATES
-// ============================================
-// Ultra-professional email templates with:
-// - Gradient headers with branding
-// - Progress indicators (Step X of Y)
-// - Clear CTAs with big colored buttons
-// - Trust badges (A+ BBB, 30 years, 4.9★)
-// - Urgency indicators (increasing color intensity)
-// - Mobile-responsive design
-// - Documents marked as OPTIONAL to prevent drop-off
-// ============================================
-
-const SPEEDY_BRAND = {
-  primaryBlue: '#1e40af',
-  primaryGreen: '#059669',
-  accentOrange: '#f59e0b',
-  urgentRed: '#dc2626',
-  lightGray: '#f3f4f6',
-  darkGray: '#374151',
-  companyName: 'Speedy Credit Repair',
-  phone: '(888) 724-7344',
-  phoneLink: '8887247344',
-  email: 'chris@speedycreditrepair.com',
-  website: 'https://speedycreditrepair.com',
-  portalUrl: 'https://myclevercrm.com',
-  ownerName: 'Chris Lahage',
-  established: '1995',
-  bbbRating: 'A+',
-  googleRating: '4.9',
-  reviewCount: '580+'
-};
-
-// ═══════════════════════════════════════════════════════════════════════════
-// MASTER RICH EMAIL WRAPPER - Ultra Professional Design
-// ═══════════════════════════════════════════════════════════════════════════
-
-function createRichEmail(options) {
-  const {
-    subject,
-    preheader = '',
-    recipientName = '',
-    bodyContent,
-    ctaButton = null,
-    urgencyLevel = 'normal',
-    showProgress = null,
-    showTrustBadges = true,
-    trackingPixelUrl = null
-  } = options;
-
-  const urgencyColors = {
-    normal: SPEEDY_BRAND.primaryBlue,
-    medium: SPEEDY_BRAND.accentOrange,
-    high: '#ea580c',
-    critical: SPEEDY_BRAND.urgentRed
-  };
-
-  const headerColor = urgencyColors[urgencyLevel] || SPEEDY_BRAND.primaryBlue;
-  
-  const urgencyBanners = {
-    normal: '',
-    medium: `<tr><td style="background: #fef3c7; padding: 12px 20px; text-align: center; border-bottom: 2px solid #f59e0b;"><span style="color: #92400e; font-weight: 600;">⏰ Action Recommended</span></td></tr>`,
-    high: `<tr><td style="background: #fed7aa; padding: 12px 20px; text-align: center; border-bottom: 2px solid #ea580c;"><span style="color: #9a3412; font-weight: 600;">⚠️ Important - Please Review</span></td></tr>`,
-    critical: `<tr><td style="background: #fecaca; padding: 14px 20px; text-align: center; border-bottom: 3px solid #dc2626;"><span style="color: #991b1b; font-weight: 700; font-size: 15px;">🚨 URGENT ACTION REQUIRED</span></td></tr>`
-  };
-
-  const progressBarHtml = showProgress ? `
-    <tr>
-      <td style="padding: 20px 40px 0;">
-        <div style="background: #e5e7eb; border-radius: 10px; height: 8px; overflow: hidden; margin-bottom: 8px;">
-          <div style="background: linear-gradient(90deg, ${SPEEDY_BRAND.primaryGreen}, #10b981); width: ${(showProgress.current / showProgress.total) * 100}%; height: 100%; border-radius: 10px;"></div>
-        </div>
-        <p style="margin: 0; color: #6b7280; font-size: 13px; text-align: center;">${showProgress.label}</p>
-      </td>
-    </tr>
-  ` : '';
-
-  const ctaButtonHtml = ctaButton ? `
-    <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin: 25px auto;">
-      <tr>
-        <td style="border-radius: 8px; background: ${ctaButton.color === 'green' ? 'linear-gradient(135deg, #059669, #10b981)' : ctaButton.color === 'orange' ? 'linear-gradient(135deg, #f59e0b, #fbbf24)' : ctaButton.color === 'red' ? 'linear-gradient(135deg, #dc2626, #ef4444)' : 'linear-gradient(135deg, #1e40af, #3b82f6)'};">
-          <a href="${ctaButton.url}" target="_blank" style="display: inline-block; padding: 16px 40px; font-family: Arial, sans-serif; font-size: 16px; font-weight: 700; color: #ffffff; text-decoration: none; border-radius: 8px;">
-            ${ctaButton.text}
-          </a>
-        </td>
-      </tr>
-    </table>
-  ` : '';
-
-  const trustBadgesHtml = showTrustBadges ? `
-    <tr>
-      <td style="padding: 20px 40px; background: #f9fafb; border-top: 1px solid #e5e7eb;">
-        <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" width="100%">
-          <tr>
-            <td align="center" style="padding: 0 10px;">
-              <p style="margin: 0; color: #059669; font-size: 13px; font-weight: 700;">⭐ ${SPEEDY_BRAND.googleRating}</p>
-              <p style="margin: 2px 0 0; color: #6b7280; font-size: 11px;">${SPEEDY_BRAND.reviewCount} Reviews</p>
-            </td>
-            <td align="center" style="padding: 0 10px; border-left: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb;">
-              <p style="margin: 0; color: #1e40af; font-size: 13px; font-weight: 700;">🏆 ${SPEEDY_BRAND.bbbRating} BBB</p>
-              <p style="margin: 2px 0 0; color: #6b7280; font-size: 11px;">Accredited</p>
-            </td>
-            <td align="center" style="padding: 0 10px;">
-              <p style="margin: 0; color: #7c3aed; font-size: 13px; font-weight: 700;">📅 Since ${SPEEDY_BRAND.established}</p>
-              <p style="margin: 2px 0 0; color: #6b7280; font-size: 11px;">30 Years Experience</p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  ` : '';
-
-  const trackingPixelHtml = trackingPixelUrl ? 
-    `<img src="${trackingPixelUrl}" width="1" height="1" style="display:none;border:0;" alt="" />` : '';
-
-  const formattedBody = bodyContent
-    .replace(/\n\n/g, '</p><p style="margin: 0 0 16px; color: #374151; font-size: 16px; line-height: 1.7;">')
-    .replace(/\n/g, '<br>');
-
-  return `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>${subject}</title>
-  ${preheader ? `<meta name="description" content="${preheader}">` : ''}
-</head>
-<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6; -webkit-font-smoothing: antialiased;">
-  ${preheader ? `<div style="display: none; max-height: 0; overflow: hidden;">${preheader}</div>` : ''}
-  
-  <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" width="100%" style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
-    
-    ${urgencyBanners[urgencyLevel] || ''}
-    
-    <tr>
-      <td style="background: linear-gradient(135deg, ${headerColor} 0%, ${headerColor}dd 100%); padding: 35px 40px; text-align: center;">
-        <h1 style="margin: 0; color: #ffffff; font-size: 26px; font-weight: 700; letter-spacing: -0.5px;">⚡ ${SPEEDY_BRAND.companyName}</h1>
-        <p style="margin: 12px 0 0; color: rgba(255,255,255,0.9); font-size: 14px;">Established ${SPEEDY_BRAND.established} | ${SPEEDY_BRAND.bbbRating} BBB Rating | ${SPEEDY_BRAND.googleRating}★ Google Reviews</p>
-      </td>
-    </tr>
-    
-    ${progressBarHtml}
-    
-    <tr>
-      <td style="padding: 35px 40px;">
-        ${recipientName ? `<p style="margin: 0 0 20px; color: #1f2937; font-size: 18px; font-weight: 600;">Hi ${recipientName},</p>` : ''}
-        <p style="margin: 0 0 16px; color: #374151; font-size: 16px; line-height: 1.7;">${formattedBody}</p>
-        ${ctaButtonHtml}
-      </td>
-    </tr>
-    
-    ${trustBadgesHtml}
-    
-    <tr>
-      <td style="background-color: #1f2937; padding: 30px 40px; text-align: center;">
-        <p style="margin: 0 0 10px; color: #ffffff; font-size: 15px; font-weight: 600;">${SPEEDY_BRAND.companyName}</p>
-        <p style="margin: 0 0 8px; color: #9ca3af; font-size: 13px;">
-          📞 <a href="tel:${SPEEDY_BRAND.phoneLink}" style="color: #60a5fa; text-decoration: none;">${SPEEDY_BRAND.phone}</a> | 
-          📧 <a href="mailto:${SPEEDY_BRAND.email}" style="color: #60a5fa; text-decoration: none;">${SPEEDY_BRAND.email}</a>
-        </p>
-        <p style="margin: 15px 0 0; color: #6b7280; font-size: 11px;">
-          © 1995-${new Date().getFullYear()} ${SPEEDY_BRAND.companyName} Inc. | All Rights Reserved
-        </p>
-      </td>
-    </tr>
-  </table>
-  
-  ${trackingPixelHtml}
-</body>
-</html>`;
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// PRE-BUILT EMAIL TEMPLATES
-// ═══════════════════════════════════════════════════════════════════════════
-
-const EMAIL_TEMPLATES = {
-  
-  // DOCUMENT UPLOAD REQUEST (After Contract Signed) - MARKED AS OPTIONAL
-  documentUploadRequest: (contact, portalUrl) => createRichEmail({
-    subject: `${contact.firstName}, just a few quick items to complete your setup`,
-    preheader: 'Optional documents help us serve you better - takes just 2 minutes',
-    recipientName: contact.firstName,
-    urgencyLevel: 'normal',
-    showProgress: { current: 3, total: 4, label: 'Step 3 of 4: Optional Documents' },
-    bodyContent: `Great news! Your service agreement is complete and we're ready to start working on your credit.
-
-To help us serve you even better, you can optionally upload a few documents to your secure client portal. These help us verify your identity and speed up the dispute process.
-
-<strong style="color: #1e40af;">📄 Optional Documents:</strong>
-
-- <strong>Government-issued ID</strong> (Driver's license or passport)
-- <strong>Proof of address</strong> (Utility bill, bank statement, etc.)
-- <strong>Social Security card</strong> (Helps verify identity with bureaus)
-
-<span style="color: #059669; font-weight: 600;">💡 These are completely optional</span> - we can still begin your credit repair without them. However, having them on file can speed up the dispute resolution process.
-
-Your documents are encrypted and stored securely. We never share your information with third parties.`,
-    ctaButton: {
-      text: '📤 Upload Documents (Optional)',
-      url: `${portalUrl}/portal/documents?contactId=${contact.id || contact.contactId}`,
-      color: 'blue'
-    },
-    showTrustBadges: true
-  }),
-
-  // ACH SETUP REQUEST (After Contract Signed)
-  achSetupRequest: (contact, planName, monthlyAmount, portalUrl) => createRichEmail({
-    subject: `${contact.firstName}, set up your payment method to activate service`,
-    preheader: 'Quick 2-minute setup to start your credit repair journey',
-    recipientName: contact.firstName,
-    urgencyLevel: 'medium',
-    showProgress: { current: 4, total: 4, label: 'Final Step: Payment Setup' },
-    bodyContent: `You're almost there! Just one final step to activate your ${planName} service.
-
-<strong style="color: #1e40af;">💳 Your Service Details:</strong>
-
-- <strong>Plan:</strong> ${planName}
-- <strong>Monthly Investment:</strong> $${monthlyAmount}
-- <strong>Billing Date:</strong> Same day each month
-
-<strong style="color: #059669;">🔒 Why ACH Bank Transfer?</strong>
-
-Most of our clients choose ACH because:
-✓ No credit card fees
-✓ Automatic monthly payments
-✓ Secure bank-level encryption
-✓ Easy to cancel anytime
-
-Setting up takes less than 2 minutes. Just have your bank routing and account numbers handy.
-
-<span style="color: #6b7280; font-size: 14px;">Your first payment will process within 3 business days of setup.</span>`,
-    ctaButton: {
-      text: '🏦 Set Up Payment Now',
-      url: `${portalUrl}/ach-authorization/${contact.id || contact.contactId}`,
-      color: 'green'
-    },
-    showTrustBadges: true
-  }),
-
-  // IDIQ UPGRADE REMINDER - DAY 7 (Friendly - Normal urgency)
-  idiqUpgradeReminder7: (contact, upgradeUrl) => createRichEmail({
-    subject: `${contact.firstName}, your credit monitoring trial - quick update`,
-    preheader: 'Keep your 3-bureau credit monitoring active',
-    recipientName: contact.firstName,
-    urgencyLevel: 'normal',
-    bodyContent: `I wanted to check in about your IDIQ credit monitoring trial.
-
-Your free trial has been active for about a week now, and I hope you've had a chance to review your 3-bureau credit report. Pretty eye-opening, right?
-
-<strong style="color: #1e40af;">🔍 Why Keep Credit Monitoring?</strong>
-
-As we work on disputing negative items, your credit monitoring helps us:
-- Track when bureaus update your report
-- See dispute results in real-time
-- Catch any new issues immediately
-- Document your credit score improvements
-
-<strong style="color: #059669;">💰 The Investment:</strong> Just $21.86/month
-
-This is billed directly by IDIQ (separate from our service). Many clients keep it even after credit repair is complete - it's great peace of mind!
-
-<span style="color: #6b7280;">No pressure at all - just wanted to make sure you knew about the option.</span>`,
-    ctaButton: {
-      text: '✓ Upgrade My Monitoring',
-      url: upgradeUrl,
-      color: 'blue'
-    },
-    showTrustBadges: true
-  }),
-
-  // IDIQ UPGRADE REMINDER - DAY 14 (Increasing Urgency - Medium)
-  idiqUpgradeReminder14: (contact, upgradeUrl, daysRemaining) => createRichEmail({
-    subject: `⏰ ${contact.firstName}, your monitoring trial ends in ${daysRemaining} days`,
-    preheader: `Action needed: Upgrade to keep your credit monitoring active`,
-    recipientName: contact.firstName,
-    urgencyLevel: 'medium',
-    bodyContent: `Quick heads up - your free IDIQ credit monitoring trial is ending soon.
-
-<strong style="color: #ea580c;">📅 Trial Status:</strong> ${daysRemaining} days remaining
-
-If you don't upgrade, you'll lose access to:
-- Your 3-bureau credit reports
-- Real-time score updates
-- Identity theft protection
-- Our ability to track your dispute results
-
-<strong style="color: #1e40af;">I recommend upgrading because:</strong>
-
-We're actively working on your credit repair, and monitoring lets us see exactly when the bureaus make changes. Without it, we're working blind.
-
-The cost is just $21.86/month - about 73 cents a day for complete credit visibility.
-
-<span style="color: #059669; font-weight: 600;">Click below to upgrade in about 60 seconds:</span>`,
-    ctaButton: {
-      text: '🔓 Upgrade Now - Keep My Monitoring',
-      url: upgradeUrl,
-      color: 'orange'
-    },
-    showTrustBadges: true
-  }),
-
-  // IDIQ UPGRADE REMINDER - DAY 18 (Final Warning - High Urgency)
-  idiqUpgradeFinal18: (contact, upgradeUrl, daysRemaining) => createRichEmail({
-    subject: `🚨 FINAL NOTICE: ${contact.firstName}, ${daysRemaining} days until monitoring expires`,
-    preheader: `Your credit monitoring will be cancelled unless you upgrade`,
-    recipientName: contact.firstName,
-    urgencyLevel: 'high',
-    bodyContent: `This is my final reminder about your credit monitoring trial.
-
-<strong style="color: #dc2626; font-size: 18px;">⚠️ Your monitoring expires in ${daysRemaining} days</strong>
-
-After that, your IDIQ account will be automatically cancelled and you'll lose:
-
-❌ Access to your 3-bureau credit reports
-❌ Real-time credit score tracking
-❌ Identity theft protection alerts
-❌ Our ability to monitor your dispute progress
-
-<strong style="color: #1e40af;">Here's the honest truth:</strong>
-
-Without credit monitoring, our credit repair work becomes significantly less effective. We won't be able to see when bureaus respond to disputes or track your score improvements.
-
-<strong style="color: #059669;">The solution is simple:</strong>
-
-Upgrade to paid monitoring for $21.86/month. It takes about 60 seconds and ensures we can continue tracking your progress.
-
-<span style="color: #6b7280; font-size: 14px;">If you've decided not to proceed with credit repair services, please let me know and we'll cancel your trial so you're not charged.</span>`,
-    ctaButton: {
-      text: '🚨 UPGRADE NOW - KEEP MY MONITORING',
-      url: upgradeUrl,
-      color: 'red'
-    },
-    showTrustBadges: true
-  }),
-
-  // WELCOME NEW CLIENT (After ACH Setup Complete) 🎉
-  welcomeNewClient: (contact, planName) => createRichEmail({
-    subject: `🎉 Welcome to the Speedy family, ${contact.firstName}! Let's get started`,
-    preheader: 'Your credit repair journey officially begins today',
-    recipientName: contact.firstName,
-    urgencyLevel: 'normal',
-    bodyContent: `<strong style="color: #059669; font-size: 20px;">Congratulations! You're officially a Speedy Credit Repair client! 🎉</strong>
-
-Everything is set up and we're ready to start transforming your credit.
-
-<strong style="color: #1e40af;">📋 Your Service Summary:</strong>
-
-- <strong>Plan:</strong> ${planName}
-- <strong>Status:</strong> Active - Work Begins Immediately
-- <strong>Your Team:</strong> Chris Lahage + Dedicated Support Staff
-
-<strong style="color: #059669;">🚀 What Happens Next:</strong>
-
-<strong>Week 1:</strong> We complete our analysis and prepare your first round of disputes
-
-<strong>Weeks 2-4:</strong> Disputes are sent to credit bureaus and creditors
-
-<strong>Days 30-45:</strong> You'll start seeing responses and potential deletions
-
-<strong>Ongoing:</strong> We continue disputing until we've addressed all negative items
-
-<strong style="color: #1e40af;">📱 Your Client Portal:</strong>
-
-You now have access to your personal client portal where you can:
-- Track dispute status in real-time
-- View your credit reports
-- Upload documents securely
-- Message our team directly
-- See your credit score progress
-
-<span style="color: #6b7280;">Questions? We're always here. Just reply to this email or call us anytime.</span>`,
-    ctaButton: {
-      text: '🔐 Access My Client Portal',
-      url: `${SPEEDY_BRAND.portalUrl}/portal`,
-      color: 'green'
-    },
-    showTrustBadges: true
-  })
-};
 
 console.log('🚀 Loading SpeedyCRM Consolidated Functions...');
 
@@ -1075,247 +692,7 @@ exports.onContactUpdated = onDocumentUpdated(
       }
       
       // ═══════════════════════════════════════════════════════════════════════
-      // SCENARIO 3: CONTRACT JUST SIGNED
-      // Triggers: Document upload request (optional) + ACH setup request (delayed)
-      // ═══════════════════════════════════════════════════════════════════════
-      const contractJustSigned = 
-        (afterData.contractSigned === true || afterData.workflowStage === 8) &&
-        (beforeData.contractSigned !== true && beforeData.workflowStage !== 8) &&
-        !afterData.contractSignedEmailsSent;
-      
-      if (contractJustSigned) {
-        console.log('📄 CONTRACT SIGNED - Sending onboarding emails...');
-        console.log(`Contact: ${contactId} (${afterData.firstName} ${afterData.lastName})`);
-        
-        try {
-          const user = gmailUser.value();
-          const pass = gmailAppPassword.value();
-          const fromName = gmailFromName.value() || 'Chris Lahage - Speedy Credit Repair';
-          
-          const transporter = nodemailer.createTransport({
-            host: 'smtp.gmail.com',
-            port: 587,
-            secure: false,
-            auth: { user, pass }
-          });
-          
-          const recipientEmail = afterData.email || afterData.emails?.[0]?.address;
-          const planName = afterData.selectedPlanName || afterData.selectedPlan || 'Credit Repair Service';
-          const monthlyAmount = afterData.selectedPlanPrice || afterData.monthlyPrice || '149';
-          const portalUrl = 'https://myclevercrm.com';
-          
-          if (!recipientEmail) {
-            console.error('❌ No email address found for contact:', contactId);
-            return null;
-          }
-          
-          // ─────────────────────────────────────────────────────────────────
-          // EMAIL 1: Document Upload Request (Optional - prevents drop-off)
-          // ─────────────────────────────────────────────────────────────────
-          console.log('📧 Sending document upload request (optional)...');
-          
-          const docEmailHtml = EMAIL_TEMPLATES.documentUploadRequest(
-            { ...afterData, id: contactId },
-            portalUrl
-          );
-          
-          await transporter.sendMail({
-            from: `"${fromName}" <${user}>`,
-            to: recipientEmail,
-            subject: `${afterData.firstName}, just a few quick items to complete your setup`,
-            html: docEmailHtml
-          });
-          
-          console.log('✅ Document upload request sent (marked as optional)');
-          
-          // ─────────────────────────────────────────────────────────────────
-          // EMAIL 2: ACH Setup Request (Delayed by 2 hours)
-          // We schedule this to avoid overwhelming the client with emails
-          // ─────────────────────────────────────────────────────────────────
-          const achScheduledFor = new Date(Date.now() + (2 * 60 * 60 * 1000)); // 2 hours from now
-          
-          await db.collection('scheduledEmails').add({
-            contactId: contactId,
-            type: 'ach_setup_request',
-            scheduledFor: admin.firestore.Timestamp.fromDate(achScheduledFor),
-            status: 'pending',
-            emailData: {
-              recipientEmail,
-              recipientName: afterData.firstName,
-              planName,
-              monthlyAmount,
-              portalUrl
-            },
-            createdAt: admin.firestore.FieldValue.serverTimestamp()
-          });
-          
-          console.log('📅 ACH setup email scheduled for 2 hours from now');
-          
-          // ─────────────────────────────────────────────────────────────────
-          // Mark emails as sent to prevent duplicates
-          // ─────────────────────────────────────────────────────────────────
-          await event.data.after.ref.update({
-            contractSignedEmailsSent: true,
-            contractSignedEmailsSentAt: admin.firestore.FieldValue.serverTimestamp(),
-            documentRequestSent: true,
-            documentRequestSentAt: admin.firestore.FieldValue.serverTimestamp(),
-            achRequestScheduled: true,
-            achRequestScheduledFor: admin.firestore.Timestamp.fromDate(achScheduledFor)
-          });
-          
-          // Log activity
-          await db.collection('activityLogs').add({
-            type: 'contract_signed_emails',
-            contactId: contactId,
-            action: 'onboarding_emails_sent',
-            details: {
-              documentRequestSent: true,
-              achRequestScheduled: true,
-              achScheduledFor: achScheduledFor.toISOString()
-            },
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            createdBy: 'system'
-          });
-          
-          console.log('✅ Contract signed email sequence initiated');
-          
-        } catch (emailError) {
-          console.error('❌ Error sending contract signed emails:', emailError);
-          
-          // Create task for manual follow-up
-          await db.collection('tasks').add({
-            title: `Contract signed emails failed: ${afterData.firstName} ${afterData.lastName}`,
-            description: `Automatic onboarding emails failed. Please send manually.\n\nEmail: ${afterData.email}\nError: ${emailError.message}`,
-            contactId,
-            type: 'email_failure',
-            priority: 'high',
-            status: 'pending',
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            createdBy: 'system'
-          });
-        }
-        
-        return null;
-      }
-      
-      // ═══════════════════════════════════════════════════════════════════════
-      // SCENARIO 4: ACH JUST COMPLETED (Prospect → Client Conversion)
-      // This is the final step - convert to client and send welcome!
-      // ═══════════════════════════════════════════════════════════════════════
-      const achJustCompleted = 
-        (afterData.achAuthorized === true || afterData.workflowStage === 9) &&
-        (beforeData.achAuthorized !== true && beforeData.workflowStage !== 9) &&
-        !afterData.welcomeClientEmailSent;
-      
-      if (achJustCompleted) {
-        console.log('💳 ACH COMPLETED - Converting to client and sending welcome...');
-        console.log(`Contact: ${contactId} (${afterData.firstName} ${afterData.lastName})`);
-        
-        try {
-          const user = gmailUser.value();
-          const pass = gmailAppPassword.value();
-          const fromName = gmailFromName.value() || 'Chris Lahage - Speedy Credit Repair';
-          
-          const transporter = nodemailer.createTransport({
-            host: 'smtp.gmail.com',
-            port: 587,
-            secure: false,
-            auth: { user, pass }
-          });
-          
-          const recipientEmail = afterData.email || afterData.emails?.[0]?.address;
-          const planName = afterData.selectedPlanName || afterData.selectedPlan || 'Credit Repair Service';
-          
-          if (!recipientEmail) {
-            console.error('❌ No email address found for contact:', contactId);
-            return null;
-          }
-          
-          // ─────────────────────────────────────────────────────────────────
-          // UPDATE CONTACT TO CLIENT STATUS
-          // ─────────────────────────────────────────────────────────────────
-          await event.data.after.ref.update({
-            status: 'client',
-            roles: admin.firestore.FieldValue.arrayUnion('client'),
-            convertedToClientAt: admin.firestore.FieldValue.serverTimestamp(),
-            welcomeClientEmailSent: true,
-            welcomeClientEmailSentAt: admin.firestore.FieldValue.serverTimestamp()
-          });
-          
-          console.log('✅ Contact converted to client status');
-          
-          // ─────────────────────────────────────────────────────────────────
-          // SEND WELCOME CLIENT EMAIL
-          // ─────────────────────────────────────────────────────────────────
-          const welcomeEmailHtml = EMAIL_TEMPLATES.welcomeNewClient(
-            { ...afterData, id: contactId },
-            planName
-          );
-          
-          await transporter.sendMail({
-            from: `"${fromName}" <${user}>`,
-            to: recipientEmail,
-            subject: `🎉 Welcome to the Speedy family, ${afterData.firstName}! Let's get started`,
-            html: welcomeEmailHtml
-          });
-          
-          console.log('✅ Welcome client email sent');
-          
-          // ─────────────────────────────────────────────────────────────────
-          // ALERT TEAM OF NEW CLIENT 🎉
-          // ─────────────────────────────────────────────────────────────────
-          await transporter.sendMail({
-            from: `"SpeedyCRM Alerts" <${user}>`,
-            to: user, // Send to Christopher
-            subject: `🎉 NEW CLIENT: ${afterData.firstName} ${afterData.lastName} - ${planName}`,
-            html: wrapEmailInHTML(
-              'New Client Alert',
-              `Great news! A new client has completed signup!\n\n` +
-              `<strong>Name:</strong> ${afterData.firstName} ${afterData.lastName}\n` +
-              `<strong>Email:</strong> ${recipientEmail}\n` +
-              `<strong>Plan:</strong> ${planName}\n` +
-              `<strong>Contact ID:</strong> ${contactId}\n\n` +
-              `The client has been converted to client status and welcome email has been sent.\n\n` +
-              `Time to start the credit repair process! 🚀`,
-              'Chris'
-            )
-          });
-          
-          console.log('✅ Team notified of new client');
-          
-          // Log activity
-          await db.collection('activityLogs').add({
-            type: 'client_conversion',
-            contactId: contactId,
-            action: 'prospect_to_client',
-            details: {
-              planName,
-              convertedAt: new Date().toISOString()
-            },
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            createdBy: 'system'
-          });
-          
-        } catch (emailError) {
-          console.error('❌ Error in client conversion:', emailError);
-          
-          await db.collection('tasks').add({
-            title: `Client conversion failed: ${afterData.firstName} ${afterData.lastName}`,
-            description: `ACH completed but welcome email failed. Please review.\n\nEmail: ${afterData.email}\nError: ${emailError.message}`,
-            contactId,
-            type: 'conversion_failure',
-            priority: 'critical',
-            status: 'pending',
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            createdBy: 'system'
-          });
-        }
-        
-        return null;
-      }
-      
-      // ═══════════════════════════════════════════════════════════════════════
-      // SCENARIO 5: OTHER UPDATES (no special handling)
+      // SCENARIO 3: OTHER UPDATES (no special handling)
       // ═══════════════════════════════════════════════════════════════════════
       console.log('📝 Contact updated (no special handling):', contactId);
       return null;
@@ -3450,159 +2827,91 @@ exports.processWorkflowStages = onSchedule(
       }
       
       // ─────────────────────────────────────────────────────────────────────
-      // RULE 3: IDIQ UPGRADE REMINDERS (7, 14, 18 days for signed clients)
-      // Only for contacts who have signed contracts but haven't upgraded IDIQ
-      // Increasing urgency at each stage
+      // RULE 2: COMPLETE INACTIVITY (14+ days, no portal access)
       // ─────────────────────────────────────────────────────────────────────
       
-      console.log('\n📧 Checking IDIQ upgrade reminders for signed clients...');
+      const fourteenDaysAgo = new Date(now.getTime() - (14 * 24 * 60 * 60 * 1000));
+      const fourteenDaysAgoTimestamp = admin.firestore.Timestamp.fromDate(fourteenDaysAgo);
       
-      const IDIQ_UPGRADE_URL = 'https://member.identityiq.com/Account-Details.aspx?upgradepage=UPGRADE';
-      let upgradeRemindersSent = 0;
-      
-      // Get contacts who have signed contracts but IDIQ is still on trial
-      const signedButTrialSnapshot = await db.collection('contacts')
-        .where('contractSigned', '==', true)
-        .where('status', 'in', ['prospect', 'lead'])
-        .limit(100)
+      const inactiveContactsSnapshot = await db.collection('contacts')
+        .where('lastActivityAt', '<=', fourteenDaysAgoTimestamp)
+        .where('status', '==', 'prospect')
+        .where('idiq.subscriptionStatus', '==', 'active')
+        .limit(50) // Process in batches
         .get();
       
-      console.log(`📊 Found ${signedButTrialSnapshot.size} signed clients to check for IDIQ upgrade`);
+      console.log(`📊 Found ${inactiveContactsSnapshot.size} inactive prospects (14+ days)`);
       
-      for (const contactDoc of signedButTrialSnapshot.docs) {
+      for (const contactDoc of inactiveContactsSnapshot.docs) {
         const contact = contactDoc.data();
         const contactId = contactDoc.id;
         
-        // Skip if already upgraded to paid or marked as upgraded
-        if (contact.idiq?.subscriptionType === 'paid' || 
-            contact.idiq?.upgraded === true || 
-            contact.idiqUpgraded === true) {
+        // Skip if contract signed or has portal access
+        if (contact.contractSigned === true || (contact.portalAccessCount || 0) > 0) {
           continue;
         }
         
-        // Get the IDIQ enrollment record
-        const enrollmentSnapshot = await db.collection('idiqEnrollments')
-          .where('contactId', '==', contactId)
-          .where('status', 'in', ['active', 'trial'])
-          .limit(1)
-          .get();
+        const lastActivity = contact.lastActivityAt?.toDate() || new Date(0);
+        const daysSinceActivity = Math.floor((now.getTime() - lastActivity.getTime()) / (1000 * 60 * 60 * 24));
         
-        if (enrollmentSnapshot.empty) continue;
-        
-        const enrollment = enrollmentSnapshot.docs[0].data();
-        const enrolledAt = enrollment.enrolledAt?.toDate() || contact.idiqEnrolledAt?.toDate() || new Date(0);
-        const daysEnrolled = Math.floor((now.getTime() - enrolledAt.getTime()) / (1000 * 60 * 60 * 24));
-        
-        const recipientEmail = contact.email || contact.emails?.[0]?.address;
-        if (!recipientEmail) continue;
-        
-        // ─────────────────────────────────────────────────────────────────
-        // DAY 7: Friendly Reminder (Normal urgency)
-        // ─────────────────────────────────────────────────────────────────
-        if (daysEnrolled >= 7 && daysEnrolled < 14 && !contact.idiqUpgradeReminder7Sent) {
-          console.log(`📧 Sending Day 7 upgrade reminder for ${contactId} (${contact.firstName})`);
+        // Send reengagement email at 7 days
+        if (daysSinceActivity >= 7 && daysSinceActivity < 14 && !contact.reengagementEmailSent) {
+          console.log(`📧 Sending reengagement email for ${contactId}`);
           
-          const emailHtml = EMAIL_TEMPLATES.idiqUpgradeReminder7(
-            { ...contact, id: contactId },
-            IDIQ_UPGRADE_URL
-          );
+          const user = gmailUser.value();
+          const pass = gmailAppPassword.value();
+          
+          const transporter = nodemailer.createTransporter({
+            host: 'smtp.gmail.com',
+            port: 587,
+            secure: false,
+            auth: { user, pass }
+          });
           
           await transporter.sendMail({
-            from: `"${gmailFromName.value() || 'Chris Lahage - Speedy Credit Repair'}" <${user}>`,
-            to: recipientEmail,
-            subject: `${contact.firstName}, your credit monitoring trial - quick update`,
-            html: emailHtml
-          });
-          
-          await contactDoc.ref.update({
-            idiqUpgradeReminder7Sent: true,
-            idiqUpgradeReminder7SentAt: admin.firestore.FieldValue.serverTimestamp()
-          });
-          
-          upgradeRemindersSent++;
-          console.log(`✅ Day 7 reminder sent for ${contactId}`);
-        }
-        
-        // ─────────────────────────────────────────────────────────────────
-        // DAY 14: Increasing Urgency (Medium urgency)
-        // ─────────────────────────────────────────────────────────────────
-        if (daysEnrolled >= 14 && daysEnrolled < 18 && !contact.idiqUpgradeReminder14Sent) {
-          console.log(`📧 Sending Day 14 upgrade reminder for ${contactId} (${contact.firstName})`);
-          
-          const daysRemaining = 20 - daysEnrolled; // Based on 20-day soft deadline
-          
-          const emailHtml = EMAIL_TEMPLATES.idiqUpgradeReminder14(
-            { ...contact, id: contactId },
-            IDIQ_UPGRADE_URL,
-            daysRemaining
-          );
-          
-          await transporter.sendMail({
-            from: `"${gmailFromName.value() || 'Chris Lahage - Speedy Credit Repair'}" <${user}>`,
-            to: recipientEmail,
-            subject: `⏰ ${contact.firstName}, your monitoring trial ends in ${daysRemaining} days`,
-            html: emailHtml
-          });
-          
-          await contactDoc.ref.update({
-            idiqUpgradeReminder14Sent: true,
-            idiqUpgradeReminder14SentAt: admin.firestore.FieldValue.serverTimestamp()
-          });
-          
-          upgradeRemindersSent++;
-          console.log(`✅ Day 14 reminder sent for ${contactId}`);
-        }
-        
-        // ─────────────────────────────────────────────────────────────────
-        // DAY 18: Final Warning (High Urgency - Red alert)
-        // ─────────────────────────────────────────────────────────────────
-        if (daysEnrolled >= 18 && daysEnrolled < 20 && !contact.idiqUpgradeFinalSent) {
-          console.log(`📧 Sending Day 18 FINAL upgrade reminder for ${contactId} (${contact.firstName})`);
-          
-          const daysRemaining = 20 - daysEnrolled;
-          
-          const emailHtml = EMAIL_TEMPLATES.idiqUpgradeFinal18(
-            { ...contact, id: contactId },
-            IDIQ_UPGRADE_URL,
-            daysRemaining
-          );
-          
-          await transporter.sendMail({
-            from: `"${gmailFromName.value() || 'Chris Lahage - Speedy Credit Repair'}" <${user}>`,
-            to: recipientEmail,
-            subject: `🚨 FINAL NOTICE: ${contact.firstName}, ${daysRemaining} days until monitoring expires`,
-            html: emailHtml
-          });
-          
-          // Also alert Christopher about this final warning
-          await transporter.sendMail({
-            from: `"SpeedyCRM Alerts" <${user}>`,
-            to: user,
-            subject: `⚠️ IDIQ Final Warning Sent: ${contact.firstName} ${contact.lastName}`,
+            from: `"${gmailFromName.value() || 'Speedy Credit Repair'}" <${user}>`,
+            to: contact.email,
+            subject: `${contact.firstName}, have you seen your credit report?`,
+            text: `Hi ${contact.firstName},\n\nI noticed you haven't logged in to view your credit report yet. It's ready for you!\n\nYour free 3-bureau credit report and analysis are waiting for you. Just click the link in your original email or reply to this message.\n\nI'm here to help answer any questions.\n\nChris Lahage\nSpeedy Credit Repair\n(888) 724-7344`,
             html: wrapEmailInHTML(
-              'IDIQ Final Warning Alert',
-              `Final upgrade warning sent to ${contact.firstName} ${contact.lastName}.\n\n` +
-              `<strong>Contact ID:</strong> ${contactId}\n` +
-              `<strong>Email:</strong> ${recipientEmail}\n` +
-              `<strong>Days Enrolled:</strong> ${daysEnrolled}\n` +
-              `<strong>Days Remaining:</strong> ${daysRemaining}\n\n` +
-              `If they don't upgrade, their trial will be cancelled per your 20-day policy.\n\n` +
-              `You may want to reach out personally.`,
-              'Chris'
+              'Your Credit Report is Ready',
+              `Hi ${contact.firstName},\n\nI noticed you haven't logged in to view your credit report yet. It's ready for you!\n\nYour free 3-bureau credit report and analysis are waiting for you. Just click the link in your original email or reply to this message.\n\nI'm here to help answer any questions.\n\nChris Lahage\nSpeedy Credit Repair\n(888) 724-7344`,
+              contact.firstName
             )
           });
           
           await contactDoc.ref.update({
-            idiqUpgradeFinalSent: true,
-            idiqUpgradeFinalSentAt: admin.firestore.FieldValue.serverTimestamp()
+            reengagementEmailSent: true,
+            reengagementEmailSentAt: admin.firestore.FieldValue.serverTimestamp()
           });
           
-          upgradeRemindersSent++;
-          console.log(`✅ Day 18 FINAL reminder sent for ${contactId}`);
+          console.log(`✅ Reengagement email sent for ${contactId}`);
+        }
+        
+        // Schedule cancellation at 14+ days
+        if (daysSinceActivity >= 14) {
+          console.log(`📅 Scheduling cancellation for ${contactId} (${daysSinceActivity} days inactive)`);
+          
+          await contactDoc.ref.update({
+            'idiq.subscriptionStatus': 'scheduled_cancel',
+            'idiq.cancellationScheduledFor': admin.firestore.FieldValue.serverTimestamp()
+          });
+          
+          // Create admin alert
+          await db.collection('adminAlerts').add({
+            type: 'INACTIVE_PROSPECT',
+            contactId: contactId,
+            email: contact.email,
+            priority: 'medium',
+            status: 'unread',
+            message: `${contact.firstName} ${contact.lastName} has been inactive for ${daysSinceActivity} days. Trial scheduled for cancellation.`,
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+          
+          console.log(`✅ Cancellation scheduled for ${contactId}`);
         }
       }
       
-      console.log(`✅ IDIQ upgrade reminders sent: ${upgradeRemindersSent}`);
       console.log('\n✅ IDIQ trial management complete');
       
     } catch (error) {
@@ -3611,7 +2920,7 @@ exports.processWorkflowStages = onSchedule(
   }
 );
 
-console.log('✅ Function 6/10: processWorkflowStages (ENHANCED with IDIQ auto-cancel + upgrade reminders) loaded');
+console.log('✅ Function 6/10: processWorkflowStages (ENHANCED with IDIQ auto-cancel) loaded');
 
 // ═══════════════════════════════════════════════════════════════════════════
 // NEW FUNCTION 6B: PROCESS ABANDONMENT EMAILS
@@ -3748,74 +3057,7 @@ exports.processAbandonmentEmails = onSchedule(
       // ─────────────────────────────────────────────────────────────────────
       // LOG SUMMARY
       // ─────────────────────────────────────────────────────────────────────
-      // ─────────────────────────────────────────────────────────────────────
-      // PROCESS SCHEDULED EMAILS (ACH requests, contract follow-ups, etc.)
-      // ─────────────────────────────────────────────────────────────────────
       
-      console.log('\n📬 Processing scheduled emails...');
-      
-      const nowSchedule = admin.firestore.Timestamp.now();
-      let scheduledSent = 0;
-      let scheduledFailed = 0;
-      
-      const scheduledEmailsSnapshot = await db.collection('scheduledEmails')
-        .where('status', '==', 'pending')
-        .where('scheduledFor', '<=', nowSchedule)
-        .limit(20)
-        .get();
-      
-      console.log(`📊 Found ${scheduledEmailsSnapshot.size} scheduled emails to send`);
-      
-      for (const emailDoc of scheduledEmailsSnapshot.docs) {
-        const scheduledEmail = emailDoc.data();
-        
-        try {
-          if (scheduledEmail.type === 'ach_setup_request') {
-            const { recipientEmail, recipientName, planName, monthlyAmount, portalUrl } = scheduledEmail.emailData;
-            
-            const achEmailHtml = EMAIL_TEMPLATES.achSetupRequest(
-              { firstName: recipientName, id: scheduledEmail.contactId },
-              planName,
-              monthlyAmount,
-              portalUrl
-            );
-            
-            await transporter.sendMail({
-              from: `"${gmailFromName.value() || 'Chris Lahage - Speedy Credit Repair'}" <${user}>`,
-              to: recipientEmail,
-              subject: `${recipientName}, set up your payment method to activate service`,
-              html: achEmailHtml
-            });
-            
-            // Update contact
-            await db.collection('contacts').doc(scheduledEmail.contactId).update({
-              achRequestSent: true,
-              achRequestSentAt: admin.firestore.FieldValue.serverTimestamp()
-            });
-            
-            console.log(`✅ ACH setup email sent to ${recipientEmail}`);
-            scheduledSent++;
-          }
-          
-          // Mark as sent
-          await emailDoc.ref.update({
-            status: 'sent',
-            sentAt: admin.firestore.FieldValue.serverTimestamp()
-          });
-          
-        } catch (scheduledEmailError) {
-          console.error(`❌ Failed to send scheduled email ${emailDoc.id}:`, scheduledEmailError);
-          scheduledFailed++;
-          
-          await emailDoc.ref.update({
-            status: 'failed',
-            error: scheduledEmailError.message,
-            failedAt: admin.firestore.FieldValue.serverTimestamp()
-          });
-        }
-      }
-      
-      console.log(`✅ Scheduled emails: ${scheduledSent} sent, ${scheduledFailed} failed`);
       console.log('\n═══════════════════════════════════════════════════════════════');
       console.log('📊 ABANDONMENT EMAIL SUMMARY');
       console.log('═══════════════════════════════════════════════════════════════');

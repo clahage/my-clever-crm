@@ -403,6 +403,28 @@ export const navigationItems = [
   consolidated: ['TasksSchedulingHub', 'Calendar', 'Tasks', 'Reminders', 'Goals']
 },
 
+// ===== WORKFLOW ORCHESTRATION - MASTER CONTROL =====
+{
+  id: 'workflow-orchestrator',
+  title: 'Workflow Orchestrator',
+  path: '/workflow-orchestrator',
+  icon: Zap,
+  permission: 'admin',
+  badge: 'AI',
+  description: 'Master workflow control - Contact → Lead → Client lifecycle management'
+},
+
+// ===== CLIENT ONBOARDING WIZARD =====
+{
+  id: 'onboarding-wizard',
+  title: 'Client Onboarding',
+  path: '/onboarding-wizard',
+  icon: UserPlus,
+  permission: 'user',
+  badge: 'SMART',
+  description: 'Guided step-by-step client onboarding with AI assistance'
+},
+
       // HUB 7: AUTOMATION
       {
         id: 'automation-hub',

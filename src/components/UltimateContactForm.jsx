@@ -1050,7 +1050,32 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
       stage: formData.stage || 'prospecting',           // DEFAULT STAGE
       pipelineStage: formData.pipelineStage || 'new',   // DEFAULT PIPELINE STAGE
       lastSavedAt: new Date().toISOString(),
-      lastSavedBy: 'manual'
+      lastSavedBy: 'manual',
+      
+      // ===== WORKFLOW TRACKING FIELDS (Added Feb 2026) =====
+      // These fields track contact progress through the deal pipeline
+      // Only set defaults for NEW contacts (don't overwrite existing values)
+      workflowStage: formData.workflowStage ?? 0,                    // 0 = Contact Created
+      workflowStageUpdatedAt: formData.workflowStageUpdatedAt ?? serverTimestamp(),
+      workflowHistory: formData.workflowHistory ?? {},               // Stage completion timestamps
+      
+      // IDIQ Integration (filled after enrollment)
+      idiqMemberId: formData.idiqMemberId ?? null,
+      idiqEnrolledAt: formData.idiqEnrolledAt ?? null,
+      creditReportPulledAt: formData.creditReportPulledAt ?? null,
+      
+      // Service Plan (filled after plan selection)
+      selectedPlanId: formData.selectedPlanId ?? null,
+      selectedPlanAt: formData.selectedPlanAt ?? null,
+      
+      // Contract (filled after contract generation/signing)
+      contractId: formData.contractId ?? null,
+      contractGeneratedAt: formData.contractGeneratedAt ?? null,
+      contractSignedAt: formData.contractSignedAt ?? null,
+      
+      // Payment (filled after ACH authorization)
+      achAuthorizedAt: formData.achAuthorizedAt ?? null,
+      paymentMethodId: formData.paymentMethodId ?? null,
     };
     
     // If creating a new contact, check for duplicates first

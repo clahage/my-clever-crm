@@ -135,6 +135,7 @@ const Home = lazy(() => import('@/pages/Home'));
 const IDIQDashboard = lazy(() => import("@/components/IDIQDashboard"));
 const CreditReports = lazy(() => import("@/components/CreditReports"));
 const ClientPortal = lazy(() => import('@/pages/ClientPortal'));
+const DocumentUploadPortal = lazy(() => import('./components/client-portal/DocumentUploadPortal'));
 const ClientDashboard = lazy(() => import('@/pages/ClientPortal/ClientDashboard'));
 const ContactDetailPage = lazy(() => import('./pages/ContactDetailPage'));
 const Portal = lazy(() => import('@/pages/Portal'));
@@ -148,6 +149,11 @@ const PredictiveAnalytics = lazy(() => import('@/pages/PredictiveAnalytics'));
 const WorkflowTestingDashboard = lazy(() => import('@/pages/WorkflowTestingDashboard'));
 const IDIQSandboxTester = lazy(() => import('@/components/testing/IDIQSandboxTester'));
 const TestFunctions = lazy(() => import('@/pages/TestFunctions'));
+// ===== WORKFLOW COMPONENTS =====
+const WorkflowOrchestrator = lazy(() => import('@/components/WorkflowOrchestrator'));
+const OnboardingWizard = lazy(() => import('@/pages/hubs/OnboardingWizard'));
+const ContractSigningPortal = lazy(() => import('@/components/client-portal/ContractSigningPortal'));
+const ClientPlanSelection = lazy(() => import('@/components/client-portal/ClientPlanSelection'));
 
 // ============================================================================
 // COMPLETE ENROLLMENT WRAPPER - Extracts URL params and passes to component
@@ -503,6 +509,7 @@ const AppContent = () => {
         {/* Home - Welcome Hub (separate from analytics dashboard) */}
         <Route path="home" element={<Suspense fallback={<LoadingFallback />}><Home /></Suspense>} />
         <Route path="client-portal" element={<Suspense fallback={<LoadingFallback />}><ClientPortal /></Suspense>} />
+        <Route path="portal/documents" element={<Suspense fallback={<LoadingFallback />}><DocumentUploadPortal /></Suspense>} />
         <Route path="client" element={<Suspense fallback={<LoadingFallback />}><ClientDashboard /></Suspense>} />
         <Route path="admin-portal" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><Portal /></Suspense></ProtectedRoute>} />
         <Route path="credit-report-workflow" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><CreditReportWorkflow /></Suspense></ProtectedRoute>} />
@@ -511,6 +518,69 @@ const AppContent = () => {
         <Route path="credit-analysis" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><CreditAnalysisEngine /></Suspense></ProtectedRoute>} />
         <Route path="test-idiq-workflow" element={<Suspense fallback={<LoadingFallback />}><TestIDIQWorkflow /></Suspense>} />
         <Route path="complete-enrollment" element={<CompleteEnrollmentWrapper />} />
+        {/* ============================================================================ */}
+{/* WORKFLOW MANAGEMENT ROUTES - ADDED FOR COMPLETE DEAL FLOW                    */}
+{/* ============================================================================ */}
+
+{/* Workflow Orchestrator - Master workflow control panel */}
+<Route
+  path="workflow-orchestrator"
+  element={
+    <ProtectedRoute requiredRoles={['admin', 'masterAdmin']}>
+      <Suspense fallback={<LoadingFallback />}>
+        <WorkflowOrchestrator />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Onboarding Wizard - Guided client onboarding */}
+<Route
+  path="onboarding-wizard"
+  element={
+    <ProtectedRoute requiredRoles={['user', 'manager', 'admin', 'masterAdmin']}>
+      <Suspense fallback={<LoadingFallback />}>
+        <OnboardingWizard />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Contract Signing Portal - Standalone contract signing for clients */}
+<Route
+  path="contract-signing/:contactId"
+  element={
+    <ProtectedRoute requiredRoles={['client', 'user', 'manager', 'admin', 'masterAdmin']}>
+      <Suspense fallback={<LoadingFallback />}>
+        <ContractSigningPortal />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Client Plan Selection - Client-facing plan selector */}
+<Route
+  path="select-plan/:contactId"
+  element={
+    <ProtectedRoute requiredRoles={['client', 'prospect', 'user', 'admin', 'masterAdmin']}>
+      <Suspense fallback={<LoadingFallback />}>
+        <ClientPlanSelection />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* ACH Authorization - Direct access for payment setup */}
+<Route
+  path="ach-authorization/:contactId"
+  element={
+    <ProtectedRoute requiredRoles={['client', 'user', 'admin', 'masterAdmin']}>
+      <Suspense fallback={<LoadingFallback />}>
+        <ACHAuthorization />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
         <Route path="predictive-analytics" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><PredictiveAnalytics /></Suspense></ProtectedRoute>} />
 
         {/* ============================================================================ */}

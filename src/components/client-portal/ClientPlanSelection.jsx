@@ -237,6 +237,7 @@ import {
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { updateContactWorkflowStage, WORKFLOW_STAGES } from '@/services/workflowRouterService';
 
 // =====================================================
 // UTILITY FUNCTIONS & CONSTANTS
@@ -894,6 +895,12 @@ const ClientPlanSelection = ({ contactId, onComplete }) => {
         status: 'contract_sent',
         contractSentAt: serverTimestamp(),
         updatedAt: serverTimestamp()
+      });
+
+      // ===== UPDATE WORKFLOW STAGE =====
+      await updateContactWorkflowStage(contactId, WORKFLOW_STAGES.CONTRACT_GENERATED, {
+        selectedPlanId: selectedPlan.id,
+        contractId: result.data.contractId
       });
 
       setSuccess(true);

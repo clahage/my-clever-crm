@@ -242,6 +242,7 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { httpsCallable } from 'firebase/functions';
+import { updateContactWorkflowStage, WORKFLOW_STAGES } from '@/services/workflowRouterService';
 
 // =====================================================
 // UTILITY FUNCTIONS & CONSTANTS
@@ -1022,6 +1023,13 @@ const ContractSigningPortal = ({ contractId, onComplete }) => {
       await processSignedContract({ contractId: contract.id });
 
       console.log('✅ Contract signed successfully');
+      
+      // ===== UPDATE WORKFLOW STAGE =====
+      await updateContactWorkflowStage(contract.contactId, WORKFLOW_STAGES.CONTRACT_SIGNED, {
+        contractId: contract.id,
+        signedAt: new Date().toISOString()
+      });
+      
       setSuccess(true);
       setActiveStep(steps.length - 1);
 

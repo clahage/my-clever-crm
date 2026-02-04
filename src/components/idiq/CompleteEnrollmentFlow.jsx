@@ -195,6 +195,7 @@ import {
   initInactivityTimer,
   logConversion
 } from '@/services/enrollmentTrackingService';
+import { updateContactWorkflowStage, WORKFLOW_STAGES } from '@/services/workflowRouterService';
 import ViewCreditReportButton from '../credit/ViewCreditReportButton';
 import IDIQCreditReportViewer from '../credit/IDIQCreditReportViewer';
 
@@ -1672,6 +1673,12 @@ const CompleteEnrollmentFlow = ({
           creditScore: resData.vantageScore || resData.score,
           plan: selectedPlan,
           verificationRequired: false
+        });
+        
+        // ===== UPDATE WORKFLOW STAGE =====
+        await updateContactWorkflowStage(contactId, WORKFLOW_STAGES.CREDIT_REPORT_PULLED, {
+          idiqMemberId: response.data.membershipNumber,
+          creditScore: resData.vantageScore || resData.score
         });
         
         console.log('✅ IDIQ enrollment status updated (no verification)');
