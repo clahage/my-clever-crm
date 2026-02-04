@@ -147,12 +147,28 @@ export async function updateContactWorkflowStage(contactId, newStage, additional
       ...additionalData,
     };
     
-    // Special handling for stage transitions
+    // =====================================================
+    // SPECIAL HANDLING FOR STAGE TRANSITIONS
+    // These set the trigger fields that Cloud Functions watch for
+    // =====================================================
+    
+    // CONTRACT_SIGNED → Triggers email automation (doc upload + ACH setup)
+    if (newStage === WORKFLOW_STAGES.CONTRACT_SIGNED) {
+      updateData.contractSigned = true;
+      updateData.contractSignedAt = serverTimestamp();
+      updateData.pipelineStage = 'contract-signed';
+      console.log('📄 CONTRACT_SIGNED: Setting contractSigned=true → Triggers email automation');
+    }
+    
+    // ACH_AUTHORIZED → Converts to client, triggers welcome email
     if (newStage === WORKFLOW_STAGES.ACH_AUTHORIZED) {
-      // Contact becomes a client when ACH is authorized
+      updateData.achAuthorized = true;
+      updateData.achAuthorizedAt = serverTimestamp();
       updateData.status = 'client';
       updateData.roles = ['contact', 'client'];
       updateData.clientSince = serverTimestamp();
+      updateData.pipelineStage = 'active-client';
+      console.log('💳 ACH_AUTHORIZED: Setting achAuthorized=true → Converting to client');
     }
     
     await updateDoc(contactRef, updateData);
