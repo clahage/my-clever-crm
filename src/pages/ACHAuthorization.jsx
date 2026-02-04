@@ -623,13 +623,22 @@ const ACHAuthorization = () => {
         });
       }
 
-      // Update contact with payment info
+      // Update contact with payment info + TRIGGER WORKFLOW
       if (authData.contactId) {
         await updateDoc(doc(db, 'contacts', authData.contactId), {
           paymentMethod: authData.paymentMethod,
           paymentActive: true,
+          // ===== TRIGGER CLOUD FUNCTION AUTOMATION =====
+          achAuthorized: true,
+          achAuthorizedAt: serverTimestamp(),
+          status: 'client',
+          roles: ['contact', 'client'],
+          clientSince: serverTimestamp(),
+          pipelineStage: 'active-client',
+          workflowStage: 9, // ACH_AUTHORIZED stage
           updatedAt: serverTimestamp()
         });
+        console.log('✅ ACH Authorized - Contact converted to client');
       }
 
       showSnackbar('Payment authorization submitted successfully!', 'success');
