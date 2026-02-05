@@ -4891,7 +4891,7 @@ const finalizeEnrollment = async () => {
 
       {/* Session Recovery Dialog */}
       {renderRecoveryDialog()}
-      {/* ACH/Zelle Payment Options Dialog */}
+{/* ACH/Zelle Payment Options Dialog */}
 <Dialog 
   open={showPaymentOptions} 
   onClose={() => setShowPaymentOptions(false)}
@@ -4922,10 +4922,13 @@ const finalizeEnrollment = async () => {
           <Card 
             sx={{ 
               cursor: 'pointer',
-              '&:hover': { transform: 'translateY(-2px)', boxShadow: 3 },
               transition: 'all 0.2s',
               border: '2px solid transparent',
-              '&:hover': { borderColor: 'primary.main' }
+              '&:hover': { 
+                transform: 'translateY(-2px)', 
+                boxShadow: 3,
+                borderColor: 'primary.main' 
+              }
             }}
             onClick={handleACHPayment}
           >
@@ -4949,10 +4952,13 @@ const finalizeEnrollment = async () => {
           <Card 
             sx={{ 
               cursor: 'pointer',
-              '&:hover': { transform: 'translateY(-2px)', boxShadow: 3 },
               transition: 'all 0.2s',
               border: '2px solid transparent',
-              '&:hover': { borderColor: 'secondary.main' }
+              '&:hover': { 
+                transform: 'translateY(-2px)', 
+                boxShadow: 3,
+                borderColor: 'secondary.main' 
+              }
             }}
             onClick={async () => {
               setLoading(true);

@@ -1,5 +1,6 @@
 // src/pages/ACHAuthorization.jsx - ACH/Credit Card Payment Authorization
 import React, { useState, useEffect, useRef } from 'react';
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import {
   Box, Paper, Typography, Button, TextField, Grid, Divider, Alert, Snackbar,
   Card, CardContent, FormControl, FormControlLabel, Checkbox, Radio, RadioGroup,
@@ -15,8 +16,8 @@ import {
   Save, Eye, Trash2, Lock, AlertCircle, Info, Calendar
 } from 'lucide-react';
 import {
-  collection, addDoc, updateDoc, doc, query, where, getDocs,
-  serverTimestamp
+  collection, addDoc, updateDoc, doc, query, where, getDocs, getDoc,
+  serverTimestamp, arrayUnion
 } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db } from '../lib/firebase';
@@ -25,6 +26,15 @@ import { format } from 'date-fns';
 import SignatureCanvas from 'react-signature-canvas';
 
 const ACHAuthorization = () => {
+  // ===== GET CONTACT ID FROM URL =====
+  const { contactId: urlContactId } = useParams();
+  const [searchParams] = useSearchParams();
+  const queryContactId = searchParams.get('contactId');
+  const navigate = useNavigate();
+  const contactIdFromUrl = urlContactId || queryContactId;
+  
+  console.log('💳 ACH contactId from URL:', contactIdFromUrl);
+  
   const { currentUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [contacts, setContacts] = useState([]);
@@ -116,7 +126,7 @@ const ACHAuthorization = () => {
 
     // Status & Tracking
     status: 'draft', // draft, active, cancelled, failed
-    contactId: null,
+    contactId: contactIdFromUrl || null,
     authNumber: '',
     activatedDate: null,
     cancelledDate: null,

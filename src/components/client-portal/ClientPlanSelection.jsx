@@ -54,6 +54,7 @@
 // =====================================================
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -245,60 +246,121 @@ import { updateContactWorkflowStage, WORKFLOW_STAGES } from '@/services/workflow
 
 // AI Success Probability Calculator
 const calculateSuccessProbability = (clientData, planData, historicalData) => {
-  let baseProb = 65; // Base 65% success rate
   const factors = [];
+  
+  // ===== USE PLAN'S OWN SUCCESS RATE AS BASELINE =====
+  // Each plan in Firestore has its own successRate (e.g., 87% for Acceleration)
+  let baseProb = planData.successRate || planData.pricing?.successRate || 75;
+  factors.push({ 
+    factor: `${planData.name} historical success rate`, 
+    impact: `${baseProb}% baseline` 
+  });
 
-  // Factor 1: Credit score alignment
-  if (clientData.creditScore >= planData.minScore && clientData.creditScore <= planData.maxScore) {
-    baseProb += 15;
-    factors.push({ factor: 'Credit score in optimal range', impact: '+15%' });
-  } else if (clientData.creditScore < planData.minScore) {
-    baseProb -= 10;
-    factors.push({ factor: 'Credit score below recommended range', impact: '-10%' });
+  // ===== GUARD: If no meaningful client data, return plan's baseline =====
+  const hasClientData = clientData && (
+    clientData.creditScore || 
+    clientData.negativeItems || 
+    clientData.statedBudget
+  );
+  
+  if (!hasClientData) {
+    return {
+      probability: Math.round(baseProb),
+      factors,
+      recommendation: baseProb > 80 ? 'highly_recommended' : baseProb > 65 ? 'recommended' : 'consider_alternatives',
+      dataStatus: 'pending_credit_report'
+    };
   }
 
-  // Factor 2: Number of negative items
-  if (clientData.negativeItems >= planData.minItems && clientData.negativeItems <= planData.maxItems) {
-    baseProb += 12;
-    factors.push({ factor: 'Negative items match plan capacity', impact: '+12%' });
-  } else if (clientData.negativeItems > planData.maxItems) {
-    baseProb -= 8;
-    factors.push({ factor: 'More negative items than plan targets', impact: '-8%' });
+  // ===== FACTOR 1: Credit Score Alignment =====
+  if (clientData.creditScore && planData.minCreditScore !== undefined) {
+    const minScore = planData.minCreditScore || planData.minScore || 0;
+    const maxScore = planData.maxNegativeItems ? 850 : (planData.maxScore || 850);
+    
+    if (clientData.creditScore >= minScore) {
+      baseProb += 8;
+      factors.push({ factor: 'Credit score meets plan requirements', impact: '+8%' });
+    } else if (clientData.creditScore < minScore - 50) {
+      baseProb -= 10;
+      factors.push({ factor: 'Credit score below recommended range', impact: '-10%' });
+    } else {
+      baseProb -= 5;
+      factors.push({ factor: 'Credit score slightly below optimal', impact: '-5%' });
+    }
   }
 
-  // Factor 3: Budget alignment
-  if (planData.monthlyPrice <= clientData.statedBudget * 1.1) { // Within 10% of budget
-    baseProb += 10;
-    factors.push({ factor: 'Price within budget', impact: '+10%' });
-  } else if (planData.monthlyPrice > clientData.statedBudget * 1.5) {
-    baseProb -= 12;
-    factors.push({ factor: 'Price significantly exceeds budget', impact: '-12%' });
+  // ===== FACTOR 2: Number of Negative Items =====
+  if (clientData.negativeItems && planData.maxNegativeItems) {
+    const minItems = planData.minNegativeItems || 1;
+    const maxItems = planData.maxNegativeItems || 50;
+    
+    if (clientData.negativeItems >= minItems && clientData.negativeItems <= maxItems) {
+      baseProb += 10;
+      factors.push({ factor: 'Negative items match plan capacity', impact: '+10%' });
+    } else if (clientData.negativeItems > maxItems) {
+      baseProb -= 8;
+      factors.push({ factor: 'More items than plan typically handles', impact: '-8%' });
+    } else if (clientData.negativeItems < minItems) {
+      baseProb += 5;
+      factors.push({ factor: 'Fewer items than expected - faster results likely', impact: '+5%' });
+    }
   }
 
-  // Factor 4: Historical success rate for similar clients
-  if (historicalData.similarClients > 10) {
+  // ===== FACTOR 3: Budget Alignment =====
+  if (clientData.statedBudget && planData.monthlyPrice) {
+    const price = planData.monthlyPrice;
+    const budget = clientData.statedBudget;
+    
+    if (price <= budget) {
+      baseProb += 8;
+      factors.push({ factor: 'Price within stated budget', impact: '+8%' });
+    } else if (price <= budget * 1.25) {
+      // Within 25% over budget
+      factors.push({ factor: 'Price slightly above budget', impact: '0%' });
+    } else {
+      baseProb -= 10;
+      factors.push({ factor: 'Price exceeds budget significantly', impact: '-10%' });
+    }
+  }
+
+  // ===== FACTOR 4: Historical Success (if available) =====
+  if (historicalData && historicalData.similarClients > 10) {
     const historicalSuccessRate = historicalData.successfulClients / historicalData.similarClients;
-    const historicalBoost = (historicalSuccessRate - 0.7) * 20; // Deviation from 70% baseline
-    baseProb += historicalBoost;
-    factors.push({ 
-      factor: `Historical success rate: ${Math.round(historicalSuccessRate * 100)}%`, 
-      impact: `${historicalBoost > 0 ? '+' : ''}${Math.round(historicalBoost)}%` 
-    });
+    const historicalBoost = Math.round((historicalSuccessRate - 0.7) * 15);
+    if (historicalBoost !== 0) {
+      baseProb += historicalBoost;
+      factors.push({ 
+        factor: `Similar clients: ${Math.round(historicalSuccessRate * 100)}% success`, 
+        impact: `${historicalBoost > 0 ? '+' : ''}${historicalBoost}%` 
+      });
+    }
   }
 
-  // Factor 5: Engagement level
-  if (clientData.engagementScore > 80) {
-    baseProb += 8;
-    factors.push({ factor: 'High engagement level', impact: '+8%' });
-  } else if (clientData.engagementScore < 40) {
-    baseProb -= 6;
-    factors.push({ factor: 'Low engagement level', impact: '-6%' });
+  // ===== FACTOR 5: Engagement Level =====
+  if (clientData.engagementScore) {
+    if (clientData.engagementScore > 80) {
+      baseProb += 6;
+      factors.push({ factor: 'High engagement level', impact: '+6%' });
+    } else if (clientData.engagementScore < 40) {
+      baseProb -= 5;
+      factors.push({ factor: 'Low engagement - may need follow-up', impact: '-5%' });
+    }
   }
 
+  // ===== FACTOR 6: Plan Popularity Bonus =====
+  if (planData.popular === true) {
+    baseProb += 3;
+    factors.push({ factor: 'Most popular plan choice', impact: '+3%' });
+  }
+
+  // ===== CALCULATE FINAL PROBABILITY =====
+  const finalProb = Math.max(25, Math.min(98, Math.round(baseProb)));
+  
   return {
-    probability: Math.max(0, Math.min(100, Math.round(baseProb))),
+    probability: finalProb,
     factors,
-    recommendation: baseProb > 75 ? 'highly_recommended' : baseProb > 60 ? 'recommended' : 'consider_alternatives'
+    recommendation: finalProb > 80 ? 'highly_recommended' : finalProb > 65 ? 'recommended' : 'consider_alternatives',
+    dataStatus: 'complete'
   };
 };
 
@@ -577,7 +639,12 @@ const PLAN_COLORS = {
 // MAIN COMPONENT
 // =====================================================
 
-const ClientPlanSelection = ({ contactId, onComplete }) => {
+const ClientPlanSelection = ({ contactId: propContactId, onComplete }) => {
+  // ===== GET CONTACT ID FROM URL OR PROPS =====
+  const { contactId: urlContactId } = useParams();
+  const navigate = useNavigate();
+  const contactId = propContactId || urlContactId;
+  
   // ===== STATE MANAGEMENT =====
   const [loading, setLoading] = useState(true);
   const [servicePlans, setServicePlans] = useState([]);
@@ -603,7 +670,7 @@ const ClientPlanSelection = ({ contactId, onComplete }) => {
   const [pricingFactors, setPricingFactors] = useState({
     isPromotionalPeriod: false,
     hasReferral: false,
-    isFirstTimeCustomer: true,
+    isFirstTimeCustomer: false,  // <-- Changed to false
     loyaltyTier: null,
     isBundle: false,
     highDemand: false
@@ -662,22 +729,36 @@ const ClientPlanSelection = ({ contactId, onComplete }) => {
 
       // Fetch active service plans
       const plansQuery = query(
-        collection(db, 'servicePlans'),
-        where('active', '==', true),
-        orderBy('displayOrder', 'asc')
-      );
+  collection(db, 'servicePlans'),
+  where('enabled', '==', true),
+  orderBy('displayOrder', 'asc')
+);
       const plansSnapshot = await getDocs(plansQuery);
       const plansData = plansSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
-      setServicePlans(plansData);
+      
+      // ===== DEBUG: Log fetched plans =====
+      console.log('📋 Plans fetched:', plansData.length, plansData);
+      
+      // ===== FIX: Normalize pricing field names =====
+      const normalizedPlans = plansData.map(plan => ({
+        ...plan,
+        monthlyPrice: plan.pricing?.monthly || plan.monthlyPrice || 0,
+        setupFee: plan.pricing?.setupFee || plan.setupFee || 0,
+        perDeletionFee: plan.pricing?.perDeletion || plan.perDeletionFee || 0
+      }));
+      console.log('📋 Normalized plans:', normalizedPlans);
+      
+      setServicePlans(normalizedPlans);
 
       // Fetch client data
+      let clientInfo = null;
       const contactRef = doc(db, 'contacts', contactId);
       const contactDoc = await getDoc(contactRef);
       if (contactDoc.exists()) {
-        const clientInfo = { id: contactDoc.id, ...contactDoc.data() };
+        clientInfo = { id: contactDoc.id, ...contactDoc.data() };
         setClientData(clientInfo);
 
         // Check for referral
@@ -687,6 +768,7 @@ const ClientPlanSelection = ({ contactId, onComplete }) => {
       }
 
       // Fetch AI recommendation for this contact
+      let recData = null;
       const recommendationQuery = query(
         collection(db, 'servicePlanRecommendations'),
         where('contactId', '==', contactId),
@@ -696,7 +778,7 @@ const ClientPlanSelection = ({ contactId, onComplete }) => {
       const recommendationSnapshot = await getDocs(recommendationQuery);
       
       if (!recommendationSnapshot.empty) {
-        const recData = { 
+        recData = { 
           id: recommendationSnapshot.docs[0].id, 
           ...recommendationSnapshot.docs[0].data() 
         };
@@ -711,19 +793,19 @@ const ClientPlanSelection = ({ contactId, onComplete }) => {
 
       // Calculate dynamic pricing for all plans
       const dynamicPricingData = {};
-      plansData.forEach(plan => {
+      normalizedPlans.forEach(plan => {
         dynamicPricingData[plan.id] = calculateDynamicPrice(plan.monthlyPrice, pricingFactors);
       });
       setDynamicPricing(dynamicPricingData);
 
       // Calculate success probabilities
-      if (clientInfo && plansData.length > 0) {
-        calculateAllSuccessProbabilities(clientInfo, plansData);
+      if (clientInfo && normalizedPlans.length > 0) {
+        calculateAllSuccessProbabilities(clientInfo, normalizedPlans);
       }
 
       // Calculate ROI for recommended plan
       if (recData && clientInfo) {
-        const recPlan = plansData.find(p => p.id === recData.recommendedPlanId);
+        const recPlan = normalizedPlans.find(p => p.id === recData.recommendedPlanId);
         if (recPlan) {
           const roi = calculateROI(recPlan, clientInfo);
           setRoiData(roi);
@@ -866,8 +948,8 @@ const ClientPlanSelection = ({ contactId, onComplete }) => {
       setError(null);
       console.log('✅ Plan selected:', selectedPlan.id);
 
-      // Track selection in analytics
-      await addDoc(collection(db, 'analytics'), {
+      // ===== TRACK SELECTION IN ANALYTICS (non-blocking) =====
+      addDoc(collection(db, 'analytics'), {
         type: 'plan_selected',
         contactId,
         planId: selectedPlan.id,
@@ -877,45 +959,52 @@ const ClientPlanSelection = ({ contactId, onComplete }) => {
         timeToDecision: Date.now() - viewStartTime,
         interactionCount: Object.keys(planInteractions).length,
         comparedPlans: selectedPlansForComparison
-      });
+      }).catch(err => console.warn('⚠️ Analytics tracking failed:', err));
 
-      // Call Cloud Function to generate contract
-      const generateContract = httpsCallable(functions, 'generateContract');
-      const result = await generateContract({
-        contactId,
-        selectedPlanId: selectedPlan.id
-      });
-
-      console.log('📄 Contract generated:', result.data.contractId);
-
-      // Update contact status
+      // ===== SAVE SELECTED PLAN TO CONTACT =====
       const contactRef = doc(db, 'contacts', contactId);
       await updateDoc(contactRef, {
-        selectedPlan: selectedPlan.id,
-        status: 'contract_sent',
-        contractSentAt: serverTimestamp(),
+        selectedPlan: {
+          id: selectedPlan.id,
+          name: selectedPlan.name,
+          monthlyPrice: selectedPlan.monthlyPrice,
+          setupFee: selectedPlan.setupFee || 0,
+          perDeletionFee: selectedPlan.perDeletionFee || 0,
+          features: selectedPlan.features || [],
+          selectedAt: new Date().toISOString()
+        },
+        planSelectedAt: serverTimestamp(),
+        pipelineStage: 'plan_selected',
         updatedAt: serverTimestamp()
       });
+      console.log('✅ Plan saved to contact:', selectedPlan.name);
 
       // ===== UPDATE WORKFLOW STAGE =====
-      await updateContactWorkflowStage(contactId, WORKFLOW_STAGES.CONTRACT_GENERATED, {
-        selectedPlanId: selectedPlan.id,
-        contractId: result.data.contractId
-      });
+      try {
+        await updateContactWorkflowStage(contactId, WORKFLOW_STAGES.PLAN_SELECTED || 'plan_selected', {
+          selectedPlanId: selectedPlan.id,
+          selectedPlanName: selectedPlan.name,
+          monthlyPrice: selectedPlan.monthlyPrice
+        });
+        console.log('✅ Workflow stage updated');
+      } catch (workflowErr) {
+        console.warn('⚠️ Workflow stage update failed (non-critical):', workflowErr);
+      }
 
       setSuccess(true);
       setConfirmDialogOpen(false);
 
-      // Call onComplete callback if provided
-      if (onComplete) {
-        onComplete(result.data.contractId);
-      }
-
       setSnackbar({
         open: true,
-        message: 'Contract generated! Check your email for next steps.',
+        message: `${selectedPlan.name} selected! Redirecting to contract...`,
         severity: 'success'
       });
+
+      // ===== REDIRECT TO CONTRACT SIGNING =====
+      // ContractSigningPortal will create the contract using the saved selectedPlan data
+      setTimeout(() => {
+        navigate(`/contract-signing/${contactId}`);
+      }, 1500);
 
     } catch (err) {
       console.error('❌ Error confirming selection:', err);
@@ -1025,6 +1114,17 @@ const ClientPlanSelection = ({ contactId, onComplete }) => {
 
   // ===== RENDER HELPERS =====
   const getPlanColor = (planId) => {
+    // First check if plan has its own color from Firestore
+    const plan = servicePlans.find(p => p.id === planId);
+    if (plan?.color) {
+      // Generate secondary color (lighter version) from primary
+      const primaryColor = plan.color;
+      return { 
+        primary: primaryColor, 
+        secondary: `${primaryColor}20` // 20 = 12% opacity hex
+      };
+    }
+    // Fallback to hardcoded colors
     return PLAN_COLORS[planId] || { primary: '#6b7280', secondary: '#f3f4f6' };
   };
 
