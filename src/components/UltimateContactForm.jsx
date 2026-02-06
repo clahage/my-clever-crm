@@ -3338,7 +3338,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
             ))}
           </div>
           <div className="flex flex-wrap gap-2">
-            {['lead', 'client', 'affiliate', 'previous-client', 'inactive'].map(role => (
+            {['applicant', 'lead', 'prospect', 'client', 'affiliate', 'user', 'manager', 'admin', 'previous-client', 'inactive'].map(role => (
               !formData.roles.includes(role) && (
                 <button
                   key={role}
@@ -3351,7 +3351,7 @@ const UltimateContactForm = ({ onSave, onCancel, contactId = null, initialData =
             ))}
           </div>
           <p className="text-xs text-gray-500 mt-2">
-            ðŸ’¡ Contact role is permanent. Add additional roles as needed.
+            💡 Contact role is permanent. Add additional roles as needed.
           </p>
         </div>
         
