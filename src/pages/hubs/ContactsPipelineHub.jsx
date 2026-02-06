@@ -165,6 +165,7 @@ import RealPipelineAIService from '@/services/RealPipelineAIService';
 import Pipeline from '@/pages/Pipeline';
 import { useAuth } from '@/contexts/AuthContext';
 import UltimateContactForm from '@/components/UltimateContactForm';
+import { useNavigate } from 'react-router-dom';
 
 // AI-Guided Form System imports
 import VoiceMicButton from '@/components/voice/VoiceMicButton';
@@ -623,6 +624,7 @@ const getTimestampMillis = (timestamp) => {
 
 const ContactsPipelineHub = () => {
   const { currentUser, userProfile } = useAuth();
+  const navigate = useNavigate(); // ← ADD THIS LINE
   
   // ===== STATE MANAGEMENT =====
   const [activeTab, setActiveTab] = useState(0);
@@ -1459,7 +1461,21 @@ const ContactsPipelineHub = () => {
     setSelectedContact(null);
     setActiveTab(3);
   };
-  
+  // ===== CAN SIGN CONTRACT HELPER =====
+const canSignContract = (contact) => {
+  if (!contact.idiqEnrollment?.enrollmentComplete) return false;
+  if (!contact.selectedPlan) return false;
+  if (contact.contractSigned) return false;
+  const roles = contact.roles || [];
+  return roles.includes('prospect') || roles.includes('client');
+};
+
+// ===== GET CONTRACT BUTTON LABEL =====
+const getContractButtonLabel = (contact) => {
+  if (contact.contractSigned) return 'View Contract';
+  if (contact.contractId) return 'Continue Contract';
+  return 'Sign Contract';
+};
   const handleEditContact = (contact) => {
     console.log('✏️ Editing contact:', contact.id);
     
@@ -2998,8 +3014,8 @@ const ContactsPipelineHub = () => {
           </Grid>
           <Grid item xs={6} sm={3}>
             <Card sx={{ p: 2, textAlign: 'center', bgcolor: '#E8F5E9' }}>
-              <Typography variant="h4" color="success.main">{analytics.contacts || 0}</Typography>
-              <Typography variant="caption">Contacts</Typography>
+              <Typography variant="h4" color="success.main">{analytics.clients || 0}</Typography>
+              <Typography variant="caption">Clients</Typography>
             </Card>
           </Grid>
           <Grid item xs={6} sm={3}>
@@ -3208,6 +3224,24 @@ const ContactsPipelineHub = () => {
                         <IconButton size="small" onClick={() => handleEditContact(contact)}>
                           <Edit size={16} />
                         </IconButton>
+                        {(canSignContract(contact) || contact.contactSigned) && (
+  <Tooltip title={getContractButtonLabel(contact)}>
+    <IconButton 
+      size="medium"
+      onClick={() => navigate(`/contract-signing/${contact.id}`)}
+      sx={{
+        color: contact.contractSigned ? '#4CAF50' : '#2196F3',
+        '&:hover': {
+          backgroundColor: contact.contractSigned ? 'rgba(76, 175, 80, 0.08)' : 'rgba(33, 150, 243, 0.08)',
+          transform: 'scale(1.1)',
+        },
+        transition: 'all 0.2s ease-in-out',
+      }}
+    >
+      <FileText size={20} />
+    </IconButton>
+  </Tooltip>
+)}
                         <IconButton size="small" onClick={() => handleDeleteContact(contact.id)} color="error">
                           <Delete size={16} />
                         </IconButton>

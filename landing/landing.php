@@ -333,7 +333,7 @@
 					
 					// Redirect to enrollment form with contactId
 					setTimeout(() => {
-						window.location.href = `https://myclevercrm.com/complete-enrollment?contactId=${result.contactId}&source=landing_page`;
+						window.location.href = `https://myclevercrm.com/enroll?token=${result.token}&contactId=${result.contactId}`;
 					}, 1500); // 1.5 second delay so user sees success message
 					
 				} else {

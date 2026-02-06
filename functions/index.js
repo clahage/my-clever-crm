@@ -4693,7 +4693,9 @@ exports.operationsManager = onRequest(
           'updateTask',
           'createPortalAccount',
           'landingPageContact',
-          'captureWebLead'
+          'captureWebLead',
+          'validateEnrollmentToken', // ← ADD THIS
+          'markTokenUsed'            // ← ADD THIS
         ]
       });
       return;
@@ -5178,9 +5180,32 @@ exports.operationsManager = onRequest(
               createdBy: 'system'
             });
             
+            // ===== GENERATE ENROLLMENT TOKEN =====
+const crypto = require('crypto'); // ADD THIS AT TOP OF FILE (line ~20)
+
+// Generate token (line 5181)
+const token = crypto.randomBytes(32).toString('hex');
+const expiresAt = new Date();
+expiresAt.setHours(expiresAt.getHours() + 24);
+
+// Store token in enrollmentTokens collection
+await db.collection('enrollmentTokens').add({
+  contactId,
+  token,
+  expiresAt,
+  used: false,
+  createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  createdBy: 'captureWebLead',
+  ipAddress: request.ip || 'unknown',
+  userAgent: request.headers['user-agent'] || 'unknown'
+});
+
+console.log('🔐 Enrollment token generated:', token.substring(0, 10) + '...');
+
             result = {
               success: true,
               contactId,
+              token, // ← Token for enrollment redirect
               isNewContact: !existingContactId,
               message: existingContactId 
                 ? 'Contact updated successfully' 

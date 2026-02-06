@@ -3,66 +3,88 @@
 // © 1995-2026 Speedy Credit Repair Inc. | Chris Lahage | All Rights Reserved
 // Trademark registered USPTO, violations prosecuted.
 //
-// ZELLE QR CODE GENERATOR — PAYMENT QR CODE CREATION
+// ZELLE QR CODE GENERATOR – PAYMENT QR CODE CREATION
 // ============================================================================
-// Generates QR codes for Zelle payments to mask the actual email address
-// from public display while still allowing clients to pay easily.
+// Generates QR codes for Zelle payments using Christopher's Zelle Tag
 //
-// CHRISTOPHER'S REQUIREMENT:
-//   "The correct information is CLahage@Gmail.com, but I would like to have
-//    it changed to Pay@speedycreditrepair.com. Is it possible to create a
-//    QR code for clients to use instead, or to somehow mask the email address?"
+// CHRISTOPHER'S ZELLE SETUP (Chase Business Account):
+//   - Zelle Tag: $SpeedyCredit (tag: SpeedyCredit)
+//   - Business Name: SPEEDY CREDIT REPAIR INC.
+//   - Account: Speedy ACH Checking (...2177)
+//   - Alternative: chris@speedycreditrepair.com (backup email)
 //
-// SOLUTION:
-//   1. Generate QR code with Zelle payment link (masks email)
-//   2. Display branded "Pay with Zelle" button + QR code
-//   3. Optional: Show friendly email (Pay@...) but link to actual (CLahage@...)
+// HOW IT WORKS:
+//   1. QR code contains Zelle tag: $SpeedyCredit
+//   2. Clients scan → Zelle app opens with pre-filled info
+//   3. Shows business name: "SPEEDY CREDIT REPAIR INC."
+//   4. Amount and note auto-fill (if provided)
+//   5. Client clicks "Send" - done!
 //
-// NOTE: Zelle email forwarding setup required:
-//   - Create email forward: Pay@speedycreditrepair.com → CLahage@Gmail.com
-//   - Then use Pay@ everywhere for branding
-//   - This utility generates QR for either email
-//
-// QR CODE LIBRARY:
-//   Uses qrcode library (install: npm install qrcode)
-//
-// USAGE:
-//   import { generateZelleQR } from '@/utils/zelleQRGenerator';
-//   
-//   const qrCode = await generateZelleQR({
-//     email: 'CLahage@Gmail.com',
-//     amount: 99,
-//     note: 'Setup Fee - Contract #12345'
-//   });
-//   
-//   // Returns: data URL string for <img src={qrCode} />
+// BENEFITS OF USING ZELLE TAG:
+//   ✅ More professional than email/phone
+//   ✅ Easy to remember and say
+//   ✅ Unique to your business
+//   ✅ Matches your brand perfectly
+//   ✅ No email/phone confusion
 // ============================================================================
 
+// ===== DEFAULT CONFIGURATION =====
+const ZELLE_CONFIG = {
+  // Primary Zelle identifier (Zelle Tag - RECOMMENDED)
+  ZELLE_TAG: 'SpeedyCredit',
+  
+  // Display name (with $ prefix for branding)
+  DISPLAY_NAME: '$SpeedyCredit',
+  
+  // Backup Zelle email (if tag unavailable)
+  BACKUP_EMAIL: 'chris@speedycreditrepair.com',
+  
+  // Business name (as registered with Chase)
+  BUSINESS_NAME: 'SPEEDY CREDIT REPAIR INC.',
+  
+  // Default QR code settings
+  DEFAULT_SIZE: 300,
+  DEFAULT_COLOR: '#1a365d', // Speedy Credit Repair brand color
+  ERROR_CORRECTION: 'H' // High error correction for better scanning
+};
+
 /**
- * Generate Zelle payment QR code
+ * Generate Zelle payment QR code using Zelle Tag
  * 
  * @param {Object} options - QR code options
- * @param {string} options.email - Zelle email (CLahage@Gmail.com or Pay@speedycreditrepair.com)
- * @param {number} [options.amount] - Payment amount (optional, user can enter in Zelle app)
+ * @param {string} [options.tag] - Zelle tag (default: SpeedyCredit)
+ * @param {number} [options.amount] - Payment amount (optional)
  * @param {string} [options.note] - Payment note/memo
  * @param {number} [options.size] - QR code size in pixels (default: 300)
  * @param {string} [options.color] - QR code color (default: #1a365d)
+ * @param {boolean} [options.useEmail] - Use email instead of tag (default: false)
  * @returns {Promise<string>} Base64 PNG data URL
  */
 export async function generateZelleQR({
-  email = 'CLahage@Gmail.com',
+  tag = ZELLE_CONFIG.ZELLE_TAG,
   amount,
   note,
-  size = 300,
-  color = '#1a365d'
+  size = ZELLE_CONFIG.DEFAULT_SIZE,
+  color = ZELLE_CONFIG.DEFAULT_COLOR,
+  useEmail = false
 }) {
   try {
     // Dynamic import of qrcode library
     const QRCode = (await import('qrcode')).default;
 
     // ===== Build Zelle payment URL =====
-    // Format: zelle://pay?email=xxx&amount=xxx&note=xxx
-    let zelleURL = `zelle://pay?email=${encodeURIComponent(email)}`;
+    // Format: zelle://pay?tag=SpeedyCredit&amount=99.00&note=Setup%20Fee
+    // OR: zelle://pay?email=chris@speedycreditrepair.com&amount=99.00
+    
+    let zelleURL;
+    
+    if (useEmail) {
+      // Use email as fallback
+      zelleURL = `zelle://pay?email=${encodeURIComponent(ZELLE_CONFIG.BACKUP_EMAIL)}`;
+    } else {
+      // Use Zelle Tag (RECOMMENDED)
+      zelleURL = `zelle://pay?tag=${encodeURIComponent(tag)}`;
+    }
     
     if (amount && amount > 0) {
       zelleURL += `&amount=${amount.toFixed(2)}`;
@@ -81,13 +103,13 @@ export async function generateZelleQR({
         dark: color,  // QR code color
         light: '#ffffff'  // Background color
       },
-      errorCorrectionLevel: 'H', // High error correction
+      errorCorrectionLevel: ZELLE_CONFIG.ERROR_CORRECTION,
       margin: 2
     });
 
     console.log('✅ Zelle QR code generated');
     console.log(`   Size: ${size}x${size}`);
-    console.log(`   Email: ${email}`);
+    console.log(`   Tag: ${ZELLE_CONFIG.DISPLAY_NAME}`);
     if (amount) console.log(`   Amount: $${amount.toFixed(2)}`);
 
     return qrDataURL;
@@ -100,11 +122,9 @@ export async function generateZelleQR({
 
 /**
  * Generate branded Zelle payment card (HTML element)
- * Includes QR code + instructions + branding
+ * Includes QR code + instructions + business branding
  * 
  * @param {Object} options - Card options
- * @param {string} options.email - Zelle email
- * @param {string} options.displayEmail - Email to show to user (for branding)
  * @param {number} [options.amount] - Payment amount
  * @param {string} [options.note] - Payment note
  * @param {string} [options.title] - Card title (default: "Pay with Zelle")
@@ -112,14 +132,17 @@ export async function generateZelleQR({
  * @returns {Promise<Object>} HTML string and QR data URL
  */
 export async function generateZellePaymentCard({
-  email = 'CLahage@Gmail.com',
-  displayEmail = 'Pay@speedycreditrepair.com',
   amount,
   note,
   title = 'Pay with Zelle',
   description = 'Scan this QR code with your banking app to send payment via Zelle'
 }) {
-  const qrDataURL = await generateZelleQR({ email, amount, note });
+  // Generate QR code using Zelle Tag
+  const qrDataURL = await generateZelleQR({ 
+    tag: ZELLE_CONFIG.ZELLE_TAG, 
+    amount, 
+    note 
+  });
 
   const htmlCard = `
     <div style="
@@ -133,7 +156,8 @@ export async function generateZellePaymentCard({
       color: white;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     ">
-      <h2 style="margin: 0 0 10px 0; font-size: 24px;">${title}</h2>
+      <!-- Title -->
+      <h2 style="margin: 0 0 10px 0; font-size: 24px; font-weight: 600;">${title}</h2>
       <p style="margin: 0 0 20px 0; opacity: 0.9; font-size: 14px;">${description}</p>
       
       <!-- QR Code -->
@@ -143,11 +167,12 @@ export async function generateZellePaymentCard({
         border-radius: 12px;
         display: inline-block;
         margin: 20px 0;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       ">
         <img src="${qrDataURL}" alt="Zelle QR Code" style="display: block; width: 250px; height: 250px;" />
       </div>
       
-      <!-- Payment Details -->
+      <!-- Amount (if provided) -->
       ${amount ? `
       <div style="
         background: rgba(255,255,255,0.15);
@@ -156,11 +181,11 @@ export async function generateZellePaymentCard({
         margin: 20px 0;
       ">
         <p style="margin: 0; font-size: 14px; opacity: 0.9;">Amount</p>
-        <p style="margin: 5px 0 0 0; font-size: 32px; font-weight: bold;">$${amount.toFixed(2)}</p>
+        <p style="margin: 5px 0 0 0; font-size: 36px; font-weight: bold;">$${amount.toFixed(2)}</p>
       </div>
       ` : ''}
       
-      <!-- Zelle Email (Branded) -->
+      <!-- Zelle Tag Display -->
       <div style="
         background: rgba(255,255,255,0.15);
         padding: 15px;
@@ -168,170 +193,106 @@ export async function generateZellePaymentCard({
         margin: 20px 0;
       ">
         <p style="margin: 0 0 5px 0; font-size: 12px; opacity: 0.8;">Send Payment To:</p>
-        <p style="margin: 0; font-size: 18px; font-weight: bold;">${displayEmail}</p>
+        <p style="margin: 0; font-size: 22px; font-weight: bold;">${ZELLE_CONFIG.DISPLAY_NAME}</p>
+        <p style="margin: 5px 0 0 0; font-size: 13px; opacity: 0.8;">${ZELLE_CONFIG.BUSINESS_NAME}</p>
       </div>
       
       <!-- Instructions -->
-      <div style="text-align: left; margin-top: 20px; font-size: 13px; opacity: 0.9;">
-        <p style="margin: 0 0 10px 0;"><strong>How to Pay:</strong></p>
+      <div style="text-align: left; margin-top: 20px; font-size: 13px; opacity: 0.9; line-height: 1.6;">
+        <p style="margin: 0 0 10px 0; font-weight: 600;">How to Pay:</p>
         <ol style="margin: 0; padding-left: 20px;">
-          <li>Open your banking app</li>
-          <li>Go to Zelle / Send Money</li>
-          <li>Scan this QR code OR enter the email above</li>
-          <li>Confirm the amount and send</li>
+          <li style="margin-bottom: 8px;">Open your banking app</li>
+          <li style="margin-bottom: 8px;">Go to <strong>Zelle</strong> or <strong>Send Money</strong></li>
+          <li style="margin-bottom: 8px;"><strong>Scan this QR code</strong> (easiest!) OR search for <strong>${ZELLE_CONFIG.DISPLAY_NAME}</strong></li>
+          <li>Verify the amount and tap <strong>Send</strong></li>
         </ol>
       </div>
       
+      <!-- Payment Note (if provided) -->
       ${note ? `
-      <p style="
+      <div style="
         margin-top: 20px;
-        padding: 10px;
+        padding: 12px;
         background: rgba(255,255,255,0.1);
         border-radius: 6px;
         font-size: 12px;
-        opacity: 0.85;
+        opacity: 0.9;
       ">
         <strong>Payment Note:</strong> ${note}
-      </p>
+      </div>
       ` : ''}
+      
+      <!-- Zelle Disclaimer -->
+      <p style="
+        margin-top: 25px;
+        font-size: 10px;
+        opacity: 0.6;
+        line-height: 1.4;
+      ">
+        Zelle® and the Zelle® related marks are property of Early Warning Services, LLC.
+      </p>
     </div>
   `;
 
   return {
     qrDataURL,
     htmlCard,
-    zelleEmail: email,
-    displayEmail
+    zelleTag: ZELLE_CONFIG.ZELLE_TAG,
+    displayName: ZELLE_CONFIG.DISPLAY_NAME,
+    businessName: ZELLE_CONFIG.BUSINESS_NAME
   };
 }
 
 /**
- * Generate simple Zelle button with QR modal
- * Returns React-friendly component code
+ * Generate simple Zelle button props for React components
  * 
  * @param {Object} options - Button options
- * @param {string} options.email - Zelle email
- * @param {string} options.displayEmail - Email to show
  * @param {number} [options.amount] - Payment amount
  * @param {string} [options.note] - Payment note
  * @param {string} [options.buttonText] - Button text (default: "Pay with Zelle")
  * @returns {Promise<Object>} Component props
  */
 export async function generateZelleButton({
-  email = 'CLahage@Gmail.com',
-  displayEmail = 'Pay@speedycreditrepair.com',
   amount,
   note,
   buttonText = 'Pay with Zelle'
 }) {
-  const qrDataURL = await generateZelleQR({ email, amount, note });
+  const qrDataURL = await generateZelleQR({ 
+    tag: ZELLE_CONFIG.ZELLE_TAG, 
+    amount, 
+    note 
+  });
 
   return {
     buttonText,
     qrDataURL,
-    zelleEmail: email,
-    displayEmail,
+    zelleTag: ZELLE_CONFIG.ZELLE_TAG,
+    displayName: ZELLE_CONFIG.DISPLAY_NAME,
+    businessName: ZELLE_CONFIG.BUSINESS_NAME,
     amount,
-    note,
-    
-    // React component usage example:
-    reactExample: `
-      const [showZelleModal, setShowZelleModal] = useState(false);
-      
-      <Button onClick={() => setShowZelleModal(true)}>
-        Pay with Zelle
-      </Button>
-      
-      <Dialog open={showZelleModal} onClose={() => setShowZelleModal(false)}>
-        <DialogContent>
-          <img src="${qrDataURL}" alt="Zelle QR Code" />
-          <Typography>Scan to pay ${displayEmail}</Typography>
-          ${amount ? `<Typography variant="h4">$${amount.toFixed(2)}</Typography>` : ''}
-        </DialogContent>
-      </Dialog>
-    `
+    note
   };
 }
 
 /**
- * Create email forwarding instructions for Christopher
- * (To set up Pay@speedycreditrepair.com → CLahage@Gmail.com)
+ * Validate Zelle tag format
+ * Chase requirements: 6-40 characters, letters only OR 2+ letters with numbers/hyphens
  * 
- * @returns {string} HTML instructions
+ * @param {string} tag - Tag to validate
+ * @returns {boolean} True if valid Zelle tag format
  */
-export function getEmailForwardingInstructions() {
-  return `
-    <div style="font-family: Arial, sans-serif; max-width: 700px; margin: 0 auto; padding: 20px;">
-      <h2>📧 Setting Up Zelle Email Forwarding</h2>
-      
-      <div style="background: #e3f2fd; padding: 20px; border-radius: 8px; margin: 20px 0;">
-        <p style="margin: 0;"><strong>Goal:</strong> Make Pay@speedycreditrepair.com receive Zelle payments that actually go to CLahage@Gmail.com</p>
-      </div>
-      
-      <h3>Option 1: Google Workspace Email Forwarding (Recommended)</h3>
-      <p>If you have Google Workspace for speedycreditrepair.com:</p>
-      <ol>
-        <li>Log into Google Admin console: <a href="https://admin.google.com">admin.google.com</a></li>
-        <li>Go to <strong>Apps → Google Workspace → Gmail → Routing</strong></li>
-        <li>Click <strong>Add Another Rule</strong></li>
-        <li>Configure:
-          <ul>
-            <li><strong>From:</strong> Pay@speedycreditrepair.com</li>
-            <li><strong>Forward to:</strong> CLahage@Gmail.com</li>
-            <li><strong>Mark as spam:</strong> No</li>
-          </ul>
-        </li>
-        <li>Save changes</li>
-      </ol>
-      
-      <h3>Option 2: Create Alias in Bank Account</h3>
-      <p>Many banks allow multiple email addresses for the same Zelle account:</p>
-      <ol>
-        <li>Log into your bank account</li>
-        <li>Go to Zelle settings</li>
-        <li>Look for "Manage Email Addresses" or "Add Email"</li>
-        <li>Add Pay@speedycreditrepair.com as an alias</li>
-        <li>Verify the email (they'll send a confirmation code)</li>
-        <li>Now both emails work for the same Zelle account!</li>
-      </ol>
-      
-      <h3>Option 3: Use Current Email with Branded Display</h3>
-      <p>If forwarding isn't possible, we can use CLahage@Gmail.com in the QR code but show Pay@speedycreditrepair.com to clients:</p>
-      <ul>
-        <li>QR code contains: CLahage@Gmail.com (actual Zelle email)</li>
-        <li>Display shows: "Send payment to Pay@speedycreditrepair.com"</li>
-        <li>When they scan QR, it auto-fills CLahage@Gmail.com</li>
-        <li>Client never sees the personal email directly</li>
-      </ul>
-      
-      <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0;">
-        <p style="margin: 0;"><strong>⚠️ Note:</strong> Some Zelle users may see a "name mismatch" warning if the displayed email doesn't match the registered email. Using the QR code minimizes this issue.</p>
-      </div>
-      
-      <h3>Recommended Approach for SpeedyCRM:</h3>
-      <p>Use <strong>Option 3</strong> immediately while setting up Option 1 or 2 for long-term branding. The QR code generator already supports this by allowing separate <code>email</code> (actual) and <code>displayEmail</code> (branded) parameters.</p>
-      
-      <pre style="background: #f5f5f5; padding: 15px; border-radius: 4px; overflow-x: auto;">
-const zelleCard = await generateZellePaymentCard({
-  email: 'CLahage@Gmail.com',        // Actual Zelle email
-  displayEmail: 'Pay@speedycreditrepair.com',  // What client sees
-  amount: 99,
-  note: 'Setup Fee'
-});
-      </pre>
-    </div>
-  `;
-}
-
-/**
- * Validate Zelle email format
- * 
- * @param {string} email - Email to validate
- * @returns {boolean} True if valid email format
- */
-export function isValidZelleEmail(email) {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
+export function isValidZelleTag(tag) {
+  // Must be 6-40 characters
+  if (tag.length < 6 || tag.length > 40) return false;
+  
+  // Option 1: Letters only
+  if (/^[a-zA-Z]+$/.test(tag)) return true;
+  
+  // Option 2: At least 2 letters mixed with numbers or hyphens
+  const hasAtLeastTwoLetters = (tag.match(/[a-zA-Z]/g) || []).length >= 2;
+  const onlyValidChars = /^[a-zA-Z0-9-]+$/.test(tag);
+  
+  return hasAtLeastTwoLetters && onlyValidChars;
 }
 
 /**
@@ -345,19 +306,38 @@ export function formatZelleAmount(amount) {
 }
 
 /**
+ * Get current Zelle configuration
+ * Useful for displaying in admin settings
+ * 
+ * @returns {Object} Current Zelle config
+ */
+export function getZelleConfig() {
+  return {
+    zelleTag: ZELLE_CONFIG.ZELLE_TAG,
+    displayName: ZELLE_CONFIG.DISPLAY_NAME,
+    businessName: ZELLE_CONFIG.BUSINESS_NAME,
+    backupEmail: ZELLE_CONFIG.BACKUP_EMAIL,
+    accountName: 'Speedy ACH Checking (...2177)',
+    note: 'Zelle Tag $SpeedyCredit registered with Chase Business'
+  };
+}
+
+/**
  * EXPORT ALL FUNCTIONS
  */
 export default {
   generateZelleQR,
   generateZellePaymentCard,
   generateZelleButton,
-  getEmailForwardingInstructions,
-  isValidZelleEmail,
-  formatZelleAmount
+  isValidZelleTag,
+  formatZelleAmount,
+  getZelleConfig
 };
 
 /**
+ * ============================================================================
  * USAGE EXAMPLE IN CONTRACT SIGNING PORTAL:
+ * ============================================================================
  * 
  * import { generateZellePaymentCard } from '@/utils/zelleQRGenerator';
  * 
@@ -365,17 +345,43 @@ export default {
  * const setupFee = 99;
  * 
  * const zelleCard = await generateZellePaymentCard({
- *   email: 'CLahage@Gmail.com',
- *   displayEmail: 'Pay@speedycreditrepair.com',
  *   amount: setupFee,
  *   note: `Setup Fee - Contract #${contractId}`,
  *   title: 'Pay Setup Fee via Zelle',
  *   description: 'Start your service immediately by paying the setup fee'
  * });
  * 
- * // Display the card:
+ * // Display the payment card:
  * <Box dangerouslySetInnerHTML={{ __html: zelleCard.htmlCard }} />
  * 
  * // Or just the QR code:
- * <img src={zelleCard.qrDataURL} alt="Zelle Payment QR" width="250" />
+ * <img src={zelleCard.qrDataURL} alt="Pay $SpeedyCredit" width="250" />
+ * 
+ * ============================================================================
+ * HOW IT WORKS FOR CLIENTS:
+ * ============================================================================
+ * 
+ * 1. Client sees payment card with QR code
+ * 2. Card displays: "Send Payment To: $SpeedyCredit"
+ * 3. Client opens their banking app
+ * 4. Client taps "Zelle" or "Send Money"
+ * 5. Client scans QR code
+ * 6. Zelle app auto-fills:
+ *    - Recipient: SPEEDY CREDIT REPAIR INC.
+ *    - Zelle Tag: $SpeedyCredit
+ *    - Amount: $99.00 (if provided)
+ *    - Note: "Setup Fee - Contract #12345" (if provided)
+ * 7. Client verifies and taps "Send"
+ * 8. Payment instantly arrives in Speedy ACH Checking (...2177)
+ * 9. Christopher receives notification from Chase
+ * 
+ * BENEFITS:
+ * - ✅ No email/phone confusion
+ * - ✅ Professional business name displays
+ * - ✅ Instant payment confirmation
+ * - ✅ Amount pre-filled (no typos)
+ * - ✅ Payment note included automatically
+ * - ✅ Works with ALL U.S. banks that support Zelle
+ * 
+ * ============================================================================
  */

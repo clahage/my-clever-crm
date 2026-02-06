@@ -510,6 +510,7 @@ const AppContent = () => {
         <Route path="home" element={<Suspense fallback={<LoadingFallback />}><Home /></Suspense>} />
         <Route path="client-portal" element={<Suspense fallback={<LoadingFallback />}><ClientPortal /></Suspense>} />
         <Route path="portal/documents" element={<Suspense fallback={<LoadingFallback />}><DocumentUploadPortal /></Suspense>} />
+        {/* Contract Signing Portal - Query param version */}
         <Route path="client" element={<Suspense fallback={<LoadingFallback />}><ClientDashboard /></Suspense>} />
         <Route path="admin-portal" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><Portal /></Suspense></ProtectedRoute>} />
         <Route path="credit-report-workflow" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><CreditReportWorkflow /></Suspense></ProtectedRoute>} />
