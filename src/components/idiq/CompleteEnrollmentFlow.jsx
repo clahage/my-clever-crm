@@ -3503,7 +3503,7 @@ const finalizeEnrollment = async () => {
         {creditAnalysisError && !creditAnalysisRunning && (
           <Alert severity="warning" sx={{ mb: 3 }}>
             <AlertTitle>Manual Review Required</AlertTitle>
-            {creditAnalysisError}
+            {typeof creditAnalysisError === 'string' ? creditAnalysisError : 'Analysis encountered an issue. Our team will review manually.'}
             <Typography variant="body2" sx={{ mt: 1 }}>
               Don't worry! Our expert team will review your credit report and email you 
               a detailed analysis within 24 hours.
@@ -3522,9 +3522,9 @@ const finalizeEnrollment = async () => {
                     ✅ Credit Analysis Complete!
                   </Typography>
                   <Typography variant="body2">
-                    Credit Score: <strong>{creditAnalysisResult.creditScore}</strong> • 
-                    Negative Items: <strong>{creditAnalysisResult.negativeItemsCount}</strong> • 
-                    Projected Improvement: <strong>+{creditAnalysisResult.gameplan?.projectedScoreIncrease || 0} pts</strong>
+                    Credit Score: <strong>{creditAnalysisResult.creditScore ?? 'Pending'}</strong> • 
+                    Negative Items: <strong>{creditAnalysisResult.negativeItemsCount ?? 0}</strong> • 
+                    Projected Improvement: <strong>+{creditAnalysisResult.gameplan?.projectedScoreIncrease ?? 0} pts</strong>
                   </Typography>
                   <Typography variant="caption" sx={{ mt: 1, display: 'block' }}>
                     📧 Detailed analysis sent to your email!
@@ -3886,6 +3886,17 @@ const finalizeEnrollment = async () => {
           </Button>
         )}
 
+        {/* ===== ENROLLMENT INCOMPLETE WARNING ===== */}
+        {/* Shows when IDIQ enrollment failed but user reached Phase 3 */}
+        {!enrollmentId && !creditReport && !creditAnalysisRunning && (
+          <Alert severity="info" sx={{ mb: 3 }}>
+            <AlertTitle>Enrollment Incomplete</AlertTitle>
+            Your credit report could not be retrieved automatically. Don't worry — our team 
+            has been notified and will assist you. You can still continue with document upload 
+            or contact us at 1-888-724-7344.
+          </Alert>
+        )}
+
         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
           <Button onClick={() => setCurrentPhase(1)} startIcon={<ArrowBackIcon />}>
             Back
@@ -4099,7 +4110,11 @@ const finalizeEnrollment = async () => {
       } else {
         console.error('❌ Analysis failed:', analysisResult.error);
         
-        setCreditAnalysisError(analysisResult.error);
+        setCreditAnalysisError(
+          typeof analysisResult.error === 'string' 
+            ? analysisResult.error 
+            : analysisResult.error?.message || 'Analysis failed. Manual review will follow.'
+        );
         setError('Analysis encountered an issue. Our team will review manually within 24 hours.');
         
         // Still advance
