@@ -2552,7 +2552,7 @@ const finalizeEnrollment = async () => {
         updatedAt: serverTimestamp(),
       });
 
-      await sendWelcomeEmail();
+      await sendWelcomeEmailLocal();
 
       // Trigger celebration effects (PUBLIC MODE ONLY)
       if (!isCRMMode) {
@@ -2576,11 +2576,12 @@ const finalizeEnrollment = async () => {
     }
   };
 
-  const sendWelcomeEmail = async () => {
+  const sendWelcomeEmailLocal = async () => {
   try {
-    console.log('📧 Triggering welcome email via working emailService...');
+    console.log('📧 Triggering welcome email via imported emailTriggers...');
     
-    const result = await sendWelcomeEmail(contactId, {
+    const { sendWelcomeEmail: sendWelcomeImported } = await import('@/utils/emailTriggers');
+    const result = await sendWelcomeImported(contactId, {
       firstName: formData.firstName,
       lastName: formData.lastName,
       email: formData.email
@@ -2734,6 +2735,99 @@ const finalizeEnrollment = async () => {
       } catch (err) {
         console.error('Failed to populate disputes:', err);
       }
+    }
+
+    // ===== SEND ENROLLMENT CONFIRMATION EMAIL =====
+    // Comprehensive email with welcome, IDIQ credentials, next steps, and contact info.
+    // Sent to the enrollee after all enrollment steps are complete.
+    try {
+      console.log('📧 Sending enrollment confirmation email...');
+      
+      const planNames = {
+        'diy': 'DIY ($39/mo)',
+        'standard': 'Standard ($149/mo)',
+        'acceleration': 'Acceleration ($199/mo)',
+        'pay-for-delete': 'Pay-For-Delete',
+        'hybrid': 'Hybrid ($99/mo)',
+        'premium': 'Premium ($349/mo)'
+      };
+      
+      const selectedPlanName = planNames[selectedPlan] || selectedPlan || 'Standard';
+      const confirmCreditScore = creditReport?.vantageScore || 'Pending';
+      const negativeCount = creditReport?.negativeItems?.length || 0;
+      
+      await emailService({
+        action: 'send',
+        to: formData.email,
+        subject: `🎉 Welcome to Speedy Credit Repair, ${formData.firstName}! Your enrollment is complete.`,
+        body: `Hi ${formData.firstName},
+
+Congratulations! Your enrollment with Speedy Credit Repair is now complete. Here's everything you need to get started:
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+YOUR ACCOUNT DETAILS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Client Portal: https://myclevercrm.com
+Login Email: ${formData.email}
+Selected Plan: ${selectedPlanName}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+YOUR IDIQ CREDIT MONITORING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+IDIQ Dashboard: https://member.identityiq.com
+IDIQ Username: ${formData.email}
+Membership #: ${membershipNumber || 'Check your IDIQ welcome email'}
+
+Important: Please log into your IDIQ account within 48 hours to:
+1. Change your temporary password
+2. Answer security verification questions
+3. Access your full 3-bureau credit report
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+YOUR CREDIT SNAPSHOT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Current Score: ${confirmCreditScore}
+Negative Items Found: ${negativeCount}
+${negativeCount > 0 ? 'Our team is already preparing your dispute strategy to address these items.' : 'Great news - your credit report looks clean!'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WHAT HAPPENS NEXT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Our credit analysts will review your full 3-bureau report
+2. You'll receive a personalized credit improvement plan within 24 hours
+3. We'll begin disputing negative items on your behalf
+4. You can track progress anytime at https://myclevercrm.com
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CONTACT US
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Phone: 1-888-724-7344
+Email: chris@speedycreditrepair.com
+Hours: Monday-Friday 9AM-6PM PST
+
+Thank you for trusting Speedy Credit Repair with your credit journey. We've been helping families improve their credit since 1995, and we're excited to help you too!
+
+Best regards,
+Christopher Lahage
+CEO, Speedy Credit Repair Inc.
+A+ BBB Rating | 4.9 Google (580+ reviews)
+
+(c) 1995-2026 Speedy Credit Repair Inc. | All Rights Reserved`,
+        recipientName: formData.firstName,
+        contactId: contactId,
+        templateType: 'enrollment_confirmation'
+      });
+      
+      console.log('✅ Enrollment confirmation email sent to:', formData.email);
+      
+    } catch (emailErr) {
+      // Non-blocking - enrollment is already complete
+      console.error('❌ Confirmation email failed (non-blocking):', emailErr.message);
     }
 
     setCurrentPhase(10);
