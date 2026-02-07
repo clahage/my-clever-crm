@@ -199,6 +199,10 @@ import { updateContactWorkflowStage, WORKFLOW_STAGES } from '@/services/workflow
 import ViewCreditReportButton from '../credit/ViewCreditReportButton';
 import IDIQCreditReportViewer from '../credit/IDIQCreditReportViewer';
 
+// ===== CREDIT ANALYSIS AUTOMATION IMPORT =====
+import { runCreditAnalysis } from '@/services/creditAnalysisAutomation';
+import { syncIDIQToContact } from '@/services/idiqContactSync';
+
 // ===== PHONE CORRUPTION DETECTION IMPORTS =====
 import { 
   detectAndCorrectPhoneCorruption,
@@ -570,9 +574,28 @@ const CompleteEnrollmentFlow = ({
     utmMedium: '',
     utmCampaign: '',
   });
-
-  // Analysis state
-  const [analysisProgress, setAnalysisProgress] = useState(0);
+// ===== PRE-FILL FROM INITIAL DATA (Landing Page) =====
+// When PublicEnrollmentRoute passes contact data via initialData prop,
+// this populates the form fields so the user doesn't have to re-type
+// their name, email, and phone number.
+useEffect(() => {
+if (initialData && typeof initialData === 'object') {
+console.log('📝 Pre-filling form from initialData:', initialData);
+setFormData(prev => ({
+...prev,
+firstName: initialData.firstName || prev.firstName,
+lastName: initialData.lastName || prev.lastName,
+email: initialData.email || prev.email,
+phone: initialData.phone || prev.phone,
+}));
+// If initialData includes a contactId, set it
+if (initialData.contactId) {
+setContactId(initialData.contactId);
+}
+}
+}, [initialData]);
+// Analysis state
+const [analysisProgress, setAnalysisProgress] = useState(0);
   const [currentAnalysisStep, setCurrentAnalysisStep] = useState(0);
   const [analysisComplete, setAnalysisComplete] = useState(false);
   const [creditReport, setCreditReport] = useState(null);
@@ -641,6 +664,12 @@ const CompleteEnrollmentFlow = ({
   // ===== NEW: CRM MODE STATE =====
   const [crmContactData, setCrmContactData] = useState(null);
   const [crmContactLoading, setCrmContactLoading] = useState(false);
+
+  // ===== CREDIT ANALYSIS STATE =====
+const [creditAnalysisRunning, setCreditAnalysisRunning] = useState(false);
+const [creditAnalysisComplete, setCreditAnalysisComplete] = useState(false);
+const [creditAnalysisResult, setCreditAnalysisResult] = useState(null);
+const [creditAnalysisError, setCreditAnalysisError] = useState(null);
 
   // ===== NEW: PHONE CORRUPTION DETECTION STATE =====
   const [phoneCorrectionInfo, setPhoneCorrectionInfo] = useState(null);
@@ -1372,18 +1401,47 @@ const CompleteEnrollmentFlow = ({
   };
 
   const validatePhase1 = () => {
-    const required = ['firstName', 'lastName', 'email', 'phone', 'carrier'];
+    // ===== REQUIRED FIELDS =====
+    // carrier is OPTIONAL (many people don't know theirs)
+    // password is REQUIRED (becomes SpeedyCRM + IDIQ login)
+    const required = ['firstName', 'lastName', 'email', 'phone', 'password'];
     for (const field of required) {
       if (!formData[field]) {
-        setError(`Please fill in your ${field.replace(/([A-Z])/g, ' $1').toLowerCase()}`);
+        const friendlyName = field === 'password'
+          ? 'password (this will be your portal & credit monitoring login)'
+          : field.replace(/([A-Z])/g, ' $1').toLowerCase();
+        setError(`Please fill in your ${friendlyName}`);
         return false;
       }
     }
+    // ===== EMAIL VALIDATION =====
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       setError('Please enter a valid email address');
       return false;
     }
-    // CRM mode may skip address verification
+    // ===== PASSWORD VALIDATION (IDIQ-grade) =====
+    // Must be 8+ chars with: uppercase, lowercase, number, symbol
+    if (formData.password.length < 8) {
+      setError('Password must be at least 8 characters long.');
+      return false;
+    }
+    if (!/[A-Z]/.test(formData.password)) {
+      setError('Password must include at least one uppercase letter (A-Z).');
+      return false;
+    }
+    if (!/[a-z]/.test(formData.password)) {
+      setError('Password must include at least one lowercase letter (a-z).');
+      return false;
+    }
+    if (!/[0-9]/.test(formData.password)) {
+      setError('Password must include at least one number (0-9).');
+      return false;
+    }
+    if (!/[^A-Za-z0-9]/.test(formData.password)) {
+      setError('Password must include at least one symbol (!@#$%^& etc.).');
+      return false;
+    }
+    // ===== ADDRESS VERIFICATION =====
     if (!isCRMMode && !formData.agreeToAddress) {
       setError('You must confirm you have been at your address for at least 6 months.');
       return false;
@@ -1408,32 +1466,100 @@ const CompleteEnrollmentFlow = ({
         middleName: formData.middleName,
       });
 
-      // For CRM mode with existing contact, just update
-      if (isCRMMode && contactId) {
-        // Filter out undefined values - Firebase doesn't accept them
-        const cleanedData = Object.fromEntries(
-          Object.entries(submissionData).filter(([_, value]) => value !== undefined)
-        );
-        
-        await updateDoc(doc(db, 'contacts', contactId), {
-          ...cleanedData,
-          updatedAt: serverTimestamp(),
-          enrollmentStartedAt: serverTimestamp(),
-          enrollmentSource: 'crm_enrollment',
-        });
-      } else {
-        const result = await processEnrollment(formData, { forceCreate: false });
+      // ===== SMART CONTACT HANDLING =====
+  // If contactId exists (from landing page or CRM mode), UPDATE it.
+  // This ensures all new fields (address, DOB, SSN, carrier, etc.)
+  // get saved to the SAME contact created by the landing page.
+  if (contactId) {
+    console.log('📝 Updating existing contact:', contactId);
+    const cleanedData = Object.fromEntries(
+      Object.entries(submissionData).filter(([_, value]) => value !== undefined)
+    );
+    
+    // ===== BUILD STRUCTURED DATA FOR CONTACT FORM =====
+    // UltimateContactForm reads from nested arrays (addresses, phones, emails)
+    // so we must update BOTH flat fields AND structured arrays.
+    const structuredUpdate = {
+      ...cleanedData,
+      updatedAt: serverTimestamp(),
+      enrollmentStartedAt: serverTimestamp(),
+      enrollmentSource: isCRMMode ? 'crm_enrollment' : 'landing_page',
+      pipeline: 'enrollment-started',
+    };
 
-        let newContactId = null;
-        if (result.isDuplicate) {
-          const updateResult = await processEnrollment(formData, { updateExisting: true });
-          newContactId = updateResult.contactId;
-        } else if (result.success) {
-          newContactId = result.contactId;
-        }
+    // Update addresses array if we have address data
+    if (submissionData.street || submissionData.city || submissionData.state || submissionData.zip) {
+      structuredUpdate['addresses'] = [{
+        street: submissionData.street || '',
+        city: submissionData.city || '',
+        state: submissionData.state || '',
+        zip: submissionData.zip || '',
+        type: 'home',
+        isPrimary: true,
+        verified: false,
+        verifiedDate: null,
+        unit: '',
+        rentOrOwn: 'rent',
+        monthlyPayment: '',
+        moveInDate: '',
+      }];
+    }
 
-        setContactId(newContactId);
-      }
+    // Update phones array if we have phone data
+    if (cleanedData.phone) {
+      structuredUpdate['phones'] = [{
+        number: cleanedData.phone,
+        type: 'mobile',
+        isPrimary: true,
+        canCall: true,
+        canText: true,
+        verified: false,
+      }];
+    }
+
+    // Update emails array if we have email data
+    if (cleanedData.email) {
+      structuredUpdate['emails'] = [{
+        address: cleanedData.email,
+        type: 'personal',
+        isPrimary: true,
+        verified: false,
+        lastOpened: null,
+      }];
+    }
+
+    // Update dateOfBirth if provided
+    if (submissionData.dateOfBirth) {
+      structuredUpdate['dateOfBirth'] = submissionData.dateOfBirth;
+    }
+
+    // Update SSN last 4 if provided (never store full SSN)
+    if (submissionData.ssn) {
+      const cleanSSN = submissionData.ssn.replace(/\D/g, '');
+      structuredUpdate['ssnLast4'] = cleanSSN.slice(-4);
+      // Remove full SSN from the update - security!
+      delete structuredUpdate.ssn;
+    }
+
+    // Remove password from contact document - security!
+    delete structuredUpdate.password;
+
+    await updateDoc(doc(db, 'contacts', contactId), structuredUpdate);
+    console.log('✅ Existing contact updated with structured data:', contactId);
+  } else {
+    console.log('👤 No existing contact, creating new one...');
+    const result = await processEnrollment(formData, { forceCreate: false });
+
+    let newContactId = null;
+    if (result.isDuplicate) {
+      const updateResult = await processEnrollment(formData, { updateExisting: true });
+      newContactId = updateResult.contactId;
+    } else if (result.success) {
+      newContactId = result.contactId;
+    }
+
+    setContactId(newContactId);
+  }
       
       await trackPhaseComplete({
         phase: 1,
@@ -1686,8 +1812,18 @@ const CompleteEnrollmentFlow = ({
         console.error('❌ Failed to update IDIQ enrollment status:', updateErr);
       }
       
-      setCurrentPhase(3);
-
+      // ===== TRIGGER CREDIT ANALYSIS AUTOMATION =====
+      await handleCreditAnalysis({
+        memberToken: response.data.memberToken,
+        idiqMemberToken: response.data.memberToken,
+        membershipNumber: response.data.membershipNumber,
+        idiqMembershipNumber: response.data.membershipNumber,
+        enrollmentId: response.data.enrollmentId,
+        creditScore: resData.vantageScore || resData.score,
+        ...response.data
+      });
+      
+      // Note: handleCreditAnalysis will auto-advance to Phase 3
       // ===== IMPROVED SCORE EXTRACTION (handles IDIQ BundleComponent structure) =====
       const extractScoreFromResponse = (data) => {
         // Path 1: Direct vantageScore (backend extracted)
@@ -2108,6 +2244,7 @@ Time: ${new Date().toLocaleString()}`,
     }
   };
 
+  
   const handleSignatureSave = async () => {
     if (signatureRef.current && !signatureRef.current.isEmpty()) {
       setLoading(true);
@@ -2407,6 +2544,7 @@ const finalizeEnrollment = async () => {
     } catch (err) {
       console.error('❌ Failed to update enrollment status:', err);
     }
+    
 
     // Populate DisputeHub with negative items
     if (creditReport?.negativeItems) {
@@ -2770,32 +2908,32 @@ const finalizeEnrollment = async () => {
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={formData.password}
-                  onChange={handleFormChange('password')}
-                  required
-                  autoComplete="new-password"
-                  placeholder="Create portal password"
-                  helperText="For your IDIQ credit monitoring portal"
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SecurityIcon color="action" />
-                      </InputAdornment>
-                    ),
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
-                          {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
+            <TextField
+              fullWidth
+              label="Create Password *"
+              type={showPassword ? 'text' : 'password'}
+              value={formData.password}
+              onChange={handleFormChange('password')}
+              required
+              autoComplete="new-password"
+              placeholder="Min 8 chars: Aa1!..."
+              helperText="This becomes your SpeedyCRM portal & IDIQ login. Must have: uppercase, lowercase, number, and symbol."
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SecurityIcon color="action" />
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                      {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
@@ -2872,55 +3010,83 @@ const finalizeEnrollment = async () => {
                   }}
                 />
               </Grid>
-              <Grid item xs={12} sm={4}>
-                <TextField
-                  fullWidth
-                  label="City"
-                  value={formData.city}
-                  onChange={handleFormChange('city')}
-                />
-              </Grid>
-              {/* ===== STATE DROPDOWN FIX ===== */}
-              <Grid item xs={12} sm={4}>
-                <FormControl fullWidth>
-                  <InputLabel 
-                    id="state-select-label"
-                    shrink={true}
-                    sx={{
-                      backgroundColor: theme.palette.mode === 'dark' ? '#1e1e1e' : 'white',
-                      px: 0.5,
-                    }}
-                  >
-                    State
-                  </InputLabel>
-                  <Select
-                    labelId="state-select-label"
-                    value={formData.state}
-                    onChange={handleFormChange('state')}
-                    label="State"
-                    notched={true}
-                    displayEmpty
-                  >
-                    <MenuItem value="" disabled>
-                      <em>Select State</em>
-                    </MenuItem>
-                    {US_STATES.map((state) => (
-                      <MenuItem key={state.code} value={state.code}>
-                        {state.name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <TextField
-                  fullWidth
-                  label="ZIP Code"
-                  value={formData.zip}
-                  onChange={handleFormChange('zip')}
-                  inputProps={{ maxLength: 5 }}
-                />
-              </Grid>
+              {/* ===== ZIP CODE FIRST - Auto-populates City & State ===== */}
+          <Grid item xs={12} sm={4}>
+            <TextField
+              fullWidth
+              label="ZIP Code"
+              value={formData.zip}
+              onChange={async (e) => {
+                const zipValue = e.target.value.replace(/\D/g, '').slice(0, 5);
+                handleFormChange('zip')({ target: { value: zipValue } });
+                
+                // ===== AUTO-POPULATE CITY & STATE FROM ZIP =====
+                // Uses free zippopotam.us API (no API key needed)
+                if (zipValue.length === 5) {
+                  try {
+                    const response = await fetch(`https://api.zippopotam.us/us/${zipValue}`);
+                    if (response.ok) {
+                      const data = await response.json();
+                      const place = data.places?.[0];
+                      if (place) {
+                        console.log('📍 ZIP lookup:', zipValue, '→', place['place name'], place['state abbreviation']);
+                        setFormData(prev => ({
+                          ...prev,
+                          city: place['place name'] || prev.city,
+                          state: place['state abbreviation'] || prev.state,
+                        }));
+                      }
+                    }
+                  } catch (err) {
+                    // ZIP lookup failed - user can still type manually
+                    console.log('⚠️ ZIP lookup failed:', err.message);
+                  }
+                }
+              }}
+              inputProps={{ maxLength: 5 }}
+              helperText="City & state auto-fill from ZIP"
+            />
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <TextField
+              fullWidth
+              label="City"
+              value={formData.city}
+              onChange={handleFormChange('city')}
+            />
+          </Grid>
+          {/* ===== STATE DROPDOWN ===== */}
+          <Grid item xs={12} sm={4}>
+            <FormControl fullWidth>
+              <InputLabel 
+                id="state-select-label"
+                shrink={true}
+                sx={{
+                  backgroundColor: theme.palette.mode === 'dark' ? '#1e1e1e' : 'white',
+                  px: 0.5,
+                }}
+              >
+                State
+              </InputLabel>
+              <Select
+                labelId="state-select-label"
+                value={formData.state}
+                onChange={handleFormChange('state')}
+                label="State"
+                notched={true}
+                displayEmpty
+              >
+                <MenuItem value="" disabled>
+                  <em>Select State</em>
+                </MenuItem>
+                {US_STATES.map((state) => (
+                  <MenuItem key={state.code} value={state.code}>
+                    {state.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
@@ -3293,6 +3459,56 @@ const finalizeEnrollment = async () => {
   const renderPhase3 = () => (
     <Fade in timeout={500}>
       <Box>
+        {/* ===== CREDIT ANALYSIS LOADING STATE ===== */}
+        {creditAnalysisRunning && (
+          <Paper sx={{ p: 4, mb: 3, textAlign: 'center', bgcolor: 'primary.light' }}>
+            <CircularProgress size={60} sx={{ mb: 2 }} />
+            <Typography variant="h5" gutterBottom>
+              🤖 AI Credit Analysis in Progress...
+            </Typography>
+            <Typography color="text.secondary" paragraph>
+              Our AI is analyzing your credit report to identify opportunities for improvement.
+              This typically takes 20-30 seconds.
+            </Typography>
+            <LinearProgress sx={{ mt: 2 }} />
+          </Paper>
+        )}
+
+        {/* ===== CREDIT ANALYSIS ERROR STATE ===== */}
+        {creditAnalysisError && !creditAnalysisRunning && (
+          <Alert severity="warning" sx={{ mb: 3 }}>
+            <AlertTitle>Manual Review Required</AlertTitle>
+            {creditAnalysisError}
+            <Typography variant="body2" sx={{ mt: 1 }}>
+              Don't worry! Our expert team will review your credit report and email you 
+              a detailed analysis within 24 hours.
+            </Typography>
+          </Alert>
+        )}
+
+        {/* ===== CREDIT ANALYSIS SUCCESS STATE ===== */}
+        {creditAnalysisComplete && creditAnalysisResult && (
+          <Card sx={{ mb: 3, bgcolor: 'success.light' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <CheckIcon sx={{ fontSize: 48, color: 'success.main' }} />
+                <Box>
+                  <Typography variant="h6" gutterBottom>
+                    ✅ Credit Analysis Complete!
+                  </Typography>
+                  <Typography variant="body2">
+                    Credit Score: <strong>{creditAnalysisResult.creditScore}</strong> • 
+                    Negative Items: <strong>{creditAnalysisResult.negativeItemsCount}</strong> • 
+                    Projected Improvement: <strong>+{creditAnalysisResult.gameplan?.projectedScoreIncrease || 0} pts</strong>
+                  </Typography>
+                  <Typography variant="caption" sx={{ mt: 1, display: 'block' }}>
+                    📧 Detailed analysis sent to your email!
+                  </Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        )}              
         {/* IDIQ Platinum Co-Branded Header */}
         <IDIQPlatinumCard sx={{ mb: 4 }}>
           <CardContent sx={{ p: 4 }}>
@@ -3795,6 +4011,114 @@ const finalizeEnrollment = async () => {
   const handleViewDocument = (url, name) => {
     setViewingDocument({ url, name });
     setShowDocumentViewer(true);
+  };
+  // ============================================================================
+  // CREDIT ANALYSIS AUTOMATION HANDLER
+  // ============================================================================
+  const handleCreditAnalysis = async (idiqData) => {
+    console.log('===== TRIGGERING CREDIT ANALYSIS AUTOMATION =====');
+    console.log('🎯 IDIQ Data:', idiqData);
+    console.log('📋 Contact ID:', contactId);
+
+    try {
+      // Update UI state
+      setCreditAnalysisRunning(true);
+      setCreditAnalysisError(null);
+      setSuccess('Credit analysis in progress... This will take about 30 seconds.');
+
+      // Sync IDIQ data to contact
+      console.log('📥 Syncing IDIQ data to contact...');
+      
+      await syncIDIQToContact(contactId, {
+        ...formData,
+        ...idiqData,
+        memberToken: idiqData.memberToken || idiqData.idiqMemberToken,
+        membershipNumber: idiqData.membershipNumber || idiqData.idiqMembershipNumber,
+        enrollmentComplete: true
+      });
+
+      console.log('✅ IDIQ data synced');
+
+      // Run credit analysis automation
+      console.log('🤖 Running credit analysis...');
+      
+      const analysisResult = await runCreditAnalysis(
+        contactId, 
+        {
+          memberToken: idiqData.memberToken || idiqData.idiqMemberToken,
+          membershipNumber: idiqData.membershipNumber || idiqData.idiqMembershipNumber,
+          ...idiqData
+        },
+        {
+          autoDisputeEnabled: false
+        }
+      );
+
+      console.log('📊 Analysis Result:', analysisResult);
+
+      // Update state with results
+      if (analysisResult.success) {
+        console.log('✅ Analysis completed!');
+        
+        setCreditAnalysisComplete(true);
+        setCreditAnalysisResult(analysisResult);
+        setCreditReport(analysisResult.analysis);
+        
+        setSuccess(`🎉 Analysis Complete! Score: ${analysisResult.creditScore} | Negative Items: ${analysisResult.negativeItemsCount}`);
+
+        // Auto-advance after 3 seconds
+       setTimeout(() => {
+       setCurrentPhase(3);
+    }, 3000);
+
+      } else {
+        console.error('❌ Analysis failed:', analysisResult.error);
+        
+        setCreditAnalysisError(analysisResult.error);
+        setError('Analysis encountered an issue. Our team will review manually within 24 hours.');
+        
+        // Still advance
+        setTimeout(() => {
+        setCurrentPhase(3);
+    },  5000);
+      }
+
+    } catch (error) {
+      console.error('❌ Analysis error:', error);
+      
+      setCreditAnalysisError(error.message);
+      setError('Unable to complete automatic analysis. Manual review will follow.');
+      
+      // Log error to Firestore
+      await logAnalysisError(contactId, error);
+      
+      // Still advance
+      setTimeout(() => {
+        setCurrentPhase(3);
+      }, 5000);
+      
+    } finally {
+      setCreditAnalysisRunning(false);
+    }
+  };
+
+  // Helper to log analysis errors
+  const logAnalysisError = async (contactId, error) => {
+    try {
+      const { doc, collection, setDoc, serverTimestamp } = await import('firebase/firestore');
+      const { db } = await import('@/lib/firebase');
+      
+      const errorRef = doc(collection(db, 'analysisErrors'));
+      await setDoc(errorRef, {
+        contactId,
+        error: error.message,
+        stack: error.stack,
+        timestamp: serverTimestamp(),
+        source: 'CompleteEnrollmentFlow'
+      });
+    } catch (err) {
+      console.error('Failed to log error:', err);
+    }
   };
 
   // ===== DOCUMENT VIEWER MODAL =====

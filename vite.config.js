@@ -11,12 +11,21 @@ export default defineConfig({
   },
   server: {
     fs: {
-      // Ignore backup folders
       deny: [
         '**/backups/**',
         '**/src_broken_backup_*/**',
         '**/src_working_backup_*/**'
       ]
+    },
+    // FIX: Make sure all routes fallback to index.html (SPA routing)
+    historyApiFallback: true
+  },
+  // ALSO ADD: Build configuration for production
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: undefined
+      }
     }
   }
 })

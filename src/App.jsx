@@ -18,6 +18,7 @@ import PricingCalculatorCommon from '@/components/common/PricingCalculator';
 import IDIQEnrollmentWizard from "./components/idiq/IDIQEnrollmentWizard.jsx"
 import FinancialPlanningHub from './pages/hubs/FinancialPlanningHub.jsx';
 import TradelineHub from './pages/hubs/TradelineHub.jsx';
+import PublicEnrollmentRoute from '@/routes/PublicEnrollmentRoute';
 
 // ============================================================================
 // LOADING COMPONENT
@@ -442,6 +443,21 @@ const AppContent = () => {
       {/* ============================================================================ */}
       {/* PUBLIC IDIQ ENROLLMENT ROUTES - NO LOGIN REQUIRED */}
       {/* ============================================================================ */}
+
+      {/* DEBUG TEST ROUTE */}
+<Route path="/test-route" element={
+  <div style={{ padding: '50px', fontSize: '24px', color: 'black' }}>
+    <h1>Test Route Works!</h1>
+    <p>If you see this, routing is working</p>
+  </div>
+} />
+
+{/* PUBLIC ENROLLMENT - Token-based enrollment from landing page */}
+  <Route path="/enroll" element={
+    <Suspense fallback={<LoadingFallback />}>
+      <PublicEnrollmentRoute />
+    </Suspense>
+  } />
       
       {/* Public enrollment - General (no source tracking) */}
       <Route 
@@ -1578,6 +1594,8 @@ const AppContent = () => {
     </ProtectedRoute>
   }
 />
+
+
 
 {/* ========================================== */}
 {/* END MASSIVE PRODUCTION HUBS                */}

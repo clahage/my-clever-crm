@@ -4694,8 +4694,8 @@ exports.operationsManager = onRequest(
           'createPortalAccount',
           'landingPageContact',
           'captureWebLead',
-          'validateEnrollmentToken', // ← ADD THIS
-          'markTokenUsed'            // ← ADD THIS
+          'validateEnrollmentToken',
+          'markTokenUsed'
         ]
       });
       return;
@@ -5134,19 +5134,21 @@ exports.operationsManager = onRequest(
             
             const cleanPhone = phone ? phone.replace(/\D/g, '') : '';
             const contactData = {
-              firstName: firstName || '',
-              lastName: lastName || '',
-              email: email ? email.toLowerCase().trim() : '',
-              phone: cleanPhone,
-              message: message || '',
-              creditGoal: creditGoal || '',
-              roles: ['contact', 'lead'],
-              leadSource: leadSource || 'website',
-              utmSource: utmSource || '',
-              utmMedium: utmMedium || '',
-              utmCampaign: utmCampaign || '',
-              updatedAt: admin.firestore.FieldValue.serverTimestamp()
-            };
+          firstName: firstName || '',
+          lastName: lastName || '',
+          email: email ? email.toLowerCase().trim() : '',
+          phone: cleanPhone,
+          message: message || '',
+          creditGoal: creditGoal || '',
+          roles: ['contact', 'applicant'],
+          pipeline: 'landing-page-submitted',
+          pipelineUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          leadSource: leadSource || 'website',
+          utmSource: utmSource || '',
+          utmMedium: utmMedium || '',
+          utmCampaign: utmCampaign || '',
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        };
             
             let contactId;
             
@@ -5276,25 +5278,208 @@ console.log('🔐 Enrollment token generated:', token.substring(0, 10) + '...');
           break;
         }
         
-        default:
-          console.error(`❌ Unknown action requested: ${action}`);
-          response.status(400).json({
+        // ============================================
+    // VALIDATE ENROLLMENT TOKEN
+    // Called by PublicEnrollmentRoute.jsx when a prospect
+    // clicks their enrollment link from the landing page.
+    // Checks if the token is valid, not expired, not used.
+    // ============================================
+    case 'validateEnrollmentToken': {
+      console.log('🔍 Processing validateEnrollmentToken...');
+      
+      const { token: enrollToken, contactId: tokenContactId } = params;
+      
+      // ===== VALIDATE REQUIRED FIELDS =====
+      if (!enrollToken || !tokenContactId) {
+        response.status(400).json({
+          success: false,
+          error: 'Token and contactId are required',
+          valid: false
+        });
+        return;
+      }
+      
+      try {
+        // ===== FIND THE TOKEN IN FIRESTORE =====
+        // We search the enrollmentTokens collection for a matching token
+        const tokenQuery = await db.collection('enrollmentTokens')
+          .where('token', '==', enrollToken)
+          .where('contactId', '==', tokenContactId)
+          .limit(1)
+          .get();
+        
+        // ===== CHECK IF TOKEN EXISTS =====
+        if (tokenQuery.empty) {
+          console.log('❌ Token not found in database');
+          result = {
+            success: true,
+            valid: false,
+            error: 'Invalid enrollment link. Please request a new one.',
+            invalid: true
+          };
+          break;
+        }
+        
+        const tokenDoc = tokenQuery.docs[0];
+        const tokenData = tokenDoc.data();
+        
+        // ===== CHECK IF TOKEN ALREADY USED =====
+        if (tokenData.used === true) {
+          console.log('⚠️ Token already used');
+          result = {
+            success: true,
+            valid: false,
+            error: 'This enrollment link has already been used. Please sign in to your account.',
+            alreadyUsed: true
+          };
+          break;
+        }
+        
+        // ===== CHECK IF TOKEN IS EXPIRED =====
+        // Tokens expire after 24 hours
+        const expiresAt = tokenData.expiresAt?.toDate 
+          ? tokenData.expiresAt.toDate() 
+          : new Date(tokenData.expiresAt);
+        
+        if (expiresAt < new Date()) {
+          console.log('⏰ Token has expired');
+          result = {
+            success: true,
+            valid: false,
+            error: 'This enrollment link has expired. Please request a new one from our website.',
+            expired: true
+          };
+          break;
+        }
+        
+        // ===== TOKEN IS VALID - FETCH CONTACT DATA =====
+        console.log('✅ Token is valid! Fetching contact data...');
+        
+        const contactDoc = await db.collection('contacts').doc(tokenContactId).get();
+        
+        if (!contactDoc.exists) {
+          console.log('❌ Contact not found for token');
+          result = {
+            success: true,
+            valid: false,
+            error: 'Contact not found. Please request a new enrollment link.',
+            invalid: true
+          };
+          break;
+        }
+        
+        const contactData = contactDoc.data();
+        
+        // ===== RETURN SUCCESS WITH CONTACT DATA =====
+        // PublicEnrollmentRoute will use this to pre-fill the form
+        result = {
+          success: true,
+          valid: true,
+          contact: {
+            id: tokenContactId,
+            firstName: contactData.firstName || '',
+            lastName: contactData.lastName || '',
+            email: contactData.email || '',
+            phone: contactData.phone || ''
+          }
+        };
+        
+        console.log('✅ Token validated for:', contactData.firstName, contactData.lastName);
+        
+      } catch (validateError) {
+        console.error('❌ Token validation error:', validateError);
+        result = {
+          success: false,
+          valid: false,
+          error: 'Failed to validate enrollment link. Please try again.'
+        };
+      }
+      
+      break;
+    }
+    
+    // ============================================
+    // MARK ENROLLMENT TOKEN AS USED
+    // Called after a prospect successfully completes enrollment.
+    // Prevents the same token from being used again.
+    // ============================================
+    case 'markTokenUsed': {
+      console.log('🔒 Processing markTokenUsed...');
+      
+      const { token: usedToken, contactId: usedContactId } = params;
+      
+      // ===== VALIDATE REQUIRED FIELDS =====
+      if (!usedToken || !usedContactId) {
+        response.status(400).json({
+          success: false,
+          error: 'Token and contactId are required'
+        });
+        return;
+      }
+      
+      try {
+        // ===== FIND THE TOKEN =====
+        const usedTokenQuery = await db.collection('enrollmentTokens')
+          .where('token', '==', usedToken)
+          .where('contactId', '==', usedContactId)
+          .limit(1)
+          .get();
+        
+        if (usedTokenQuery.empty) {
+          console.log('⚠️ Token not found for marking as used');
+          result = {
             success: false,
-            error: `Unknown operations action: ${action}`,
-            details: 'Please check the action parameter',
-            validActions: [
-              'getWorkflowStatus',
-              'pauseWorkflow',
-              'resumeWorkflow', 
-              'createTask',
-              'getTasks',
-              'updateTask',
-              'createPortalAccount',
-              'landingPageContact',
-              'captureWebLead'
-            ]
-          });
-          return;
+            error: 'Token not found'
+          };
+          break;
+        }
+        
+        // ===== MARK TOKEN AS USED =====
+        const usedTokenDoc = usedTokenQuery.docs[0];
+        await usedTokenDoc.ref.update({
+          used: true,
+          usedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        
+        console.log('✅ Token marked as used for contact:', usedContactId);
+        
+        result = {
+          success: true,
+          message: 'Token marked as used'
+        };
+        
+      } catch (markError) {
+        console.error('❌ Mark token used error:', markError);
+        result = {
+          success: false,
+          error: markError.message
+        };
+      }
+      
+      break;
+    }
+    
+    default:
+      console.error(`❌ Unknown action requested: ${action}`);
+      response.status(400).json({
+        success: false,
+        error: `Unknown operations action: ${action}`,
+        details: 'Please check the action parameter',
+        validActions: [
+          'getWorkflowStatus',
+          'pauseWorkflow',
+          'resumeWorkflow', 
+          'createTask',
+          'getTasks',
+          'updateTask',
+          'createPortalAccount',
+          'landingPageContact',
+          'captureWebLead',
+          'validateEnrollmentToken',
+          'markTokenUsed'
+        ]
+      });
+      return;
       }
       
       // ENHANCED: Success response with more metadata
