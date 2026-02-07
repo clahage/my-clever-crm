@@ -8,7 +8,7 @@
 // This file has been tested and verified to work correctly
 // ============================================================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Box, Container, Typography, CircularProgress, Alert, Button, Paper } from '@mui/material';
 import { AlertCircle, CheckCircle, Clock, Lock, Sparkles } from 'lucide-react';
@@ -146,17 +146,44 @@ export default function PublicEnrollmentRoute() {
   // ===== LOADING STATE =====
   if (validating) {
     return (
-      <Container maxWidth="sm" sx={{ py: 8 }}>
-        <Box sx={{ textAlign: 'center' }}>
-          <CircularProgress size={60} sx={{ mb: 3 }} />
-          <Typography variant="h5" gutterBottom>
-            Validating enrollment link...
-          </Typography>
-          <Typography color="text.secondary">
-            Please wait while we verify your enrollment invitation.
-          </Typography>
-        </Box>
-      </Container>
+      <Box sx={{ 
+        minHeight: '100vh',
+        backgroundImage: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <Container maxWidth="sm">
+          <Paper elevation={6} sx={{ p: 6, borderRadius: 3, textAlign: 'center' }}>
+            <Box sx={{ mb: 3 }}>
+              <img
+                src="/brand/default/logo-128.png"
+                alt="Speedy Credit Repair"
+                style={{ height: 60, marginBottom: 16 }}
+                onError={(e) => { e.target.style.display = 'none'; }}
+              />
+            </Box>
+            <CircularProgress size={50} sx={{ mb: 3, color: '#667eea' }} />
+            <Typography variant="h5" fontWeight={600} gutterBottom>
+              Verifying your enrollment link...
+            </Typography>
+            <Typography color="text.secondary" sx={{ mb: 3 }}>
+              This only takes a moment. Please don't close this page.
+            </Typography>
+            <Box sx={{ 
+              display: 'flex', 
+              justifyContent: 'center', 
+              gap: 3, 
+              flexWrap: 'wrap',
+              opacity: 0.7 
+            }}>
+              <Typography variant="caption">🔒 Secure Connection</Typography>
+              <Typography variant="caption">⭐ A+ BBB Rating</Typography>
+              <Typography variant="caption">📞 1-888-724-7344</Typography>
+            </Box>
+          </Paper>
+        </Container>
+      </Box>
     );
   }
 
@@ -293,19 +320,34 @@ export default function PublicEnrollmentRoute() {
         </Paper>
 
         {/* ENROLLMENT FLOW */}
-        <Paper elevation={6} sx={{ borderRadius: 3, overflow: 'hidden' }}>
-          <CompleteEnrollmentFlow
-        mode="public"
-        initialData={{
-          firstName: contactData.firstName,
-          lastName: contactData.lastName,
-          email: contactData.email,
-          phone: contactData.phone,
-          contactId: contactData.id,
-          enrollmentToken: token,  // Passes URL token so CompleteEnrollmentFlow can call markTokenUsed after Phase 1
-        }}
-        onComplete={handleEnrollmentComplete}
-      />
+        <Paper elevation={6} sx={{ borderRadius: 3, overflow: 'hidden', minHeight: 400 }}>
+          <Suspense fallback={
+            <Box sx={{ textAlign: 'center', py: 10 }}>
+              <CircularProgress size={60} sx={{ mb: 3, color: '#667eea' }} />
+              <Typography variant="h5" gutterBottom sx={{ fontWeight: 600 }}>
+                Loading your enrollment form...
+              </Typography>
+              <Typography color="text.secondary" sx={{ mb: 2 }}>
+                We're preparing a secure, personalized experience for you.
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                🔒 Bank-level encryption • ⭐ 4.9/5 Stars • 30 years experience
+              </Typography>
+            </Box>
+          }>
+            <CompleteEnrollmentFlow
+              mode="public"
+              initialData={{
+                firstName: contactData.firstName,
+                lastName: contactData.lastName,
+                email: contactData.email,
+                phone: contactData.phone,
+                contactId: contactData.id,
+                enrollmentToken: token,
+              }}
+              onComplete={handleEnrollmentComplete}
+            />
+          </Suspense>
         </Paper>
 
         {/* TRUST INDICATORS */}

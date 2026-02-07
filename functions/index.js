@@ -5259,6 +5259,25 @@ console.log('🔐 Enrollment token generated:', token.substring(0, 10) + '...');
               status: 'client'
             });
             
+            // ===== CREATE USER PROFILE FOR AUTH/ROLE SYSTEM =====
+            // AuthContext reads from userProfiles collection to determine
+            // the user's role and permissions. Without this, the client
+            // would get role: 'user' on first login instead of 'client'.
+            await db.collection('userProfiles').doc(userRecord.uid).set({
+              uid: userRecord.uid,
+              email: email,
+              displayName: params.firstName 
+                ? `${params.firstName} ${params.lastName || ''}`.trim()
+                : email,
+              role: 'client',
+              contactId: contactId,
+              permissions: ['read_basic', 'client_portal'],
+              createdAt: admin.firestore.FieldValue.serverTimestamp(),
+              updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            
+            console.log('✅ userProfiles document created for:', email);
+            
             result = {
               success: true,
               portalUserId: userRecord.uid,

@@ -2570,6 +2570,33 @@ const finalizeEnrollment = async () => {
       console.error('❌ Failed to update enrollment status:', err);
     }
     
+    // ===== CREATE PORTAL ACCOUNT =====
+    // Creates a Firebase Auth account so the client can log into myclevercrm.com
+    // Uses email + password from enrollment form. Also creates userProfiles doc.
+    // Non-blocking: if this fails, enrollment still completes.
+    if (formData.email && !isCRMMode) {
+      try {
+        console.log('🔑 Creating portal account for:', formData.email);
+        const portalResult = await operationsManager({
+          action: 'createPortalAccount',
+          contactId: contactId,
+          email: formData.email,
+          password: formData.password || null,
+          firstName: formData.firstName || '',
+          lastName: formData.lastName || ''
+        });
+        
+        if (portalResult.data?.success) {
+          console.log('✅ Portal account created! UID:', portalResult.data.portalUserId);
+          setSuccess('🎉 Your client portal account has been created! You can now log in at myclevercrm.com');
+        } else {
+          console.warn('⚠️ Portal account creation returned:', portalResult.data?.error);
+        }
+      } catch (portalErr) {
+        // Common case: account already exists (auth/email-already-exists)
+        console.warn('⚠️ Portal account creation failed (non-blocking):', portalErr.message);
+      }
+    }
 
     // Populate DisputeHub with negative items
     if (creditReport?.negativeItems) {
