@@ -727,6 +727,25 @@ const [creditAnalysisError, setCreditAnalysisError] = useState(null);
       setLastSavedAt(new Date());
       console.log('✅ AutoSave: Form data saved at', new Date().toLocaleTimeString());
       
+      // ===== SERVER-SIDE PROGRESS SAVE (for cross-device recovery) =====
+      // Only saves lightweight progress data, not the full form.
+      // Full form data is already on the contact from Phase 1 submit.
+      if (contactId && currentPhase > 1) {
+        updateDoc(doc(db, 'contacts', contactId), {
+          enrollmentProgress: {
+            currentPhase,
+            selectedPlan: selectedPlan || null,
+            hasIdPhoto: !!idPhotoUrl,
+            hasUtilityPhoto: !!utilityPhotoUrl,
+            hasSignature: !!signatureData,
+            enrollmentId: enrollmentId || null,
+            membershipNumber: membershipNumber || null,
+            lastSavedAt: serverTimestamp(),
+            abandoned: false
+          }
+        }).catch(err => console.warn('⚠️ Server-side progress save failed:', err.message));
+      }
+      
       // Reset status after 3 seconds
       setTimeout(() => setAutoSaveStatus('idle'), 3000);
       
@@ -784,9 +803,21 @@ const [creditAnalysisError, setCreditAnalysisError] = useState(null);
       setMembershipNumber(recoveryData.membershipNumber || null);
       setVerificationAnswers(recoveryData.verificationAnswers || {});
       
+      // Clear the abandoned flag in Firebase so we don't offer recovery again
+      if (recoveryData.contactId) {
+        updateDoc(doc(db, 'contacts', recoveryData.contactId), {
+          'enrollmentProgress.abandoned': false,
+          'enrollmentProgress.resumedAt': serverTimestamp()
+        }).catch(err => console.warn('⚠️ Failed to clear abandoned flag:', err.message));
+      }
+      
       setShowRecoveryDialog(false);
-      setSuccess('Session restored! Continuing where you left off...');
-      console.log('✅ Session restored successfully');
+      setSuccess(
+        recoveryData.source === 'server'
+          ? '🔄 Enrollment recovered from our servers! Continuing where you left off...'
+          : 'Session restored! Continuing where you left off...'
+      );
+      console.log('✅ Session restored successfully', recoveryData.source === 'server' ? '(from server)' : '(from localStorage)');
       
     } catch (err) {
       console.error('Error restoring session:', err);
@@ -813,6 +844,73 @@ const [creditAnalysisError, setCreditAnalysisError] = useState(null);
       checkForSavedSession();
     }
   }, []);
+
+  // ===== SERVER-SIDE ENROLLMENT RECOVERY =====
+  // When someone opens enrollment on a different device/browser,
+  // there's no localStorage data. Check Firebase for abandoned progress.
+  useEffect(() => {
+    const checkServerRecovery = async () => {
+      // Only check if we have a contactId from initialData (public flow)
+      // AND there's no localStorage recovery already showing
+      if (!contactId || showRecoveryDialog || currentPhase > 1) return;
+      
+      // Check if localStorage already has data (handled by checkForSavedSession)
+      const localData = localStorage.getItem(AUTOSAVE_KEY);
+      if (localData) return; // localStorage recovery takes priority
+      
+      try {
+        const contactRef = doc(db, 'contacts', contactId);
+        const contactSnap = await getDoc(contactRef);
+        
+        if (!contactSnap.exists()) return;
+        
+        const contact = contactSnap.data();
+        const progress = contact.enrollmentProgress;
+        
+        // Only offer recovery if enrollment was abandoned and past Phase 1
+        if (progress?.abandoned && progress?.currentPhase > 1) {
+          const abandonedAt = progress.abandonedAt ? new Date(progress.abandonedAt) : null;
+          const hoursSinceAbandoned = abandonedAt 
+            ? (Date.now() - abandonedAt.getTime()) / (1000 * 60 * 60) 
+            : 999;
+          
+          // Only recover if abandoned less than 48 hours ago
+          if (hoursSinceAbandoned < 48) {
+            console.log('🔄 Found abandoned enrollment on server - Phase', progress.currentPhase);
+            
+            // Build recovery data from the contact document
+            setRecoveryData({
+              formData: {
+                firstName: contact.firstName || '',
+                lastName: contact.lastName || '',
+                email: contact.email || '',
+                phone: contact.phone || '',
+                street: contact.street || '',
+                city: contact.city || '',
+                state: contact.state || '',
+                zip: contact.zip || '',
+                dateOfBirth: contact.dateOfBirth || '',
+              },
+              currentPhase: progress.currentPhase,
+              contactId: contactId,
+              selectedPlan: progress.selectedPlan || 'standard',
+              enrollmentId: progress.enrollmentId || null,
+              membershipNumber: progress.membershipNumber || null,
+              savedAt: progress.abandonedAt || new Date().toISOString(),
+              source: 'server', // Flag so we know this came from Firebase, not localStorage
+            });
+            setShowRecoveryDialog(true);
+          }
+        }
+      } catch (err) {
+        console.warn('⚠️ Server recovery check failed:', err.message);
+      }
+    };
+    
+    // Small delay to let localStorage check run first
+    const timer = setTimeout(checkServerRecovery, 1000);
+    return () => clearTimeout(timer);
+  }, [contactId, showRecoveryDialog, currentPhase]);
 
   // AutoSave timer - save every 30 seconds
   useEffect(() => {
@@ -864,6 +962,13 @@ const [creditAnalysisError, setCreditAnalysisError] = useState(null);
             ...formData,
             currentPhase,
           });
+
+          // Mark server-side progress as abandoned for cross-device recovery
+          updateDoc(doc(db, 'contacts', contactId), {
+            'enrollmentProgress.abandoned': true,
+            'enrollmentProgress.abandonedAt': new Date().toISOString(),
+            'enrollmentProgress.abandonedPhase': currentPhase
+          }).catch(() => {}); // Fire-and-forget on page close
 
           trackEvent({
             eventType: 'form_abandoned',
@@ -2522,8 +2627,15 @@ const finalizeEnrollment = async () => {
     await markEnrollmentCompleted(contactId);
     clearEnrollmentState();
     
-    // Clear AutoSave data
+    // Clear AutoSave data (localStorage + server-side progress)
     localStorage.removeItem(AUTOSAVE_KEY);
+    if (contactId) {
+      updateDoc(doc(db, 'contacts', contactId), {
+        'enrollmentProgress.abandoned': false,
+        'enrollmentProgress.completed': true,
+        'enrollmentProgress.completedAt': serverTimestamp()
+      }).catch(() => {}); // Non-blocking
+    }
 
     try {
       await updateDoc(doc(db, 'contacts', contactId), {
