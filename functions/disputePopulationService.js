@@ -1385,17 +1385,766 @@ async function populateDisputesFromUpload(contactId, fileUrl, fileType = 'auto')
     };
   }
 }
+// ═══════════════════════════════════════════════════════════════════════════
+// FCRA/FDCPA LEGAL BASIS DATABASE
+// ═══════════════════════════════════════════════════════════════════════════
+// Christopher's 30 years of credit repair expertise encoded here.
+// These are the REAL legal citations used in professional credit repair.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const LEGAL_BASIS = {
+  // ═════ FCRA (Fair Credit Reporting Act) ═════
+  fcra611: {
+    code: 'FCRA §611',
+    title: 'Procedure in Case of Disputed Accuracy',
+    description: 'Requires CRAs to investigate disputed items within 30 days and delete unverifiable information.',
+    appliesTo: ['collection', 'chargeOff', 'latePayment', 'inquiry', 'publicRecord', 'other'],
+    strength: 'strong'
+  },
+  fcra611a: {
+    code: 'FCRA §611(a)',
+    title: 'Reinvestigation Required',
+    description: 'CRA must conduct a reasonable reinvestigation to determine whether disputed information is inaccurate.',
+    appliesTo: ['collection', 'chargeOff', 'latePayment', 'other'],
+    strength: 'strong'
+  },
+  fcra611a1A: {
+    code: 'FCRA §611(a)(1)(A)',
+    title: '30-Day Investigation Period',
+    description: 'CRA must complete investigation within 30 days of receiving dispute. Failure = automatic deletion.',
+    appliesTo: ['collection', 'chargeOff', 'latePayment', 'inquiry', 'publicRecord', 'other'],
+    strength: 'strong'
+  },
+  fcra611a5: {
+    code: 'FCRA §611(a)(5)',
+    title: 'Delete Unverifiable Information',
+    description: 'If information cannot be verified after investigation, it must be promptly deleted.',
+    appliesTo: ['collection', 'chargeOff', 'latePayment', 'inquiry', 'publicRecord', 'other'],
+    strength: 'very_strong'
+  },
+  fcra623: {
+    code: 'FCRA §623',
+    title: 'Responsibilities of Furnishers',
+    description: 'Furnishers must report accurate information and investigate disputes forwarded by CRAs.',
+    appliesTo: ['collection', 'chargeOff', 'latePayment'],
+    strength: 'strong'
+  },
+  fcra623b: {
+    code: 'FCRA §623(b)',
+    title: 'Furnisher Investigation Duties',
+    description: 'Upon notice of dispute from CRA, furnisher must investigate and report results.',
+    appliesTo: ['collection', 'chargeOff', 'latePayment', 'other'],
+    strength: 'strong'
+  },
+  fcra605a: {
+    code: 'FCRA §605(a)',
+    title: 'Obsolete Information',
+    description: 'Information older than 7 years (10 for bankruptcies) must not be reported.',
+    appliesTo: ['collection', 'chargeOff', 'latePayment', 'publicRecord'],
+    strength: 'very_strong'
+  },
+  fcra604: {
+    code: 'FCRA §604',
+    title: 'Permissible Purposes',
+    description: 'Credit reports can only be accessed for permissible purposes. Unauthorized access = violation.',
+    appliesTo: ['inquiry'],
+    strength: 'strong'
+  },
+  // ═════ FDCPA (Fair Debt Collection Practices Act) ═════
+  fdcpa809: {
+    code: 'FDCPA §809',
+    title: 'Validation of Debts',
+    description: 'Collector must provide debt validation within 5 days. Consumer can dispute within 30 days.',
+    appliesTo: ['collection'],
+    strength: 'very_strong'
+  },
+  fdcpa809b: {
+    code: 'FDCPA §809(b)',
+    title: 'Cease Collection During Dispute',
+    description: 'Collector must cease collection until verification is provided after written dispute.',
+    appliesTo: ['collection'],
+    strength: 'strong'
+  },
+  fcba: {
+    code: 'FCBA §161',
+    title: 'Fair Credit Billing Act',
+    description: 'Billing error resolution for credit card accounts. 60-day dispute window.',
+    appliesTo: ['latePayment'],
+    strength: 'moderate'
+  }
+};
+
 
 // ═══════════════════════════════════════════════════════════════════════════
-// EXPORTS
+// DISPUTE STRATEGY TEMPLATES - Based on Christopher's 30 years of success
+// ═══════════════════════════════════════════════════════════════════════════
+
+const STRATEGY_TEMPLATES = {
+  collection: {
+    primary: 'debt_validation',
+    secondary: 'bureau_dispute_accuracy',
+    tertiary: 'pay_for_delete',
+    legalBasis: ['fdcpa809', 'fcra611', 'fcra623'],
+    defaultDisputability: 8,
+    roundPriority: 1,
+    successRateHistorical: 0.72,
+    notes: 'Collections have highest removal rate. Always start with debt validation.'
+  },
+  chargeOff: {
+    primary: 'bureau_dispute_accuracy',
+    secondary: 'debt_validation',
+    tertiary: 'goodwill_letter',
+    legalBasis: ['fcra611', 'fcra623b', 'fcra611a5'],
+    defaultDisputability: 7,
+    roundPriority: 1,
+    successRateHistorical: 0.58,
+    notes: 'Charge-offs impact score heavily. Dispute balance accuracy and dates first.'
+  },
+  latePayment: {
+    primary: 'goodwill_letter',
+    secondary: 'bureau_dispute_accuracy',
+    tertiary: 'method_of_verification',
+    legalBasis: ['fcra611', 'fcra623', 'fcba'],
+    defaultDisputability: 5,
+    roundPriority: 2,
+    successRateHistorical: 0.45,
+    notes: 'Goodwill works best if account is current. Otherwise dispute accuracy.'
+  },
+  inquiry: {
+    primary: 'unauthorized_inquiry_dispute',
+    secondary: 'permissible_purpose_challenge',
+    tertiary: null,
+    legalBasis: ['fcra604', 'fcra611'],
+    defaultDisputability: 6,
+    roundPriority: 3,
+    successRateHistorical: 0.65,
+    notes: 'Only dispute inquiries beyond the first 5.'
+  },
+  publicRecord: {
+    primary: 'court_verification',
+    secondary: 'bureau_dispute_accuracy',
+    tertiary: 'obsolescence_challenge',
+    legalBasis: ['fcra611', 'fcra605a', 'fcra611a5'],
+    defaultDisputability: 6,
+    roundPriority: 1,
+    successRateHistorical: 0.52,
+    notes: 'Public records have highest score impact. Verify all details with court records.'
+  },
+  other: {
+    primary: 'bureau_dispute_accuracy',
+    secondary: 'method_of_verification',
+    tertiary: 'goodwill_letter',
+    legalBasis: ['fcra611', 'fcra623'],
+    defaultDisputability: 5,
+    roundPriority: 2,
+    successRateHistorical: 0.40,
+    notes: 'General dispute. Request full verification of all account details.'
+  }
+};
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BUREAU ADDRESSES (for letter generation)
+// ═══════════════════════════════════════════════════════════════════════════
+
+const BUREAU_INFO = {
+  TU:  { name: 'TransUnion',  fullName: 'TransUnion LLC',                      address: 'P.O. Box 2000, Chester, PA 19016',    faxNumber: '1-610-546-4605', phone: '1-800-916-8800' },
+  TUC: { name: 'TransUnion',  fullName: 'TransUnion LLC',                      address: 'P.O. Box 2000, Chester, PA 19016',    faxNumber: '1-610-546-4605', phone: '1-800-916-8800' },
+  EXP: { name: 'Experian',    fullName: 'Experian Information Solutions, Inc.', address: 'P.O. Box 4500, Allen, TX 75013',      faxNumber: '1-972-390-3837', phone: '1-888-397-3742' },
+  EQF: { name: 'Equifax',     fullName: 'Equifax Information Services LLC',     address: 'P.O. Box 740256, Atlanta, GA 30374',  faxNumber: '1-888-826-0573', phone: '1-866-349-5191' }
+};
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// NEW v3.0: AI DISPUTE STRATEGY ENGINE
+// ═══════════════════════════════════════════════════════════════════════════
+// Uses OpenAI to generate personalized dispute strategies.
+// This is Christopher's "rival-free" differentiator.
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function generateDisputeStrategy(contactId, openaiApiKey) {
+  const db = getDb();
+  
+  console.log('═══════════════════════════════════════════════════════════════════');
+  console.log('🧠 AI DISPUTE STRATEGY ENGINE - Contact:', contactId);
+  console.log('═══════════════════════════════════════════════════════════════════');
+  
+  try {
+    // ═════ STEP 1: Fetch all pending disputes ═════
+    const disputesSnap = await db.collection('disputes')
+      .where('contactId', '==', contactId)
+      .where('status', '==', 'pending')
+      .get();
+    
+    if (disputesSnap.empty) {
+      return { success: false, error: 'No pending disputes found', contactId };
+    }
+    
+    const disputes = disputesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    console.log('📋 Found', disputes.length, 'pending disputes');
+    
+    // ═════ STEP 2: Fetch contact data ═════
+    const contactDoc = await db.collection('contacts').doc(contactId).get();
+    const contactData = contactDoc.exists ? contactDoc.data() : {};
+    
+    // ═════ STEP 3: Build AI prompt ═════
+    const disputeSummaryForAI = disputes.map(d => ({
+      id: d.id,
+      creditor: d.creditorName,
+      accountNumber: d.accountNumber,
+      type: d.category || d.negativeReason,
+      balance: d.balance,
+      paymentStatus: d.paymentStatus,
+      bureaus: d.bureaus,
+      priority: d.priority,
+      estimatedImpact: d.estimatedScoreImpact
+    }));
+    
+    const systemPrompt = `You are Chris Lahage, a credit repair expert with 30 years of experience and a former Toyota Finance Director. You run Speedy Credit Repair, an A+ BBB-rated company.
+
+Analyze disputed credit items and create a comprehensive dispute strategy. You know FCRA, FDCPA, FCBA inside and out.
+
+KEY PRINCIPLES:
+- Collections have highest removal rate (~72%). Start with debt validation (FDCPA §809).
+- Never fire all disputes at once — stagger across rounds (5-7 items per round).
+- Optimal credit utilization is 1% (not 0%) for pre-application scenarios.
+- Each round = 30-35 days apart (bureau investigation period).
+- Prioritize by score impact: high-balance collections and charge-offs first.
+- Accounts near 7-year mark — sometimes waiting beats disputing.
+
+Respond ONLY with valid JSON. No markdown, no backticks, no preamble.`;
+
+    const userPrompt = `Analyze ${disputes.length} disputed items and create a strategic plan:
+
+CLIENT: ${contactData.firstName || 'Client'} ${contactData.lastName || ''}, State: ${contactData.state || 'Unknown'}
+
+ITEMS:
+${JSON.stringify(disputeSummaryForAI, null, 2)}
+
+Return this JSON structure:
+{
+  "overallStrategy": "2-3 sentence overview",
+  "estimatedTimeline": "e.g. 90-120 days",
+  "projectedScoreIncrease": { "min": 0, "max": 0 },
+  "totalRounds": 0,
+  "items": [
+    {
+      "disputeId": "id from above",
+      "disputabilityScore": 1-10,
+      "assignedRound": 1-5,
+      "primaryStrategy": "debt_validation|bureau_dispute_accuracy|goodwill_letter|pay_for_delete|method_of_verification|unauthorized_inquiry_dispute|court_verification|obsolescence_challenge",
+      "legalBasis": ["FCRA §611", "FDCPA §809"],
+      "reasoning": "1-2 sentences",
+      "successProbability": 0.0-1.0,
+      "letterTone": "formal|consumer|aggressive",
+      "specialInstructions": ""
+    }
+  ],
+  "roundPlan": [
+    { "round": 1, "targetDate": "Immediately", "itemCount": 0, "focus": "description" }
+  ],
+  "clientAdvice": "2-3 sentences for the client"
+}`;
+
+    // ═════ STEP 4: Call OpenAI ═════
+    console.log('🤖 Calling OpenAI...');
+    
+    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openaiApiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        temperature: 0.3,
+        max_tokens: 4000
+      })
+    });
+    
+    if (!openaiResponse.ok) {
+      const errorText = await openaiResponse.text();
+      throw new Error(`OpenAI API error: ${openaiResponse.status} - ${errorText}`);
+    }
+    
+    const openaiData = await openaiResponse.json();
+    const aiResponseText = openaiData.choices?.[0]?.message?.content || '';
+    
+    // ═════ STEP 5: Parse response ═════
+    let strategyPlan;
+    try {
+      const cleaned = aiResponseText.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+      strategyPlan = JSON.parse(cleaned);
+    } catch (parseError) {
+      console.error('⚠️ AI parse failed, using fallback');
+      strategyPlan = buildFallbackStrategy(disputes);
+    }
+    
+    // ═════ STEP 6: Save strategy + update disputes ═════
+    const strategyRef = await db.collection('disputeStrategies').add({
+      contactId,
+      plan: strategyPlan,
+      disputeCount: disputes.length,
+      generatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      generatedBy: 'ai_strategy_engine',
+      model: 'gpt-4'
+    });
+    
+    let updatedCount = 0;
+    for (const item of (strategyPlan.items || [])) {
+      if (!item.disputeId) continue;
+      try {
+        await db.collection('disputes').doc(item.disputeId).update({
+          'disputeStrategy.aiPrimary': item.primaryStrategy || null,
+          'disputeStrategy.aiLegalBasis': item.legalBasis || [],
+          'disputeStrategy.aiReasoning': item.reasoning || null,
+          'disputeStrategy.aiSuccessProbability': item.successProbability || null,
+          'disputeStrategy.aiLetterTone': item.letterTone || 'formal',
+          'disputeStrategy.aiSpecialInstructions': item.specialInstructions || null,
+          disputabilityScore: item.disputabilityScore || 5,
+          disputeRound: item.assignedRound || 1,
+          roundAssignedAt: admin.firestore.FieldValue.serverTimestamp(),
+          stage: 'strategy_assigned',
+          strategyId: strategyRef.id,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        updatedCount++;
+      } catch (err) {
+        console.error('⚠️ Failed to update dispute', item.disputeId, err.message);
+      }
+    }
+    
+    // Update contact
+    await db.collection('contacts').doc(contactId).update({
+      'disputes.strategyId': strategyRef.id,
+      'disputes.strategyGeneratedAt': admin.firestore.FieldValue.serverTimestamp(),
+      'disputes.projectedScoreIncrease': strategyPlan.projectedScoreIncrease || null,
+      'disputes.estimatedTimeline': strategyPlan.estimatedTimeline || null,
+      'disputes.totalRounds': strategyPlan.totalRounds || 1,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+    
+    console.log('✅ Strategy complete:', updatedCount, '/', disputes.length, 'updated');
+    
+    return {
+      success: true,
+      contactId,
+      strategyId: strategyRef.id,
+      plan: strategyPlan,
+      disputesUpdated: updatedCount,
+      message: `Strategy generated for ${disputes.length} disputes across ${strategyPlan.totalRounds || 1} rounds`
+    };
+    
+  } catch (error) {
+    console.error('❌ AI Strategy error:', error);
+    return { success: false, error: error.message, contactId };
+  }
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// NEW v3.0: AI DISPUTE LETTER GENERATOR
+// ═══════════════════════════════════════════════════════════════════════════
+// Generates 3 letter variations (formal, consumer, aggressive) per dispute
+// per bureau. Each letter includes legal citations, account details,
+// consumer rights, deadlines, and consequences of non-compliance.
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function generateDisputeLetters(contactId, round, openaiApiKey, options = {}) {
+  const db = getDb();
+  const tones = options.tones || ['formal', 'consumer', 'aggressive'];
+  
+  console.log('═══════════════════════════════════════════════════════════════════');
+  console.log('📝 AI LETTER GENERATOR - Round', round, 'Contact:', contactId);
+  console.log('═══════════════════════════════════════════════════════════════════');
+  
+  try {
+    // ═════ STEP 1: Fetch disputes for this round ═════
+    let disputesQuery = db.collection('disputes')
+      .where('contactId', '==', contactId)
+      .where('status', '==', 'pending');
+    
+    if (round && round > 0) {
+      disputesQuery = disputesQuery.where('disputeRound', '==', round);
+    }
+    
+    const disputesSnap = await disputesQuery.get();
+    
+    if (disputesSnap.empty) {
+      return { success: false, error: `No pending disputes for round ${round}`, contactId, round };
+    }
+    
+    const disputes = disputesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    console.log('📋 Found', disputes.length, 'disputes for round', round);
+    
+    // ═════ STEP 2: Fetch contact data ═════
+    const contactDoc = await db.collection('contacts').doc(contactId).get();
+    const contact = contactDoc.exists ? contactDoc.data() : {};
+    
+    const clientInfo = {
+      fullName: `${contact.firstName || ''} ${contact.lastName || ''}`.trim() || 'Client',
+      address: contact.address || contact.streetAddress || '',
+      city: contact.city || '',
+      state: contact.state || '',
+      zip: contact.zip || contact.zipCode || '',
+      ssn: contact.ssnLast4 ? `***-**-${contact.ssnLast4}` : 'XXX-XX-XXXX',
+      dob: contact.dateOfBirth || contact.dob || ''
+    };
+    
+    // ═════ STEP 3: Generate letters per dispute per bureau ═════
+    const allLetters = [];
+    let letterCount = 0;
+    
+    for (const dispute of disputes) {
+      const bureaus = dispute.bureaus || ['TU', 'EXP', 'EQF'];
+      
+      for (const bureauCode of bureaus) {
+        const bureau = BUREAU_INFO[bureauCode] || BUREAU_INFO.TU;
+        
+        // Use AI-recommended tone if single, otherwise generate all tones
+        const aiTone = dispute.disputeStrategy?.aiLetterTone || null;
+        const tonesToGen = options.singleTone ? [aiTone || 'formal'] : tones;
+        
+        for (const tone of tonesToGen) {
+          console.log(`📝 ${tone} letter: ${dispute.creditorName} → ${bureau.name}...`);
+          
+          const letter = await generateSingleLetter(dispute, bureau, bureauCode, tone, clientInfo, openaiApiKey);
+          
+          if (letter) {
+            const letterDoc = {
+              contactId,
+              disputeId: dispute.id,
+              bureauCode,
+              bureauName: bureau.name,
+              bureauAddress: bureau.address,
+              bureauFax: bureau.faxNumber,
+              tone,
+              round: round || dispute.disputeRound || 1,
+              subject: letter.subject,
+              body: letter.body,
+              legalCitations: letter.legalCitations || [],
+              creditorName: dispute.creditorName,
+              accountNumber: dispute.accountNumber,
+              category: dispute.category,
+              status: 'draft',
+              approved: false,
+              sentAt: null,
+              sentVia: null,
+              responseReceived: false,
+              generatedAt: admin.firestore.FieldValue.serverTimestamp(),
+              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+              generatedBy: 'ai_letter_generator'
+            };
+            
+            const letterRef = await db.collection('disputeLetters').add(letterDoc);
+            allLetters.push({ id: letterRef.id, disputeId: dispute.id, creditor: dispute.creditorName, bureau: bureau.name, tone, status: 'draft' });
+            letterCount++;
+          }
+        }
+      }
+      
+      // Update dispute to track letter generation
+      await db.collection('disputes').doc(dispute.id).update({
+        lettersGenerated: true,
+        letterCount: (dispute.bureaus || []).length * tonesToGen.length,
+        stage: 'letters_generated',
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+    }
+    
+    console.log('✅ Generated', letterCount, 'letters for', disputes.length, 'disputes');
+    
+    return {
+      success: true,
+      contactId,
+      round,
+      disputeCount: disputes.length,
+      letterCount,
+      letters: allLetters,
+      message: `Generated ${letterCount} letters for ${disputes.length} disputes in round ${round}`
+    };
+    
+  } catch (error) {
+    console.error('❌ Letter Generator error:', error);
+    return { success: false, error: error.message, contactId, round };
+  }
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HELPER: Generate a single dispute letter via OpenAI
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function generateSingleLetter(dispute, bureau, bureauCode, tone, clientInfo, openaiApiKey) {
+  try {
+    const toneDesc = {
+      formal: 'Professional and legally precise. Formal language, specific statutes, measured but firm tone. Like a credit repair attorney.',
+      consumer: 'Clear and assertive in plain language. References legal rights accessibly. Warm but confident.',
+      aggressive: 'Strongly worded demand letter. Emphasizes legal consequences, potential lawsuits, statutory damages, firm deadlines. Professional but leaves no doubt about escalation.'
+    };
+    
+    const legalBasis = dispute.disputeStrategy?.aiLegalBasis ||
+                       dispute.disputeStrategy?.legalBasis?.map(lb => lb.code) ||
+                       ['FCRA §611'];
+    
+    const special = dispute.disputeStrategy?.aiSpecialInstructions || '';
+
+    const systemPrompt = `You are a credit repair legal expert writing a dispute letter.
+
+TONE: ${tone.toUpperCase()} — ${toneDesc[tone]}
+
+RULES:
+- Include today's date
+- Include client name and address
+- Address to the specific bureau
+- Reference specific account number and creditor
+- Cite the legal statutes provided
+- Include 30-day response deadline
+- Include consequences of non-compliance
+- Request investigation, deletion, or correction
+- Sign as the consumer (not as Speedy Credit Repair)
+- Include SSN last 4 for identification
+- Keep to 1-2 pages max
+- Use paragraph format, not bullets`;
+
+    const userPrompt = `Write a ${tone} dispute letter:
+
+CLIENT: ${clientInfo.fullName}
+ADDRESS: ${clientInfo.address}, ${clientInfo.city}, ${clientInfo.state} ${clientInfo.zip}
+SSN: ${clientInfo.ssn}
+DOB: ${clientInfo.dob}
+
+BUREAU: ${bureau.fullName}
+BUREAU ADDRESS: ${bureau.address}
+
+DISPUTED ITEM:
+- Creditor: ${dispute.creditorName}
+- Account #: ${dispute.accountNumber}
+- Type: ${dispute.category || dispute.negativeReason}
+- Balance: $${dispute.balance || 0}
+- Payment Status: ${dispute.paymentStatus}
+- Dispute Reason: ${dispute.suggestedDisputeReason || 'Information is inaccurate'}
+
+LEGAL BASIS: ${legalBasis.join(', ')}
+STRATEGY: ${dispute.disputeStrategy?.aiPrimary || dispute.disputeStrategy?.primary || 'bureau_dispute_accuracy'}
+${special ? `SPECIAL: ${special}` : ''}
+
+Write the complete letter now.`;
+
+    const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiApiKey}` },
+      body: JSON.stringify({
+        model: 'gpt-4',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        temperature: 0.4,
+        max_tokens: 2000
+      })
+    });
+    
+    if (!resp.ok) {
+      console.error(`⚠️ OpenAI error for ${dispute.creditorName}/${bureau.name}/${tone}`);
+      return null;
+    }
+    
+    const data = await resp.json();
+    const body = data.choices?.[0]?.message?.content || '';
+    
+    if (!body || body.length < 100) return null;
+    
+    return {
+      subject: `Credit Report Dispute - ${dispute.creditorName} - Account ${dispute.accountNumber}`,
+      body,
+      legalCitations: legalBasis
+    };
+    
+  } catch (error) {
+    console.error(`❌ Letter error for ${dispute.creditorName}:`, error.message);
+    return null;
+  }
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// NEW v3.0: DISPUTE ROUND ASSIGNMENT
+// ═══════════════════════════════════════════════════════════════════════════
+// Round 1: Top 5-7 highest-impact items (collections, charge-offs)
+// Round 2: Next batch 30 days later
+// Round 3+: Remaining + re-disputes
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function assignDisputeRounds(contactId, options = {}) {
+  const db = getDb();
+  const maxPerRound = options.maxPerRound || 7;
+  
+  console.log('📅 ROUND ASSIGNMENT - Contact:', contactId, 'Max/round:', maxPerRound);
+  
+  try {
+    const disputesSnap = await db.collection('disputes')
+      .where('contactId', '==', contactId)
+      .where('status', '==', 'pending')
+      .get();
+    
+    if (disputesSnap.empty) {
+      return { success: true, contactId, message: 'No pending disputes', rounds: [] };
+    }
+    
+    const disputes = disputesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    
+    // Sort: high priority first → higher score impact first → higher balance first
+    const priorityOrder = { high: 0, medium: 1, low: 2 };
+    disputes.sort((a, b) => {
+      const pA = priorityOrder[a.priority] ?? 2;
+      const pB = priorityOrder[b.priority] ?? 2;
+      if (pA !== pB) return pA - pB;
+      const impA = a.estimatedScoreImpact?.max || 0;
+      const impB = b.estimatedScoreImpact?.max || 0;
+      if (impA !== impB) return impB - impA;
+      return (b.balance || 0) - (a.balance || 0);
+    });
+    
+    // Assign to rounds
+    const rounds = [];
+    let currentRound = 1;
+    let count = 0;
+    
+    for (const dispute of disputes) {
+      if (count >= maxPerRound) { currentRound++; count = 0; }
+      
+      await db.collection('disputes').doc(dispute.id).update({
+        disputeRound: currentRound,
+        roundAssignedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+      
+      if (!rounds[currentRound - 1]) {
+        rounds[currentRound - 1] = {
+          round: currentRound,
+          items: [],
+          scheduledDate: currentRound === 1 ? 'Immediately' : `${(currentRound - 1) * 30} days after Round 1`
+        };
+      }
+      rounds[currentRound - 1].items.push({
+        id: dispute.id,
+        creditor: dispute.creditorName,
+        priority: dispute.priority,
+        impact: dispute.estimatedScoreImpact
+      });
+      count++;
+    }
+    
+    console.log('✅ Assigned', disputes.length, 'disputes across', rounds.length, 'rounds');
+    
+    return {
+      success: true,
+      contactId,
+      totalDisputes: disputes.length,
+      totalRounds: rounds.length,
+      rounds,
+      message: `Assigned ${disputes.length} disputes across ${rounds.length} rounds`
+    };
+    
+  } catch (error) {
+    console.error('❌ Round assignment error:', error);
+    return { success: false, error: error.message, contactId };
+  }
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// NEW v3.0: GET DISPUTE LETTERS
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function getDisputeLetters(contactId, options = {}) {
+  const db = getDb();
+  
+  try {
+    let query = db.collection('disputeLetters').where('contactId', '==', contactId);
+    if (options.disputeId) query = query.where('disputeId', '==', options.disputeId);
+    if (options.round) query = query.where('round', '==', options.round);
+    if (options.tone) query = query.where('tone', '==', options.tone);
+    if (options.status) query = query.where('status', '==', options.status);
+    
+    const snap = await query.get();
+    const letters = snap.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      generatedAt: doc.data().generatedAt?.toDate?.()?.toISOString() || null,
+      updatedAt: doc.data().updatedAt?.toDate?.()?.toISOString() || null
+    }));
+    
+    return { success: true, contactId, letterCount: letters.length, letters, filters: options };
+  } catch (error) {
+    console.error('❌ Get letters error:', error);
+    return { success: false, error: error.message, contactId };
+  }
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FALLBACK STRATEGY (when OpenAI is unavailable)
+// ═══════════════════════════════════════════════════════════════════════════
+
+function buildFallbackStrategy(disputes) {
+  console.log('⚠️ Building fallback strategy (no AI)...');
+  
+  const items = disputes.map((d, index) => {
+    const template = STRATEGY_TEMPLATES[d.category] || STRATEGY_TEMPLATES.other;
+    return {
+      disputeId: d.id,
+      disputabilityScore: template.defaultDisputability,
+      assignedRound: Math.ceil((index + 1) / 7),
+      primaryStrategy: template.primary,
+      legalBasis: (template.legalBasis || []).map(key => LEGAL_BASIS[key]?.code).filter(Boolean),
+      reasoning: template.notes,
+      successProbability: template.successRateHistorical,
+      letterTone: d.priority === 'high' ? 'aggressive' : 'formal',
+      specialInstructions: ''
+    };
+  });
+  
+  const totalRounds = Math.ceil(disputes.length / 7);
+  
+  return {
+    overallStrategy: `${disputes.length} items across ${totalRounds} rounds. High-impact collections and charge-offs in Round 1.`,
+    estimatedTimeline: `${totalRounds * 30}-${totalRounds * 45} days`,
+    projectedScoreIncrease: { min: Math.min(disputes.length * 10, 50), max: Math.min(disputes.length * 25, 150) },
+    totalRounds,
+    items,
+    roundPlan: Array.from({ length: totalRounds }, (_, i) => ({
+      round: i + 1,
+      targetDate: i === 0 ? 'Immediately' : `${i * 30} days after Round 1`,
+      itemCount: items.filter(item => item.assignedRound === i + 1).length,
+      focus: i === 0 ? 'High-priority collections and charge-offs' : `Round ${i + 1} items`
+    })),
+    clientAdvice: 'We are working on your disputes. Do not open new credit accounts during this process. Keep all current accounts in good standing.'
+  };
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// UPDATED EXPORTS — v3.0
 // ═══════════════════════════════════════════════════════════════════════════
 
 module.exports = {
-  // Main functions
+  // ═════ Main functions (v2.0) ═════
   populateDisputesFromIDIQ,
   populateDisputesFromUpload,
   
-  // Parsers
+  // ═════ NEW v3.0: AI Pipeline Functions ═════
+  generateDisputeStrategy,
+  generateDisputeLetters,
+  assignDisputeRounds,
+  getDisputeLetters,
+  
+  // ═════ Parsers (v2.0) ═════
   parseJSONReport,
   parseHTMLReport,
   parsePDFReport,
@@ -1403,7 +2152,17 @@ module.exports = {
   parseTextReport,
   parseFromAnySource,
   
-  // Utilities
+  // ═════ Utilities (v2.0) ═════
   identifyNegativeItems,
-  getDb
+  getDb,
+  
+  // ═════ Reference Data (v3.0) ═════
+  LEGAL_BASIS,
+  STRATEGY_TEMPLATES,
+  BUREAU_INFO
 };
+
+// ═══════════════════════════════════════════════════════════════════════════
+// EXPORTS
+// ═══════════════════════════════════════════════════════════════════════════
+

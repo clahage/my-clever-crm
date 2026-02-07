@@ -3888,6 +3888,207 @@ exports.aiContentGenerator = onCall(
       if (type === 'getDisputeSummary') {
         return await handleGetDisputeSummary(params);
       }
+      // ═════════════════════════════════════════════════════════════════════
+      // NEW v3.0: AI DISPUTE STRATEGY ENGINE
+      // ═════════════════════════════════════════════════════════════════════
+      // Generates AI-powered dispute strategies using OpenAI.
+      // Called from frontend: aiContentGenerator({ type: 'generateDisputeStrategy', contactId: '...' })
+      // ═════════════════════════════════════════════════════════════════════
+      if (type === 'generateDisputeStrategy') {
+        console.log('🧠 AI Dispute Strategy Engine triggered for:', params.contactId);
+        
+        if (!params.contactId) {
+          return { success: false, error: 'contactId is required' };
+        }
+        
+        try {
+          const disputePopulationService = require('./disputePopulationService');
+          const result = await disputePopulationService.generateDisputeStrategy(
+            params.contactId,
+            openaiApiKey.value()
+          );
+          
+          console.log('✅ Strategy generation result:', result.success ? 'SUCCESS' : 'FAILED');
+          return result;
+        } catch (error) {
+          console.error('❌ generateDisputeStrategy error:', error);
+          return { success: false, error: error.message };
+        }
+      }
+
+      // ═════════════════════════════════════════════════════════════════════
+      // NEW v3.0: AI DISPUTE LETTER GENERATOR
+      // ═════════════════════════════════════════════════════════════════════
+      // Generates dispute letters (3 tones) for each dispute per bureau.
+      // Called from frontend: aiContentGenerator({ type: 'generateDisputeLetters', contactId, round: 1 })
+      // ═════════════════════════════════════════════════════════════════════
+      if (type === 'generateDisputeLetters') {
+        console.log('📝 AI Letter Generator triggered - Round:', params.round, 'Contact:', params.contactId);
+        
+        if (!params.contactId) {
+          return { success: false, error: 'contactId is required' };
+        }
+        
+        try {
+          const disputePopulationService = require('./disputePopulationService');
+          const result = await disputePopulationService.generateDisputeLetters(
+            params.contactId,
+            params.round || 1,
+            openaiApiKey.value(),
+            {
+              tones: params.tones || ['formal', 'consumer', 'aggressive'],
+              singleTone: params.singleTone || false
+            }
+          );
+          
+          console.log('✅ Letter generation result:', result.success ? `${result.letterCount} letters` : 'FAILED');
+          return result;
+        } catch (error) {
+          console.error('❌ generateDisputeLetters error:', error);
+          return { success: false, error: error.message };
+        }
+      }
+
+      // ═════════════════════════════════════════════════════════════════════
+      // NEW v3.0: DISPUTE ROUND ASSIGNMENT
+      // ═════════════════════════════════════════════════════════════════════
+      // Assigns disputes to rounds based on priority and score impact.
+      // Called from frontend: aiContentGenerator({ type: 'assignDisputeRounds', contactId, maxPerRound: 7 })
+      // ═════════════════════════════════════════════════════════════════════
+      if (type === 'assignDisputeRounds') {
+        console.log('📅 Round Assignment triggered for:', params.contactId);
+        
+        if (!params.contactId) {
+          return { success: false, error: 'contactId is required' };
+        }
+        
+        try {
+          const disputePopulationService = require('./disputePopulationService');
+          const result = await disputePopulationService.assignDisputeRounds(
+            params.contactId,
+            { maxPerRound: params.maxPerRound || 7 }
+          );
+          
+          console.log('✅ Round assignment result:', result.success ? `${result.totalRounds} rounds` : 'FAILED');
+          return result;
+        } catch (error) {
+          console.error('❌ assignDisputeRounds error:', error);
+          return { success: false, error: error.message };
+        }
+      }
+
+      // ═════════════════════════════════════════════════════════════════════
+      // NEW v3.0: GET DISPUTE LETTERS
+      // ═════════════════════════════════════════════════════════════════════
+      // Retrieves generated letters, with optional filters.
+      // Called from frontend: aiContentGenerator({ type: 'getDisputeLetters', contactId, round: 1, tone: 'formal' })
+      // ═════════════════════════════════════════════════════════════════════
+      if (type === 'getDisputeLetters') {
+        console.log('📄 Get Dispute Letters for:', params.contactId);
+        
+        if (!params.contactId) {
+          return { success: false, error: 'contactId is required' };
+        }
+        
+        try {
+          const disputePopulationService = require('./disputePopulationService');
+          const result = await disputePopulationService.getDisputeLetters(
+            params.contactId,
+            {
+              disputeId: params.disputeId || null,
+              round: params.round || null,
+              tone: params.tone || null,
+              status: params.status || null
+            }
+          );
+          
+          return result;
+        } catch (error) {
+          console.error('❌ getDisputeLetters error:', error);
+          return { success: false, error: error.message };
+        }
+      }
+
+      // ═════════════════════════════════════════════════════════════════════
+      // NEW v3.0: FULL DISPUTE PIPELINE (ALL-IN-ONE)
+      // ═════════════════════════════════════════════════════════════════════
+      // Runs the complete pipeline: populate → strategy → round assignment → letters
+      // This is the "one-click" function for the enrollment flow.
+      // Called from frontend: aiContentGenerator({ type: 'runFullDisputePipeline', contactId })
+      // ═════════════════════════════════════════════════════════════════════
+      if (type === 'runFullDisputePipeline') {
+        console.log('🚀 FULL DISPUTE PIPELINE triggered for:', params.contactId);
+        
+        if (!params.contactId) {
+          return { success: false, error: 'contactId is required' };
+        }
+        
+        const pipelineResults = {
+          populate: null,
+          strategy: null,
+          letters: null,
+          success: false,
+          contactId: params.contactId
+        };
+        
+        try {
+          const disputePopulationService = require('./disputePopulationService');
+          
+          // ═════ STEP 1: Populate disputes from credit report ═════
+          console.log('🔍 Pipeline Step 1/3: Populating disputes...');
+          pipelineResults.populate = await disputePopulationService.populateDisputesFromIDIQ(params.contactId);
+          
+          if (!pipelineResults.populate.success) {
+            console.log('⚠️ Population failed, but continuing with existing disputes...');
+          }
+          
+          // ═════ STEP 2: Generate AI strategy ═════
+          console.log('🧠 Pipeline Step 2/3: Generating AI strategy...');
+          pipelineResults.strategy = await disputePopulationService.generateDisputeStrategy(
+            params.contactId,
+            openaiApiKey.value()
+          );
+          
+          // ═════ STEP 3: Generate Round 1 letters ═════
+          if (pipelineResults.strategy.success) {
+            console.log('📝 Pipeline Step 3/3: Generating Round 1 letters...');
+            pipelineResults.letters = await disputePopulationService.generateDisputeLetters(
+              params.contactId,
+              1, // Round 1 only
+              openaiApiKey.value(),
+              { singleTone: false } // Generate all 3 tones
+            );
+          } else {
+            console.log('⚠️ Strategy failed, skipping letter generation');
+            pipelineResults.letters = { success: false, error: 'Strategy generation failed' };
+          }
+          
+          pipelineResults.success = true;
+          pipelineResults.message = `Pipeline complete: ${pipelineResults.populate?.disputeCount || 0} disputes, ${pipelineResults.strategy?.plan?.totalRounds || 0} rounds, ${pipelineResults.letters?.letterCount || 0} letters`;
+          
+          console.log('═══════════════════════════════════════════════════════════════');
+          console.log('✅ FULL DISPUTE PIPELINE COMPLETE');
+          console.log('   Disputes:', pipelineResults.populate?.disputeCount || 0);
+          console.log('   Strategy:', pipelineResults.strategy?.success ? 'Generated' : 'Failed');
+          console.log('   Letters:', pipelineResults.letters?.letterCount || 0);
+          console.log('═══════════════════════════════════════════════════════════════');
+          
+          return pipelineResults;
+          
+        } catch (error) {
+          console.error('❌ Full pipeline error:', error);
+          pipelineResults.error = error.message;
+          return pipelineResults;
+        }
+      }
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// END OF NEW CASE BLOCKS
+// ═══════════════════════════════════════════════════════════════════════════
+// The existing line "// ===== All other content types use the regular OpenAI flow =====" 
+// should come AFTER all of the above.
+// ═══════════════════════════════════════════════════════════════════════════
       
       // ===== All other content types use the regular OpenAI flow =====
       const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {

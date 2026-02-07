@@ -2711,29 +2711,62 @@ const finalizeEnrollment = async () => {
       }
     }
 
-    // Populate DisputeHub with negative items
-    if (creditReport?.negativeItems) {
-      try {
-        for (const item of creditReport.negativeItems) {
-          await addDoc(collection(db, 'disputes'), {
-            contactId,
-            type: item.type,
-            creditor: item.creditor,
-            amount: item.amount,
-            date: item.date,
-            bureau: item.bureau,
-            status: 'pending',
-            priority: 'high',
-            createdAt: serverTimestamp(),
-          });
-        }
+    // ═════ AI DISPUTE PIPELINE - RIVAL-FREE SYSTEM ═════
+    // Instead of a simple loop, we now trigger the full AI dispute pipeline:
+    // 1. populateDisputes: Parses credit report, creates dispute docs with strategy templates
+    // 2. generateDisputeStrategy: AI analyzes all items and assigns strategies + rounds
+    // 3. generateDisputeLetters: AI generates 3 letter tones for Round 1 items
+    // This runs server-side via aiContentGenerator Cloud Function.
+    // Non-blocking — enrollment completes even if pipeline has issues.
+    try {
+      console.log('🚀 Triggering AI Dispute Pipeline...');
+      
+      const aiContentGenerator = httpsCallable(functions, 'aiContentGenerator');
+      
+      const pipelineResult = await aiContentGenerator({
+        type: 'runFullDisputePipeline',
+        contactId: contactId
+      });
+      
+      console.log('✅ Dispute Pipeline result:', pipelineResult.data);
+      
+      if (pipelineResult.data?.success) {
+        const disputeCount = pipelineResult.data.populate?.disputeCount || 0;
+        const letterCount = pipelineResult.data.letters?.letterCount || 0;
+        const totalRounds = pipelineResult.data.strategy?.plan?.totalRounds || 0;
         
-        await logInteraction('disputes_created', {
-          description: `Created ${creditReport.negativeItems.length} dispute items`,
-          count: creditReport.negativeItems.length
+        await logInteraction('dispute_pipeline_complete', {
+          description: `AI Dispute Pipeline: ${disputeCount} disputes identified, ${totalRounds} rounds planned, ${letterCount} letters generated`,
+          disputeCount,
+          letterCount,
+          totalRounds,
+          strategyId: pipelineResult.data.strategy?.strategyId || null
         });
-      } catch (err) {
-        console.error('Failed to populate disputes:', err);
+        
+        console.log(`🎉 Pipeline: ${disputeCount} disputes, ${totalRounds} rounds, ${letterCount} letters`);
+      } else {
+        // Pipeline had issues but enrollment still succeeded
+        console.warn('⚠️ Dispute pipeline incomplete:', pipelineResult.data?.error || 'Unknown');
+        
+        await logInteraction('dispute_pipeline_partial', {
+          description: 'Dispute pipeline completed with issues - manual review needed',
+          error: pipelineResult.data?.error || 'Unknown',
+          populateSuccess: pipelineResult.data?.populate?.success || false,
+          strategySuccess: pipelineResult.data?.strategy?.success || false,
+          lettersSuccess: pipelineResult.data?.letters?.success || false
+        });
+      }
+    } catch (pipelineErr) {
+      // Non-blocking — enrollment already succeeded, pipeline is a bonus
+      console.error('⚠️ Dispute pipeline error (non-blocking):', pipelineErr);
+      
+      try {
+        await logInteraction('dispute_pipeline_error', {
+          description: 'AI Dispute Pipeline failed - manual review needed',
+          error: pipelineErr.message || 'Unknown error'
+        });
+      } catch (logErr) {
+        console.error('Failed to log pipeline error:', logErr);
       }
     }
 
@@ -2791,7 +2824,15 @@ YOUR CREDIT SNAPSHOT
 
 Current Score: ${confirmCreditScore}
 Negative Items Found: ${negativeCount}
-${negativeCount > 0 ? 'Our team is already preparing your dispute strategy to address these items.' : 'Great news - your credit report looks clean!'}
+${negativeCount > 0 ? `Our AI-powered dispute system has already analyzed these items and is preparing personalized dispute letters for each bureau. Your first round of disputes will be ready within 24 hours.
+
+Here is what our system found:
+- ${negativeCount} items identified for dispute
+- Legal basis established for each item (FCRA/FDCPA)
+- Dispute letters being generated in multiple formats
+- Strategic round plan created to maximize your score improvement
+
+Your dedicated credit analyst will review everything before any letters are sent.` : 'Great news - your credit report looks clean! We will continue monitoring for any changes.'}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 WHAT HAPPENS NEXT
