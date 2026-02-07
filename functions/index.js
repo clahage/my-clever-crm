@@ -3863,7 +3863,7 @@ exports.processAbandonmentEmails = onSchedule(
 exports.aiContentGenerator = onCall(
   {
     memory: '1024MiB',
-    timeoutSeconds: 120,
+    timeoutSeconds: 540,
     maxInstances: 5,
     secrets: [openaiApiKey]
   },
@@ -4056,7 +4056,7 @@ exports.aiContentGenerator = onCall(
               params.contactId,
               1, // Round 1 only
               openaiApiKey.value(),
-              { singleTone: false } // Generate all 3 tones
+              { singleTone: true } // Generate AI-recommended tone only (faster)
             );
           } else {
             console.log('⚠️ Strategy failed, skipping letter generation');

@@ -1,5 +1,7 @@
+// src/App.jsx - Speedy Credit Repair CRM Complete Application Router
+// VERSION: 3.1 - HYBRID HUB ARCHITECTURE + ENROLLMENT WRAPPER
+// LAST UPDATED: 2026-01-21 - Added CompleteEnrollmentWrapper for URL params
 import React, { lazy, Suspense } from 'react';
-const AdminDashboard = lazy(() => import('@/pages/AdminDashboard'));
 import { BrowserRouter, Routes, Route, Navigate, useSearchParams } from 'react-router-dom';
 import EmailWorkflowDashboard from './components/EmailWorkflowDashboard';
 import { Toaster } from 'react-hot-toast';
@@ -9,16 +11,15 @@ import { NotificationProvider } from '@/contexts/NotificationContext';
 import ProtectedLayout from '@/layout/ProtectedLayout';
 import Products from '@/pages/Products';
 import ServicePlanSelector from '@/components/client/ServicePlanSelector';
-const ServicePlanRecommenderPage = lazy(() => import('@/pages/ServicePlanRecommender'));
-// src/App.jsx - Speedy Credit Repair CRM Complete Application Router
-// VERSION: 3.1 - HYBRID HUB ARCHITECTURE + ENROLLMENT WRAPPER
-// LAST UPDATED: 2026-01-21 - Added CompleteEnrollmentWrapper for URL params
 import ContractStatusTracker from '@/components/common/ContractStatusTracker';
 import PricingCalculatorCommon from '@/components/common/PricingCalculator';
 import IDIQEnrollmentWizard from "./components/idiq/IDIQEnrollmentWizard.jsx"
 import FinancialPlanningHub from './pages/hubs/FinancialPlanningHub.jsx';
 import TradelineHub from './pages/hubs/TradelineHub.jsx';
 import PublicEnrollmentRoute from '@/routes/PublicEnrollmentRoute';
+
+const AdminDashboard = lazy(() => import('@/pages/AdminDashboard'));
+const ServicePlanRecommenderPage = lazy(() => import('@/pages/ServicePlanRecommender'));
 
 // ============================================================================
 // LOADING COMPONENT
@@ -1667,7 +1668,7 @@ function App() {
               />
               <Suspense fallback={<LoadingFallback />}>
                 <AppContent />
-              </Suspense>
+                              </Suspense>
             </NotificationProvider>
           </AuthProvider>
         </ThemeProvider>

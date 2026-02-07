@@ -1385,10 +1385,11 @@ async function populateDisputesFromUpload(contactId, fileUrl, fileType = 'auto')
     };
   }
 }
+
 // ═══════════════════════════════════════════════════════════════════════════
 // FCRA/FDCPA LEGAL BASIS DATABASE
 // ═══════════════════════════════════════════════════════════════════════════
-// Christopher's 30 years of credit repair expertise encoded here.
+// Christopher's 30+ years of credit repair expertise encoded here.
 // These are the REAL legal citations used in professional credit repair.
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -1829,7 +1830,7 @@ async function generateDisputeLetters(contactId, round, openaiApiKey, options = 
               legalCitations: letter.legalCitations || [],
               creditorName: dispute.creditorName,
               accountNumber: dispute.accountNumber,
-              category: dispute.category,
+              category: dispute.category || 'other',
               status: 'draft',
               approved: false,
               sentAt: null,
@@ -1850,7 +1851,7 @@ async function generateDisputeLetters(contactId, round, openaiApiKey, options = 
       // Update dispute to track letter generation
       await db.collection('disputes').doc(dispute.id).update({
         lettersGenerated: true,
-        letterCount: (dispute.bureaus || []).length * tonesToGen.length,
+        letterCount: letterCount,
         stage: 'letters_generated',
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       });
