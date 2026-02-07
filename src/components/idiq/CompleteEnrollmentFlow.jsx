@@ -549,6 +549,7 @@ const CompleteEnrollmentFlow = ({
 
   // Contact/Lead data
   const [contactId, setContactId] = useState(null);
+  const [enrollmentToken, setEnrollmentToken] = useState(null);
   const [formData, setFormData] = useState({
     firstName: '',
     middleName: '',
@@ -591,6 +592,12 @@ phone: initialData.phone || prev.phone,
 // If initialData includes a contactId, set it
 if (initialData.contactId) {
 setContactId(initialData.contactId);
+}
+// If initialData includes an enrollment token (from PublicEnrollmentRoute), store it
+// This is used to call markTokenUsed after Phase 1 submit succeeds
+if (initialData.enrollmentToken) {
+setEnrollmentToken(initialData.enrollmentToken);
+console.log('🔑 Enrollment token stored from initialData');
 }
 }
 }, [initialData]);
@@ -1581,6 +1588,23 @@ const [creditAnalysisError, setCreditAnalysisError] = useState(null);
         mode: isCRMMode ? 'crm' : 'public',
       });
 
+      // ===== MARK TOKEN AS USED (prevents reuse of enrollment link) =====
+      // Only runs for public flow where enrollmentToken was passed via initialData
+      // Uses the operationsManager already declared at top of component
+      if (enrollmentToken && contactId) {
+        try {
+          await operationsManager({
+            action: 'markTokenUsed',
+            token: enrollmentToken,
+            contactId: contactId
+          });
+          console.log('✅ Enrollment token marked as used');
+        } catch (tokenErr) {
+          // Non-blocking: if this fails, enrollment still continues
+          console.warn('⚠️ Failed to mark token as used (non-blocking):', tokenErr.message);
+        }
+      }
+
       setCurrentPhase(2);
       startCreditAnalysis();
 
@@ -1794,17 +1818,17 @@ const [creditAnalysisError, setCreditAnalysisError] = useState(null);
         
         await logInteraction('idiq_enrollment_completed', {
           description: 'IDIQ enrollment completed successfully without verification',
-          enrollmentId: response.data.enrollmentId,
-          membershipNumber: response.data.membershipNumber,
-          creditScore: resData.vantageScore || resData.score,
-          plan: selectedPlan,
+          enrollmentId: response.data.enrollmentId || null,
+          membershipNumber: response.data.membershipNumber || null,
+          creditScore: resData.vantageScore || resData.score || null,
+          plan: selectedPlan || null,
           verificationRequired: false
         });
         
         // ===== UPDATE WORKFLOW STAGE =====
         await updateContactWorkflowStage(contactId, WORKFLOW_STAGES.CREDIT_REPORT_PULLED, {
-          idiqMemberId: response.data.membershipNumber,
-          creditScore: resData.vantageScore || resData.score
+          idiqMemberId: response.data.membershipNumber || null,
+          creditScore: resData.vantageScore || resData.score || null
         });
         
         console.log('✅ IDIQ enrollment status updated (no verification)');
@@ -1813,13 +1837,14 @@ const [creditAnalysisError, setCreditAnalysisError] = useState(null);
       }
       
       // ===== TRIGGER CREDIT ANALYSIS AUTOMATION =====
+      // All fields use || null to prevent Firebase "Unsupported field value: undefined" errors
       await handleCreditAnalysis({
-        memberToken: response.data.memberToken,
-        idiqMemberToken: response.data.memberToken,
-        membershipNumber: response.data.membershipNumber,
-        idiqMembershipNumber: response.data.membershipNumber,
-        enrollmentId: response.data.enrollmentId,
-        creditScore: resData.vantageScore || resData.score,
+        memberToken: response.data.memberToken || null,
+        idiqMemberToken: response.data.memberToken || null,
+        membershipNumber: response.data.membershipNumber || null,
+        idiqMembershipNumber: response.data.membershipNumber || null,
+        enrollmentId: response.data.enrollmentId || null,
+        creditScore: resData.vantageScore || resData.score || null,
         ...response.data
       });
       
@@ -1980,10 +2005,10 @@ const submitVerificationAnswers = async () => {
         
         await logInteraction('idiq_enrollment_completed', {
           description: 'IDIQ enrollment completed successfully with verification',
-          enrollmentId: enrollmentId,
-          membershipNumber: membershipNumber || response.data.membershipNumber,
-          creditScore: resData.vantageScore || resData.score,
-          plan: selectedPlan,
+          enrollmentId: enrollmentId || null,
+          membershipNumber: membershipNumber || response.data.membershipNumber || null,
+          creditScore: resData.vantageScore || resData.score || null,
+          plan: selectedPlan || null,
           verificationRequired: true
         });
 

@@ -301,7 +301,8 @@ export default function PublicEnrollmentRoute() {
           lastName: contactData.lastName,
           email: contactData.email,
           phone: contactData.phone,
-          contactId: contactData.id
+          contactId: contactData.id,
+          enrollmentToken: token,  // Passes URL token so CompleteEnrollmentFlow can call markTokenUsed after Phase 1
         }}
         onComplete={handleEnrollmentComplete}
       />
