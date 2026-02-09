@@ -18,7 +18,7 @@
 //   6. Specialty Services (mortgage readiness, identity theft, etc.)
 // ============================================================
 
-import { CONSULTATION_RATES } from './servicePlans';
+import { CONSULTATION_RATES } from '@/constants/servicePlans';
 
 // ============================================================
 // LETTER SERVICES
@@ -498,7 +498,7 @@ export const getServicesForPlan = (planId) => {
 // Imported from servicePlans.js but re-exported here for
 // convenience when working with à la carte services.
 // ============================================================
-import { getConsultationPrice as getConsultationPriceForPlan } from './servicePlans';
+import { getConsultationPrice as getConsultationPriceForPlan } from '@/constants/servicePlans';
 export { getConsultationPriceForPlan };
 
 

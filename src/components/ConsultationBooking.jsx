@@ -64,7 +64,7 @@ import {
   getConsultationPrice,
   formatPrice,
   SERVICE_PLANS,
-} from '../../constants/servicePlans';
+} from '@/constants/servicePlans';
 
 // ============================================================
 // TIER VISUAL CONFIG

@@ -10,7 +10,7 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import ProtectedLayout from '@/layout/ProtectedLayout';
 import Products from '@/pages/Products';
-import ServicePlanSelector from '../components/ServicePlanSelector';
+import ServicePlanSelector from '@/components/ServicePlanSelector';
 import ContractStatusTracker from '@/components/common/ContractStatusTracker';
 import PricingCalculatorCommon from '@/components/common/PricingCalculator';
 import IDIQEnrollmentWizard from "./components/idiq/IDIQEnrollmentWizard.jsx"

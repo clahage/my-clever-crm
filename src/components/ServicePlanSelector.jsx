@@ -59,7 +59,7 @@ import {
   COUPLES_DISCOUNT,
   getActivePlans,
   formatPrice,
-} from '../../constants/servicePlans';
+} from '@/constants/servicePlans';
 
 // ============================================================
 // PLAN CARD ICONS

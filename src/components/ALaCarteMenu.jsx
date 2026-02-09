@@ -94,14 +94,14 @@ import {
   TRADELINE_DISCLOSURE,
   UPSELL_TRIGGERS,
   getServicesForPlan,
-} from '../../constants/aLaCarteServices';
+} from '@/constants/aLaCarteServices';
 
 import {
   SERVICE_PLANS,
   CONSULTATION_RATES,
   getConsultationPrice,
   formatPrice,
-} from '../../constants/servicePlans';
+} from '@/constants/servicePlans';
 
 // ============================================================
 // CATEGORY CONFIG — Icons, labels, display order
