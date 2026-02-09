@@ -21,6 +21,7 @@ import {
 } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db } from '../lib/firebase';
+import { updateContactWorkflowStage, WORKFLOW_STAGES } from '@/services/workflowRouterService';
 import { useAuth } from '../contexts/AuthContext';
 import { format } from 'date-fns';
 import SignatureCanvas from 'react-signature-canvas';
@@ -645,16 +646,32 @@ const ACHAuthorization = () => {
           roles: ['contact', 'client'],
           clientSince: serverTimestamp(),
           pipelineStage: 'active-client',
-          workflowStage: 9, // ACH_AUTHORIZED stage
           updatedAt: serverTimestamp()
         });
         console.log('✅ ACH Authorized - Contact converted to client');
+
+        // ===== UPDATE WORKFLOW STAGE =====
+        try {
+          await updateContactWorkflowStage(contactIdFromUrl, WORKFLOW_STAGES.ACH_AUTHORIZED, {
+            authorizationId: authRef.id,
+            paymentMethod: authData.paymentMethod,
+            authorizedAt: new Date().toISOString()
+          });
+          console.log('✅ Workflow stage updated to ACH_AUTHORIZED');
+        } catch (wfErr) {
+          console.warn('⚠️ Workflow update failed (non-critical):', wfErr);
+        }
       }
 
       showSnackbar('Payment authorization submitted successfully!', 'success');
       
+      // ===== NAVIGATE TO CLIENT PORTAL =====
       setTimeout(() => {
-        loadAuthorizations();
+        if (contactIdFromUrl) {
+          navigate('/client-portal');
+        } else {
+          loadAuthorizations();
+        }
       }, 2000);
       
     } catch (error) {

@@ -689,7 +689,7 @@ export default function ContractSigningPortal({ contractId: propContractId, onCo
       setContract(contractData);
 
       // Load plan configuration
-      const planId = contractData.planId || contactData.selectedPlan || 'professional';
+      const planId = contractData.planId || contactData.selectedPlan || 'standard';
       const plansQuery = query(collection(db, 'servicePlans'), where('id', '==', planId), limit(1));
       const plansSnap = await getDocs(plansQuery);
 
@@ -697,7 +697,7 @@ export default function ContractSigningPortal({ contractId: propContractId, onCo
       if (!plansSnap.empty) {
         selectedPlan = plansSnap.docs[0].data();
       } else {
-        selectedPlan = { id: 'professional', name: 'Professional', monthlyPrice: 149, setupFee: 0 };
+        selectedPlan = { id: 'standard', name: 'Standard Plan', monthlyPrice: 149, setupFee: 99 };
       }
 
       setPlanConfig(selectedPlan);
@@ -1083,7 +1083,7 @@ export default function ContractSigningPortal({ contractId: propContractId, onCo
       }
 
       setTimeout(() => {
-        navigate(`/portal/documents?contactId=${contact.id}`);
+        navigate(`/ach-authorization/${contact.id}`);
       }, 3000);
 
     } catch (err) {

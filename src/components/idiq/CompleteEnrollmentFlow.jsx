@@ -444,53 +444,31 @@ const US_STATES = [
 
 const SERVICE_PLANS = [
   {
-    id: 'diy',
-    name: 'DIY Credit Repair',
-    price: 39,
-    description: 'Tools & templates for self-repair',
-    features: ['Dispute Letter Templates', 'Credit Education Portal', 'Email Support', 'Monthly Score Updates'],
+    id: 'essentials',
+    name: 'Essentials',
+    price: 79,
+    setupFee: 49,
+    description: 'Take control of your credit with AI-powered tools',
+    features: ['AI Credit Analysis & Strategy', 'Dispute Letter Templates', 'Client Portal & Progress Tracking', 'Email Support (24-48hr)'],
     popular: false,
   },
   {
-    id: 'standard',
-    name: 'Standard',
+    id: 'professional',
+    name: 'Professional',
     price: 149,
-    description: 'Our most popular plan',
-    features: ['Everything in DIY', '6 Disputes/Month', 'Priority Support', 'Weekly Reports', 'AI Recommendations'],
+    setupFee: 0,
+    perDeletion: 25,
+    description: 'We handle everything for you',
+    features: ['Full-Service Disputes (mail + fax)', 'Dedicated Account Manager', 'Phone + Email Support', 'Monthly AI Analysis', '$25/item deleted/bureau'],
     popular: true,
   },
   {
-    id: 'acceleration',
-    name: 'Acceleration',
-    price: 199,
-    description: 'Faster results, more disputes',
-    features: ['Everything in Standard', '12 Disputes/Month', 'Dedicated Analyst', 'Bi-Weekly Calls', 'Rush Processing'],
-    popular: false,
-  },
-  {
-    id: 'premium',
-    name: 'VIP Premium',
-    price: 349,
-    description: 'Maximum results, fastest timeline',
-    features: ['Everything in Acceleration', 'Unlimited Disputes', '24/7 Phone Support', 'Daily Monitoring', 'Personal Advisor', 'Credit Building Tools'],
-    popular: false,
-  },
-  {
-    id: 'hybrid',
-    name: 'Hybrid',
-    price: 99,
-    description: 'Mix of DIY + professional help',
-    features: ['DIY Tools', '3 Professional Disputes/Month', 'Monthly Strategy Call', 'Email Support'],
-    popular: false,
-  },
-  {
-    id: 'payfordelete',
-    name: 'Pay-For-Delete',
-    price: 0,
-    setupFee: 99,
-    deletionFee: 149,
-    description: 'Only pay when items are removed',
-    features: ['$99 Setup Fee', '$149 Per Deletion', 'No Monthly Fee', 'Results-Based Pricing'],
+    id: 'vip',
+    name: 'VIP Concierge',
+    price: 299,
+    setupFee: 0,
+    description: 'Maximum results, maximum speed',
+    features: ['Everything in Professional', 'Bi-Weekly Cycles (2x faster)', 'ALL Deletion Fees Included', '90-Day Guarantee', 'Direct Cell Access', 'Weekly Reports'],
     popular: false,
   },
 ];
@@ -621,7 +599,7 @@ const [analysisProgress, setAnalysisProgress] = useState(0);
   const [signatureData, setSignatureData] = useState(null);
 
   // Plan & Payment
-  const [selectedPlan, setSelectedPlan] = useState('standard');
+  const [selectedPlan, setSelectedPlan] = useState('professional');
   const [paymentComplete, setPaymentComplete] = useState(false);
   const [showPaymentOptions, setShowPaymentOptions] = useState(false);
 
@@ -795,7 +773,7 @@ const [creditAnalysisError, setCreditAnalysisError] = useState(null);
       setCurrentPhase(recoveryData.currentPhase || 1);
       setContactId(recoveryData.contactId || null);
       setCreditReport(recoveryData.creditReport || null);
-      setSelectedPlan(recoveryData.selectedPlan || 'standard');
+      setSelectedPlan(recoveryData.selectedPlan || 'professional');
       setIdPhotoUrl(recoveryData.idPhotoUrl || null);
       setUtilityPhotoUrl(recoveryData.utilityPhotoUrl || null);
       setSignatureData(recoveryData.signatureData || null);
@@ -893,7 +871,7 @@ const [creditAnalysisError, setCreditAnalysisError] = useState(null);
               },
               currentPhase: progress.currentPhase,
               contactId: contactId,
-              selectedPlan: progress.selectedPlan || 'standard',
+              selectedPlan: progress.selectedPlan || 'professional',
               enrollmentId: progress.enrollmentId || null,
               membershipNumber: progress.membershipNumber || null,
               savedAt: progress.abandonedAt || new Date().toISOString(),
@@ -2777,15 +2755,12 @@ const finalizeEnrollment = async () => {
       console.log('📧 Sending enrollment confirmation email...');
       
       const planNames = {
-        'diy': 'DIY ($39/mo)',
-        'standard': 'Standard ($149/mo)',
-        'acceleration': 'Acceleration ($199/mo)',
-        'pay-for-delete': 'Pay-For-Delete',
-        'hybrid': 'Hybrid ($99/mo)',
-        'premium': 'Premium ($349/mo)'
+        'essentials': 'Essentials ($79/mo)',
+        'professional': 'Professional ($149/mo)',
+        'vip': 'VIP Concierge ($299/mo)'
       };
       
-      const selectedPlanName = planNames[selectedPlan] || selectedPlan || 'Standard';
+      const selectedPlanName = planNames[selectedPlan] || selectedPlan || 'Professional';
       const confirmCreditScore = creditReport?.vantageScore || 'Pending';
       const negativeCount = creditReport?.negativeItems?.length || 0;
       
