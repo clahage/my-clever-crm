@@ -50,6 +50,7 @@ const gmailReplyTo = defineSecret('GMAIL_REPLY_TO');
 const openaiApiKey = defineSecret('OPENAI_API_KEY');
 const telnyxApiKey = defineSecret('TELNYX_API_KEY');
 const telnyxPhone = defineSecret('TELNYX_PHONE');
+const telnyxSmsPhone = defineSecret('TELNYX_SMS_PHONE');
 
 // Other Secrets
 const docusignAccountId = defineSecret('DOCUSIGN_ACCOUNT_ID');
@@ -64,95 +65,115 @@ const defaultConfig = {
   maxInstances: 10
 };
 
-// ============================================
-// SERVICE PLAN DEFINITIONS (Used by recommendServicePlan)
-// ============================================
-// These are the ACTUAL service plans offered by Speedy Credit Repair
-// DO NOT change without updating ServicePlanRecommender.jsx
+// ============================================================
+// NEW 3-PLAN SERVICE_PLANS_CONFIG
+// ============================================================
+// Replace your existing SERVICE_PLANS_CONFIG in functions/index.js
+// with this. Search for "SERVICE_PLANS_CONFIG" and swap the
+// entire object.
+//
+// No legacy mapping needed — this is a fresh system.
+// ============================================================
+
 const SERVICE_PLANS_CONFIG = {
-  DIY: {
-    id: 'diy',
-    name: 'DIY Credit Repair',
-    tagline: 'Learn to repair your own credit',
-    monthlyPrice: 39,
-    setupFee: 0,
+  ESSENTIALS: {
+    id: 'essentials',
+    name: 'Essentials',
+    tagline: 'Take Control of Your Credit',
+    monthlyPrice: 79,
+    setupFee: 49,
     perDeletion: 0,
-    timeline: '6-12 months',
-    successRate: '45%',
-    avgPointIncrease: '40-60 points',
-    effortRequired: 'High (10+ hours/month)',
-    idealFor: ['Self-motivated individuals', 'Budget-conscious consumers', 'Simple credit issues'],
-    keyFeatures: ['Dispute letter templates', 'Educational video library', 'Email support', 'Progress tracking']
+    timeline: '3-9 months (self-paced)',
+    successRate: '55% (client-driven)',
+    avgPointIncrease: '40-80 points',
+    effortRequired: 'High (client does the work)',
+    idealFor: [
+      'Self-motivated individuals',
+      'Minor credit issues (1-5 items)',
+      'Budget-conscious clients',
+      'DIY mindset with expert tools'
+    ],
+    keyFeatures: [
+      'AI-powered credit analysis & dispute strategy',
+      'Professional dispute letter templates (AI-populated)',
+      'Step-by-step video guides',
+      'Client portal with progress tracking',
+      'Monthly AI strategy refresh',
+      'Credit education library',
+      'Email support (24-48hr response)',
+      'Secured card recommendations'
+    ],
+    disputeMethod: 'Client sends (mail). Fax available à la carte ($10/letter).',
+    consultationRate: 'Full price ($85/20min, $155/40min, $210/60min)'
   },
-  STANDARD: {
-    id: 'standard',
-    name: 'Standard Service',
-    tagline: 'Professional credit repair service',
+  PROFESSIONAL: {
+    id: 'professional',
+    name: 'Professional',
+    tagline: 'We Handle Everything For You',
     monthlyPrice: 149,
     setupFee: 0,
     perDeletion: 25,
-    timeline: '4-6 months',
-    successRate: '73%',
-    avgPointIncrease: '80-120 points',
-    effortRequired: 'Low (30 min/month)',
-    idealFor: ['Most consumers', 'Multiple negative items', 'Busy professionals'],
-    keyFeatures: ['Unlimited disputes', 'All 3 bureaus', 'Dedicated account manager', 'Phone & email support', 'Credit monitoring']
-  },
-  ACCELERATION: {
-    id: 'acceleration',
-    name: 'Acceleration Plus',
-    tagline: 'Fast-track credit restoration',
-    monthlyPrice: 199,
-    setupFee: 0,
-    perDeletion: 0,
-    timeline: '2-4 months',
-    successRate: '85%',
-    avgPointIncrease: '120-180 points',
-    effortRequired: 'Minimal (15 min/month)',
-    idealFor: ['Urgent credit needs', 'Home buyers', 'Auto loan seekers', 'Business loan applicants'],
-    keyFeatures: ['Everything in Standard', 'Expedited processing', 'Weekly updates', 'All 3 bureau monitoring', 'Legal team consultations', 'Score simulator']
-  },
-  PFD: {
-    id: 'pfd',
-    name: 'Pay-for-Deletion',
-    tagline: 'Risk-free, pay only for results',
-    monthlyPrice: 0,
-    setupFee: 199,
-    perDeletion: 75,
-    timeline: '3-6 months',
-    successRate: '100% (pay for results only)',
-    avgPointIncrease: 'Varies by deletions',
-    effortRequired: 'Low',
-    idealFor: ['Risk-averse consumers', 'Limited negative items', 'Previous repair failures'],
-    keyFeatures: ['No monthly fees', 'Pay only for deletions', 'All 3 bureaus', 'Unlimited disputes', 'Deletion verification']
-  },
-  HYBRID: {
-    id: 'hybrid',
-    name: 'Hybrid AI Solution',
-    tagline: 'AI-powered with human oversight',
-    monthlyPrice: 99,
-    setupFee: 0,
-    perDeletion: 0,
-    timeline: '3-5 months',
-    successRate: '70%',
-    avgPointIncrease: '70-110 points',
-    effortRequired: 'Low (app-based)',
-    idealFor: ['Tech-savvy consumers', 'Moderate credit issues', 'Budget + automation'],
-    keyFeatures: ['AI dispute generation', 'Smart document analysis', 'Automated submissions', 'Human review monthly', 'Mobile app access']
-  },
-  PREMIUM: {
-    id: 'premium',
-    name: 'Premium White Glove',
-    tagline: 'Concierge credit restoration',
-    monthlyPrice: 349,
-    setupFee: 0,
-    perDeletion: 0,
-    timeline: '45-90 days',
-    successRate: '95%',
-    avgPointIncrease: '150-250 points',
+    timeline: '4-8 months',
+    successRate: '82%',
+    avgPointIncrease: '80-150 points',
     effortRequired: 'Zero (full service)',
-    idealFor: ['Executives & professionals', 'Complex credit situations', 'Maximum speed needed'],
-    keyFeatures: ['Everything in Acceleration', 'Dedicated senior specialist', 'Daily updates', 'Attorney-backed disputes', 'Creditor negotiations', 'Spouse included free']
+    idealFor: [
+      'Typical credit repair client',
+      'Moderate-to-complex cases (5-15+ items)',
+      'Wants professional help without lifting a finger',
+      'Best overall value'
+    ],
+    keyFeatures: [
+      'Full-service dispute management (we write, send, track)',
+      'Unlimited dispute letters (mail + fax)',
+      'Selective certified mail for legally significant items',
+      'Unlimited phone consultations (20% off)',
+      'Creditor intervention & negotiation',
+      'Debt validation requests',
+      'Goodwill & cease-and-desist letters',
+      '30-day bureau response letters',
+      'Monthly credit report refresh & AI analysis',
+      'Dedicated account manager',
+      'Same-day email + phone support',
+      '$25 per item successfully deleted per bureau'
+    ],
+    disputeMethod: 'We send via mail + fax. Certified when warranted.',
+    consultationRate: '20% off ($68/20min, $124/40min, $168/60min)'
+  },
+  VIP: {
+    id: 'vip',
+    name: 'VIP Concierge',
+    tagline: 'Maximum Results, Maximum Speed',
+    monthlyPrice: 299,
+    setupFee: 0,
+    perDeletion: 0,
+    timeline: '2-5 months (accelerated)',
+    successRate: '95%',
+    avgPointIncrease: '120-250 points',
+    effortRequired: 'Zero (white glove)',
+    idealFor: [
+      'Complex cases (15+ negative items)',
+      'Urgency (home purchase, job requirement)',
+      'Maximum speed needed',
+      'Want zero surprise charges'
+    ],
+    keyFeatures: [
+      'Everything in Professional',
+      'Bi-weekly dispute cycles (2x faster)',
+      'ALL deletion fees INCLUDED ($0 per-item)',
+      'Direct-to-creditor escalation campaigns',
+      'Aggressive multi-round goodwill campaigns',
+      'Weekly progress reports',
+      'Priority queue processing',
+      'Full credit rebuilding strategy',
+      '90-day money-back guarantee',
+      'Direct cell phone access to senior specialist',
+      '20 min/month expert consultation included',
+      '15% off tradeline rentals',
+      'Senior specialist assigned (not rotated)'
+    ],
+    disputeMethod: 'We send via mail + fax. Certified when warranted. Priority processing.',
+    consultationRate: '20 min/mo included, then 20% off ($68/20min, $124/40min, $168/60min)'
   }
 };
 
@@ -867,7 +888,7 @@ exports.onContactUpdated = onDocumentUpdated(
     ...defaultConfig,
     memory: '1GiB',
     timeoutSeconds: 540,  // 9 minutes for enrollment automation
-    secrets: [gmailUser, gmailAppPassword, gmailFromName, gmailReplyTo]
+    secrets: [gmailUser, gmailAppPassword, gmailFromName, gmailReplyTo, telnyxApiKey, telnyxSmsPhone]
   },
   async (event) => {
     const contactId = event.params.contactId;
@@ -1317,6 +1338,237 @@ exports.onContactUpdated = onDocumentUpdated(
       // ═══════════════════════════════════════════════════════════════════════
       // SCENARIO 5: OTHER UPDATES (no special handling)
       // ═══════════════════════════════════════════════════════════════════════
+      
+      // ─────────────────────────────────────────────────────────────────────
+      // SPEED-TO-LEAD AUTO-ENGAGEMENT
+      // When leadScore crosses ≥ 7 (hot lead from AI Receptionist, etc.),
+      // auto-send email + SMS within 60 seconds with enrollment link.
+      // This dramatically improves conversion — studies show contacting a
+      // lead within 1 minute is 391% more effective than waiting 1 hour.
+      // ─────────────────────────────────────────────────────────────────────
+      const leadScoreJustCrossedThreshold =
+        afterData.leadScore >= 7 &&
+        (!beforeData.leadScore || beforeData.leadScore < 7) &&
+        !afterData.speedToLeadSent;
+      
+      // Only fire for contacts who haven't already enrolled or become clients
+      const isPreEnrollment =
+        afterData.enrollmentStatus !== 'enrolled' &&
+        afterData.enrollmentStatus !== 'completed' &&
+        afterData.status !== 'client';
+      
+      if (leadScoreJustCrossedThreshold && isPreEnrollment) {
+        console.log('🔥 SPEED-TO-LEAD: Hot lead detected! leadScore went from', 
+          beforeData.leadScore || 0, '→', afterData.leadScore);
+        console.log(`   Contact: ${contactId} (${afterData.firstName} ${afterData.lastName})`);
+        console.log(`   Source: ${afterData.source || afterData.leadSource || 'unknown'}`);
+        
+        try {
+          // ─── Generate enrollment token so the lead can jump straight in ───
+          const crypto = require('crypto');
+          const token = crypto.randomBytes(32).toString('hex');
+          const expiresAt = new Date();
+          expiresAt.setHours(expiresAt.getHours() + 48); // 48-hour expiry for hot leads
+          
+          await db.collection('enrollmentTokens').add({
+            contactId,
+            token,
+            expiresAt,
+            used: false,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            createdBy: 'speed_to_lead',
+            source: afterData.source || afterData.leadSource || 'unknown'
+          });
+          
+          const enrollLink = `https://myclevercrm.com/enroll?token=${token}&contactId=${contactId}`;
+          console.log('🔐 Enrollment token generated for speed-to-lead');
+          
+          // ─── SEND HOT-LEAD EMAIL ───────────────────────────────────────
+          const recipientEmail = afterData.email || afterData.emails?.[0]?.address;
+          
+          if (recipientEmail) {
+            const user = gmailUser.value();
+            const pass = gmailAppPassword.value();
+            const fromName = gmailFromName.value() || 'Chris Lahage - Speedy Credit Repair';
+            const replyTo = gmailReplyTo.value() || 'contact@speedycreditrepair.com';
+            
+            const transporter = nodemailer.createTransport({
+              host: 'smtp.gmail.com',
+              port: 587,
+              secure: false,
+              auth: { user, pass }
+            });
+            
+            const firstName = afterData.firstName || 'there';
+            
+            const emailBody = 
+              `Thanks for reaching out to Speedy Credit Repair! I'm Chris Lahage, the founder, and I'd love to personally help you improve your credit.\n\n` +
+              `I've set aside a <strong>free 3-bureau credit analysis</strong> just for you — it includes all 3 scores from Experian, Equifax, and TransUnion with zero cost and zero hard inquiries.\n\n` +
+              `<strong><a href="${enrollLink}" style="color:#090;font-size:16px;">👉 Start Your Free Credit Analysis Now</a></strong>\n\n` +
+              `It only takes about 2 minutes, and we'll show you exactly which negative items are hurting your score and how we can help remove them.\n\n` +
+              `If you'd prefer to chat first, just reply to this email or call me directly at <strong>1-888-724-7344</strong> — we're available 7 days a week.\n\n` +
+              `Looking forward to helping you!`;
+            
+            await transporter.sendMail({
+              from: `"${fromName}" <${user}>`,
+              replyTo: replyTo,
+              to: recipientEmail,
+              subject: `${firstName}, your free credit analysis is ready!`,
+              html: wrapEmailInHTML(
+                `${firstName}, your free credit analysis is ready!`,
+                emailBody,
+                firstName
+              )
+            });
+            
+            console.log(`📧 Speed-to-lead email sent to ${recipientEmail}`);
+          } else {
+            console.log('⏭️ No email address — skipping email');
+          }
+          
+          // ─── SEND HOT-LEAD SMS via Telnyx ──────────────────────────────
+          const contactPhone = afterData.phone || afterData.phones?.[0]?.number;
+          
+          if (contactPhone && afterData.smsConsent === true && telnyxApiKey.value() && telnyxSmsPhone.value()) {
+            try {
+              const cleanPhone = contactPhone.replace(/\D/g, '');
+              const formattedPhone = cleanPhone.length === 10
+                ? `+1${cleanPhone}`
+                : `+${cleanPhone}`;
+              
+              const smsText = `Hi ${afterData.firstName || 'there'}! It's Chris from Speedy Credit Repair. Thanks for reaching out! I've got your free 3-bureau credit analysis ready — get started here: ${enrollLink} Reply STOP to opt out.`;
+              
+              const smsResponse = await fetch('https://api.telnyx.com/v2/messages', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${telnyxApiKey.value()}`
+                },
+                body: JSON.stringify({
+                  from: telnyxSmsPhone.value(),   // +17144755501
+                  to: formattedPhone,
+                  text: smsText
+                })
+              });
+              
+              if (smsResponse.ok) {
+                console.log(`📱 Speed-to-lead SMS sent to ${formattedPhone}`);
+              } else {
+                const smsErrorBody = await smsResponse.text();
+                console.warn(`⚠️ Speed-to-lead SMS failed (${smsResponse.status}): ${smsErrorBody}`);
+              }
+            } catch (smsErr) {
+              console.warn('⚠️ Speed-to-lead SMS error:', smsErr.message);
+            }
+          } else {
+            console.log('⏭️ No phone/consent/Telnyx config — skipping SMS');
+          }
+          
+          // ─── CREATE HIGH-PRIORITY FOLLOW-UP TASK ───────────────────────
+          await db.collection('tasks').add({
+            title: `🔥 HOT LEAD: ${afterData.firstName} ${afterData.lastName} (Score: ${afterData.leadScore})`,
+            description: 
+              `Speed-to-lead engagement sent automatically.\n\n` +
+              `Lead Score: ${afterData.leadScore}\n` +
+              `Source: ${afterData.source || afterData.leadSource || 'unknown'}\n` +
+              `Email: ${afterData.email || 'N/A'}\n` +
+              `Phone: ${afterData.phone || 'N/A'}\n\n` +
+              `Auto-sent: Email ${recipientEmail ? '✅' : '❌'} | SMS ${(afterData.phone && afterData.smsConsent) ? '✅' : '❌'}\n\n` +
+              `Follow up with a personal call within 5 minutes for best conversion!`,
+            contactId,
+            type: 'hot_lead_followup',
+            priority: 'critical',
+            status: 'pending',
+            dueDate: new Date(Date.now() + 5 * 60 * 1000), // Due in 5 minutes
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            createdBy: 'system:speed_to_lead'
+          });
+          
+          // ─── ALERT CHRISTOPHER via email ────────────────────────────────
+          if (recipientEmail) {
+            const user = gmailUser.value();
+            const fromName = gmailFromName.value() || 'SpeedyCRM Alerts';
+            
+            const transporter = nodemailer.createTransport({
+              host: 'smtp.gmail.com',
+              port: 587,
+              secure: false,
+              auth: { user, pass: gmailAppPassword.value() }
+            });
+            
+            await transporter.sendMail({
+              from: `"SpeedyCRM Alerts" <${user}>`,
+              to: user,
+              subject: `🔥 HOT LEAD (Score ${afterData.leadScore}): ${afterData.firstName} ${afterData.lastName}`,
+              html: wrapEmailInHTML(
+                'Hot Lead Alert — Speed-to-Lead Triggered',
+                `A hot lead just came in and auto-engagement was sent!\n\n` +
+                `<strong>Name:</strong> ${afterData.firstName} ${afterData.lastName}\n` +
+                `<strong>Score:</strong> ${afterData.leadScore}/10\n` +
+                `<strong>Source:</strong> ${afterData.source || afterData.leadSource || 'unknown'}\n` +
+                `<strong>Email:</strong> ${afterData.email || 'N/A'}\n` +
+                `<strong>Phone:</strong> ${afterData.phone || 'N/A'}\n\n` +
+                `<strong>Auto-sent:</strong> Email ${recipientEmail ? '✅' : '❌'} | SMS ${(afterData.phone && afterData.smsConsent) ? '✅' : '❌'}\n\n` +
+                `⏰ <strong>Call them within 5 minutes for the best chance of conversion!</strong>\n\n` +
+                `<a href="https://myclevercrm.com/contacts/${contactId}" style="color:#090;">View Contact in CRM →</a>`,
+                'Chris'
+              )
+            });
+            
+            console.log('📧 Hot lead alert sent to Christopher');
+          }
+          
+          // ─── UPDATE CONTACT: Mark speed-to-lead as sent ────────────────
+          await event.data.after.ref.update({
+            speedToLeadSent: true,
+            speedToLeadSentAt: admin.firestore.FieldValue.serverTimestamp(),
+            speedToLeadChannel: {
+              email: !!recipientEmail,
+              sms: !!(afterData.phone && afterData.smsConsent === true)
+            },
+            speedToLeadEnrollToken: token,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+          
+          // ─── LOG ACTIVITY ──────────────────────────────────────────────
+          await db.collection('activityLogs').add({
+            type: 'speed_to_lead',
+            contactId,
+            action: 'hot_lead_auto_engagement',
+            details: {
+              leadScore: afterData.leadScore,
+              previousScore: beforeData.leadScore || 0,
+              source: afterData.source || afterData.leadSource || 'unknown',
+              emailSent: !!recipientEmail,
+              smsSent: !!(afterData.phone && afterData.smsConsent === true),
+              enrollmentLink: enrollLink
+            },
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            createdBy: 'system:speed_to_lead'
+          });
+          
+          console.log('✅ Speed-to-lead engagement complete for', contactId);
+          
+        } catch (speedErr) {
+          console.error('❌ Speed-to-lead error for', contactId, ':', speedErr.message);
+          
+          // Still create a task so Christopher knows about the hot lead
+          await db.collection('tasks').add({
+            title: `🔥 HOT LEAD (auto-engagement FAILED): ${afterData.firstName} ${afterData.lastName}`,
+            description: `Speed-to-lead automation failed. Please contact manually ASAP!\n\nError: ${speedErr.message}\n\nEmail: ${afterData.email || 'N/A'}\nPhone: ${afterData.phone || 'N/A'}\nLead Score: ${afterData.leadScore}`,
+            contactId,
+            type: 'hot_lead_followup',
+            priority: 'critical',
+            status: 'pending',
+            dueDate: new Date(Date.now() + 5 * 60 * 1000),
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            createdBy: 'system:speed_to_lead'
+          });
+        }
+        
+        return null;
+      }
+      
       console.log('📝 Contact updated (no special handling):', contactId);
       return null;
       
@@ -1338,7 +1590,7 @@ exports.onContactUpdated = onDocumentUpdated(
   }
 );
 
-console.log('✅ Function 4/11: onContactUpdated loaded (WITH ENROLLMENT + EMAIL AUTOMATION + AUTO LEAD ROLE)');
+console.log('✅ Function 4/11: onContactUpdated loaded (WITH ENROLLMENT + EMAIL AUTOMATION + AUTO LEAD ROLE + SPEED-TO-LEAD)');
 
 // ============================================
 // FUNCTION 4B: ON CONTACT CREATED (NEW!)
@@ -3626,7 +3878,7 @@ exports.processAbandonmentEmails = onSchedule(
     ...defaultConfig,
     memory: '512MiB',
     timeoutSeconds: 120,
-    secrets: [gmailUser, gmailAppPassword, gmailFromName, gmailReplyTo]
+    secrets: [gmailUser, gmailAppPassword, gmailFromName, gmailReplyTo, telnyxApiKey, telnyxSmsPhone]
   },
   async (context) => {
     console.log('⏰ Processing abandonment emails...');
@@ -3725,6 +3977,59 @@ exports.processAbandonmentEmails = onSchedule(
           if (result.success) {
             sent++;
             console.log(`✅ Sent abandonment email to ${contactData.email}`);
+            
+            // ═══════════════════════════════════════════════════════════════
+            // SMS ABANDONMENT RECOVERY via Telnyx
+            // Sends a follow-up text message alongside the email for higher
+            // recovery rates. Only fires if the contact has a phone number,
+            // gave SMS consent (TCPA), and the Telnyx SMS secret is configured.
+            // ═══════════════════════════════════════════════════════════════
+            const contactPhone = contactData.phone || contactData.phones?.[0]?.number;
+            if (contactPhone && contactData.smsConsent === true && telnyxApiKey.value() && telnyxSmsPhone.value()) {
+              try {
+                // Strip non-digits and format to E.164 (+1XXXXXXXXXX)
+                const cleanPhone = contactPhone.replace(/\D/g, '');
+                const formattedPhone = cleanPhone.length === 10
+                  ? `+1${cleanPhone}`
+                  : `+${cleanPhone}`;
+
+                // Build the resume enrollment link for this contact
+                const resumeLink = `https://myclevercrm.com/enroll?resume=${contactId}`;
+
+                // Compose SMS — concise with clear CTA and TCPA opt-out
+                const smsText = `Hi ${contactData.firstName || 'there'}! It's Chris from Speedy Credit Repair. Your free credit analysis is still waiting — pick up where you left off: ${resumeLink} Reply STOP to opt out.`;
+
+                // Send via Telnyx REST API
+                const smsResponse = await fetch('https://api.telnyx.com/v2/messages', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${telnyxApiKey.value()}`
+                  },
+                  body: JSON.stringify({
+                    from: telnyxSmsPhone.value(),   // +17144755501 (Huntington Beach local)
+                    to: formattedPhone,
+                    text: smsText
+                  })
+                });
+
+                if (smsResponse.ok) {
+                  console.log(`📱 SMS abandonment recovery sent to ${formattedPhone}`);
+                } else {
+                  const smsErrorBody = await smsResponse.text();
+                  console.warn(`⚠️ SMS API returned ${smsResponse.status} for ${contactId}: ${smsErrorBody}`);
+                }
+
+                // Record SMS delivery on the contact document
+                await doc.ref.update({
+                  abandonmentSmsSent: true,
+                  abandonmentSmsSentAt: admin.firestore.FieldValue.serverTimestamp()
+                });
+              } catch (smsErr) {
+                // SMS failure should never block the email flow
+                console.warn(`⚠️ SMS failed for ${contactId}:`, smsErr.message);
+              }
+            }
           } else {
             failed++;
             console.error(`❌ Failed for ${contactData.email}: ${result.error}`);
@@ -5294,7 +5599,9 @@ exports.operationsManager = onRequest(
             leadSource,
             utmSource,
             utmMedium,
-            utmCampaign
+            utmCampaign,
+            smsConsent,
+            smsConsentTimestamp
           } = params;
           
           // Validate required fields
@@ -5348,6 +5655,8 @@ exports.operationsManager = onRequest(
           utmSource: utmSource || '',
           utmMedium: utmMedium || '',
           utmCampaign: utmCampaign || '',
+          smsConsent: smsConsent === true,
+          smsConsentTimestamp: smsConsentTimestamp || null,
           updatedAt: admin.firestore.FieldValue.serverTimestamp()
         };
             
@@ -6099,7 +6408,7 @@ console.log('Function List:');
 console.log('1. emailService - Email operations + tracking');
 console.log('2. receiveAIReceptionistCall - AI Receptionist webhook');
 console.log('3. processAICall - AI call processing + lead scoring');
-console.log('4. onContactUpdated - Contact update trigger (with enrollment + email automation + auto lead role)');
+console.log('4. onContactUpdated - Contact update trigger (with enrollment + email automation + auto lead role + speed-to-lead)');
 console.log('4B. onContactCreated - New contact trigger (AI role assessment)');
 console.log('5. idiqService - IDIQ credit reporting operations');
 console.log('6. processWorkflowStages - Scheduled workflow processor');

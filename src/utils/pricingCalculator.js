@@ -34,7 +34,7 @@ import {
   calculatePlanScore,
   getEnabledPlans
 } from '../lib/servicePlanHelpers';
-import { defaultServicePlans } from '../config/servicePlansConfig';
+import { defaultServicePlans } from '../constants/servicePlans';
 
 // ============================================================================
 // HELPER FUNCTIONS

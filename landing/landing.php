@@ -31,6 +31,11 @@
 .free-report-box {background:rgba(255,255,255,0.15);border:2px solid rgba(255,255,255,0.3);border-radius:8px;padding:20px;margin-bottom:20px;backdrop-filter:blur(10px);}
 .free-report-box p {color:#fff;margin:0;line-height:1.6;}
 .free-report-box strong {font-size:18px;}
+.consent-group {margin-bottom:12px;}
+.consent-label {display:flex;align-items:flex-start;gap:10px;cursor:pointer;}
+.consent-label input[type="checkbox"] {margin-top:3px;min-width:18px;min-height:18px;accent-color:#090;cursor:pointer;}
+.consent-text {font-size:12px;color:#666;line-height:1.5;}
+.consent-text a {color:#090;text-decoration:underline;}
 </style>
 </head>
 <body>
@@ -223,6 +228,23 @@
 							<small>10 digits, no spaces or dashes</small>
 						</div>
 						
+						<!-- SMS Consent (TCPA Compliance) -->
+						<div class="form-group consent-group">
+							<label class="consent-label">
+								<input 
+									type="checkbox" 
+									id="smsConsent" 
+									name="smsConsent"
+								>
+								<span class="consent-text">
+									By checking this box, I consent to receive text messages from 
+									Speedy Credit Repair regarding my credit analysis. Msg &amp; data 
+									rates may apply. Reply STOP to opt out. 
+									<a href="https://speedycreditrepair.com/privacy" target="_blank">Privacy Policy</a>
+								</span>
+							</label>
+						</div>
+						
 						<!-- Submit Button -->
 						<button type="submit" class="submit-btn" id="submit-btn">
 							🚀 Get My Free Credit Review
@@ -300,7 +322,8 @@
 				firstName: document.getElementById('firstName').value.trim(),
 				lastName: document.getElementById('lastName').value.trim(),
 				email: document.getElementById('email').value.trim().toLowerCase(),
-				phone: document.getElementById('phone').value.replace(/\D/g, '')
+				phone: document.getElementById('phone').value.replace(/\D/g, ''),
+				smsConsent: document.getElementById('smsConsent').checked
 			};
 			
 			    console.log('📤 Sending to Firebase:', formData);
@@ -317,7 +340,9 @@
 						firstName: formData.firstName,
 						lastName: formData.lastName,
 						email: formData.email,
-						phone: formData.phone
+						phone: formData.phone,
+						smsConsent: formData.smsConsent,
+						smsConsentTimestamp: new Date().toISOString()
 					})
 				});
 				

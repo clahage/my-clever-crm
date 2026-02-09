@@ -9,7 +9,7 @@
 // © 1995-2025 Speedy Credit Repair Inc. All Rights Reserved
 // ============================================================================
 
-import { defaultServicePlans, targetAudiences } from '../config/servicePlansConfig';
+import { defaultServicePlans, targetAudiences } from '../constants/servicePlans';
 
 // ===== GET ENABLED PLANS =====
 // Returns only plans that are currently enabled

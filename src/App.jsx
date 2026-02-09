@@ -10,13 +10,14 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import ProtectedLayout from '@/layout/ProtectedLayout';
 import Products from '@/pages/Products';
-import ServicePlanSelector from '@/components/client/ServicePlanSelector';
+import ServicePlanSelector from '../components/ServicePlanSelector';
 import ContractStatusTracker from '@/components/common/ContractStatusTracker';
 import PricingCalculatorCommon from '@/components/common/PricingCalculator';
 import IDIQEnrollmentWizard from "./components/idiq/IDIQEnrollmentWizard.jsx"
 import FinancialPlanningHub from './pages/hubs/FinancialPlanningHub.jsx';
 import TradelineHub from './pages/hubs/TradelineHub.jsx';
 import PublicEnrollmentRoute from '@/routes/PublicEnrollmentRoute';
+import PricingStrategy from './pages/PricingStrategy';
 
 const AdminDashboard = lazy(() => import('@/pages/AdminDashboard'));
 const ServicePlanRecommenderPage = lazy(() => import('@/pages/ServicePlanRecommender'));
@@ -451,6 +452,13 @@ const AppContent = () => {
     <h1>Test Route Works!</h1>
     <p>If you see this, routing is working</p>
   </div>
+} />
+
+{/* PRICING STRATEGY - Hidden page, no nav menu */}
+<Route path="/pricing-strategy" element={
+  <Suspense fallback={<LoadingFallback />}>
+    <PricingStrategy />
+  </Suspense>
 } />
 
 {/* PUBLIC ENROLLMENT - Token-based enrollment from landing page */}
