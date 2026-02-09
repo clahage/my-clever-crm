@@ -595,6 +595,778 @@ You now have access to your personal client portal where you can:
       color: 'green'
     },
     showTrustBadges: true
+  }),
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // TIER 1: POST-ACH DRIP CAMPAIGN (7 emails over 35 days)
+  // Prevents cancellation during the 30-day dispute wait "silence period"
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // DRIP DAY 1: Welcome + Set Expectations (kills anxiety immediately)
+  dripDay1Welcome: (contact) => createRichEmail({
+    subject: `${contact.firstName}, here's exactly what happens next with your credit`,
+    preheader: 'Your credit repair journey has officially begun — here\'s the roadmap',
+    recipientName: contact.firstName,
+    urgencyLevel: 'normal',
+    bodyContent: `<strong style="color: #059669; font-size: 20px;">Welcome aboard, ${contact.firstName}! Your credit transformation starts now. 🚀</strong>
+
+I'm Chris Lahage, and I'll personally be overseeing your case. I've been doing this for over 30 years, and I want you to know exactly what to expect so there are no surprises.
+
+<strong style="color: #1e40af;">📋 Your Roadmap — The Next 45 Days:</strong>
+
+<strong>This Week (Days 1-7):</strong> My team and I are analyzing your full 3-bureau credit report right now. We're identifying every item that can be challenged, building your personalized dispute strategy, and preparing your first round of dispute letters.
+
+<strong>Next Week (Days 7-14):</strong> Your dispute letters are sent to all three credit bureaus (Experian, TransUnion, Equifax) and directly to creditors where appropriate. Each letter is customized — no cookie-cutter templates.
+
+<strong>The Waiting Period (Days 14-45):</strong> By federal law (FCRA), credit bureaus have 30 days to investigate our disputes. <strong>This is normal.</strong> During this time, it may feel quiet — but the bureaus are working on your case.
+
+<strong>Results (Days 30-45):</strong> You'll start seeing responses. We'll update your portal in real-time as results come in.
+
+<strong style="color: #059669;">💡 What You Should Do Right Now:</strong>
+
+✓ Watch your mail for bureau response letters (forward them to us)
+✓ Don't open any new credit accounts while we're working
+✓ Log into your client portal to see your dispute status anytime
+✓ Breathe easy — we've got this
+
+<span style="color: #6b7280;">I'll check in with you regularly. If you ever have questions, just reply to this email or call us anytime.</span>`,
+    ctaButton: {
+      text: '🔐 View My Case in the Portal',
+      url: `${SPEEDY_BRAND.portalUrl}/portal`,
+      color: 'green'
+    },
+    showTrustBadges: true
+  }),
+
+  // DRIP DAY 3: Education — How Disputes Work (builds confidence)
+  dripDay3Education: (contact) => createRichEmail({
+    subject: `How credit disputes actually work — a quick guide for ${contact.firstName}`,
+    preheader: 'Understanding the process helps you stay confident while we work',
+    recipientName: contact.firstName,
+    urgencyLevel: 'normal',
+    bodyContent: `I wanted to share something that helps a lot of our clients feel more confident during the process.
+
+<strong style="color: #1e40af;">🔍 How Credit Disputes Actually Work:</strong>
+
+When we send dispute letters, here's what happens behind the scenes:
+
+<strong>Step 1 — We Challenge Inaccurate Items:</strong> Under the Fair Credit Reporting Act (FCRA), credit bureaus are legally required to verify every item on your report. If they can't verify it within 30 days, they must remove it.
+
+<strong>Step 2 — Bureaus Investigate:</strong> The bureaus contact the original creditor and ask them to verify the debt details. Many creditors don't have complete records — especially for older debts.
+
+<strong>Step 3 — Results Come In:</strong> Items are either verified (stays on report), updated (corrected in your favor), or deleted (removed entirely). Deletions are the home runs.
+
+<strong style="color: #059669;">📊 Why This Works:</strong>
+
+Studies show that <strong>79% of credit reports contain errors</strong>. We're not asking bureaus to remove legitimate debts — we're holding them accountable for accuracy. That's your legal right.
+
+<strong>Common items that get removed:</strong>
+- Collections with incorrect balances or dates
+- Accounts reported by the wrong creditor
+- Late payments that weren't actually late
+- Duplicate entries (same debt reported twice)
+- Items past the 7-year reporting limit
+
+<span style="color: #6b7280;">Bottom line: the law is on your side, and we know how to use it effectively.</span>`,
+    ctaButton: {
+      text: '📚 Learn More in Your Portal',
+      url: `${SPEEDY_BRAND.portalUrl}/portal`,
+      color: 'blue'
+    },
+    showTrustBadges: true
+  }),
+
+  // DRIP DAY 7: Credit Building Tips (gives them something active to DO)
+  dripDay7CreditTips: (contact) => createRichEmail({
+    subject: `${contact.firstName}, 5 things you can do THIS WEEK to help your score`,
+    preheader: 'While we handle disputes, here\'s how you can boost your score even faster',
+    recipientName: contact.firstName,
+    urgencyLevel: 'normal',
+    bodyContent: `While we're working on removing negative items from your report, there are things <strong>you</strong> can do right now to accelerate your progress.
+
+<strong style="color: #1e40af;">🚀 5 Score-Boosting Actions You Can Take This Week:</strong>
+
+<strong>1. Pay Down Credit Card Balances</strong>
+Credit utilization (how much of your available credit you're using) makes up 30% of your score. If you can get any card below 30% utilization — ideally below 10% — you'll see a bump.
+
+<strong>2. Don't Close Old Accounts</strong>
+Even if you don't use a card, keeping it open helps your "length of credit history." This is 15% of your score.
+
+<strong>3. Become an Authorized User</strong>
+If a family member with excellent credit adds you as an authorized user on their oldest card, their positive history can appear on your report. This is one of the fastest legal ways to boost a score.
+
+<strong>4. Set Up Autopay on Everything</strong>
+Payment history is 35% of your score — the single biggest factor. Even one missed payment can drop your score 50-100 points. Autopay prevents that.
+
+<strong>5. Don't Apply for New Credit</strong>
+Each application creates a "hard inquiry" that temporarily lowers your score. While we're repairing, avoid all new applications.
+
+<strong style="color: #059669;">💡 Pro Tip from 30 Years of Experience:</strong>
+
+The clients who see the fastest results are the ones who combine our dispute work with these personal habits. It's a team effort, and you're doing great.
+
+<span style="color: #6b7280;">Questions about any of these tips? Just reply — I'm here to help.</span>`,
+    ctaButton: {
+      text: '📈 Check My Progress',
+      url: `${SPEEDY_BRAND.portalUrl}/portal`,
+      color: 'green'
+    },
+    showTrustBadges: true
+  }),
+
+  // DRIP DAY 14: Midpoint Check-in (personal touch, builds trust)
+  dripDay14Checkin: (contact) => createRichEmail({
+    subject: `Quick check-in, ${contact.firstName} — how are things going?`,
+    preheader: 'We\'re halfway through the first dispute round — here\'s an update',
+    recipientName: contact.firstName,
+    urgencyLevel: 'normal',
+    bodyContent: `I wanted to personally check in at the halfway mark.
+
+<strong style="color: #1e40af;">📊 Where Things Stand:</strong>
+
+Your first round of disputes was sent about two weeks ago. The credit bureaus are in their investigation window right now — they have 30 days from when they received our letters to respond.
+
+This is the part of the process where things feel quiet, and I know that can be frustrating. But trust me — things are happening behind the scenes.
+
+<strong style="color: #059669;">✅ What's Been Done So Far:</strong>
+
+- Your full 3-bureau credit report was analyzed
+- Dispute strategy was customized for your situation
+- Dispute letters were sent to all relevant bureaus and creditors
+- Your case is being monitored for any bureau responses
+
+<strong style="color: #1e40af;">🔜 What's Coming Next:</strong>
+
+In the next 2-3 weeks, you should start receiving response letters in the mail from the credit bureaus. <strong>Please forward these to us immediately</strong> — either scan/photograph them and upload to your portal, or simply email them as a reply to this message.
+
+These responses tell us exactly what was verified, updated, or deleted. That's when the real progress becomes visible.
+
+<span style="color: #6b7280;">If you have any questions or concerns at all, please don't hesitate to reach out. I'm always available at ${SPEEDY_BRAND.phone}.</span>`,
+    ctaButton: {
+      text: '💬 Reply With Questions',
+      url: `mailto:${SPEEDY_BRAND.email}?subject=Question about my credit repair`,
+      color: 'blue'
+    },
+    showTrustBadges: true
+  }),
+
+  // DRIP DAY 25: Anticipation Builder (gets them excited, reduces anxiety)
+  dripDay25Anticipation: (contact) => createRichEmail({
+    subject: `${contact.firstName}, results are just around the corner!`,
+    preheader: 'The 30-day investigation window is almost up — here\'s what to watch for',
+    recipientName: contact.firstName,
+    urgencyLevel: 'normal',
+    bodyContent: `<strong style="color: #059669; font-size: 18px;">The finish line for Round 1 is in sight! 🏁</strong>
+
+The credit bureaus' 30-day investigation deadline is approaching. This means you could start seeing results any day now.
+
+<strong style="color: #1e40af;">📬 What to Watch For in Your Mail:</strong>
+
+You'll receive official letters from one or more of the three bureaus (Experian, TransUnion, Equifax). These letters will say one of three things:
+
+✅ <strong>"Deleted"</strong> — The item has been removed. This is a WIN!
+🔄 <strong>"Updated"</strong> — The item was modified (sometimes in your favor). We'll review the details.
+❌ <strong>"Verified"</strong> — The creditor confirmed the item. Don't worry — we have next-round strategies for these.
+
+<strong style="color: #059669;">📱 Important — Please Do This:</strong>
+
+As soon as you receive ANY letter from a credit bureau:
+1. Take a photo or scan it
+2. Upload it to your client portal, OR
+3. Reply to this email with the photo attached
+
+This helps us move quickly into Round 2 for any items that weren't resolved.
+
+<strong style="color: #1e40af;">💡 Success Story:</strong>
+
+One of our recent clients had 12 negative items. After Round 1, 7 were deleted. After Round 2, 3 more were removed. Two rounds — 10 deletions — and a 127-point score increase. That's the power of persistence.
+
+<span style="color: #6b7280;">Your results are coming. Stay positive!</span>`,
+    ctaButton: {
+      text: '📤 Upload Bureau Letters',
+      url: `${SPEEDY_BRAND.portalUrl}/portal/documents`,
+      color: 'green'
+    },
+    showTrustBadges: true
+  }),
+
+  // DRIP DAY 30: Bureau Response Window Open
+  dripDay30BureauWindow: (contact) => createRichEmail({
+    subject: `📬 ${contact.firstName}, the 30-day window just opened — check your mail!`,
+    preheader: 'Bureau responses should be arriving this week',
+    recipientName: contact.firstName,
+    urgencyLevel: 'medium',
+    bodyContent: `<strong style="color: #059669; font-size: 18px;">The 30-day mark has arrived! 📬</strong>
+
+The credit bureaus' investigation deadline is here. This is when results start rolling in.
+
+<strong style="color: #ea580c;">⚡ ACTION NEEDED:</strong>
+
+Please check your mail daily this week. Bureau response letters typically arrive between days 30-45. The sooner you forward them to us, the sooner we can:
+
+1. Update your case file with confirmed deletions
+2. Calculate your projected score improvement
+3. Prepare Round 2 disputes for any remaining items
+
+<strong style="color: #1e40af;">📊 What Happens After We Get Your Results:</strong>
+
+- We pull your updated credit reports
+- We compare before/after to document all changes
+- We prepare your next-round strategy
+- We send Round 2 disputes within days
+
+<strong style="color: #059669;">🎯 Remember:</strong>
+
+Credit repair is a process, not a single event. Most clients see their biggest gains across 2-3 rounds of disputes. Round 1 softens the ground. Round 2 often brings the biggest deletions.
+
+<span style="color: #6b7280;">Forward any bureau letters to us ASAP. You can reply to this email with photos or upload them to your portal.</span>`,
+    ctaButton: {
+      text: '📤 Upload My Bureau Letters',
+      url: `${SPEEDY_BRAND.portalUrl}/portal/documents`,
+      color: 'orange'
+    },
+    showTrustBadges: true
+  }),
+
+  // DRIP DAY 35: Next Round Preview + Success Stories
+  dripDay35NextRound: (contact) => createRichEmail({
+    subject: `${contact.firstName}, Round 2 strategy is ready — here's the plan`,
+    preheader: 'We\'ve analyzed your Round 1 results and prepared your next attack',
+    recipientName: contact.firstName,
+    urgencyLevel: 'normal',
+    bodyContent: `Your first round results are in, and we're already working on your next round of disputes.
+
+<strong style="color: #1e40af;">🔄 Round 2 — What's Different:</strong>
+
+Round 2 disputes use different strategies than Round 1:
+- <strong>Method of verification requests</strong> — We demand the bureau show us exactly HOW they verified the item
+- <strong>Direct creditor disputes</strong> — We go straight to the source, bypassing the bureaus
+- <strong>Debt validation letters</strong> — We require creditors to prove they have the legal right to report the debt
+- <strong>Goodwill letters</strong> — For legitimate items, we request removal based on your improved payment history
+
+This multi-pronged approach is why Round 2 often produces even better results than Round 1.
+
+<strong style="color: #059669;">📈 Client Success Averages:</strong>
+
+After completing 2 rounds, our clients typically see:
+- 3-7 negative items removed
+- 80-150 point score improvement
+- Significant reduction in collections and late payments
+
+<strong style="color: #1e40af;">📱 Your Updated Portal:</strong>
+
+We've updated your client portal with your Round 1 results. Log in to see:
+- Which items were deleted, updated, or verified
+- Your updated dispute strategy for Round 2
+- Your projected timeline for completion
+
+<span style="color: #6b7280;">We're just getting started. The best results are still ahead.</span>`,
+    ctaButton: {
+      text: '📊 View My Updated Results',
+      url: `${SPEEDY_BRAND.portalUrl}/portal`,
+      color: 'green'
+    },
+    showTrustBadges: true
+  }),
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // TIER 1: ACH NOT COMPLETED FOLLOW-UPS (3 emails)
+  // Recovers delayed revenue when contract signed but ACH not done
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // ACH REMINDER — 24 HOURS
+  achReminder24h: (contact, portalUrl) => createRichEmail({
+    subject: `${contact.firstName}, just one quick step left to start your credit repair`,
+    preheader: 'Your payment setup takes 2 minutes — then we can start working on your credit',
+    recipientName: contact.firstName,
+    urgencyLevel: 'normal',
+    bodyContent: `Hi ${contact.firstName}, quick follow-up!
+
+I noticed your service agreement is signed (great!) but your payment method hasn't been set up yet. This is the final step before we can start working on your credit.
+
+<strong style="color: #1e40af;">⏱️ It Only Takes 2 Minutes:</strong>
+
+Just have your bank routing number and account number handy. The setup is secure, encrypted, and you can cancel anytime.
+
+<strong style="color: #059669;">Why ACH (Bank Transfer)?</strong>
+
+✓ No credit card fees or interest charges
+✓ Automatic monthly billing — one less thing to worry about
+✓ Bank-level security and encryption
+✓ Easy to update or cancel anytime
+
+Once payment is set up, we begin analyzing your credit report <strong>immediately</strong>. The sooner we start, the sooner you'll see results.
+
+<span style="color: #6b7280;">Need help with setup? Just call us at ${SPEEDY_BRAND.phone} — we can walk you through it in under 2 minutes.</span>`,
+    ctaButton: {
+      text: '🏦 Complete Payment Setup',
+      url: `${portalUrl}/ach-authorization/${contact.id || contact.contactId}`,
+      color: 'green'
+    },
+    showTrustBadges: true
+  }),
+
+  // ACH REMINDER — 48 HOURS (increased urgency)
+  achReminder48h: (contact, portalUrl) => createRichEmail({
+    subject: `⏰ ${contact.firstName}, your credit repair is on hold — quick action needed`,
+    preheader: 'We\'re ready to start but need your payment method first',
+    recipientName: contact.firstName,
+    urgencyLevel: 'medium',
+    bodyContent: `Hi ${contact.firstName},
+
+I wanted to let you know that your credit repair case is currently on hold. Everything is set up on our end — we just need your payment method to activate your service.
+
+<strong style="color: #ea580c;">⏳ Why This Matters:</strong>
+
+Every day without active credit repair is a day that:
+- Negative items continue aging on your report
+- You're paying higher interest rates on loans and cards
+- Your credit goals get pushed further out
+
+<strong style="color: #059669;">✅ Here's the Good News:</strong>
+
+You're literally 2 minutes away from having your case activated. Once the payment is set up, my team starts working on your disputes <strong>the same day</strong>.
+
+<strong style="color: #1e40af;">Need Help?</strong>
+
+If you're having trouble with the setup, or if something changed and you have questions, please don't hesitate to reach out:
+- <strong>Call:</strong> ${SPEEDY_BRAND.phone} (available 24/7)
+- <strong>Email:</strong> Just reply to this message
+- <strong>Portal:</strong> Complete setup online anytime
+
+<span style="color: #6b7280;">We're here to help. Let's get your credit repair started!</span>`,
+    ctaButton: {
+      text: '🏦 Set Up Payment Now — 2 Minutes',
+      url: `${portalUrl}/ach-authorization/${contact.id || contact.contactId}`,
+      color: 'orange'
+    },
+    showTrustBadges: true
+  }),
+
+  // ACH REMINDER — 5 DAYS (final / urgent)
+  achReminderFinal: (contact, portalUrl) => createRichEmail({
+    subject: `${contact.firstName}, we're holding your spot — but need to hear from you`,
+    preheader: 'Your case is reserved but we can\'t hold it indefinitely without payment setup',
+    recipientName: contact.firstName,
+    urgencyLevel: 'high',
+    bodyContent: `Hi ${contact.firstName},
+
+I'm reaching out personally because it's been several days since you signed your service agreement, and we still haven't received your payment setup.
+
+<strong style="color: #dc2626;">⚠️ Your case is reserved, but we need to hear from you.</strong>
+
+I understand life gets busy, and sometimes things slip through the cracks. If that's the case, this is a friendly nudge to complete the one final step.
+
+<strong>But if something changed</strong> — if you have questions, concerns, or need to discuss your plan — I genuinely want to hear from you. After 30 years in this business, I know that the decision to repair your credit is a big one, and I want to make sure you feel 100% comfortable.
+
+<strong style="color: #1e40af;">📞 Three Ways to Move Forward:</strong>
+
+<strong>Option 1:</strong> Complete your payment setup online (takes 2 minutes)
+<strong>Option 2:</strong> Call me at ${SPEEDY_BRAND.phone} — I'll walk you through it personally
+<strong>Option 3:</strong> Reply to this email with any questions or concerns
+
+<strong style="color: #059669;">Whatever you decide, there's no pressure.</strong> I just don't want you to miss out on improving your credit because of a small administrative step.
+
+<span style="color: #6b7280;">Looking forward to hearing from you,<br/>Chris Lahage — Speedy Credit Repair</span>`,
+    ctaButton: {
+      text: '✅ Complete Setup — Start My Credit Repair',
+      url: `${portalUrl}/ach-authorization/${contact.id || contact.contactId}`,
+      color: 'red'
+    },
+    showTrustBadges: true
+  }),
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // TIER 1: IDIQ ENROLLMENT FAILURE RECOVERY (1 email)
+  // Sends client-facing recovery email when IDIQ enrollment fails
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  idiqEnrollmentFailed: (contact, retryUrl) => createRichEmail({
+    subject: `${contact.firstName}, we hit a small snag — easy fix inside`,
+    preheader: 'Your credit report enrollment needs a quick retry — takes 30 seconds',
+    recipientName: contact.firstName,
+    urgencyLevel: 'medium',
+    bodyContent: `Hi ${contact.firstName},
+
+We tried to set up your free 3-bureau credit report, but ran into a small technical issue. <strong>This happens occasionally and is easy to fix.</strong>
+
+<strong style="color: #1e40af;">🔧 What Happened:</strong>
+
+The credit monitoring enrollment didn't complete on the first try. This is usually caused by:
+- A temporary connection timeout
+- An address format that needs a small adjustment
+- A brief service interruption on the credit bureau's end
+
+<strong style="color: #059669;">✅ The Fix (30 Seconds):</strong>
+
+Just click the button below to retry the enrollment. In most cases, it goes through perfectly on the second attempt.
+
+If it doesn't work on the second try, <strong>please call us at ${SPEEDY_BRAND.phone}</strong> and we'll complete the enrollment together over the phone. We do this all the time — it's quick and painless.
+
+<strong style="color: #1e40af;">💡 Why This Matters:</strong>
+
+The credit report is the foundation of everything we do. Without it, we can't identify the negative items to dispute or build your personalized strategy. The sooner we get this set up, the sooner we can start improving your credit.
+
+<span style="color: #6b7280;">Don't worry — this is a minor hiccup, not a roadblock. We'll get it sorted!</span>`,
+    ctaButton: {
+      text: '🔄 Retry My Enrollment',
+      url: retryUrl || `${SPEEDY_BRAND.portalUrl}/complete-enrollment?contactId=${contact.id || contact.contactId}`,
+      color: 'orange'
+    },
+    showTrustBadges: true
+  }),
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // TIER 2: DISPUTE LIFECYCLE EMAILS (5 emails)
+  // Keeps clients engaged through the dispute process with real updates
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // DELETION CELEBRATION — When items are removed from credit report
+  disputeDeletionCelebration: (contact, data) => createRichEmail({
+    subject: `🎉 ${contact.firstName}, negative items were REMOVED from your report!`,
+    preheader: `Great news — ${data.deletedCount || 'multiple'} item(s) deleted from your credit report`,
+    recipientName: contact.firstName,
+    urgencyLevel: 'normal',
+    bodyContent: `<strong style="color: #059669; font-size: 22px;">🎉 CONGRATULATIONS, ${contact.firstName}!</strong>
+
+We just got results back from the credit bureaus, and I'm thrilled to share this with you:
+
+<div style="background: #f0fdf4; border: 2px solid #059669; border-radius: 12px; padding: 25px; text-align: center; margin: 20px 0;">
+  <p style="font-size: 42px; margin: 0;">🏆</p>
+  <p style="font-size: 24px; font-weight: 700; color: #059669; margin: 10px 0;">${data.deletedCount || 'Multiple'} Negative Item${(data.deletedCount || 0) !== 1 ? 's' : ''} DELETED</p>
+  <p style="font-size: 15px; color: #374151; margin: 0;">${data.deletedItems || 'Items successfully removed from your credit report'}</p>
+</div>
+
+This means those items are no longer dragging down your credit score. Each deletion typically results in a score increase — sometimes significant.
+
+<strong style="color: #1e40af;">📊 What This Means for You:</strong>
+
+- Your credit score should increase when bureaus update (usually within 1-2 weeks)
+- Lenders will see a cleaner credit history
+- You may qualify for better interest rates and credit products
+- We're one step closer to your credit goals
+
+<strong style="color: #059669;">🔄 What's Next:</strong>
+
+${data.remainingItems ? `We still have ${data.remainingItems} item(s) to address. We're already preparing the next round of disputes — the momentum is on our side!` : `We'll continue monitoring for any remaining items and keep pushing until your credit is where it should be.`}
+
+<span style="color: #6b7280;">Log in to your portal to see the full details of what was removed.</span>`,
+    ctaButton: {
+      text: '🏆 View My Results',
+      url: `${SPEEDY_BRAND.portalUrl}/portal`,
+      color: 'green'
+    },
+    showTrustBadges: true
+  }),
+
+  // NO DELETIONS — Strategy Pivot (empathetic, maintains trust)
+  disputeNoDeletions: (contact, data) => createRichEmail({
+    subject: `${contact.firstName}, your Round ${data.roundNumber || 1} results are in — here's our next move`,
+    preheader: 'The bureaus verified these items, but we have a stronger strategy ready',
+    recipientName: contact.firstName,
+    urgencyLevel: 'normal',
+    bodyContent: `I wanted to give you an honest update on your dispute results.
+
+<strong style="color: #1e40af;">📋 Round ${data.roundNumber || 1} Results:</strong>
+
+The credit bureaus came back and verified the disputed items this round. I know that's not the news you were hoping for, and I want to be transparent with you about it.
+
+<strong style="color: #059669;">But here's the important part — this is completely normal, and it's NOT the end of the road.</strong>
+
+<strong style="color: #1e40af;">🔍 Why This Happens:</strong>
+
+In Round 1, we cast a wide net challenging items across all three bureaus. Some creditors have their records organized well enough to verify quickly. That's okay — it actually gives us valuable information.
+
+<strong style="color: #059669;">🎯 Our Next Strategy (Stronger Approach):</strong>
+
+For the next round, we're switching to more aggressive tactics:
+
+<strong>1. Method of Verification Demands</strong> — We're legally entitled to know exactly HOW the bureaus verified these items. Often, their verification process has flaws we can exploit.
+
+<strong>2. Direct Creditor Challenges</strong> — Instead of going through the bureaus, we dispute directly with the creditor. Different rules, different results.
+
+<strong>3. Debt Validation Letters</strong> — We require creditors to prove they have complete documentation. Many don't.
+
+<strong>4. Regulatory Complaint Strategy</strong> — If bureaus aren't following proper procedures, we escalate to the CFPB.
+
+<strong style="color: #1e40af;">📈 Success Rates by Round:</strong>
+
+Many of our most successful cases had modest Round 1 results but saw major breakthroughs in Rounds 2-3. The first round softens the ground — the follow-up rounds are where we often see the biggest wins.
+
+<span style="color: #6b7280;">I'm not giving up, and I don't want you to either. We're just getting started.</span>`,
+    ctaButton: {
+      text: '📊 View Full Results',
+      url: `${SPEEDY_BRAND.portalUrl}/portal`,
+      color: 'blue'
+    },
+    showTrustBadges: true
+  }),
+
+  // NEW DISPUTE ROUND STARTING — Notification
+  disputeNewRound: (contact, data) => createRichEmail({
+    subject: `${contact.firstName}, Round ${data.roundNumber || 2} disputes are going out!`,
+    preheader: `New dispute letters prepared and ready to send — here's what we're targeting`,
+    recipientName: contact.firstName,
+    urgencyLevel: 'normal',
+    bodyContent: `Great news — we've prepared your next round of dispute letters and they're going out now!
+
+<strong style="color: #1e40af;">📬 Round ${data.roundNumber || 2} Details:</strong>
+
+<div style="background: #eff6ff; border-left: 4px solid #1e40af; padding: 15px; margin: 15px 0; border-radius: 0 8px 8px 0;">
+  <strong>Letters Being Sent:</strong> ${data.letterCount || 'Multiple'} dispute letters<br/>
+  <strong>Bureaus Targeted:</strong> ${data.bureaus || 'Experian, TransUnion, Equifax'}<br/>
+  <strong>Items Challenged:</strong> ${data.itemsChallenged || 'Multiple negative items'}<br/>
+  <strong>Strategy:</strong> ${data.strategy || 'Enhanced verification demands + direct creditor challenges'}
+</div>
+
+<strong style="color: #059669;">🔄 What's Different This Round:</strong>
+
+Each round builds on what we learned from the previous one. We use the bureau responses to identify weaknesses in their verification process and target those specifically. This is a strategic, multi-round approach — not a one-shot effort.
+
+<strong style="color: #1e40af;">📅 Timeline:</strong>
+
+- <strong>This Week:</strong> Letters sent to bureaus and creditors
+- <strong>Days 5-30:</strong> Investigation period (bureaus have 30 days to respond)
+- <strong>Days 30-45:</strong> Results arrive — watch your mail!
+
+Same as before — please forward any bureau letters to us as soon as you receive them.
+
+<span style="color: #6b7280;">We're making progress. Every round brings us closer to your credit goals!</span>`,
+    ctaButton: {
+      text: '📋 View Dispute Details',
+      url: `${SPEEDY_BRAND.portalUrl}/portal`,
+      color: 'green'
+    },
+    showTrustBadges: true
+  }),
+
+  // MONTHLY PROGRESS REPORT — Keeps client informed
+  monthlyProgressReport: (contact, data) => createRichEmail({
+    subject: `${contact.firstName}, your monthly credit repair progress report`,
+    preheader: `Here's where things stand after ${data.monthsActive || '1'} month(s) of credit repair`,
+    recipientName: contact.firstName,
+    urgencyLevel: 'normal',
+    bodyContent: `Here's your monthly progress update, ${contact.firstName}. I like to keep you informed every step of the way.
+
+<div style="background: #f9fafb; border: 1px solid #d1d5db; border-radius: 12px; padding: 25px; margin: 15px 0;">
+  <p style="font-size: 18px; font-weight: 700; color: #1e40af; margin: 0 0 15px;">📊 Monthly Summary</p>
+  <table style="width: 100%; border-collapse: collapse;">
+    <tr>
+      <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;"><strong>Months Active:</strong></td>
+      <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; text-align: right;">${data.monthsActive || '1'}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;"><strong>Dispute Rounds Completed:</strong></td>
+      <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; text-align: right;">${data.roundsCompleted || '1'}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;"><strong>Items Challenged:</strong></td>
+      <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; text-align: right;">${data.itemsChallenged || '—'}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;"><strong>Items Deleted:</strong></td>
+      <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; text-align: right; color: #059669; font-weight: 700;">${data.itemsDeleted || '0'}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px 0;"><strong>Items Pending:</strong></td>
+      <td style="padding: 8px 0; text-align: right;">${data.itemsPending || '—'}</td>
+    </tr>
+  </table>
+</div>
+
+${data.scoreChange ? `<div style="background: #f0fdf4; border: 1px solid #059669; border-radius: 8px; padding: 15px; text-align: center; margin: 15px 0;">
+  <p style="margin: 0; font-size: 16px;">Estimated Score Change: <strong style="color: #059669; font-size: 20px;">${data.scoreChange > 0 ? '+' : ''}${data.scoreChange} points</strong></p>
+</div>` : ''}
+
+<strong style="color: #1e40af;">🔜 What's Coming Next:</strong>
+
+${data.nextSteps || 'We\'re continuing to work on your remaining items and preparing the next phase of your dispute strategy.'}
+
+<strong style="color: #059669;">💡 Reminder:</strong>
+
+Your client portal is always up to date with the latest information on your case. You can check in anytime to see dispute statuses, uploaded documents, and more.
+
+<span style="color: #6b7280;">Questions about anything in this report? Just reply to this email — I'm always here.</span>`,
+    ctaButton: {
+      text: '📈 View Full Report in Portal',
+      url: `${SPEEDY_BRAND.portalUrl}/portal`,
+      color: 'blue'
+    },
+    showTrustBadges: true
+  }),
+
+  // SCORE MILESTONE CELEBRATION — 600, 650, 700, 750+
+  scoreMilestone: (contact, data) => createRichEmail({
+    subject: `🎉 ${contact.firstName}, you just crossed ${data.milestone} — AMAZING!`,
+    preheader: `Your credit score hit ${data.milestone}! Here's what this unlocks for you`,
+    recipientName: contact.firstName,
+    urgencyLevel: 'normal',
+    bodyContent: `<div style="background: linear-gradient(135deg, #059669 0%, #10b981 100%); border-radius: 12px; padding: 30px; text-align: center; margin: 0 0 25px;">
+  <p style="font-size: 48px; margin: 0;">🌟</p>
+  <p style="font-size: 28px; font-weight: 700; color: white; margin: 10px 0;">SCORE MILESTONE!</p>
+  <p style="font-size: 36px; font-weight: 800; color: white; margin: 0;">${data.milestone}+</p>
+  <p style="font-size: 14px; color: rgba(255,255,255,0.9); margin: 10px 0 0;">Credit Score Achievement Unlocked</p>
+</div>
+
+${contact.firstName}, this is a <strong>huge</strong> accomplishment and I'm genuinely proud of the progress you've made!
+
+<strong style="color: #1e40af;">🔓 What a ${data.milestone}+ Score Unlocks:</strong>
+
+${data.milestone >= 750 ? `<strong>Excellent Credit (750+):</strong>
+- The best interest rates on mortgages, auto loans, and credit cards
+- Premium credit card approvals (travel rewards, cash back)
+- Lower insurance premiums
+- No security deposits on utilities and rentals
+- Negotiating power with lenders` : 
+data.milestone >= 700 ? `<strong>Good Credit (700+):</strong>
+- Competitive mortgage rates (saves thousands over the life of a loan)
+- Approval for most major credit cards
+- Better auto loan terms
+- Easier apartment rental approvals
+- Lower insurance rates` :
+data.milestone >= 650 ? `<strong>Fair-to-Good Credit (650+):</strong>
+- Auto loan approvals with reasonable rates
+- Many credit card approvals
+- Easier apartment rental applications
+- Better insurance rates than before
+- You're now above the national average!` :
+`<strong>Building Credit (600+):</strong>
+- You've crossed out of the "poor" credit range — that's a big deal!
+- More credit card options available to you now
+- Auto loan approvals become possible
+- Rental applications become easier
+- Foundation for continued improvement`}
+
+${data.previousScore ? `<div style="background: #f9fafb; padding: 15px; border-radius: 8px; margin: 15px 0;">
+  <strong>Your Journey:</strong> ${data.previousScore} → <strong style="color: #059669;">${data.currentScore || data.milestone}+</strong> (${data.pointsGained || (data.currentScore - data.previousScore)} points gained!)
+</div>` : ''}
+
+<strong style="color: #059669;">We're not done yet!</strong> Every point matters, and we'll keep pushing to maximize your score.
+
+<span style="color: #6b7280;">Celebrate this win — you've earned it! 🎉</span>`,
+    ctaButton: {
+      text: '🏆 View My Progress',
+      url: `${SPEEDY_BRAND.portalUrl}/portal`,
+      color: 'green'
+    },
+    showTrustBadges: true
+  }),
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // TIER 2: GRADUATION & POST-SERVICE (2 emails)
+  // Celebrates completion and keeps them as a referral source
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // GRADUATION — Service Complete
+  graduationComplete: (contact, data) => createRichEmail({
+    subject: `🎓 ${contact.firstName}, CONGRATULATIONS — your credit repair is complete!`,
+    preheader: 'You did it! Here\'s a summary of everything we accomplished together',
+    recipientName: contact.firstName,
+    urgencyLevel: 'normal',
+    bodyContent: `<div style="background: linear-gradient(135deg, #1e40af 0%, #7c3aed 100%); border-radius: 12px; padding: 35px; text-align: center; margin: 0 0 25px;">
+  <p style="font-size: 52px; margin: 0;">🎓</p>
+  <p style="font-size: 26px; font-weight: 700; color: white; margin: 10px 0;">CREDIT REPAIR COMPLETE!</p>
+  <p style="font-size: 16px; color: rgba(255,255,255,0.9); margin: 0;">Congratulations, ${contact.firstName}!</p>
+</div>
+
+It's been an honor working with you, ${contact.firstName}. Today marks the completion of your credit repair journey with Speedy Credit Repair, and I couldn't be more proud of what we accomplished together.
+
+<strong style="color: #1e40af;">📊 Your Final Results:</strong>
+
+<div style="background: #f9fafb; border: 1px solid #d1d5db; border-radius: 12px; padding: 20px; margin: 15px 0;">
+  <table style="width: 100%; border-collapse: collapse;">
+    ${data.startScore && data.endScore ? `<tr>
+      <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;"><strong>Starting Score:</strong></td>
+      <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; text-align: right;">${data.startScore}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;"><strong>Final Score:</strong></td>
+      <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; text-align: right; color: #059669; font-weight: 700;">${data.endScore}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;"><strong>Points Gained:</strong></td>
+      <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; text-align: right; color: #059669; font-weight: 700;">+${data.endScore - data.startScore}</td>
+    </tr>` : ''}
+    <tr>
+      <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;"><strong>Items Removed:</strong></td>
+      <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; text-align: right;">${data.totalItemsRemoved || '—'}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;"><strong>Dispute Rounds:</strong></td>
+      <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; text-align: right;">${data.totalRounds || '—'}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px 0;"><strong>Months Active:</strong></td>
+      <td style="padding: 8px 0; text-align: right;">${data.monthsActive || '—'}</td>
+    </tr>
+  </table>
+</div>
+
+<strong style="color: #059669;">🔜 What Happens Now:</strong>
+
+Your service is complete and no further payments will be processed. Here's what to keep in mind going forward:
+
+- <strong>Your portal stays active</strong> — you can still access your documents and history
+- <strong>Watch for your final credit reports</strong> — scores may continue improving as bureaus update
+- <strong>I'll send you maintenance tips</strong> in a few days to help protect your improved score
+
+<strong style="color: #1e40af;">One Last Thing:</strong>
+
+If you know anyone struggling with their credit, I'd be grateful for the referral. After 30 years in this business, most of my clients come from people like you who experienced the results firsthand.
+
+<span style="color: #6b7280;">Thank you for trusting Speedy Credit Repair with your credit journey. It's been a privilege.</span>
+
+<p style="margin: 25px 0 0 0;">With gratitude,<br/><strong>${SPEEDY_BRAND.ownerName}</strong><br/>${SPEEDY_BRAND.companyName}<br/><em>Helping families since ${SPEEDY_BRAND.established}</em></p>`,
+    ctaButton: {
+      text: '⭐ Leave Us a Google Review',
+      url: 'https://g.page/r/speedycreditrepair/review',
+      color: 'green'
+    },
+    showTrustBadges: true
+  }),
+
+  // MAINTENANCE TIPS — 7 Days After Graduation
+  postGraduationTips: (contact) => createRichEmail({
+    subject: `${contact.firstName}, 7 tips to PROTECT your improved credit score`,
+    preheader: 'Now that your credit is repaired, here\'s how to keep it that way',
+    recipientName: contact.firstName,
+    urgencyLevel: 'normal',
+    bodyContent: `Now that your credit repair is complete, I want to make sure your improved score stays that way. These are the same tips I share with every graduating client — they work.
+
+<strong style="color: #1e40af;">🛡️ 7 Rules to Protect Your Credit Score:</strong>
+
+<strong>1. Never Miss a Payment — Ever</strong>
+Payment history is 35% of your score. Set up autopay on everything, even if it's just the minimum. One 30-day late payment can drop your score 50-100 points.
+
+<strong>2. Keep Credit Utilization Below 30%</strong>
+If your card limit is $1,000, keep the balance below $300. Below 10% is even better. This is 30% of your score.
+
+<strong>3. Don't Close Your Oldest Cards</strong>
+Length of credit history matters. Even if you don't use a card, keep it open. Cut it up if you need to — but don't close the account.
+
+<strong>4. Limit Hard Inquiries</strong>
+Only apply for credit when you truly need it. Each application creates a hard inquiry that temporarily lowers your score. Space applications at least 6 months apart.
+
+<strong>5. Check Your Reports Every 4 Months</strong>
+Pull one free report from AnnualCreditReport.com every 4 months (rotating between Experian, TransUnion, and Equifax). This way you're monitoring year-round for free.
+
+<strong>6. Dispute Any New Errors Immediately</strong>
+Errors happen. If you spot something wrong, dispute it right away. You now know the process — or call us and we'll help.
+
+<strong>7. Build Positive Credit Strategically</strong>
+Consider a credit builder loan or secured card if you want to strengthen your profile further. The key is small, manageable accounts that you pay on time every month.
+
+<strong style="color: #059669;">📞 We're Always Here:</strong>
+
+Even though your service is complete, you're always welcome to reach out if you have questions about your credit. Once a Speedy client, always part of the family.
+
+<span style="color: #6b7280;">And if you know anyone who could use our help — family, friends, coworkers — we'd love the introduction. Call ${SPEEDY_BRAND.phone} or visit ${SPEEDY_BRAND.website}.</span>`,
+    ctaButton: {
+      text: '🔐 Access My Portal & Documents',
+      url: `${SPEEDY_BRAND.portalUrl}/portal`,
+      color: 'blue'
+    },
+    showTrustBadges: true
   })
 };
 
@@ -3876,8 +4648,8 @@ exports.processAbandonmentEmails = onSchedule(
   {
     schedule: 'every 5 minutes',
     ...defaultConfig,
-    memory: '512MiB',
-    timeoutSeconds: 120,
+    memory: '1GiB',
+    timeoutSeconds: 300,
     secrets: [gmailUser, gmailAppPassword, gmailFromName, gmailReplyTo, telnyxApiKey, telnyxSmsPhone]
   },
   async (context) => {
@@ -4121,20 +4893,829 @@ exports.processAbandonmentEmails = onSchedule(
       }
       
       console.log(`✅ Scheduled emails: ${scheduledSent} sent, ${scheduledFailed} failed`);
+      
+      // ─────────────────────────────────────────────────────────────────────
+      // RULE 4: POST-ACH 30-DAY DRIP CAMPAIGN
+      // Sends nurture emails on Days 1,3,7,14,25,30,35 after ACH completes
+      // Also sends SMS on Days 1,7,30 if smsConsent + Telnyx configured
+      // Creates call tasks for Chris on Days 14 and 30
+      // ─────────────────────────────────────────────────────────────────────
+      
+      console.log('\n📬 Processing post-ACH drip campaign...');
+      let dripSent = 0;
+      let dripSmsSent = 0;
+      let dripTasksCreated = 0;
+      
+      // Find active clients with ACH completed who haven't finished drip
+      const dripEligibleSnapshot = await db.collection('contacts')
+        .where('achAuthorized', '==', true)
+        .where('dripCompleted', '==', false)
+        .limit(100)
+        .get();
+      
+      // Also check clients where dripCompleted doesn't exist yet
+      let dripCandidates = dripEligibleSnapshot.docs;
+      
+      if (dripEligibleSnapshot.size < 100) {
+        const dripMissingFieldSnapshot = await db.collection('contacts')
+          .where('achAuthorized', '==', true)
+          .limit(100)
+          .get();
+        
+        // Filter to only those missing dripCompleted field
+        const existingIds = new Set(dripCandidates.map(d => d.id));
+        const additional = dripMissingFieldSnapshot.docs.filter(d => 
+          !existingIds.has(d.id) && d.data().dripCompleted !== true
+        );
+        dripCandidates = [...dripCandidates, ...additional].slice(0, 100);
+      }
+      
+      console.log(`📊 Found ${dripCandidates.length} ACH-complete clients to check for drip`);
+      
+      const DRIP_SCHEDULE = [
+        { day: 1,  field: 'dripDay1Sent',  template: 'dripDay1Welcome',     sms: true,  task: false, smsMsg: (name) => `Hi ${name}! Chris from Speedy Credit Repair here. Your credit repair is officially underway! Check your email for your full roadmap. Questions? Call us anytime: 888-724-7344` },
+        { day: 3,  field: 'dripDay3Sent',  template: 'dripDay3Education',    sms: false, task: false },
+        { day: 7,  field: 'dripDay7Sent',  template: 'dripDay7CreditTips',   sms: true,  task: false, smsMsg: (name) => `${name}, quick tip from Speedy Credit Repair: While we handle your disputes, try to keep credit card balances below 30% of your limit. Small changes add up! Full tips in your email.` },
+        { day: 14, field: 'dripDay14Sent', template: 'dripDay14Checkin',     sms: false, task: true,  taskTitle: '📞 Midpoint Check-in Call' },
+        { day: 25, field: 'dripDay25Sent', template: 'dripDay25Anticipation', sms: false, task: false },
+        { day: 30, field: 'dripDay30Sent', template: 'dripDay30BureauWindow', sms: true,  task: true,  taskTitle: '📞 30-Day Results Call', smsMsg: (name) => `${name}, it's Chris from Speedy Credit Repair. Your first dispute results should be arriving soon! Check your mail daily and forward any bureau letters to us. We'll call you soon with an update.` },
+        { day: 35, field: 'dripDay35Sent', template: 'dripDay35NextRound',   sms: false, task: false }
+      ];
+      
+      for (const contactDoc of dripCandidates) {
+        const contact = contactDoc.data();
+        const contactId = contactDoc.id;
+        
+        // Calculate days since ACH completed
+        const achDate = contact.achCompletedAt?.toDate() || contact.achAuthorizedAt?.toDate();
+        if (!achDate) continue;
+        
+        const daysSinceACH = Math.floor((now.getTime() - achDate.getTime()) / (1000 * 60 * 60 * 24));
+        
+        const recipientEmail = contact.email || contact.emails?.[0]?.address;
+        if (!recipientEmail) continue;
+        
+        // If past day 35, mark drip as complete and skip
+        if (daysSinceACH > 38) {
+          if (!contact.dripCompleted) {
+            await contactDoc.ref.update({ dripCompleted: true });
+          }
+          continue;
+        }
+        
+        for (const step of DRIP_SCHEDULE) {
+          // Skip if already sent or not time yet
+          if (contact[step.field] || daysSinceACH < step.day) continue;
+          
+          // Only send if we're within the window (day to day+3)
+          if (daysSinceACH > step.day + 3) {
+            // Past the window — mark as sent to avoid stuck loops
+            await contactDoc.ref.update({ [step.field]: true });
+            continue;
+          }
+          
+          try {
+            // Send email
+            const contactWithId = { ...contact, id: contactId };
+            const emailHtml = EMAIL_TEMPLATES[step.template](contactWithId);
+            
+            // Extract subject from the template's createRichEmail call
+            // The subject is embedded in the HTML <title> or we use a fallback
+            const subjectMatch = emailHtml.match(/<title>(.*?)<\/title>/);
+            const emailSubject = subjectMatch ? subjectMatch[1] : `Day ${step.day} Credit Repair Update — ${contact.firstName}`;
+            
+            await transporter.sendMail({
+              from: `"${fromName}" <${user}>`,
+              to: recipientEmail,
+              subject: emailSubject,
+              html: emailHtml
+            });
+            
+            const updateData = {
+              [step.field]: true,
+              [`${step.field}At`]: admin.firestore.FieldValue.serverTimestamp()
+            };
+            
+            // Send SMS if applicable
+            if (step.sms && contact.smsConsent === true && contact.phone && telnyxApiKey.value() && telnyxSmsPhone.value()) {
+              try {
+                let smsPhone = (contact.phone || '').replace(/\D/g, '');
+                if (smsPhone.length === 10) smsPhone = '+1' + smsPhone;
+                else if (!smsPhone.startsWith('+')) smsPhone = '+' + smsPhone;
+                
+                const smsName = contact.firstName || 'there';
+                
+                await fetch('https://api.telnyx.com/v2/messages', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${telnyxApiKey.value()}` },
+                  body: JSON.stringify({
+                    from: telnyxSmsPhone.value(),
+                    to: smsPhone,
+                    text: step.smsMsg(smsName)
+                  })
+                });
+                
+                updateData[`${step.field}SmsSent`] = true;
+                dripSmsSent++;
+                console.log(`📱 Drip SMS Day ${step.day} sent to ${contactId}`);
+              } catch (smsErr) {
+                console.error(`⚠️ Drip SMS Day ${step.day} failed for ${contactId}:`, smsErr.message);
+              }
+            }
+            
+            // Create task if applicable
+            if (step.task && step.taskTitle) {
+              try {
+                const taskDue = new Date();
+                taskDue.setHours(10, 0, 0, 0); // Due at 10 AM today
+                
+                await db.collection('tasks').add({
+                  title: `${step.taskTitle}: ${contact.firstName} ${contact.lastName || ''}`.trim(),
+                  description: `Drip Day ${step.day} — Call client to check in.\n\nEmail: ${recipientEmail}\nPhone: ${contact.phone || 'N/A'}\nDays since ACH: ${daysSinceACH}\n\nCRM: https://myclevercrm.com/contacts/${contactId}`,
+                  contactId: contactId,
+                  status: 'pending',
+                  priority: step.day === 30 ? 'high' : 'medium',
+                  dueDate: admin.firestore.Timestamp.fromDate(taskDue),
+                  createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                  createdBy: 'system:drip_campaign',
+                  type: 'call'
+                });
+                dripTasksCreated++;
+              } catch (taskErr) {
+                console.error(`⚠️ Drip task failed for ${contactId}:`, taskErr.message);
+              }
+            }
+            
+            await contactDoc.ref.update(updateData);
+            dripSent++;
+            console.log(`✅ Drip Day ${step.day} email sent to ${contact.firstName} (${contactId})`);
+            
+            // Only send ONE drip email per contact per run
+            break;
+            
+          } catch (dripError) {
+            console.error(`❌ Drip Day ${step.day} failed for ${contactId}:`, dripError.message);
+          }
+        }
+      }
+      
+      console.log(`✅ Drip campaign: ${dripSent} emails, ${dripSmsSent} SMS, ${dripTasksCreated} tasks`);
+      
+      // ─────────────────────────────────────────────────────────────────────
+      // RULE 5: ACH NOT COMPLETED FOLLOW-UPS
+      // Nudges contacts who signed contracts but haven't set up payment
+      // 24 hours, 48 hours, 5 days after contract signing
+      // ─────────────────────────────────────────────────────────────────────
+      
+      console.log('\n💳 Processing ACH follow-up reminders...');
+      let achFollowUpsSent = 0;
+      
+      const achPendingSnapshot = await db.collection('contacts')
+        .where('contractSigned', '==', true)
+        .where('achAuthorized', '!=', true)
+        .limit(100)
+        .get();
+      
+      console.log(`📊 Found ${achPendingSnapshot.size} signed contracts without ACH`);
+      
+      for (const contactDoc of achPendingSnapshot.docs) {
+        const contact = contactDoc.data();
+        const contactId = contactDoc.id;
+        
+        // Skip if already marked as achAuthorized (belt and suspenders)
+        if (contact.achAuthorized === true) continue;
+        
+        const contractDate = contact.contractSignedAt?.toDate() || contact.contractSigned?.toDate?.();
+        if (!contractDate || !(contractDate instanceof Date) || isNaN(contractDate.getTime())) continue;
+        
+        const hoursSinceContract = (now.getTime() - contractDate.getTime()) / (1000 * 60 * 60);
+        
+        const recipientEmail = contact.email || contact.emails?.[0]?.address;
+        if (!recipientEmail) continue;
+        
+        const portalUrl = SPEEDY_BRAND.portalUrl;
+        
+        try {
+          // 24-hour reminder
+          if (hoursSinceContract >= 24 && hoursSinceContract < 48 && !contact.achReminder24hSent) {
+            const emailHtml = EMAIL_TEMPLATES.achReminder24h({ ...contact, id: contactId }, portalUrl);
+            
+            await transporter.sendMail({
+              from: `"${fromName}" <${user}>`,
+              to: recipientEmail,
+              subject: `${contact.firstName}, just one quick step left to start your credit repair`,
+              html: emailHtml
+            });
+            
+            await contactDoc.ref.update({
+              achReminder24hSent: true,
+              achReminder24hSentAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            
+            achFollowUpsSent++;
+            console.log(`✅ ACH 24h reminder sent to ${contact.firstName} (${contactId})`);
+          }
+          
+          // 48-hour reminder
+          else if (hoursSinceContract >= 48 && hoursSinceContract < 120 && !contact.achReminder48hSent) {
+            const emailHtml = EMAIL_TEMPLATES.achReminder48h({ ...contact, id: contactId }, portalUrl);
+            
+            await transporter.sendMail({
+              from: `"${fromName}" <${user}>`,
+              to: recipientEmail,
+              subject: `⏰ ${contact.firstName}, your credit repair is on hold — quick action needed`,
+              html: emailHtml
+            });
+            
+            // Send SMS nudge if consent
+            if (contact.smsConsent === true && contact.phone && telnyxApiKey.value() && telnyxSmsPhone.value()) {
+              try {
+                let smsPhone = (contact.phone || '').replace(/\D/g, '');
+                if (smsPhone.length === 10) smsPhone = '+1' + smsPhone;
+                else if (!smsPhone.startsWith('+')) smsPhone = '+' + smsPhone;
+                
+                await fetch('https://api.telnyx.com/v2/messages', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${telnyxApiKey.value()}` },
+                  body: JSON.stringify({
+                    from: telnyxSmsPhone.value(),
+                    to: smsPhone,
+                    text: `${contact.firstName}, your credit repair is on hold until payment is set up. It only takes 2 min! Complete it here or call us: 888-724-7344`
+                  })
+                });
+                console.log(`📱 ACH 48h SMS sent to ${contactId}`);
+              } catch (smsErr) {
+                console.error(`⚠️ ACH 48h SMS failed:`, smsErr.message);
+              }
+            }
+            
+            await contactDoc.ref.update({
+              achReminder48hSent: true,
+              achReminder48hSentAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            
+            achFollowUpsSent++;
+            console.log(`✅ ACH 48h reminder sent to ${contact.firstName} (${contactId})`);
+          }
+          
+          // 5-day final reminder
+          else if (hoursSinceContract >= 120 && !contact.achReminderFinalSent) {
+            const emailHtml = EMAIL_TEMPLATES.achReminderFinal({ ...contact, id: contactId }, portalUrl);
+            
+            await transporter.sendMail({
+              from: `"${fromName}" <${user}>`,
+              to: recipientEmail,
+              subject: `${contact.firstName}, we're holding your spot — but need to hear from you`,
+              html: emailHtml
+            });
+            
+            // Create urgent task for Chris to personally call
+            await db.collection('tasks').add({
+              title: `🚨 ACH Missing 5+ Days: Call ${contact.firstName} ${contact.lastName || ''}`.trim(),
+              description: `Contract signed but ACH not completed for 5+ days.\n\nEmail: ${recipientEmail}\nPhone: ${contact.phone || 'N/A'}\nContract signed: ${contractDate.toLocaleDateString()}\nHours since: ${Math.round(hoursSinceContract)}\n\nThis client may be having second thoughts. Personal call recommended.\n\nCRM: https://myclevercrm.com/contacts/${contactId}`,
+              contactId: contactId,
+              status: 'pending',
+              priority: 'critical',
+              dueDate: admin.firestore.Timestamp.fromDate(new Date()),
+              createdAt: admin.firestore.FieldValue.serverTimestamp(),
+              createdBy: 'system:ach_followup',
+              type: 'call'
+            });
+            
+            await contactDoc.ref.update({
+              achReminderFinalSent: true,
+              achReminderFinalSentAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            
+            achFollowUpsSent++;
+            console.log(`✅ ACH FINAL reminder + task sent for ${contact.firstName} (${contactId})`);
+          }
+          
+        } catch (achError) {
+          console.error(`❌ ACH follow-up failed for ${contactId}:`, achError.message);
+        }
+      }
+      
+      console.log(`✅ ACH follow-ups sent: ${achFollowUpsSent}`);
+      
+      // ─────────────────────────────────────────────────────────────────────
+      // RULE 6: IDIQ ENROLLMENT FAILURE RECOVERY
+      // Sends client-facing email when IDIQ enrollment fails
+      // Also sends SMS nudge if consent + creates recovery task
+      // ─────────────────────────────────────────────────────────────────────
+      
+      console.log('\n🔧 Processing IDIQ enrollment failure recovery...');
+      let idiqRecoverySent = 0;
+      
+      const idiqFailedSnapshot = await db.collection('contacts')
+        .where('idiq.enrollmentStatus', '==', 'failed')
+        .limit(50)
+        .get();
+      
+      console.log(`📊 Found ${idiqFailedSnapshot.size} failed IDIQ enrollments to check`);
+      
+      for (const contactDoc of idiqFailedSnapshot.docs) {
+        const contact = contactDoc.data();
+        const contactId = contactDoc.id;
+        
+        // Skip if already sent recovery email
+        if (contact.idiqFailureEmailSent === true) continue;
+        
+        const recipientEmail = contact.email || contact.emails?.[0]?.address;
+        if (!recipientEmail) continue;
+        
+        try {
+          const retryUrl = `${SPEEDY_BRAND.portalUrl}/complete-enrollment?contactId=${contactId}&retry=true`;
+          
+          const emailHtml = EMAIL_TEMPLATES.idiqEnrollmentFailed(
+            { ...contact, id: contactId },
+            retryUrl
+          );
+          
+          await transporter.sendMail({
+            from: `"${fromName}" <${user}>`,
+            to: recipientEmail,
+            subject: `${contact.firstName}, we hit a small snag — easy fix inside`,
+            html: emailHtml
+          });
+          
+          // SMS nudge if consent
+          if (contact.smsConsent === true && contact.phone && telnyxApiKey.value() && telnyxSmsPhone.value()) {
+            try {
+              let smsPhone = (contact.phone || '').replace(/\D/g, '');
+              if (smsPhone.length === 10) smsPhone = '+1' + smsPhone;
+              else if (!smsPhone.startsWith('+')) smsPhone = '+' + smsPhone;
+              
+              await fetch('https://api.telnyx.com/v2/messages', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${telnyxApiKey.value()}` },
+                body: JSON.stringify({
+                  from: telnyxSmsPhone.value(),
+                  to: smsPhone,
+                  text: `${contact.firstName}, your credit report enrollment needs a quick retry. Takes 30 seconds! Check your email for the link, or call us: 888-724-7344`
+                })
+              });
+              console.log(`📱 IDIQ recovery SMS sent to ${contactId}`);
+            } catch (smsErr) {
+              console.error(`⚠️ IDIQ recovery SMS failed:`, smsErr.message);
+            }
+          }
+          
+          await contactDoc.ref.update({
+            idiqFailureEmailSent: true,
+            idiqFailureEmailSentAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+          
+          idiqRecoverySent++;
+          console.log(`✅ IDIQ recovery email sent to ${contact.firstName} (${contactId})`);
+          
+        } catch (idiqError) {
+          console.error(`❌ IDIQ recovery failed for ${contactId}:`, idiqError.message);
+        }
+      }
+      
+      console.log(`✅ IDIQ recovery emails sent: ${idiqRecoverySent}`);
+      
+      // ─────────────────────────────────────────────────────────────────────
+      // RULE 7: DISPUTE RESULT NOTIFICATIONS
+      // Sends celebration email for deletions, pivot strategy for no deletions,
+      // and new round notification when disputes are filed
+      // ─────────────────────────────────────────────────────────────────────
+      
+      console.log('\n📋 Processing dispute result notifications...');
+      let disputeEmailsSent = 0;
+      
+      // 7A: DELETION CELEBRATIONS — contacts with recent deletions not yet celebrated
+      const deletionSnapshot = await db.collection('contacts')
+        .where('hasRecentDeletions', '==', true)
+        .where('deletionCelebrationSent', '!=', true)
+        .limit(50)
+        .get();
+      
+      for (const contactDoc of deletionSnapshot.docs) {
+        const contact = contactDoc.data();
+        const contactId = contactDoc.id;
+        if (contact.deletionCelebrationSent === true) continue;
+        
+        const recipientEmail = contact.email || contact.emails?.[0]?.address;
+        if (!recipientEmail) continue;
+        
+        try {
+          const emailHtml = EMAIL_TEMPLATES.disputeDeletionCelebration(
+            { ...contact, id: contactId },
+            {
+              deletedCount: contact.recentDeletionCount || contact.totalItemsDeleted || 0,
+              deletedItems: contact.recentDeletedItems || 'Negative items removed from your report',
+              remainingItems: contact.remainingDisputeItems || 0
+            }
+          );
+          
+          await transporter.sendMail({
+            from: `"${fromName}" <${user}>`,
+            to: recipientEmail,
+            subject: `🎉 ${contact.firstName}, negative items were REMOVED from your report!`,
+            html: emailHtml
+          });
+          
+          // Send celebration SMS if consent
+          if (contact.smsConsent === true && contact.phone && telnyxApiKey.value() && telnyxSmsPhone.value()) {
+            try {
+              let smsPhone = (contact.phone || '').replace(/\D/g, '');
+              if (smsPhone.length === 10) smsPhone = '+1' + smsPhone;
+              else if (!smsPhone.startsWith('+')) smsPhone = '+' + smsPhone;
+              
+              await fetch('https://api.telnyx.com/v2/messages', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${telnyxApiKey.value()}` },
+                body: JSON.stringify({
+                  from: telnyxSmsPhone.value(),
+                  to: smsPhone,
+                  text: `🎉 ${contact.firstName}, GREAT NEWS! ${contact.recentDeletionCount || 'Negative'} items were DELETED from your credit report! Check your email for full details. — Chris, Speedy Credit Repair`
+                })
+              });
+            } catch (smsErr) {
+              console.error(`⚠️ Deletion celebration SMS failed:`, smsErr.message);
+            }
+          }
+          
+          await contactDoc.ref.update({
+            deletionCelebrationSent: true,
+            deletionCelebrationSentAt: admin.firestore.FieldValue.serverTimestamp(),
+            hasRecentDeletions: false // Reset flag for next round
+          });
+          
+          disputeEmailsSent++;
+          console.log(`✅ Deletion celebration sent to ${contact.firstName} (${contactId})`);
+        } catch (err) {
+          console.error(`❌ Deletion celebration failed for ${contactId}:`, err.message);
+        }
+      }
+      
+      // 7B: NO DELETIONS — STRATEGY PIVOT
+      const noDeleteSnapshot = await db.collection('contacts')
+        .where('hasRecentResults', '==', true)
+        .where('recentDeletionCount', '==', 0)
+        .where('noDeletePivotSent', '!=', true)
+        .limit(50)
+        .get();
+      
+      for (const contactDoc of noDeleteSnapshot.docs) {
+        const contact = contactDoc.data();
+        const contactId = contactDoc.id;
+        if (contact.noDeletePivotSent === true) continue;
+        
+        const recipientEmail = contact.email || contact.emails?.[0]?.address;
+        if (!recipientEmail) continue;
+        
+        try {
+          const emailHtml = EMAIL_TEMPLATES.disputeNoDeletions(
+            { ...contact, id: contactId },
+            { roundNumber: contact.currentDisputeRound || 1 }
+          );
+          
+          await transporter.sendMail({
+            from: `"${fromName}" <${user}>`,
+            to: recipientEmail,
+            subject: `${contact.firstName}, your Round ${contact.currentDisputeRound || 1} results are in — here's our next move`,
+            html: emailHtml
+          });
+          
+          await contactDoc.ref.update({
+            noDeletePivotSent: true,
+            noDeletePivotSentAt: admin.firestore.FieldValue.serverTimestamp(),
+            hasRecentResults: false
+          });
+          
+          disputeEmailsSent++;
+          console.log(`✅ No-deletion pivot sent to ${contact.firstName} (${contactId})`);
+        } catch (err) {
+          console.error(`❌ No-deletion pivot failed for ${contactId}:`, err.message);
+        }
+      }
+      
+      // 7C: NEW DISPUTE ROUND STARTING
+      const newRoundSnapshot = await db.collection('contacts')
+        .where('newRoundFiled', '==', true)
+        .where('newRoundNotificationSent', '!=', true)
+        .limit(50)
+        .get();
+      
+      for (const contactDoc of newRoundSnapshot.docs) {
+        const contact = contactDoc.data();
+        const contactId = contactDoc.id;
+        if (contact.newRoundNotificationSent === true) continue;
+        
+        const recipientEmail = contact.email || contact.emails?.[0]?.address;
+        if (!recipientEmail) continue;
+        
+        try {
+          const emailHtml = EMAIL_TEMPLATES.disputeNewRound(
+            { ...contact, id: contactId },
+            {
+              roundNumber: contact.currentDisputeRound || 2,
+              letterCount: contact.currentRoundLetterCount || 'Multiple',
+              bureaus: contact.currentRoundBureaus || 'Experian, TransUnion, Equifax',
+              itemsChallenged: contact.currentRoundItemCount || 'Multiple negative items',
+              strategy: contact.currentRoundStrategy || 'Enhanced verification demands + direct creditor challenges'
+            }
+          );
+          
+          await transporter.sendMail({
+            from: `"${fromName}" <${user}>`,
+            to: recipientEmail,
+            subject: `${contact.firstName}, Round ${contact.currentDisputeRound || 2} disputes are going out!`,
+            html: emailHtml
+          });
+          
+          await contactDoc.ref.update({
+            newRoundNotificationSent: true,
+            newRoundNotificationSentAt: admin.firestore.FieldValue.serverTimestamp(),
+            newRoundFiled: false
+          });
+          
+          disputeEmailsSent++;
+          console.log(`✅ New round notification sent to ${contact.firstName} (${contactId})`);
+        } catch (err) {
+          console.error(`❌ New round notification failed for ${contactId}:`, err.message);
+        }
+      }
+      
+      console.log(`✅ Dispute notifications sent: ${disputeEmailsSent}`);
+      
+      // ─────────────────────────────────────────────────────────────────────
+      // RULE 8: MONTHLY PROGRESS REPORTS
+      // Sends once per month to active clients (role = 'client')
+      // ─────────────────────────────────────────────────────────────────────
+      
+      console.log('\n📊 Processing monthly progress reports...');
+      let monthlyReportsSent = 0;
+      
+      const activeClientsSnapshot = await db.collection('contacts')
+        .where('role', '==', 'client')
+        .where('serviceStatus', '==', 'active')
+        .limit(100)
+        .get();
+      
+      console.log(`📊 Found ${activeClientsSnapshot.size} active clients to check for monthly report`);
+      
+      for (const contactDoc of activeClientsSnapshot.docs) {
+        const contact = contactDoc.data();
+        const contactId = contactDoc.id;
+        
+        const recipientEmail = contact.email || contact.emails?.[0]?.address;
+        if (!recipientEmail) continue;
+        
+        // Check if 30+ days since last monthly report (or never sent)
+        const lastReport = contact.lastMonthlyReportSentAt?.toDate();
+        if (lastReport) {
+          const daysSinceReport = Math.floor((now.getTime() - lastReport.getTime()) / (1000 * 60 * 60 * 24));
+          if (daysSinceReport < 28) continue; // Not due yet
+        }
+        
+        // Calculate months active
+        const serviceStartDate = contact.achCompletedAt?.toDate() || contact.serviceStartDate?.toDate() || contact.contractSignedAt?.toDate();
+        const monthsActive = serviceStartDate ? Math.max(1, Math.floor((now.getTime() - serviceStartDate.getTime()) / (1000 * 60 * 60 * 24 * 30))) : 1;
+        
+        try {
+          const emailHtml = EMAIL_TEMPLATES.monthlyProgressReport(
+            { ...contact, id: contactId },
+            {
+              monthsActive: monthsActive,
+              roundsCompleted: contact.totalDisputeRounds || contact.currentDisputeRound || 1,
+              itemsChallenged: contact.totalItemsChallenged || '—',
+              itemsDeleted: contact.totalItemsDeleted || '0',
+              itemsPending: contact.pendingDisputeItems || '—',
+              scoreChange: contact.scoreImprovement || null,
+              nextSteps: contact.nextStepsDescription || 'We\'re continuing to work on your remaining items and preparing the next phase of your dispute strategy.'
+            }
+          );
+          
+          await transporter.sendMail({
+            from: `"${fromName}" <${user}>`,
+            to: recipientEmail,
+            subject: `${contact.firstName}, your monthly credit repair progress report`,
+            html: emailHtml
+          });
+          
+          await contactDoc.ref.update({
+            lastMonthlyReportSentAt: admin.firestore.FieldValue.serverTimestamp(),
+            monthlyReportCount: admin.firestore.FieldValue.increment(1)
+          });
+          
+          monthlyReportsSent++;
+          console.log(`✅ Monthly report sent to ${contact.firstName} (${contactId})`);
+        } catch (err) {
+          console.error(`❌ Monthly report failed for ${contactId}:`, err.message);
+        }
+      }
+      
+      console.log(`✅ Monthly reports sent: ${monthlyReportsSent}`);
+      
+      // ─────────────────────────────────────────────────────────────────────
+      // RULE 9: SCORE MILESTONE CELEBRATIONS
+      // Triggers when creditScore crosses 600, 650, 700, or 750
+      // ─────────────────────────────────────────────────────────────────────
+      
+      console.log('\n🏆 Processing score milestone celebrations...');
+      let milestoneSent = 0;
+      
+      const MILESTONES = [600, 650, 700, 750];
+      
+      // Check active clients who have a credit score
+      const scoredClientsSnapshot = await db.collection('contacts')
+        .where('role', '==', 'client')
+        .limit(200)
+        .get();
+      
+      for (const contactDoc of scoredClientsSnapshot.docs) {
+        const contact = contactDoc.data();
+        const contactId = contactDoc.id;
+        
+        const currentScore = contact.creditScore || contact.currentCreditScore || 0;
+        if (currentScore < 600) continue;
+        
+        const recipientEmail = contact.email || contact.emails?.[0]?.address;
+        if (!recipientEmail) continue;
+        
+        // Find the highest milestone they've crossed
+        const crossedMilestones = MILESTONES.filter(m => currentScore >= m);
+        if (crossedMilestones.length === 0) continue;
+        
+        const highestMilestone = Math.max(...crossedMilestones);
+        const milestoneField = `milestone${highestMilestone}Sent`;
+        
+        // Skip if already celebrated this milestone
+        if (contact[milestoneField] === true) continue;
+        
+        try {
+          const emailHtml = EMAIL_TEMPLATES.scoreMilestone(
+            { ...contact, id: contactId },
+            {
+              milestone: highestMilestone,
+              currentScore: currentScore,
+              previousScore: contact.startingCreditScore || contact.initialCreditScore || null,
+              pointsGained: contact.scoreImprovement || null
+            }
+          );
+          
+          await transporter.sendMail({
+            from: `"${fromName}" <${user}>`,
+            to: recipientEmail,
+            subject: `🎉 ${contact.firstName}, you just crossed ${highestMilestone} — AMAZING!`,
+            html: emailHtml
+          });
+          
+          // Celebration SMS
+          if (contact.smsConsent === true && contact.phone && telnyxApiKey.value() && telnyxSmsPhone.value()) {
+            try {
+              let smsPhone = (contact.phone || '').replace(/\D/g, '');
+              if (smsPhone.length === 10) smsPhone = '+1' + smsPhone;
+              else if (!smsPhone.startsWith('+')) smsPhone = '+' + smsPhone;
+              
+              await fetch('https://api.telnyx.com/v2/messages', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${telnyxApiKey.value()}` },
+                body: JSON.stringify({
+                  from: telnyxSmsPhone.value(),
+                  to: smsPhone,
+                  text: `🎉 ${contact.firstName}, your credit score just crossed ${highestMilestone}! That's a huge milestone. Check your email for details on what this unlocks for you! — Chris, Speedy Credit Repair`
+                })
+              });
+            } catch (smsErr) {
+              console.error(`⚠️ Milestone SMS failed:`, smsErr.message);
+            }
+          }
+          
+          await contactDoc.ref.update({
+            [milestoneField]: true,
+            [`${milestoneField}At`]: admin.firestore.FieldValue.serverTimestamp()
+          });
+          
+          milestoneSent++;
+          console.log(`✅ Milestone ${highestMilestone} celebration sent to ${contact.firstName} (${contactId})`);
+        } catch (err) {
+          console.error(`❌ Milestone celebration failed for ${contactId}:`, err.message);
+        }
+      }
+      
+      console.log(`✅ Milestone celebrations sent: ${milestoneSent}`);
+      
+      // ─────────────────────────────────────────────────────────────────────
+      // RULE 10: GRADUATION & POST-GRADUATION MAINTENANCE TIPS
+      // Sends graduation email when serviceStatus = 'completed'
+      // Sends maintenance tips 7 days later
+      // ─────────────────────────────────────────────────────────────────────
+      
+      console.log('\n🎓 Processing graduation & maintenance emails...');
+      let graduationSent = 0;
+      
+      const completedSnapshot = await db.collection('contacts')
+        .where('serviceStatus', '==', 'completed')
+        .limit(50)
+        .get();
+      
+      console.log(`📊 Found ${completedSnapshot.size} completed-service clients to check`);
+      
+      for (const contactDoc of completedSnapshot.docs) {
+        const contact = contactDoc.data();
+        const contactId = contactDoc.id;
+        
+        const recipientEmail = contact.email || contact.emails?.[0]?.address;
+        if (!recipientEmail) continue;
+        
+        try {
+          // 10A: GRADUATION EMAIL (send once when service completes)
+          if (!contact.graduationEmailSent) {
+            const serviceStart = contact.achCompletedAt?.toDate() || contact.serviceStartDate?.toDate();
+            const monthsActive = serviceStart ? Math.max(1, Math.floor((now.getTime() - serviceStart.getTime()) / (1000 * 60 * 60 * 24 * 30))) : null;
+            
+            const emailHtml = EMAIL_TEMPLATES.graduationComplete(
+              { ...contact, id: contactId },
+              {
+                startScore: contact.startingCreditScore || contact.initialCreditScore || null,
+                endScore: contact.creditScore || contact.currentCreditScore || null,
+                totalItemsRemoved: contact.totalItemsDeleted || '—',
+                totalRounds: contact.totalDisputeRounds || contact.currentDisputeRound || '—',
+                monthsActive: monthsActive || '—'
+              }
+            );
+            
+            await transporter.sendMail({
+              from: `"${fromName}" <${user}>`,
+              to: recipientEmail,
+              subject: `🎓 ${contact.firstName}, CONGRATULATIONS — your credit repair is complete!`,
+              html: emailHtml
+            });
+            
+            await contactDoc.ref.update({
+              graduationEmailSent: true,
+              graduationEmailSentAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            
+            graduationSent++;
+            console.log(`✅ Graduation email sent to ${contact.firstName} (${contactId})`);
+            continue; // Don't send maintenance tips same run
+          }
+          
+          // 10B: MAINTENANCE TIPS (7 days after graduation)
+          if (contact.graduationEmailSent && !contact.maintenanceTipsSent) {
+            const gradDate = contact.graduationEmailSentAt?.toDate();
+            if (!gradDate) continue;
+            
+            const daysSinceGrad = Math.floor((now.getTime() - gradDate.getTime()) / (1000 * 60 * 60 * 24));
+            if (daysSinceGrad < 7) continue;
+            
+            const emailHtml = EMAIL_TEMPLATES.postGraduationTips({ ...contact, id: contactId });
+            
+            await transporter.sendMail({
+              from: `"${fromName}" <${user}>`,
+              to: recipientEmail,
+              subject: `${contact.firstName}, 7 tips to PROTECT your improved credit score`,
+              html: emailHtml
+            });
+            
+            await contactDoc.ref.update({
+              maintenanceTipsSent: true,
+              maintenanceTipsSentAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            
+            graduationSent++;
+            console.log(`✅ Maintenance tips sent to ${contact.firstName} (${contactId})`);
+          }
+          
+        } catch (err) {
+          console.error(`❌ Graduation/maintenance email failed for ${contactId}:`, err.message);
+        }
+      }
+      
+      console.log(`✅ Graduation/maintenance emails sent: ${graduationSent}`);
+      
       console.log('\n═══════════════════════════════════════════════════════════════');
-      console.log('📊 ABANDONMENT EMAIL SUMMARY');
+      console.log('📊 ABANDONMENT & LIFECYCLE EMAIL SUMMARY');
       console.log('═══════════════════════════════════════════════════════════════');
-      console.log(`Total processed: ${processed}`);
-      console.log(`Successfully sent: ${sent}`);
-      console.log(`Failed: ${failed}`);
+      console.log(`Abandonment emails: ${sent} sent, ${failed} failed (of ${processed})`);
+      console.log(`Scheduled emails: ${scheduledSent} sent, ${scheduledFailed} failed`);
+      console.log(`Drip campaign: ${dripSent} emails, ${dripSmsSent} SMS, ${dripTasksCreated} tasks`);
+      console.log(`ACH follow-ups: ${achFollowUpsSent} sent`);
+      console.log(`IDIQ recovery: ${idiqRecoverySent} sent`);
+      console.log(`Dispute notifications: ${disputeEmailsSent} sent`);
+      console.log(`Monthly reports: ${monthlyReportsSent} sent`);
+      console.log(`Milestone celebrations: ${milestoneSent} sent`);
+      console.log(`Graduation/maintenance: ${graduationSent} sent`);
       console.log('═══════════════════════════════════════════════════════════════\n');
       
       // Log to analytics
       await db.collection('analyticsLogs').add({
-        type: 'abandonment_email_batch',
-        processed: processed,
-        sent: sent,
-        failed: failed,
+        type: 'lifecycle_email_batch',
+        abandonment: { processed, sent, failed },
+        scheduled: { sent: scheduledSent, failed: scheduledFailed },
+        drip: { sent: dripSent, smsSent: dripSmsSent, tasksCreated: dripTasksCreated },
+        achFollowUps: { sent: achFollowUpsSent },
+        idiqRecovery: { sent: idiqRecoverySent },
+        disputeNotifications: { sent: disputeEmailsSent },
+        monthlyReports: { sent: monthlyReportsSent },
+        milestones: { sent: milestoneSent },
+        graduation: { sent: graduationSent },
         runAt: admin.firestore.FieldValue.serverTimestamp()
       });
       
@@ -4156,7 +5737,7 @@ exports.processAbandonmentEmails = onSchedule(
   }
 );
 
-      console.log('✅ Function 6B/11: processAbandonmentEmails loaded (5-minute check)');
+      console.log('✅ Function 6B/11: processAbandonmentEmails loaded (abandonment + drip + ACH follow-ups + IDIQ recovery)');
 
 // ============================================
 // FUNCTION 7: AI CONTENT GENERATOR (Consolidated)
@@ -4197,17 +5778,13 @@ exports.aiContentGenerator = onCall(
       // ═════════════════════════════════════════════════════════════════════
       // QUIZ ASSESSMENT: AI-Powered Free Credit Assessment
       // Called from quiz.php lead magnet page
-      // Generates a personalized mini credit assessment based on quiz answers
       // ═════════════════════════════════════════════════════════════════════
       if (type === 'generateQuizAssessment') {
         console.log('📝 Quiz Assessment triggered for:', params.firstName);
-        
         const { firstName, creditGoal, scoreRange, negativeItems } = params;
-        
         if (!firstName || !creditGoal || !scoreRange) {
           return { success: false, error: 'Missing required quiz fields' };
         }
-        
         try {
           const quizPrompt = `You are Chris Lahage, founder of Speedy Credit Repair (est. 1995) with 30 years of experience including as a former Toyota Finance Director. Generate a personalized credit assessment based on quiz answers.
 
@@ -4227,52 +5804,28 @@ RESPOND IN THIS EXACT JSON FORMAT (no markdown, no backticks):
   "estimatedTimeline": "Estimated timeline to see results (e.g., '45-90 days for initial improvements')",
   "urgencyNote": "1 sentence about why acting now matters for their specific goal"
 }`;
-
           const quizResponse = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${openaiApiKey.value()}`
-            },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiApiKey.value()}` },
             body: JSON.stringify({
               model: 'gpt-4',
               messages: [
                 { role: 'system', content: 'You are a credit repair expert. Respond ONLY with valid JSON. No markdown, no backticks, no extra text.' },
                 { role: 'user', content: quizPrompt }
               ],
-              temperature: 0.7,
-              max_tokens: 800
+              temperature: 0.7, max_tokens: 800
             })
           });
-          
           const quizData = await quizResponse.json();
-          
-          if (!quizData.choices || !quizData.choices[0]) {
-            throw new Error('Invalid OpenAI response for quiz assessment');
-          }
-          
+          if (!quizData.choices || !quizData.choices[0]) throw new Error('Invalid OpenAI response for quiz assessment');
           const rawContent = quizData.choices[0].message.content;
-          
-          // Parse JSON from response
           const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
-          if (!jsonMatch) {
-            throw new Error('Could not parse assessment JSON');
-          }
-          
+          if (!jsonMatch) throw new Error('Could not parse assessment JSON');
           const assessment = JSON.parse(jsonMatch[0]);
-          
           console.log('✅ Quiz assessment generated for:', firstName);
-          
-          return {
-            success: true,
-            assessment,
-            type: 'quizAssessment'
-          };
-          
+          return { success: true, assessment, type: 'quizAssessment' };
         } catch (quizErr) {
           console.error('❌ Quiz assessment error:', quizErr);
-          
-          // Fallback: return a generic but still personalized assessment
           return {
             success: true,
             assessment: {
@@ -4288,8 +5841,7 @@ RESPOND IN THIS EXACT JSON FORMAT (no markdown, no backticks):
               estimatedTimeline: '45-90 days for initial improvements',
               urgencyNote: 'Every month with negative items on your report costs you money in higher interest rates.'
             },
-            type: 'quizAssessment',
-            fallback: true
+            type: 'quizAssessment', fallback: true
           };
         }
       }
@@ -4865,7 +6417,7 @@ CRITICAL: Respond ONLY with valid JSON in this EXACT format:
   }
 }
 
-PLAN KEYS (use exactly): ESSENTIALS, PROFESSIONAL, VIP`;
+PLAN KEYS (use exactly): DIY, STANDARD, ACCELERATION, PFD, HYBRID, PREMIUM`;
 
     const userPrompt = `Analyze this prospect and recommend the best service plan:
 
@@ -4956,8 +6508,8 @@ Provide your recommendation as valid JSON.`;
       }
       
       if (!recommendation.recommendedPlan || !SERVICE_PLANS_CONFIG[recommendation.recommendedPlan]) {
-        console.warn('⚠️ Invalid plan key, defaulting to PROFESSIONAL');
-        recommendation.recommendedPlan = 'PROFESSIONAL';
+        console.warn('⚠️ Invalid plan key, defaulting to STANDARD');
+        recommendation.recommendedPlan = 'STANDARD';
       }
       
       const planDetails = SERVICE_PLANS_CONFIG[recommendation.recommendedPlan];
@@ -5028,24 +6580,24 @@ Provide your recommendation as valid JSON.`;
 function generateFallbackRecommendation(contact, creditScore, negativeItemCount, transcripts) {
   console.log('⚠️ Using fallback rule-based recommendation');
   
-  let recommendedPlan = 'PROFESSIONAL';
+  let recommendedPlan = 'STANDARD';
   let confidence = 'medium';
   let primaryReason = 'Based on typical credit repair needs';
   
   if (creditScore && creditScore < 500 && negativeItemCount > 10) {
-    recommendedPlan = 'VIP';
+    recommendedPlan = 'PREMIUM';
     confidence = 'high';
     primaryReason = 'Complex credit situation requires comprehensive support';
   } else if (transcripts.some(t => t.urgencyLevel === 'high' || t.primaryGoal?.includes('home'))) {
-    recommendedPlan = 'VIP';
+    recommendedPlan = 'ACCELERATION';
     confidence = 'high';
     primaryReason = 'Urgent timeline requires expedited service';
   } else if (contact.leadScore >= 8) {
-    recommendedPlan = 'VIP';
+    recommendedPlan = 'ACCELERATION';
     confidence = 'medium';
     primaryReason = 'High-value prospect benefits from premium speed';
   } else if (contact.leadScore <= 3 || negativeItemCount <= 3) {
-    recommendedPlan = 'ESSENTIALS';
+    recommendedPlan = 'PFD';
     confidence = 'medium';
     primaryReason = 'Pay-for-delete offers risk-free results-based pricing';
   }
@@ -5063,8 +6615,8 @@ function generateFallbackRecommendation(contact, creditScore, negativeItemCount,
       urgencyAssessment: 'Standard timeline assumed'
     },
     alternativePlan: {
-      plan: 'PROFESSIONAL',
-      reason: 'Best overall value for full-service credit repair'
+      plan: 'STANDARD',
+      reason: 'Solid choice for most credit repair needs'
     },
     personalizedPitch: `Based on your credit profile, the ${planDetails.name} plan offers the best balance of results and value. With ${planDetails.successRate} success rate and typical improvement of ${planDetails.avgPointIncrease}, you can expect meaningful progress within ${planDetails.timeline}.`,
     expectedResults: {

@@ -569,7 +569,8 @@ export default function ServicePlanManager() {
       const batch = writeBatch(db);
 
       for (const plan of DEFAULT_PLANS) {
-        const planRef = doc(collection(db, 'servicePlans'));
+        // ===== Use plan.slug as document ID so lookups like doc(db, 'servicePlans', 'professional') work =====
+        const planRef = doc(db, 'servicePlans', plan.slug);
         batch.set(planRef, {
           ...plan,
           createdAt: serverTimestamp(),
@@ -911,13 +912,13 @@ export default function ServicePlanManager() {
         featureRecommendations: [
           {
             feature: '24/7 Phone Support',
-            addToPlan: 'Standard',
+            addToPlan: 'Professional',
             estimatedValueIncrease: 15,
             reasoning: 'Competitors offering this at similar price point',
           },
           {
             feature: 'Credit Score Simulator',
-            addToPlan: 'DIY',
+            addToPlan: 'Essentials',
             estimatedValueIncrease: 10,
             reasoning: 'High-value, low-cost feature for self-service users',
           },
@@ -2017,8 +2018,8 @@ export default function ServicePlanManager() {
                 Default Plans
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Reset all plans to the default 6-plan configuration (DIY, Standard,
-                Acceleration, PFD, Hybrid, Premium)
+                Reset all plans to the default 3-plan configuration (Essentials $79,
+                Professional $149, VIP Concierge $299)
               </Typography>
               <Button
                 variant="outlined"
