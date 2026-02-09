@@ -95,12 +95,11 @@ import {
   ChevronUp,
 } from 'lucide-react';
 
-// Mock service plans for reference
+// Service plans (matches servicePlans.js constants)
 const SERVICE_PLANS = {
-  basic: { id: 'basic', name: 'Basic Plan', monthlyFee: 79, tier: 1 },
-  standard: { id: 'standard', name: 'Standard Plan', monthlyFee: 119, tier: 2 },
-  premium: { id: 'premium', name: 'Premium Plan', monthlyFee: 199, tier: 3 },
-  enterprise: { id: 'enterprise', name: 'Enterprise Plan', monthlyFee: 299, tier: 4 },
+  essentials: { id: 'essentials', name: 'Essentials', monthlyFee: 79, tier: 1 },
+  professional: { id: 'professional', name: 'Professional', monthlyFee: 149, tier: 2 },
+  vip: { id: 'vip', name: 'VIP Concierge', monthlyFee: 299, tier: 3 },
 };
 
 // Contract status definitions
@@ -135,7 +134,7 @@ const generateMockContract = (id, status = 'sent') => {
     contactName: 'John Anderson',
     contactEmail: 'john.anderson@example.com',
     contactPhone: '888-724-7344',
-    planId: 'standard',
+    planId: 'professional',
     status: status,
     createdAt: baseDate,
     sentAt: status !== 'draft' ? new Date(baseDate.getTime() + 45 * 60000) : null,
@@ -176,7 +175,7 @@ const generateMockContract = (id, status = 'sent') => {
       riskScore: 15,
       renewalProbability: 82,
       churRisk: 'low',
-      upsellOpportunity: 'premium',
+      upsellOpportunity: 'vip',
     },
   };
   return contract;
@@ -441,7 +440,7 @@ const ContractStatusTracker = ({
 
     if (currentPlan.tier < 3) {
       opportunities.push({
-        plan: 'premium',
+        plan: 'vip',
         reason: 'Client has been active for 3+ months',
         estimatedValue: 80,
         confidence: 'medium',

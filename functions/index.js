@@ -4865,7 +4865,7 @@ CRITICAL: Respond ONLY with valid JSON in this EXACT format:
   }
 }
 
-PLAN KEYS (use exactly): DIY, STANDARD, ACCELERATION, PFD, HYBRID, PREMIUM`;
+PLAN KEYS (use exactly): ESSENTIALS, PROFESSIONAL, VIP`;
 
     const userPrompt = `Analyze this prospect and recommend the best service plan:
 
@@ -4956,8 +4956,8 @@ Provide your recommendation as valid JSON.`;
       }
       
       if (!recommendation.recommendedPlan || !SERVICE_PLANS_CONFIG[recommendation.recommendedPlan]) {
-        console.warn('⚠️ Invalid plan key, defaulting to STANDARD');
-        recommendation.recommendedPlan = 'STANDARD';
+        console.warn('⚠️ Invalid plan key, defaulting to PROFESSIONAL');
+        recommendation.recommendedPlan = 'PROFESSIONAL';
       }
       
       const planDetails = SERVICE_PLANS_CONFIG[recommendation.recommendedPlan];
@@ -5028,24 +5028,24 @@ Provide your recommendation as valid JSON.`;
 function generateFallbackRecommendation(contact, creditScore, negativeItemCount, transcripts) {
   console.log('⚠️ Using fallback rule-based recommendation');
   
-  let recommendedPlan = 'STANDARD';
+  let recommendedPlan = 'PROFESSIONAL';
   let confidence = 'medium';
   let primaryReason = 'Based on typical credit repair needs';
   
   if (creditScore && creditScore < 500 && negativeItemCount > 10) {
-    recommendedPlan = 'PREMIUM';
+    recommendedPlan = 'VIP';
     confidence = 'high';
     primaryReason = 'Complex credit situation requires comprehensive support';
   } else if (transcripts.some(t => t.urgencyLevel === 'high' || t.primaryGoal?.includes('home'))) {
-    recommendedPlan = 'ACCELERATION';
+    recommendedPlan = 'VIP';
     confidence = 'high';
     primaryReason = 'Urgent timeline requires expedited service';
   } else if (contact.leadScore >= 8) {
-    recommendedPlan = 'ACCELERATION';
+    recommendedPlan = 'VIP';
     confidence = 'medium';
     primaryReason = 'High-value prospect benefits from premium speed';
   } else if (contact.leadScore <= 3 || negativeItemCount <= 3) {
-    recommendedPlan = 'PFD';
+    recommendedPlan = 'ESSENTIALS';
     confidence = 'medium';
     primaryReason = 'Pay-for-delete offers risk-free results-based pricing';
   }
@@ -5063,8 +5063,8 @@ function generateFallbackRecommendation(contact, creditScore, negativeItemCount,
       urgencyAssessment: 'Standard timeline assumed'
     },
     alternativePlan: {
-      plan: 'STANDARD',
-      reason: 'Solid choice for most credit repair needs'
+      plan: 'PROFESSIONAL',
+      reason: 'Best overall value for full-service credit repair'
     },
     personalizedPitch: `Based on your credit profile, the ${planDetails.name} plan offers the best balance of results and value. With ${planDetails.successRate} success rate and typical improvement of ${planDetails.avgPointIncrease}, you can expect meaningful progress within ${planDetails.timeline}.`,
     expectedResults: {

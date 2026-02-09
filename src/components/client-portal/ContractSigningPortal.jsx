@@ -689,7 +689,7 @@ export default function ContractSigningPortal({ contractId: propContractId, onCo
       setContract(contractData);
 
       // Load plan configuration
-      const planId = contractData.planId || contactData.selectedPlan || 'standard';
+      const planId = contractData.planId || contactData.selectedPlan || 'professional';
       const plansQuery = query(collection(db, 'servicePlans'), where('id', '==', planId), limit(1));
       const plansSnap = await getDocs(plansQuery);
 
@@ -697,7 +697,7 @@ export default function ContractSigningPortal({ contractId: propContractId, onCo
       if (!plansSnap.empty) {
         selectedPlan = plansSnap.docs[0].data();
       } else {
-        selectedPlan = { id: 'standard', name: 'Standard Plan', monthlyPrice: 149, setupFee: 99 };
+        selectedPlan = { id: 'professional', name: 'Professional', monthlyPrice: 149, setupFee: 0 };
       }
 
       setPlanConfig(selectedPlan);

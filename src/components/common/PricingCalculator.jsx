@@ -67,43 +67,37 @@ import {
   AlertCircle,
 } from 'lucide-react';
 
-// Mock service plans data
+// Service plans (matches servicePlans.js constants)
 const SERVICE_PLANS = {
-  basic: {
-    id: 'basic',
-    name: 'Basic Plan',
+  essentials: {
+    id: 'essentials',
+    name: 'Essentials',
     monthlyFee: 79,
-    setupFee: 99,
-    itemsIncluded: 5,
-    features: ['Up to 5 disputes/month', 'Basic credit monitoring', 'Email support'],
+    setupFee: 49,
+    perDeletion: 0,
+    itemsIncluded: 'unlimited (client sends)',
+    features: ['AI dispute templates', 'Credit education library', 'Client portal', 'Email support (24-48hr)'],
     tier: 1,
   },
-  standard: {
-    id: 'standard',
-    name: 'Standard Plan',
-    monthlyFee: 119,
-    setupFee: 149,
-    itemsIncluded: 10,
-    features: ['Up to 10 disputes/month', 'Advanced monitoring', 'Priority email support', 'Monthly reports'],
+  professional: {
+    id: 'professional',
+    name: 'Professional',
+    monthlyFee: 149,
+    setupFee: 0,
+    perDeletion: 25,
+    itemsIncluded: 'unlimited (we send)',
+    features: ['Full-service disputes (mail + fax)', 'Dedicated account manager', 'Phone + email support', 'Monthly AI analysis', '$25/item deleted/bureau'],
     tier: 2,
   },
-  premium: {
-    id: 'premium',
-    name: 'Premium Plan',
-    monthlyFee: 199,
-    setupFee: 199,
-    itemsIncluded: 20,
-    features: ['Up to 20 disputes/month', 'Real-time monitoring', 'Phone + email support', 'Weekly reports', 'Credit coaching'],
-    tier: 3,
-  },
-  enterprise: {
-    id: 'enterprise',
-    name: 'Enterprise Plan',
+  vip: {
+    id: 'vip',
+    name: 'VIP Concierge',
     monthlyFee: 299,
-    setupFee: 299,
-    itemsIncluded: 'unlimited',
-    features: ['Unlimited disputes', 'White-glove service', '24/7 support', 'Daily reports', 'Dedicated coach', 'Legal consultation'],
-    tier: 4,
+    setupFee: 0,
+    perDeletion: 0,
+    itemsIncluded: 'unlimited (priority)',
+    features: ['Everything in Professional', 'Bi-weekly cycles (2x faster)', 'ALL deletion fees included', 'Weekly reports', '90-day guarantee', 'Direct cell access'],
+    tier: 3,
   },
 };
 
@@ -112,12 +106,12 @@ const DISCOUNTS = [
   { id: 'military', name: 'Military Discount', percent: 10 },
   { id: 'annual', name: 'Annual Pre-Payment', percent: 15 },
   { id: 'referral', name: 'Referral Bonus', percent: 5 },
-  { id: 'seasonal', name: 'Seasonal Promotion', percent: 20 },
+  { id: 'couples', name: 'Couples Discount (2nd enrollment)', percent: 20 },
   { id: 'loyalty', name: 'Loyalty Discount', percent: 8 },
 ];
 
 const PricingCalculator = ({
-  defaultPlanId = 'standard',
+  defaultPlanId = 'professional',
   contactId = null,
   embedded = false,
   showComparison = true,
@@ -193,8 +187,8 @@ const PricingCalculator = ({
   // AI Feature 2: Plan recommendation based on inputs
   const recommendedPlan = useMemo(() => {
     if (itemsToDispute > 20) return 'enterprise';
-    if (itemsToDispute > 15) return 'premium';
-    if (itemsToDispute > 8) return 'standard';
+    if (itemsToDispute > 15) return 'vip';
+    if (itemsToDispute > 8) return 'professional';
     return 'basic';
   }, [itemsToDispute]);
 

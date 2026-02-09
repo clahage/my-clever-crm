@@ -75,7 +75,7 @@ const CONSULTATION_PACKAGES = {
       'Email follow-up summary'
     ],
     pricing: {
-      diy: 25,          // DIY plan clients
+      essentials: 25,          // Essentials plan clients
       professional: 0,   // FREE - 1 per month included
       vip: 0,           // FREE - 2 per month included
       public: 49        // Non-clients
@@ -98,7 +98,7 @@ const CONSULTATION_PACKAGES = {
       'Email & SMS follow-up'
     ],
     pricing: {
-      diy: 75,
+      essentials: 75,
       professional: 50,
       vip: 0,           // FREE - 1 per month included
       public: 99
@@ -123,7 +123,7 @@ const CONSULTATION_PACKAGES = {
       'Priority scheduling'
     ],
     pricing: {
-      diy: 150,
+      essentials: 150,
       professional: 99,
       vip: 0,           // FREE - 1 per quarter included
       public: 199
@@ -175,7 +175,7 @@ const CalComBookingSystem = ({ userProfile, onBookingComplete }) => {
     if (!profile.servicePlan) return 'public';
     
     const plan = profile.servicePlan.toLowerCase();
-    if (plan.includes('diy')) return 'diy';
+    if (plan.includes('essentials') || plan.includes('diy')) return 'essentials';
     if (plan.includes('vip') || plan.includes('premium') || plan.includes('accelerated')) return 'vip';
     if (plan.includes('professional') || plan.includes('standard')) return 'professional';
     return 'public';
@@ -323,7 +323,7 @@ const CalComBookingSystem = ({ userProfile, onBookingComplete }) => {
   // ═══════════════════════════════════════════════════════════════════════════
 
   const UpsellBanner = () => {
-    if (clientInfo.currentPlan !== 'diy' && clientInfo.currentPlan !== 'public') {
+    if (clientInfo.currentPlan !== 'essentials' && clientInfo.currentPlan !== 'public') {
       return null;
     }
 
