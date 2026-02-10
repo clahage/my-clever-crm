@@ -8143,7 +8143,7 @@ exports.operationsManager = onRequest(
   {
     ...defaultConfig,
     cors: true,
-    secrets: [nmiSecurityKey]
+    secrets: [nmiSecurityKey, gmailUser, gmailAppPassword, gmailFromName, gmailReplyTo]
   },
   async (request, response) => {
     // Enable CORS
@@ -8212,7 +8212,8 @@ exports.operationsManager = onRequest(
           'processRefund',
           'updatePaymentMethod',
           'chargeDeletionFee',
-          'getPaymentStatus'
+          'getPaymentStatus',
+          'nmiWebhook'
         ]
       });
       return;
@@ -9415,6 +9416,452 @@ console.log('🔐 Enrollment token generated:', token.substring(0, 10) + '...');
       break;
     }
 
+    // ============================================================
+    // NMI PAYMENT WEBHOOK — Receives POST from NMI Gateway
+    // ============================================================
+    // NMI sends webhooks when payment events occur (success, failure,
+    // refund, chargeback, etc.). Configure NMI to POST to:
+    //   https://us-central1-<project>.cloudfunctions.net/operationsManager
+    //   with body: { action: 'nmiWebhook', ...nmiFields }
+    //
+    // OR configure NMI to POST directly with its native format — this
+    // handler auto-detects NMI's form-encoded data vs JSON.
+    //
+    // CRITICAL: Prevents silent revenue loss by alerting staff immediately
+    // when a recurring payment fails, so they can contact the client.
+    // ============================================================
+    case 'nmiWebhook': {
+      console.log('💳 ===== NMI WEBHOOK RECEIVED =====');
+      
+      // ===== PARSE NMI PAYLOAD =====
+      // NMI can send form-encoded or JSON depending on config.
+      // We normalize everything into a clean object.
+      const nmiData = {
+        eventType: params.event_type || params.eventType || params.type || 'unknown',
+        condition: params.condition || params.status || 'unknown',
+        transactionId: params.transaction_id || params.transactionId || null,
+        orderId: params.order_id || params.orderId || null,
+        amount: params.amount || '0.00',
+        customerVaultId: params.customer_vault_id || params.customerVaultId || null,
+        subscriptionId: params.subscription_id || params.subscriptionId || params.billing_id || null,
+        firstName: params.first_name || params.firstName || '',
+        lastName: params.last_name || params.lastName || '',
+        email: params.email || '',
+        responseText: params.responsetext || params.response_text || params.responseText || '',
+        responseCode: params.response_code || params.responseCode || '',
+        avsResponse: params.avsresponse || '',
+        cvvResponse: params.cvvresponse || '',
+      };
+      
+      console.log('💳 NMI Webhook Data:', {
+        eventType: nmiData.eventType,
+        condition: nmiData.condition,
+        transactionId: nmiData.transactionId,
+        amount: nmiData.amount,
+        customerVaultId: nmiData.customerVaultId,
+        subscriptionId: nmiData.subscriptionId,
+        responseText: nmiData.responseText
+      });
+      
+      // ===== FIND THE CONTACT in Firestore =====
+      // Match by NMI vault ID first, then subscription ID as fallback
+      let matchedContactId = null;
+      let matchedContactData = null;
+      
+      try {
+        // Try matching by vault ID (most reliable)
+        if (nmiData.customerVaultId) {
+          const vaultQuery = await db.collection('contacts')
+            .where('nmiVaultId', '==', nmiData.customerVaultId)
+            .limit(1)
+            .get();
+          
+          if (!vaultQuery.empty) {
+            matchedContactId = vaultQuery.docs[0].id;
+            matchedContactData = vaultQuery.docs[0].data();
+            console.log(`✅ Matched contact by vault ID: ${matchedContactId}`);
+          }
+        }
+        
+        // Fallback: match by subscription ID
+        if (!matchedContactId && nmiData.subscriptionId) {
+          const subQuery = await db.collection('contacts')
+            .where('nmiSubscriptionId', '==', nmiData.subscriptionId)
+            .limit(1)
+            .get();
+          
+          if (!subQuery.empty) {
+            matchedContactId = subQuery.docs[0].id;
+            matchedContactData = subQuery.docs[0].data();
+            console.log(`✅ Matched contact by subscription ID: ${matchedContactId}`);
+          }
+        }
+      } catch (lookupErr) {
+        console.error('❌ Contact lookup error:', lookupErr.message);
+      }
+      
+      // ===== DETERMINE EVENT TYPE =====
+      const isFailure = 
+        nmiData.condition === 'failed' ||
+        nmiData.condition === 'declined' ||
+        nmiData.eventType === 'transaction.sale.failure' ||
+        nmiData.eventType === 'payment_failed' ||
+        nmiData.responseText?.toLowerCase().includes('decline') ||
+        nmiData.responseText?.toLowerCase().includes('fail') ||
+        (nmiData.responseCode && nmiData.responseCode !== '100' && nmiData.responseCode !== '00');
+      
+      const isSuccess = 
+        nmiData.condition === 'complete' ||
+        nmiData.condition === 'pendingsettlement' ||
+        nmiData.eventType === 'transaction.sale.success' ||
+        nmiData.responseCode === '100';
+      
+      const isRefund = 
+        nmiData.eventType === 'refund' ||
+        nmiData.eventType === 'transaction.refund.success' ||
+        (nmiData.eventType || '').toLowerCase().includes('refund');
+      
+      const isChargeback = 
+        nmiData.eventType === 'chargeback' ||
+        (nmiData.eventType || '').toLowerCase().includes('chargeback');
+      
+      // ===== LOG TO PAYMENTS COLLECTION (always, for all event types) =====
+      const paymentLogRef = await db.collection('payments').add({
+        contactId: matchedContactId || 'unmatched',
+        type: 'nmi_webhook',
+        eventType: nmiData.eventType,
+        condition: nmiData.condition,
+        transactionId: nmiData.transactionId,
+        orderId: nmiData.orderId,
+        amount: parseFloat(nmiData.amount) || 0,
+        customerVaultId: nmiData.customerVaultId,
+        subscriptionId: nmiData.subscriptionId,
+        responseText: nmiData.responseText,
+        responseCode: nmiData.responseCode,
+        status: isFailure ? 'failed' : isSuccess ? 'success' : isRefund ? 'refunded' : isChargeback ? 'chargeback' : 'unknown',
+        rawPayload: params,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        source: 'nmi_webhook'
+      });
+      
+      console.log(`📝 Payment event logged: ${paymentLogRef.id} (${isFailure ? 'FAILED' : isSuccess ? 'SUCCESS' : nmiData.condition})`);
+      
+      // ===== HANDLE PAYMENT FAILURE =====
+      if (isFailure) {
+        console.log('❌ PAYMENT FAILURE DETECTED — Alerting staff and client...');
+        
+        const contactName = matchedContactData
+          ? `${matchedContactData.firstName || ''} ${matchedContactData.lastName || ''}`.trim()
+          : `${nmiData.firstName} ${nmiData.lastName}`.trim() || 'Unknown Client';
+        
+        const contactEmail = matchedContactData?.email || 
+          (matchedContactData?.emails && matchedContactData.emails[0]?.address) || 
+          nmiData.email || null;
+        
+        const contactPhone = matchedContactData?.phone ||
+          (matchedContactData?.phones && matchedContactData.phones[0]?.number) || null;
+        
+        // ─── 1) UPDATE CONTACT: Mark payment as failed ───────────────────
+        if (matchedContactId) {
+          try {
+            await db.collection('contacts').doc(matchedContactId).update({
+              billingStatus: 'payment_failed',
+              billingLastFailure: admin.firestore.FieldValue.serverTimestamp(),
+              billingFailureReason: nmiData.responseText || 'Payment declined',
+              billingFailureCount: admin.firestore.FieldValue.increment(1),
+              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+              timeline: admin.firestore.FieldValue.arrayUnion({
+                id: Date.now(),
+                type: 'payment_failed',
+                description: `Payment of $${nmiData.amount} failed: ${nmiData.responseText || 'Declined'}`,
+                timestamp: new Date().toISOString(),
+                metadata: {
+                  transactionId: nmiData.transactionId,
+                  amount: nmiData.amount,
+                  reason: nmiData.responseText
+                },
+                source: 'system'
+              })
+            });
+            console.log(`✅ Contact ${matchedContactId} marked as payment_failed`);
+          } catch (updateErr) {
+            console.error('⚠️ Failed to update contact billing status:', updateErr.message);
+          }
+        }
+        
+        // ─── 2) STAFF NOTIFICATION: Bell + Toast + Chime ─────────────────
+        try {
+          await db.collection('staffNotifications').add({
+            type: 'warning',
+            priority: 'critical',
+            title: `💳 Payment Failed: ${contactName} — $${nmiData.amount}`,
+            message: `Reason: ${nmiData.responseText || 'Declined'}. ${contactEmail ? `Email: ${contactEmail}` : ''} ${contactPhone ? `Phone: ${contactPhone}` : ''}. Contact client to update payment method.`,
+            contactId: matchedContactId || null,
+            contactName: contactName,
+            contactEmail: contactEmail,
+            contactPhone: contactPhone,
+            leadScore: null,
+            source: 'nmi_webhook',
+            targetRoles: ['masterAdmin', 'admin', 'manager', 'user'],
+            readBy: {},
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            createdBy: 'system:nmi_webhook',
+            paymentDetails: {
+              amount: nmiData.amount,
+              transactionId: nmiData.transactionId,
+              reason: nmiData.responseText,
+              vaultId: nmiData.customerVaultId
+            }
+          });
+          console.log('🔔 Staff notification created for payment failure');
+        } catch (notifErr) {
+          console.warn('⚠️ Staff notification for payment failure failed:', notifErr.message);
+        }
+        
+        // ─── 3) CREATE FOLLOW-UP TASK ────────────────────────────────────
+        try {
+          await db.collection('tasks').add({
+            title: `💳 Payment Failed: ${contactName} — $${nmiData.amount}`,
+            description: 
+              `A recurring payment has failed and needs attention.\n\n` +
+              `Client: ${contactName}\n` +
+              `Amount: $${nmiData.amount}\n` +
+              `Reason: ${nmiData.responseText || 'Declined'}\n` +
+              `Transaction ID: ${nmiData.transactionId || 'N/A'}\n` +
+              `Email: ${contactEmail || 'N/A'}\n` +
+              `Phone: ${contactPhone || 'N/A'}\n\n` +
+              `Action needed: Contact client to update their payment method.\n` +
+              `If not resolved within 48 hours, consider pausing their service.`,
+            contactId: matchedContactId || null,
+            type: 'payment_failure',
+            priority: 'high',
+            status: 'pending',
+            dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000), // Due in 24 hours
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            createdBy: 'system:nmi_webhook'
+          });
+          console.log('📋 Follow-up task created for payment failure');
+        } catch (taskErr) {
+          console.warn('⚠️ Follow-up task creation failed:', taskErr.message);
+        }
+        
+        // ─── 4) EMAIL ALERT TO STAFF ─────────────────────────────────────
+        try {
+          const staffEmail = gmailUser.value();
+          const staffPass = gmailAppPassword.value();
+          
+          if (staffEmail && staffPass) {
+            const transporter = nodemailer.createTransport({
+              host: 'smtp.gmail.com',
+              port: 587,
+              secure: false,
+              auth: { user: staffEmail, pass: staffPass }
+            });
+            
+            await transporter.sendMail({
+              from: `"SpeedyCRM Alerts" <${staffEmail}>`,
+              to: staffEmail,
+              subject: `💳 PAYMENT FAILED: ${contactName} — $${nmiData.amount}`,
+              html: wrapEmailInHTML(
+                'Payment Failure Alert',
+                `A recurring payment has failed.\n\n` +
+                `<strong>Client:</strong> ${contactName}\n` +
+                `<strong>Amount:</strong> $${nmiData.amount}\n` +
+                `<strong>Reason:</strong> ${nmiData.responseText || 'Declined'}\n` +
+                `<strong>Transaction:</strong> ${nmiData.transactionId || 'N/A'}\n` +
+                `<strong>Email:</strong> ${contactEmail || 'N/A'}\n` +
+                `<strong>Phone:</strong> ${contactPhone || 'N/A'}\n\n` +
+                `<strong>⏰ Contact the client within 24 hours to update their payment method.</strong>\n\n` +
+                (matchedContactId 
+                  ? `<a href="https://myclevercrm.com/contacts/${matchedContactId}" style="color:#090;">View Contact in CRM →</a>`
+                  : `⚠️ Could not match this payment to a contact. Vault ID: ${nmiData.customerVaultId || 'N/A'}`),
+                'Chris'
+              )
+            });
+            console.log('📧 Payment failure alert emailed to staff');
+          }
+        } catch (staffEmailErr) {
+          console.warn('⚠️ Staff email alert failed:', staffEmailErr.message);
+        }
+        
+        // ─── 5) EMAIL NOTIFICATION TO CLIENT ─────────────────────────────
+        if (contactEmail) {
+          try {
+            const clientEmailUser = gmailUser.value();
+            const clientEmailPass = gmailAppPassword.value();
+            const fromName = gmailFromName.value() || 'Speedy Credit Repair';
+            const replyTo = gmailReplyTo.value() || 'contact@speedycreditrepair.com';
+            
+            if (clientEmailUser && clientEmailPass) {
+              const transporter = nodemailer.createTransport({
+                host: 'smtp.gmail.com',
+                port: 587,
+                secure: false,
+                auth: { user: clientEmailUser, pass: clientEmailPass }
+              });
+              
+              const clientFirstName = matchedContactData?.firstName || nmiData.firstName || 'there';
+              
+              await transporter.sendMail({
+                from: `"${fromName}" <${clientEmailUser}>`,
+                replyTo: replyTo,
+                to: contactEmail,
+                subject: `Action Needed: Payment Update Required — Speedy Credit Repair`,
+                html: wrapEmailInHTML(
+                  'Payment Update Required',
+                  `We noticed that your recent payment of <strong>$${nmiData.amount}</strong> was not processed successfully.\n\n` +
+                  `Don't worry — this happens occasionally with card expirations, insufficient funds, or bank holds. Your credit repair service is still active, but we need you to update your payment information to avoid any interruption.\n\n` +
+                  `<strong><a href="https://myclevercrm.com/client-portal" style="color:#090;font-size:16px;">👉 Update Your Payment Method</a></strong>\n\n` +
+                  `Or simply reply to this email or call us at <strong>1-888-724-7344</strong> and we'll help you get it sorted out.\n\n` +
+                  `We're here to help and want to make sure your credit repair journey continues without a hitch!`,
+                  clientFirstName
+                )
+              });
+              console.log(`📧 Payment failure notice sent to client: ${contactEmail}`);
+              
+              // Log the client email
+              await db.collection('emailLog').add({
+                contactId: matchedContactId || null,
+                recipientEmail: contactEmail,
+                recipientName: contactName,
+                templateId: 'payment-failure-notice',
+                subject: 'Action Needed: Payment Update Required — Speedy Credit Repair',
+                type: 'payment_failure',
+                source: 'nmi_webhook',
+                sentAt: admin.firestore.FieldValue.serverTimestamp(),
+                status: 'sent'
+              });
+            }
+          } catch (clientEmailErr) {
+            console.warn('⚠️ Client payment failure email failed:', clientEmailErr.message);
+          }
+        }
+        
+        // ─── 6) LOG ACTIVITY ─────────────────────────────────────────────
+        try {
+          await db.collection('activityLogs').add({
+            type: 'payment_failed',
+            contactId: matchedContactId || null,
+            action: 'nmi_webhook_payment_failure',
+            details: {
+              amount: nmiData.amount,
+              reason: nmiData.responseText,
+              transactionId: nmiData.transactionId,
+              vaultId: nmiData.customerVaultId,
+              staffNotified: true,
+              clientNotified: !!contactEmail,
+              taskCreated: true
+            },
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            createdBy: 'system:nmi_webhook'
+          });
+        } catch (logErr) {
+          console.warn('⚠️ Activity log for payment failure failed:', logErr.message);
+        }
+      }
+      
+      // ===== HANDLE PAYMENT SUCCESS =====
+      if (isSuccess && matchedContactId) {
+        console.log(`✅ Payment SUCCESS for ${matchedContactId}: $${nmiData.amount}`);
+        
+        try {
+          // Reset failure status if previously failed
+          const resetFields = {
+            billingStatus: 'active',
+            billingLastPayment: admin.firestore.FieldValue.serverTimestamp(),
+            billingLastPaymentAmount: parseFloat(nmiData.amount) || 0,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+          };
+          
+          if (matchedContactData?.billingStatus === 'payment_failed') {
+            resetFields.billingFailureCount = 0;
+            resetFields.billingFailureReason = null;
+            resetFields.timeline = admin.firestore.FieldValue.arrayUnion({
+              id: Date.now(),
+              type: 'payment_recovered',
+              description: `Payment recovered: $${nmiData.amount} processed successfully after previous failure`,
+              timestamp: new Date().toISOString(),
+              metadata: { transactionId: nmiData.transactionId, amount: nmiData.amount },
+              source: 'system'
+            });
+          }
+          
+          await db.collection('contacts').doc(matchedContactId).update(resetFields);
+          console.log(`✅ Contact ${matchedContactId} billing status updated to active`);
+        } catch (successErr) {
+          console.warn('⚠️ Failed to update contact on payment success:', successErr.message);
+        }
+      }
+      
+      // ===== HANDLE CHARGEBACK =====
+      if (isChargeback) {
+        console.log('🚨 CHARGEBACK DETECTED — Immediate attention required!');
+        
+        const cbName = matchedContactData
+          ? `${matchedContactData.firstName || ''} ${matchedContactData.lastName || ''}`.trim()
+          : `${nmiData.firstName} ${nmiData.lastName}`.trim() || 'Unknown';
+        
+        try {
+          await db.collection('staffNotifications').add({
+            type: 'error',
+            priority: 'critical',
+            title: `🚨 CHARGEBACK: ${cbName} — $${nmiData.amount}`,
+            message: `Chargeback received! Transaction: ${nmiData.transactionId || 'N/A'}. Respond within the chargeback window.`,
+            contactId: matchedContactId || null,
+            contactName: cbName,
+            targetRoles: ['masterAdmin', 'admin'],
+            readBy: {},
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            createdBy: 'system:nmi_webhook'
+          });
+        } catch (cbNotifErr) {
+          console.warn('⚠️ Chargeback notification failed:', cbNotifErr.message);
+        }
+        
+        try {
+          await db.collection('tasks').add({
+            title: `🚨 CHARGEBACK: ${cbName} — $${nmiData.amount}`,
+            description: `A chargeback has been filed. Respond within the chargeback window (usually 7-14 days).\n\nTransaction: ${nmiData.transactionId || 'N/A'}\nAmount: $${nmiData.amount}\n\nGather: signed contract, service records, communications.`,
+            contactId: matchedContactId || null,
+            type: 'chargeback',
+            priority: 'critical',
+            status: 'pending',
+            dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            createdBy: 'system:nmi_webhook'
+          });
+        } catch (cbTaskErr) {
+          console.warn('⚠️ Chargeback task creation failed:', cbTaskErr.message);
+        }
+        
+        if (matchedContactId) {
+          try {
+            await db.collection('contacts').doc(matchedContactId).update({
+              billingStatus: 'chargeback',
+              chargebackAt: admin.firestore.FieldValue.serverTimestamp(),
+              chargebackAmount: parseFloat(nmiData.amount) || 0,
+              chargebackTransactionId: nmiData.transactionId,
+              updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+          } catch (cbUpdateErr) {
+            console.warn('⚠️ Chargeback contact update failed:', cbUpdateErr.message);
+          }
+        }
+      }
+      
+      // ===== ALWAYS RESPOND 200 to NMI =====
+      // NMI expects 200. Errors cause retries and duplicate processing.
+      result = {
+        success: true,
+        message: 'Webhook processed',
+        eventType: nmiData.eventType,
+        condition: nmiData.condition,
+        contactMatched: !!matchedContactId,
+        paymentLogId: paymentLogRef.id
+      };
+      break;
+    }
+
     
     default:
       console.error(`❌ Unknown action requested: ${action}`);
@@ -9440,7 +9887,8 @@ console.log('🔐 Enrollment token generated:', token.substring(0, 10) + '...');
           'processRefund',
           'updatePaymentMethod',
           'chargeDeletionFee',
-          'getPaymentStatus'
+          'getPaymentStatus',
+          'nmiWebhook'
         ]
       });
       return;
