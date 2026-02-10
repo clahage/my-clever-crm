@@ -8316,6 +8316,214 @@ exports.operationsManager = onRequest(
       return;
     }
 
+    // ===================================================================
+    // TELNYX FAX WEBHOOK — Receives fax delivery status callbacks
+    // ===================================================================
+    // Telnyx sends POST webhooks when fax status changes (delivered, failed,
+    // sending, etc.). Configure Telnyx webhook URL as:
+    //   https://operationsmanager-tvkxcewmxq-uc.a.run.app?webhook=telnyx_fax
+    //
+    // This handler:
+    //   1. Updates faxLog with final delivery status
+    //   2. Updates bureauFaxHealth collection (success/failure tracking per number)
+    //   3. Auto-disables dead numbers after 3+ consecutive failures
+    //   4. Sends staff notification when a bureau number appears dead
+    //
+    // Telnyx payload structure:
+    //   { data: { event_type: "fax.delivered", payload: { fax_id, to, from, status, ... } } }
+    // ===================================================================
+    if (request.method === 'POST' && request.query?.webhook === 'telnyx_fax') {
+      console.log('📠 ===== TELNYX FAX WEBHOOK RECEIVED =====');
+      
+      const db = admin.firestore();
+      
+      // ===== PARSE TELNYX PAYLOAD =====
+      // Telnyx wraps data in { data: { event_type, payload } }
+      const telnyxBody = request.body || {};
+      const eventType = telnyxBody.data?.event_type || telnyxBody.event_type || 'unknown';
+      const payload = telnyxBody.data?.payload || telnyxBody.payload || telnyxBody.data || {};
+      
+      const faxId = payload.fax_id || payload.id || null;
+      const toNumber = payload.to || '';
+      const fromNumber = payload.from || '';
+      const faxStatus = payload.status || eventType.replace('fax.', '') || 'unknown';
+      const pageCount = payload.page_count || 0;
+      const direction = payload.direction || 'outbound';
+      
+      console.log('📠 Telnyx Fax Status:', {
+        eventType,
+        faxId,
+        to: toNumber,
+        status: faxStatus,
+        pageCount
+      });
+      
+      // ===== DETERMINE SUCCESS/FAILURE =====
+      const isDelivered = faxStatus === 'delivered' || eventType === 'fax.delivered';
+      const isFailed = faxStatus === 'failed' || faxStatus === 'no_answer' ||
+                       faxStatus === 'busy' || faxStatus === 'line_disconnected' ||
+                       faxStatus === 'rejected' || faxStatus === 'technical_failure' ||
+                       eventType === 'fax.failed';
+      const isFinal = isDelivered || isFailed; // Only update health on final status
+      
+      // ===== 1) UPDATE faxLog — Find the original fax record and update status =====
+      if (faxId) {
+        try {
+          const faxLogQuery = await db.collection('faxLog')
+            .where('faxId', '==', faxId)
+            .limit(1)
+            .get();
+          
+          if (!faxLogQuery.empty) {
+            const faxDoc = faxLogQuery.docs[0];
+            await faxDoc.ref.update({
+              status: faxStatus,
+              deliveredAt: isDelivered ? admin.firestore.FieldValue.serverTimestamp() : null,
+              failedAt: isFailed ? admin.firestore.FieldValue.serverTimestamp() : null,
+              failureReason: isFailed ? (payload.failure_reason || faxStatus) : null,
+              pageCount: pageCount || faxDoc.data().pageCount || 0,
+              telnyxEventType: eventType,
+              webhookReceivedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            console.log(`✅ faxLog ${faxDoc.id} updated: ${faxStatus}`);
+          } else {
+            console.log(`⚠️ No faxLog record found for faxId: ${faxId}`);
+          }
+        } catch (faxLogErr) {
+          console.warn('⚠️ faxLog update failed:', faxLogErr.message);
+        }
+      }
+      
+      // ===== 2) UPDATE bureauFaxHealth — Track success/failure per number =====
+      if (isFinal && toNumber) {
+        try {
+          // Normalize the number for document ID
+          const cleanNumber = toNumber.replace(/[^0-9+]/g, '');
+          const healthDocId = cleanNumber.replace('+', '');
+          const healthRef = db.collection('bureauFaxHealth').doc(healthDocId);
+          const healthDoc = await healthRef.get();
+          
+          if (healthDoc.exists) {
+            // Update existing health record
+            const healthData = healthDoc.data();
+            const prevConsecutiveFails = healthData.consecutiveFailures || 0;
+            const newConsecutiveFails = isFailed ? prevConsecutiveFails + 1 : 0;
+            const newTotal = (healthData.totalAttempts || 0) + 1;
+            const newSuccess = (healthData.totalSuccess || 0) + (isDelivered ? 1 : 0);
+            const newFailed = (healthData.totalFailed || 0) + (isFailed ? 1 : 0);
+            
+            // Keep last 10 attempts for recent history
+            const recentAttempts = healthData.recentAttempts || [];
+            recentAttempts.unshift({
+              timestamp: new Date().toISOString(),
+              status: faxStatus,
+              faxId: faxId,
+              delivered: isDelivered
+            });
+            if (recentAttempts.length > 10) recentAttempts.pop();
+            
+            const updateFields = {
+              totalAttempts: newTotal,
+              totalSuccess: newSuccess,
+              totalFailed: newFailed,
+              consecutiveFailures: newConsecutiveFails,
+              successRate: newTotal > 0 ? Math.round((newSuccess / newTotal) * 100) / 100 : 0,
+              recentAttempts: recentAttempts,
+              lastAttempt: admin.firestore.FieldValue.serverTimestamp(),
+              updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            };
+            
+            if (isDelivered) {
+              updateFields.lastSuccess = admin.firestore.FieldValue.serverTimestamp();
+            }
+            if (isFailed) {
+              updateFields.lastFailure = admin.firestore.FieldValue.serverTimestamp();
+              updateFields.lastFailureReason = payload.failure_reason || faxStatus;
+            }
+            
+            // ===== AUTO-DISABLE: 3+ consecutive failures = number is dead =====
+            if (newConsecutiveFails >= 3 && healthData.isActive !== false) {
+              updateFields.isActive = false;
+              updateFields.disabledAt = admin.firestore.FieldValue.serverTimestamp();
+              updateFields.disableReason = `${newConsecutiveFails} consecutive failures (last: ${faxStatus})`;
+              
+              console.log(`🚨 AUTO-DISABLED fax number ${toNumber} — ${newConsecutiveFails} consecutive failures!`);
+              
+              // ─── STAFF NOTIFICATION: Dead fax number detected ───────────
+              try {
+                await db.collection('staffNotifications').add({
+                  type: 'warning',
+                  priority: 'critical',
+                  title: `📠 Fax Number Down: ${toNumber}`,
+                  message: `${healthData.bureauName || 'Unknown bureau'} fax number ${toNumber} has failed ${newConsecutiveFails} times in a row (last: ${faxStatus}). Auto-switched to backup. Verify and update if needed.`,
+                  contactId: null,
+                  contactName: null,
+                  source: 'telnyx_fax_health',
+                  targetRoles: ['masterAdmin', 'admin', 'manager'],
+                  readBy: {},
+                  createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                  createdBy: 'system:telnyx_fax_webhook',
+                  faxHealthDetails: {
+                    faxNumber: toNumber,
+                    bureauName: healthData.bureauName || null,
+                    consecutiveFailures: newConsecutiveFails,
+                    lastStatus: faxStatus,
+                    successRate: updateFields.successRate
+                  }
+                });
+                console.log('🔔 Staff notification sent for dead fax number');
+              } catch (notifErr) {
+                console.warn('⚠️ Staff notification for fax health failed:', notifErr.message);
+              }
+            }
+            
+            await healthRef.update(updateFields);
+            console.log(`📊 bureauFaxHealth updated for ${cleanNumber}: ${isDelivered ? 'SUCCESS' : 'FAILED'} (${newConsecutiveFails} consecutive fails)`);
+            
+          } else {
+            // Create new health record (first fax to this number)
+            await healthRef.set({
+              faxNumber: toNumber,
+              bureauName: null, // Will be set by FaxCenter on first send
+              bureauId: null,
+              isPrimary: false,
+              isActive: true,
+              totalAttempts: 1,
+              totalSuccess: isDelivered ? 1 : 0,
+              totalFailed: isFailed ? 1 : 0,
+              consecutiveFailures: isFailed ? 1 : 0,
+              successRate: isDelivered ? 1.0 : 0.0,
+              lastAttempt: admin.firestore.FieldValue.serverTimestamp(),
+              lastSuccess: isDelivered ? admin.firestore.FieldValue.serverTimestamp() : null,
+              lastFailure: isFailed ? admin.firestore.FieldValue.serverTimestamp() : null,
+              lastFailureReason: isFailed ? (payload.failure_reason || faxStatus) : null,
+              recentAttempts: [{
+                timestamp: new Date().toISOString(),
+                status: faxStatus,
+                faxId: faxId,
+                delivered: isDelivered
+              }],
+              createdAt: admin.firestore.FieldValue.serverTimestamp(),
+              updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            console.log(`📊 New bureauFaxHealth record created for ${cleanNumber}`);
+          }
+        } catch (healthErr) {
+          console.warn('⚠️ bureauFaxHealth update failed:', healthErr.message);
+        }
+      }
+      
+      // ===== ALWAYS RESPOND 200 to Telnyx =====
+      // Telnyx retries on non-200 responses
+      response.status(200).json({
+        received: true,
+        eventType: eventType,
+        faxId: faxId,
+        status: faxStatus
+      });
+      return;
+    }
+
     // ENHANCED: Better request body parsing
     // ===== BUG #7 FIX: Handle httpsCallable data wrapper =====
     // When the frontend calls operationsManager via httpsCallable(),
@@ -10433,11 +10641,16 @@ exports.sendFaxOutbound = onRequest(
       console.log('📠 Sending fax via Telnyx...');
       
       try {
-        const { to, documentUrl, bureau, contactId } = req.body;
+        const { to, documentUrl, bureau, contactId, bureauId } = req.body;
         
         if (!to || !documentUrl) {
           throw new Error('Missing required fields: to, documentUrl');
         }
+        
+        // ===== CONFIGURE TELNYX WEBHOOK URL =====
+        // This tells Telnyx to POST status updates (delivered, failed, etc.)
+        // back to our operationsManager webhook handler.
+        const webhookUrl = 'https://operationsmanager-tvkxcewmxq-uc.a.run.app?webhook=telnyx_fax';
         
         const faxResponse = await fetch('https://api.telnyx.com/v2/faxes', {
           method: 'POST',
@@ -10450,7 +10663,9 @@ exports.sendFaxOutbound = onRequest(
             to,
             media_url: documentUrl,
             quality: 'high',
-            store_media: true
+            store_media: true,
+            webhook_url: webhookUrl,
+            webhook_failover_url: webhookUrl
           })
         });
         
@@ -10460,17 +10675,58 @@ exports.sendFaxOutbound = onRequest(
           throw new Error(faxData.errors?.[0]?.detail || 'Fax sending failed');
         }
         
-        // Log fax sent
-        if (contactId) {
-          const db = admin.firestore();
-          await db.collection('faxLog').add({
-            contactId,
-            to,
-            bureau: bureau || 'Unknown',
-            faxId: faxData.data.id,
-            status: faxData.data.status,
-            sentAt: admin.firestore.FieldValue.serverTimestamp()
-          });
+        const db = admin.firestore();
+        
+        // ===== LOG TO faxLog — Always, even without contactId =====
+        await db.collection('faxLog').add({
+          contactId: contactId || null,
+          to,
+          bureau: bureau || 'Unknown',
+          bureauId: bureauId || null,
+          faxId: faxData.data.id,
+          status: faxData.data.status || 'queued',
+          documentUrl: documentUrl,
+          sentAt: admin.firestore.FieldValue.serverTimestamp(),
+          sentBy: req.body.sentBy || 'unknown'
+        });
+        
+        // ===== SEED bureauFaxHealth — Ensure record exists with bureau info =====
+        try {
+          const cleanNumber = to.replace(/[^0-9+]/g, '').replace('+', '');
+          const healthRef = db.collection('bureauFaxHealth').doc(cleanNumber);
+          const healthDoc = await healthRef.get();
+          
+          if (!healthDoc.exists) {
+            // First fax to this number — create health record
+            await healthRef.set({
+              faxNumber: to,
+              bureauName: bureau || null,
+              bureauId: bureauId || null,
+              isPrimary: false, // FaxCenter sets this
+              isActive: true,
+              totalAttempts: 0,
+              totalSuccess: 0,
+              totalFailed: 0,
+              consecutiveFailures: 0,
+              successRate: 0,
+              recentAttempts: [],
+              lastAttempt: null,
+              lastSuccess: null,
+              lastFailure: null,
+              createdAt: admin.firestore.FieldValue.serverTimestamp(),
+              updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            console.log(`📊 Created bureauFaxHealth record for ${to}`);
+          } else if (!healthDoc.data().bureauName && bureau) {
+            // Update bureau name if missing
+            await healthRef.update({
+              bureauName: bureau,
+              bureauId: bureauId || null,
+              updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+          }
+        } catch (healthErr) {
+          console.warn('⚠️ bureauFaxHealth seed failed (non-fatal):', healthErr.message);
         }
         
         console.log('✅ Fax sent, ID:', faxData.data.id);
