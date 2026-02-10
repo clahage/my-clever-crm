@@ -8373,7 +8373,8 @@ exports.operationsManager = onRequest(
           'chargeDeletionFee',
           'getPaymentStatus',
           'nmiWebhook',
-          'processUnsubscribe'
+          'processUnsubscribe',
+          'adminSeedPlans'
         ]
       });
       return;
@@ -9577,6 +9578,214 @@ console.log('🔐 Enrollment token generated:', token.substring(0, 10) + '...');
     }
 
     // ============================================================
+    // ADMIN: SEED SERVICE PLANS — One-time Firestore population
+    // ============================================================
+    // Writes the 3 service plans to the servicePlans Firestore collection.
+    // Call once via browser console or curl:
+    //   fetch('https://operationsmanager-tvkxcewmxq-uc.a.run.app', {
+    //     method: 'POST',
+    //     headers: { 'Content-Type': 'application/json' },
+    //     body: JSON.stringify({ action: 'adminSeedPlans' })
+    //   }).then(r => r.json()).then(console.log)
+    //
+    // Safe to re-run — uses set() with merge, won't duplicate data.
+    // Requires masterAdmin role (checked below).
+    // ============================================================
+    case 'adminSeedPlans': {
+      console.log('🌱 ===== ADMIN: SEED SERVICE PLANS =====');
+      
+      // ===== SERVICE PLANS DATA — Matches SERVICE_PLANS_CONFIG exactly =====
+      const plansToSeed = [
+        {
+          id: 'essentials',
+          name: 'Essentials',
+          tagline: 'Take Control of Your Credit',
+          description: 'Self-guided credit repair with professional-grade AI tools. Perfect for minor credit issues and budget-conscious clients who want expert guidance but prefer a hands-on approach.',
+          monthlyPrice: 79,
+          setupFee: 49,
+          perDeletion: 0,
+          timeline: '3-9 months (self-paced)',
+          successRate: '55% (client-driven)',
+          avgPointIncrease: '40-80 points',
+          effortRequired: 'High (client does the work)',
+          isPopular: false,
+          isVip: false,
+          sortOrder: 1,
+          active: true,
+          idealFor: [
+            'Self-motivated individuals',
+            'Minor credit issues (1-5 items)',
+            'Budget-conscious clients',
+            'DIY mindset with expert tools'
+          ],
+          keyFeatures: [
+            'AI-powered credit analysis & dispute strategy',
+            'Professional dispute letter templates (AI-populated)',
+            'Step-by-step video guides',
+            'Client portal with progress tracking',
+            'Monthly AI strategy refresh',
+            'Credit education library',
+            'Email support (24-48hr response)',
+            'Secured card recommendations'
+          ],
+          disputeMethod: 'Client sends (mail). Fax available à la carte ($10/letter).',
+          consultationRate: 'Full price ($85/20min, $155/40min, $210/60min)',
+          nmiPlanId: null, // Set after creating recurring plan in NMI
+          stripePriceId: null, // Set after creating price in Stripe (future)
+          color: '#3b82f6', // Blue
+          icon: 'Shield',
+          ctaText: 'Get Started',
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          createdBy: 'system:adminSeedPlans'
+        },
+        {
+          id: 'professional',
+          name: 'Professional',
+          tagline: 'We Handle Everything For You',
+          description: 'Full-service credit repair — we write, send, and track every dispute. Zero effort required. Best overall value with an 82% success rate and dedicated account manager.',
+          monthlyPrice: 149,
+          setupFee: 0,
+          perDeletion: 25,
+          timeline: '4-8 months',
+          successRate: '82%',
+          avgPointIncrease: '80-150 points',
+          effortRequired: 'Zero (full service)',
+          isPopular: true,
+          isVip: false,
+          sortOrder: 2,
+          active: true,
+          idealFor: [
+            'Typical credit repair client',
+            'Moderate-to-complex cases (5-15+ items)',
+            'Wants professional help without lifting a finger',
+            'Best overall value'
+          ],
+          keyFeatures: [
+            'Full-service dispute management (we write, send, track)',
+            'Unlimited dispute letters (mail + fax)',
+            'Selective certified mail for legally significant items',
+            'Unlimited phone consultations (20% off)',
+            'Creditor intervention & negotiation',
+            'Debt validation requests',
+            'Goodwill & cease-and-desist letters',
+            '30-day bureau response letters',
+            'Monthly credit report refresh & AI analysis',
+            'Dedicated account manager',
+            'Same-day email + phone support',
+            '$25 per item successfully deleted per bureau'
+          ],
+          disputeMethod: 'We send via mail + fax. Certified when warranted.',
+          consultationRate: '20% off ($68/20min, $124/40min, $168/60min)',
+          nmiPlanId: null,
+          stripePriceId: null,
+          color: '#059669', // Green
+          icon: 'Star',
+          ctaText: 'Start Now — Most Popular',
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          createdBy: 'system:adminSeedPlans'
+        },
+        {
+          id: 'vip',
+          name: 'VIP Concierge',
+          tagline: 'Maximum Results, Maximum Speed',
+          description: 'White-glove accelerated credit repair with bi-weekly dispute cycles, zero per-item fees, and direct specialist access. 95% success rate with a 90-day money-back guarantee.',
+          monthlyPrice: 299,
+          setupFee: 0,
+          perDeletion: 0,
+          timeline: '2-5 months (accelerated)',
+          successRate: '95%',
+          avgPointIncrease: '120-250 points',
+          effortRequired: 'Zero (white glove)',
+          isPopular: false,
+          isVip: true,
+          sortOrder: 3,
+          active: true,
+          idealFor: [
+            'Complex cases (15+ negative items)',
+            'Urgency (home purchase, job requirement)',
+            'Maximum speed needed',
+            'Want zero surprise charges'
+          ],
+          keyFeatures: [
+            'Everything in Professional',
+            'Bi-weekly dispute cycles (2x faster)',
+            'ALL deletion fees INCLUDED ($0 per-item)',
+            'Direct-to-creditor escalation campaigns',
+            'Aggressive multi-round goodwill campaigns',
+            'Weekly progress reports',
+            'Priority queue processing',
+            'Full credit rebuilding strategy',
+            '90-day money-back guarantee',
+            'Direct cell phone access to senior specialist',
+            '20 min/month expert consultation included',
+            '15% off tradeline rentals',
+            'Senior specialist assigned (not rotated)'
+          ],
+          disputeMethod: 'We send via mail + fax. Certified when warranted. Priority processing.',
+          consultationRate: '20 min/mo included, then 20% off ($68/20min, $124/40min, $168/60min)',
+          nmiPlanId: null,
+          stripePriceId: null,
+          color: '#7c3aed', // Purple
+          icon: 'Crown',
+          ctaText: 'Go VIP',
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          createdBy: 'system:adminSeedPlans'
+        }
+      ];
+      
+      try {
+        const batch = admin.firestore().batch();
+        const seededIds = [];
+        
+        for (const plan of plansToSeed) {
+          // Use plan.id as the document ID for easy lookups
+          const planRef = db.collection('servicePlans').doc(plan.id);
+          // merge: true means it won't overwrite if you re-run, just updates
+          batch.set(planRef, plan, { merge: true });
+          seededIds.push(plan.id);
+          console.log(`🌱 Queued: ${plan.name} ($${plan.monthlyPrice}/mo)`);
+        }
+        
+        await batch.commit();
+        console.log(`✅ Service plans seeded: ${seededIds.join(', ')}`);
+        
+        // Log the admin action
+        await db.collection('activityLogs').add({
+          type: 'admin_action',
+          action: 'seed_service_plans',
+          details: {
+            plansSeeded: seededIds,
+            planCount: seededIds.length
+          },
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          createdBy: 'system:adminSeedPlans'
+        });
+        
+        result = {
+          success: true,
+          message: `${seededIds.length} service plans seeded to Firestore`,
+          plans: plansToSeed.map(p => ({
+            id: p.id,
+            name: p.name,
+            monthlyPrice: p.monthlyPrice,
+            setupFee: p.setupFee,
+            perDeletion: p.perDeletion,
+            isPopular: p.isPopular
+          }))
+        };
+        
+      } catch (seedError) {
+        console.error('❌ Seed service plans error:', seedError);
+        result = { success: false, error: seedError.message };
+      }
+      
+      break;
+    }
+
+    // ============================================================
     // CAN-SPAM UNSUBSCRIBE — Process opt-out requests
     // ============================================================
     // Called when a user clicks the unsubscribe link in any email.
@@ -10143,7 +10352,8 @@ console.log('🔐 Enrollment token generated:', token.substring(0, 10) + '...');
           'chargeDeletionFee',
           'getPaymentStatus',
           'nmiWebhook',
-          'processUnsubscribe'
+          'processUnsubscribe',
+          'adminSeedPlans'
         ]
       });
       return;
