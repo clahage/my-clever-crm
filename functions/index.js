@@ -22,6 +22,7 @@ const fetch = require('node-fetch');
 const nodemailer = require('nodemailer');
 const { processEnrollmentCompletion } = require('./enrollmentAutomation');
 const operations = require('./operations');
+const payment = require('./paymentGateway');
 
 // ============================================
 // FIREBASE ADMIN INITIALIZATION
@@ -55,6 +56,7 @@ const telnyxSmsPhone = defineSecret('TELNYX_SMS_PHONE');
 // Other Secrets
 const docusignAccountId = defineSecret('DOCUSIGN_ACCOUNT_ID');
 const webhookSecret = defineSecret('WEBHOOK_SECRET');
+const nmiSecurityKey = defineSecret('NMI_SECURITY_KEY');
 
 // ============================================
 // DEFAULT CONFIGURATION
@@ -245,7 +247,8 @@ const SPEEDY_BRAND = {
   established: '1995',
   bbbRating: 'A+',
   googleRating: '4.9',
-  reviewCount: '580+'
+  reviewCount: '580+',
+  googleReviewUrl: 'https://g.page/r/speedycreditrepair/review'
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1319,7 +1322,7 @@ If you know anyone struggling with their credit, I'd be grateful for the referra
 <p style="margin: 25px 0 0 0;">With gratitude,<br/><strong>${SPEEDY_BRAND.ownerName}</strong><br/>${SPEEDY_BRAND.companyName}<br/><em>Helping families since ${SPEEDY_BRAND.established}</em></p>`,
     ctaButton: {
       text: '⭐ Leave Us a Google Review',
-      url: 'https://g.page/r/speedycreditrepair/review',
+      url: SPEEDY_BRAND.googleReviewUrl,
       color: 'green'
     },
     showTrustBadges: true
@@ -1365,6 +1368,269 @@ Even though your service is complete, you're always welcome to reach out if you 
       text: '🔐 Access My Portal & Documents',
       url: `${SPEEDY_BRAND.portalUrl}/portal`,
       color: 'blue'
+    },
+    showTrustBadges: true
+  }),
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // TIER 3: LONG-TERM GROWTH (Reviews, Referrals, Re-engagement)
+  // Turns graduated clients into revenue-generating referral sources
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // REVIEW/TESTIMONIAL REQUEST — 30 Days After Graduation
+  reviewRequest: (contact) => createRichEmail({
+    subject: `${contact.firstName}, would you share your experience? (takes 30 seconds)`,
+    preheader: 'Your review helps other families discover credit repair — and it means a lot to us',
+    recipientName: contact.firstName,
+    urgencyLevel: 'normal',
+    bodyContent: `Hi ${contact.firstName},
+
+It's been about a month since we completed your credit repair, and I hope you're enjoying your improved score!
+
+I have a small favor to ask. If you're happy with the results we achieved together, <strong>would you take 30 seconds to leave us a quick Google review?</strong>
+
+<strong style="color: #1e40af;">⭐ Why It Matters:</strong>
+
+Honest reviews from real clients like you are the #1 way other families discover that credit repair actually works. Your story could be the thing that convinces someone in a tough spot to take that first step.
+
+You don't need to write a novel — even a sentence or two about your experience makes a huge difference.
+
+<strong style="color: #059669;">📝 What to Include (if you'd like):</strong>
+
+- How your score improved
+- What surprised you about the process
+- How the improved credit has helped you (better rates, approvals, etc.)
+- Whether you'd recommend us
+
+<div style="background: #f0fdf4; border: 1px solid #059669; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
+  <p style="margin: 0 0 5px; font-size: 14px; color: #374151;">We're currently rated</p>
+  <p style="margin: 0; font-size: 24px; font-weight: 700; color: #059669;">⭐ ${SPEEDY_BRAND.googleRating} with ${SPEEDY_BRAND.reviewCount} Reviews</p>
+  <p style="margin: 5px 0 0; font-size: 13px; color: #6b7280;">Your review keeps us going!</p>
+</div>
+
+<span style="color: #6b7280;">Either way, thank you for choosing Speedy Credit Repair. It was a privilege working with you.</span>`,
+    ctaButton: {
+      text: '⭐ Leave a Quick Review',
+      url: SPEEDY_BRAND.googleReviewUrl,
+      color: 'green'
+    },
+    showTrustBadges: true
+  }),
+
+  // REFERRAL PROGRAM INVITE — 45 Days After Graduation
+  referralInvite: (contact) => createRichEmail({
+    subject: `${contact.firstName}, earn rewards by helping someone you know fix their credit`,
+    preheader: 'Know someone struggling with credit? You can help them AND earn a thank-you reward',
+    recipientName: contact.firstName,
+    urgencyLevel: 'normal',
+    bodyContent: `Hi ${contact.firstName},
+
+You experienced firsthand what professional credit repair can do. Now imagine being the person who helps a friend or family member get that same fresh start.
+
+<strong style="color: #1e40af;">🎁 Our Client Referral Program:</strong>
+
+<div style="background: #eff6ff; border: 2px solid #1e40af; border-radius: 12px; padding: 25px; margin: 15px 0;">
+  <p style="font-size: 18px; font-weight: 700; color: #1e40af; margin: 0 0 15px; text-align: center;">Here's How It Works</p>
+  
+  <p style="margin: 8px 0;"><strong>Step 1:</strong> Tell someone you know about your experience with Speedy Credit Repair</p>
+  <p style="margin: 8px 0;"><strong>Step 2:</strong> Have them mention your name when they call us at ${SPEEDY_BRAND.phone}</p>
+  <p style="margin: 8px 0;"><strong>Step 3:</strong> When they sign up, you BOTH benefit!</p>
+</div>
+
+<strong style="color: #059669;">Who Should You Refer?</strong>
+
+Think about people in your life who:
+- Have been denied for a mortgage, car loan, or credit card
+- Complain about high interest rates
+- Are stressed about their credit score
+- Want to buy a home but can't qualify
+- Have collections, late payments, or other negative items
+
+A simple "Hey, I used this company and they really helped me" can change someone's financial future.
+
+<strong style="color: #1e40af;">📞 Two Easy Ways to Refer:</strong>
+
+<strong>Option 1:</strong> Have them call us directly at <strong>${SPEEDY_BRAND.phone}</strong> and mention your name
+<strong>Option 2:</strong> Reply to this email with their name and phone number, and we'll reach out
+
+<span style="color: #6b7280;">After 30 years in business, over 80% of our clients come from referrals. That says everything about the results we deliver — and the trust our clients have in us.</span>`,
+    ctaButton: {
+      text: '📞 Share Our Number: ${SPEEDY_BRAND.phone}',
+      url: `tel:${SPEEDY_BRAND.phoneLink}`,
+      color: 'blue'
+    },
+    showTrustBadges: true
+  }),
+
+  // 6-MONTH ANNIVERSARY CHECK-IN
+  anniversaryCheckIn6Mo: (contact) => createRichEmail({
+    subject: `${contact.firstName}, it's been 6 months — how's your credit holding up?`,
+    preheader: 'Quick check-in from Chris at Speedy Credit Repair — we\'re still here for you',
+    recipientName: contact.firstName,
+    urgencyLevel: 'normal',
+    bodyContent: `Hi ${contact.firstName},
+
+Can you believe it's been 6 months since we completed your credit repair? Time flies!
+
+I wanted to check in and see how things are going. By now, the full impact of our work should be reflected across all three bureaus, and I hope you've been able to take advantage of your improved score.
+
+<strong style="color: #1e40af;">📋 Quick Credit Health Checklist:</strong>
+
+Take a minute to honestly assess — are you doing these things?
+
+✅ Paying all bills on time (autopay set up?)
+✅ Keeping credit card balances below 30%
+✅ Not opening too many new accounts
+✅ Checking your credit report at least quarterly
+✅ Disputing any new errors immediately
+
+If you answered "no" to any of these, that's okay — it's never too late to course-correct.
+
+<strong style="color: #059669;">🔍 Free Credit Check Reminder:</strong>
+
+You're entitled to one free report per year from each bureau at AnnualCreditReport.com. I recommend pulling one every 4 months (rotating bureaus) so you're covered year-round.
+
+<strong style="color: #1e40af;">Need Help Again?</strong>
+
+If new negative items have appeared, or if you're planning a major purchase (home, car) and want to make sure your credit is in top shape, don't hesitate to call me. Past clients always get priority service.
+
+<span style="color: #6b7280;">And remember — if you know anyone who needs credit help, send them our way. Your referrals mean the world to us.</span>
+
+<p style="margin: 25px 0 0;">Still in your corner,<br/><strong>${SPEEDY_BRAND.ownerName}</strong><br/>${SPEEDY_BRAND.companyName}<br/>${SPEEDY_BRAND.phone}</p>`,
+    ctaButton: {
+      text: '📞 Call Chris — Priority Service',
+      url: `tel:${SPEEDY_BRAND.phoneLink}`,
+      color: 'green'
+    },
+    showTrustBadges: true
+  }),
+
+  // 12-MONTH RE-ENGAGEMENT
+  reEngagement12Mo: (contact) => createRichEmail({
+    subject: `${contact.firstName}, it's been a year — let's make sure your credit is still strong`,
+    preheader: 'Annual credit check-in from Speedy Credit Repair — free consultation for returning clients',
+    recipientName: contact.firstName,
+    urgencyLevel: 'normal',
+    bodyContent: `Hi ${contact.firstName},
+
+It's been about a year since we finished working together, and I wanted to reach out.
+
+A lot can change in 12 months — new accounts, life events, maybe even some unexpected items on your report. That's completely normal, and it's exactly why I recommend an annual credit review.
+
+<strong style="color: #1e40af;">📊 Why an Annual Review Matters:</strong>
+
+- <strong>Identity theft</strong> is at an all-time high — new fraudulent accounts may have appeared
+- <strong>Reporting errors</strong> happen more often than you'd think (79% of reports contain mistakes)
+- <strong>Old items</strong> may now be past the 7-year limit and eligible for removal
+- <strong>New goals</strong> (buying a home, refinancing, starting a business) may require a higher score
+
+<strong style="color: #059669;">🎁 Special Offer for Returning Clients:</strong>
+
+<div style="background: #f0fdf4; border: 2px solid #059669; border-radius: 12px; padding: 20px; text-align: center; margin: 20px 0;">
+  <p style="font-size: 18px; font-weight: 700; color: #059669; margin: 0;">FREE Credit Review Consultation</p>
+  <p style="font-size: 14px; color: #374151; margin: 8px 0 0;">For past clients only — no obligation, no pressure</p>
+</div>
+
+Call me at <strong>${SPEEDY_BRAND.phone}</strong> and mention you're a returning client. I'll personally review your current reports and let you know if there's anything new that needs attention.
+
+If your credit looks great — fantastic! I'll tell you that and we'll part ways with a handshake. If there are new issues, we'll discuss options with your returning-client discount.
+
+<span style="color: #6b7280;">Either way, it's good to know where you stand. Talk soon!</span>
+
+<p style="margin: 25px 0 0;">Here for you,<br/><strong>${SPEEDY_BRAND.ownerName}</strong><br/>${SPEEDY_BRAND.companyName}</p>`,
+    ctaButton: {
+      text: '📞 Schedule My Free Review',
+      url: `tel:${SPEEDY_BRAND.phoneLink}`,
+      color: 'green'
+    },
+    showTrustBadges: true
+  }),
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // TIER 3: QUIZ LEAD NURTURE (2 emails)
+  // Follows up with quiz leads who haven't enrolled
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // QUIZ NURTURE — 24 Hours After Quiz, No Enrollment
+  quizNurture24h: (contact, data) => createRichEmail({
+    subject: `${contact.firstName}, your credit assessment results + a personal note`,
+    preheader: 'I reviewed your quiz answers personally — here\'s what I think you should do next',
+    recipientName: contact.firstName,
+    urgencyLevel: 'normal',
+    bodyContent: `Hi ${contact.firstName},
+
+Thanks for taking our free credit assessment yesterday! I took a look at your answers personally, and I wanted to follow up.
+
+<strong style="color: #1e40af;">📊 Based on What You Shared:</strong>
+
+<div style="background: #eff6ff; border-left: 4px solid #1e40af; padding: 15px; margin: 15px 0; border-radius: 0 8px 8px 0;">
+  <strong>Your Goal:</strong> ${data.creditGoal || 'Improve credit score'}<br/>
+  <strong>Current Range:</strong> ${data.scoreRange || 'Not specified'}<br/>
+  <strong>Negative Items:</strong> ${data.negativeItems || 'Multiple items reported'}
+</div>
+
+Here's the honest truth: based on your situation, professional credit repair could likely make a meaningful difference. I've seen thousands of cases like yours over my 30 years in the industry, and the clients who take action sooner consistently see better results.
+
+<strong style="color: #059669;">Why Acting Sooner Matters:</strong>
+
+- Negative items do the most damage when they're recent — removing them now has the biggest impact
+- Every month you wait is another month paying higher interest rates
+- Credit bureaus have legal deadlines to respond to disputes — the clock starts when we file
+- Your credit goal of "${data.creditGoal || 'improving your score'}" becomes more achievable the sooner we start
+
+<strong style="color: #1e40af;">🔜 Your Next Step:</strong>
+
+The first thing we do is pull your complete 3-bureau credit report (it's free and takes about 5 minutes). This shows us exactly what's on your report and lets us build your personalized dispute strategy.
+
+No commitment required — just information.
+
+<span style="color: #6b7280;">Questions? Reply to this email or call me directly at ${SPEEDY_BRAND.phone}. I'm happy to chat.</span>`,
+    ctaButton: {
+      text: '📊 Get My Free Credit Report',
+      url: `${SPEEDY_BRAND.portalUrl}/complete-enrollment?contactId=${contact.id || contact.contactId}&source=quiz-nurture`,
+      color: 'green'
+    },
+    showTrustBadges: true
+  }),
+
+  // QUIZ URGENCY — 72 Hours After Quiz, No Enrollment
+  quizUrgency72h: (contact, data) => createRichEmail({
+    subject: `${contact.firstName}, quick question about your credit goals`,
+    preheader: 'I noticed you haven\'t started your free credit report yet — everything okay?',
+    recipientName: contact.firstName,
+    urgencyLevel: 'medium',
+    bodyContent: `Hi ${contact.firstName},
+
+I noticed you took our credit assessment a few days ago but haven't started the free credit report yet. I just wanted to check in — is everything okay?
+
+<strong style="color: #1e40af;">Common Reasons People Hesitate:</strong>
+
+<strong>"I'm worried about my score dropping."</strong>
+Pulling your report through IDIQ is a <strong>soft inquiry</strong> — it does NOT affect your credit score at all. Zero impact.
+
+<strong>"I'm not sure I can afford credit repair."</strong>
+Our plans start at just $79/month, and most clients save far more than that in reduced interest rates within the first few months. It literally pays for itself.
+
+<strong>"I'm not sure it will work for me."</strong>
+After 30 years and thousands of clients, I can tell you that nearly every credit report has disputable items. Studies show 79% of reports contain errors. The question isn't IF we can help — it's how much.
+
+<strong>"I just got busy."</strong>
+Totally understandable! That's actually why I'm writing — a gentle nudge to get this done while it's on your mind. The enrollment takes about 5 minutes.
+
+<strong style="color: #059669;">Here's My Promise:</strong>
+
+If we pull your report and there's genuinely nothing we can do, I'll tell you that honestly. I've built my business on trust over 30 years — I'm not going to sell you something you don't need.
+
+<div style="background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px; padding: 15px; margin: 20px 0;">
+  <p style="margin: 0; font-weight: 700; color: #991b1b;">⏰ The Cost of Waiting:</p>
+  <p style="margin: 8px 0 0; color: #374151;">Every month with negative items on your report costs you an average of $200+ in higher interest rates across all your accounts. That's $2,400/year that could be in your pocket instead.</p>
+</div>
+
+<span style="color: #6b7280;">Take 5 minutes today. Future you will thank you.</span>`,
+    ctaButton: {
+      text: '✅ Start My Free Credit Report — 5 Minutes',
+      url: `${SPEEDY_BRAND.portalUrl}/complete-enrollment?contactId=${contact.id || contact.contactId}&source=quiz-urgency`,
+      color: 'orange'
     },
     showTrustBadges: true
   })
@@ -4661,30 +4927,7 @@ exports.processAbandonmentEmails = onSchedule(
       const nowTimestamp = admin.firestore.Timestamp.fromDate(now);
       
       // ─────────────────────────────────────────────────────────────────────
-      // FIND CONTACTS WHERE:
-      // 1. enrollmentStatus = 'started' (not completed)
-      // 2. abandonmentCheckAt < NOW (5 minutes have passed)
-      // 3. abandonmentEmailSent = false (not already sent)
-      // 4. abandonmentCancelled = false (enrollment didn't complete)
-      // ─────────────────────────────────────────────────────────────────────
-      
-      const abandonedContactsSnapshot = await db.collection('contacts')
-        .where('enrollmentStatus', '==', 'started')
-        .where('abandonmentEmailSent', '==', false)
-        .where('abandonmentCancelled', '==', false)
-        .where('abandonmentCheckAt', '<=', nowTimestamp)
-        .limit(50)  // Process max 50 per run to avoid timeout
-        .get();
-      
-      console.log(`📊 Found ${abandonedContactsSnapshot.size} abandoned enrollments to process`);
-      
-      if (abandonedContactsSnapshot.empty) {
-        console.log('✅ No abandoned enrollments to process');
-        return null;
-      }
-      
-      // ─────────────────────────────────────────────────────────────────────
-      // SET UP EMAIL TRANSPORTER
+      // SET UP EMAIL TRANSPORTER (initialized first so all 12 rules can use it)
       // ─────────────────────────────────────────────────────────────────────
       
       const user = gmailUser.value();
@@ -4704,6 +4947,28 @@ exports.processAbandonmentEmails = onSchedule(
         fromName: fromName,
         replyTo: replyTo
       };
+      
+      // ─────────────────────────────────────────────────────────────────────
+      // FIND CONTACTS WHERE:
+      // 1. enrollmentStatus = 'started' (not completed)
+      // 2. abandonmentCheckAt < NOW (5 minutes have passed)
+      // 3. abandonmentEmailSent = false (not already sent)
+      // 4. abandonmentCancelled = false (enrollment didn't complete)
+      // ─────────────────────────────────────────────────────────────────────
+      
+      const abandonedContactsSnapshot = await db.collection('contacts')
+        .where('enrollmentStatus', '==', 'started')
+        .where('abandonmentEmailSent', '==', false)
+        .where('abandonmentCancelled', '==', false)
+        .where('abandonmentCheckAt', '<=', nowTimestamp)
+        .limit(50)  // Process max 50 per run to avoid timeout
+        .get();
+      
+      console.log(`📊 Found ${abandonedContactsSnapshot.size} abandoned enrollments to process`);
+      
+      if (abandonedContactsSnapshot.empty) {
+        console.log('✅ No abandoned enrollments to process — continuing to Rules 4-12...');
+      }
       
       // ─────────────────────────────────────────────────────────────────────
       // PROCESS EACH ABANDONED CONTACT
@@ -5690,8 +5955,287 @@ exports.processAbandonmentEmails = onSchedule(
       
       console.log(`✅ Graduation/maintenance emails sent: ${graduationSent}`);
       
+      // ─────────────────────────────────────────────────────────────────────
+      // RULE 11: REVIEW REQUEST & REFERRAL INVITE & ANNIVERSARY CHECK-INS
+      // 30 days post-grad → review request
+      // 45 days post-grad → referral invite + SMS
+      // 180 days post-service-start → 6-month check-in
+      // 365 days post-service-start → 12-month re-engagement
+      // ─────────────────────────────────────────────────────────────────────
+      
+      console.log('\n⭐ Processing reviews, referrals & anniversaries...');
+      let growthEmailsSent = 0;
+      
+      // Re-use completedSnapshot from Rule 10 if still in scope, otherwise re-query
+      const graduatedSnapshot = await db.collection('contacts')
+        .where('graduationEmailSent', '==', true)
+        .limit(100)
+        .get();
+      
+      console.log(`📊 Found ${graduatedSnapshot.size} graduated clients to check for growth emails`);
+      
+      for (const contactDoc of graduatedSnapshot.docs) {
+        const contact = contactDoc.data();
+        const contactId = contactDoc.id;
+        
+        const recipientEmail = contact.email || contact.emails?.[0]?.address;
+        if (!recipientEmail) continue;
+        
+        const gradDate = contact.graduationEmailSentAt?.toDate();
+        if (!gradDate) continue;
+        
+        const daysSinceGrad = Math.floor((now.getTime() - gradDate.getTime()) / (1000 * 60 * 60 * 24));
+        
+        const serviceStart = contact.achCompletedAt?.toDate() || contact.serviceStartDate?.toDate() || contact.contractSignedAt?.toDate();
+        const daysSinceStart = serviceStart ? Math.floor((now.getTime() - serviceStart.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+        
+        try {
+          // 11A: REVIEW REQUEST — 30 days after graduation
+          if (daysSinceGrad >= 30 && daysSinceGrad < 45 && !contact.reviewRequestSent) {
+            const emailHtml = EMAIL_TEMPLATES.reviewRequest({ ...contact, id: contactId });
+            
+            await transporter.sendMail({
+              from: `"${fromName}" <${user}>`,
+              to: recipientEmail,
+              subject: `${contact.firstName}, would you share your experience? (takes 30 seconds)`,
+              html: emailHtml
+            });
+            
+            await contactDoc.ref.update({
+              reviewRequestSent: true,
+              reviewRequestSentAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            
+            growthEmailsSent++;
+            console.log(`✅ Review request sent to ${contact.firstName} (${contactId})`);
+            continue; // One email per contact per run
+          }
+          
+          // 11B: REFERRAL INVITE — 45 days after graduation
+          if (daysSinceGrad >= 45 && !contact.referralInviteSent) {
+            const emailHtml = EMAIL_TEMPLATES.referralInvite({ ...contact, id: contactId });
+            
+            await transporter.sendMail({
+              from: `"${fromName}" <${user}>`,
+              to: recipientEmail,
+              subject: `${contact.firstName}, earn rewards by helping someone you know fix their credit`,
+              html: emailHtml
+            });
+            
+            // Referral SMS
+            if (contact.smsConsent === true && contact.phone && telnyxApiKey.value() && telnyxSmsPhone.value()) {
+              try {
+                let smsPhone = (contact.phone || '').replace(/\D/g, '');
+                if (smsPhone.length === 10) smsPhone = '+1' + smsPhone;
+                else if (!smsPhone.startsWith('+')) smsPhone = '+' + smsPhone;
+                
+                await fetch('https://api.telnyx.com/v2/messages', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${telnyxApiKey.value()}` },
+                  body: JSON.stringify({
+                    from: telnyxSmsPhone.value(),
+                    to: smsPhone,
+                    text: `${contact.firstName}, know someone struggling with credit? Refer them to Speedy Credit Repair and earn a thank-you reward! Have them call 888-724-7344 and mention your name. — Chris`
+                  })
+                });
+              } catch (smsErr) {
+                console.error(`⚠️ Referral SMS failed:`, smsErr.message);
+              }
+            }
+            
+            await contactDoc.ref.update({
+              referralInviteSent: true,
+              referralInviteSentAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            
+            growthEmailsSent++;
+            console.log(`✅ Referral invite sent to ${contact.firstName} (${contactId})`);
+            continue;
+          }
+          
+          // 11C: 6-MONTH ANNIVERSARY CHECK-IN
+          if (daysSinceStart >= 180 && daysSinceStart < 365 && !contact.anniversary6moSent) {
+            const emailHtml = EMAIL_TEMPLATES.anniversaryCheckIn6Mo({ ...contact, id: contactId });
+            
+            await transporter.sendMail({
+              from: `"${fromName}" <${user}>`,
+              to: recipientEmail,
+              subject: `${contact.firstName}, it's been 6 months — how's your credit holding up?`,
+              html: emailHtml
+            });
+            
+            await contactDoc.ref.update({
+              anniversary6moSent: true,
+              anniversary6moSentAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            
+            growthEmailsSent++;
+            console.log(`✅ 6-month check-in sent to ${contact.firstName} (${contactId})`);
+            continue;
+          }
+          
+          // 11D: 12-MONTH RE-ENGAGEMENT
+          if (daysSinceStart >= 365 && !contact.reEngagement12moSent) {
+            const emailHtml = EMAIL_TEMPLATES.reEngagement12Mo({ ...contact, id: contactId });
+            
+            await transporter.sendMail({
+              from: `"${fromName}" <${user}>`,
+              to: recipientEmail,
+              subject: `${contact.firstName}, it's been a year — let's make sure your credit is still strong`,
+              html: emailHtml
+            });
+            
+            await contactDoc.ref.update({
+              reEngagement12moSent: true,
+              reEngagement12moSentAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            
+            growthEmailsSent++;
+            console.log(`✅ 12-month re-engagement sent to ${contact.firstName} (${contactId})`);
+          }
+          
+        } catch (err) {
+          console.error(`❌ Growth email failed for ${contactId}:`, err.message);
+        }
+      }
+      
+      console.log(`✅ Growth emails sent: ${growthEmailsSent}`);
+      
+      // ─────────────────────────────────────────────────────────────────────
+      // RULE 12: QUIZ LEAD NURTURE (24h + 72h follow-ups)
+      // Follows up with quiz leads who haven't enrolled
+      // Triggered by source = 'quiz' + no enrollmentStatus
+      // ─────────────────────────────────────────────────────────────────────
+      
+      console.log('\n📝 Processing quiz lead nurture...');
+      let quizNurtureSent = 0;
+      
+      const quizLeadsSnapshot = await db.collection('contacts')
+        .where('source', '==', 'quiz')
+        .where('enrollmentStatus', '==', null)
+        .limit(50)
+        .get();
+      
+      // Also check for quiz leads without enrollmentStatus field at all
+      let quizCandidates = quizLeadsSnapshot.docs;
+      
+      if (quizLeadsSnapshot.size < 50) {
+        const quizAllSnapshot = await db.collection('contacts')
+          .where('source', '==', 'quiz')
+          .limit(100)
+          .get();
+        
+        const existingIds = new Set(quizCandidates.map(d => d.id));
+        const additional = quizAllSnapshot.docs.filter(d => {
+          if (existingIds.has(d.id)) return false;
+          const data = d.data();
+          return !data.enrollmentStatus || data.enrollmentStatus === 'not_started';
+        });
+        quizCandidates = [...quizCandidates, ...additional].slice(0, 100);
+      }
+      
+      console.log(`📊 Found ${quizCandidates.length} quiz leads to check for nurture`);
+      
+      for (const contactDoc of quizCandidates) {
+        const contact = contactDoc.data();
+        const contactId = contactDoc.id;
+        
+        // Skip if they've already enrolled
+        if (contact.enrollmentStatus === 'enrolled' || contact.enrollmentStatus === 'completed' || contact.enrollmentStatus === 'started') continue;
+        
+        const recipientEmail = contact.email || contact.emails?.[0]?.address;
+        if (!recipientEmail) continue;
+        
+        const createdAt = contact.createdAt?.toDate();
+        if (!createdAt) continue;
+        
+        const hoursSinceQuiz = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
+        
+        try {
+          // 12A: 24-HOUR QUIZ NURTURE
+          if (hoursSinceQuiz >= 24 && hoursSinceQuiz < 72 && !contact.quizNurture24hSent) {
+            const emailHtml = EMAIL_TEMPLATES.quizNurture24h(
+              { ...contact, id: contactId },
+              {
+                creditGoal: contact.quizCreditGoal || contact.creditGoal || 'Improve credit score',
+                scoreRange: contact.quizScoreRange || contact.scoreRange || 'Not specified',
+                negativeItems: contact.quizNegativeItems || contact.negativeItems || 'Multiple items reported'
+              }
+            );
+            
+            await transporter.sendMail({
+              from: `"${fromName}" <${user}>`,
+              to: recipientEmail,
+              subject: `${contact.firstName}, your credit assessment results + a personal note`,
+              html: emailHtml
+            });
+            
+            await contactDoc.ref.update({
+              quizNurture24hSent: true,
+              quizNurture24hSentAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            
+            quizNurtureSent++;
+            console.log(`✅ Quiz 24h nurture sent to ${contact.firstName} (${contactId})`);
+          }
+          
+          // 12B: 72-HOUR QUIZ URGENCY
+          else if (hoursSinceQuiz >= 72 && !contact.quizUrgency72hSent) {
+            const emailHtml = EMAIL_TEMPLATES.quizUrgency72h(
+              { ...contact, id: contactId },
+              {
+                creditGoal: contact.quizCreditGoal || contact.creditGoal || 'Improve credit score',
+                scoreRange: contact.quizScoreRange || contact.scoreRange || 'Not specified',
+                negativeItems: contact.quizNegativeItems || contact.negativeItems || 'Multiple items reported'
+              }
+            );
+            
+            await transporter.sendMail({
+              from: `"${fromName}" <${user}>`,
+              to: recipientEmail,
+              subject: `${contact.firstName}, quick question about your credit goals`,
+              html: emailHtml
+            });
+            
+            // Urgency SMS
+            if (contact.smsConsent === true && contact.phone && telnyxApiKey.value() && telnyxSmsPhone.value()) {
+              try {
+                let smsPhone = (contact.phone || '').replace(/\D/g, '');
+                if (smsPhone.length === 10) smsPhone = '+1' + smsPhone;
+                else if (!smsPhone.startsWith('+')) smsPhone = '+' + smsPhone;
+                
+                await fetch('https://api.telnyx.com/v2/messages', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${telnyxApiKey.value()}` },
+                  body: JSON.stringify({
+                    from: telnyxSmsPhone.value(),
+                    to: smsPhone,
+                    text: `${contact.firstName}, you took our credit quiz a few days ago — have you started your free credit report yet? It takes 5 min and won't affect your score. Questions? Call Chris: 888-724-7344`
+                  })
+                });
+              } catch (smsErr) {
+                console.error(`⚠️ Quiz urgency SMS failed:`, smsErr.message);
+              }
+            }
+            
+            await contactDoc.ref.update({
+              quizUrgency72hSent: true,
+              quizUrgency72hSentAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            
+            quizNurtureSent++;
+            console.log(`✅ Quiz 72h urgency sent to ${contact.firstName} (${contactId})`);
+          }
+          
+        } catch (err) {
+          console.error(`❌ Quiz nurture failed for ${contactId}:`, err.message);
+        }
+      }
+      
+      console.log(`✅ Quiz nurture emails sent: ${quizNurtureSent}`);
+      
       console.log('\n═══════════════════════════════════════════════════════════════');
-      console.log('📊 ABANDONMENT & LIFECYCLE EMAIL SUMMARY');
+      console.log('📊 FULL LIFECYCLE EMAIL SUMMARY');
       console.log('═══════════════════════════════════════════════════════════════');
       console.log(`Abandonment emails: ${sent} sent, ${failed} failed (of ${processed})`);
       console.log(`Scheduled emails: ${scheduledSent} sent, ${scheduledFailed} failed`);
@@ -5702,6 +6246,8 @@ exports.processAbandonmentEmails = onSchedule(
       console.log(`Monthly reports: ${monthlyReportsSent} sent`);
       console.log(`Milestone celebrations: ${milestoneSent} sent`);
       console.log(`Graduation/maintenance: ${graduationSent} sent`);
+      console.log(`Growth (reviews/referrals/anniversaries): ${growthEmailsSent} sent`);
+      console.log(`Quiz nurture: ${quizNurtureSent} sent`);
       console.log('═══════════════════════════════════════════════════════════════\n');
       
       // Log to analytics
@@ -5716,6 +6262,8 @@ exports.processAbandonmentEmails = onSchedule(
         monthlyReports: { sent: monthlyReportsSent },
         milestones: { sent: milestoneSent },
         graduation: { sent: graduationSent },
+        growth: { sent: growthEmailsSent },
+        quizNurture: { sent: quizNurtureSent },
         runAt: admin.firestore.FieldValue.serverTimestamp()
       });
       
@@ -5737,7 +6285,7 @@ exports.processAbandonmentEmails = onSchedule(
   }
 );
 
-      console.log('✅ Function 6B/11: processAbandonmentEmails loaded (abandonment + drip + ACH follow-ups + IDIQ recovery)');
+      console.log('✅ Function 6B/11: processAbandonmentEmails loaded (FULL LIFECYCLE: 12 rules, 24 email types)');
 
 // ============================================
 // FUNCTION 7: AI CONTENT GENERATOR (Consolidated)
@@ -6798,7 +7346,8 @@ console.log('✅ Function 7/10: aiContentGenerator loaded (with ENHANCED recomme
 exports.operationsManager = onRequest(
   {
     ...defaultConfig,
-    cors: true
+    cors: true,
+    secrets: [nmiSecurityKey]
   },
   async (request, response) => {
     // Enable CORS
@@ -6853,7 +7402,14 @@ exports.operationsManager = onRequest(
           'landingPageContact',
           'captureWebLead',
           'validateEnrollmentToken',
-          'markTokenUsed'
+          'markTokenUsed',
+          'processNewEnrollment',
+          'chargeCustomer',
+          'cancelSubscription',
+          'processRefund',
+          'updatePaymentMethod',
+          'chargeDeletionFee',
+          'getPaymentStatus'
         ]
       });
       return;
@@ -7639,6 +8195,423 @@ console.log('🔐 Enrollment token generated:', token.substring(0, 10) + '...');
       
       break;
     }
+
+
+    // ============================================================
+    // PAYMENT PROCESSING CASES (NMI Gateway via paymentGateway.js)
+    // ============================================================
+
+    case 'processNewEnrollment': {
+      console.log('💳 ===== PROCESS NEW ENROLLMENT =====');
+      console.log(`Contact: ${params.contactId}, Plan: ${params.planId}`);
+
+      // ===== Validate required fields =====
+      if (!params.contactId) {
+        response.status(400).json({ success: false, error: 'contactId is required' });
+        return;
+      }
+      if (!params.planId) {
+        response.status(400).json({ success: false, error: 'planId is required' });
+        return;
+      }
+      if (!params.firstName || !params.lastName) {
+        response.status(400).json({ success: false, error: 'firstName and lastName are required' });
+        return;
+      }
+
+      // ===== Must have either bank account OR credit card =====
+      const hasACH = params.checkAccount && params.checkAba;
+      const hasCC = params.ccNumber && params.ccExp;
+      if (!hasACH && !hasCC) {
+        response.status(400).json({ success: false, error: 'Must provide bank account (checkAccount + checkAba) or credit card (ccNumber + ccExp)' });
+        return;
+      }
+
+      try {
+        const enrollResult = await payment.processNewEnrollment(params);
+
+        // ===== If successful, update the contact document in Firestore =====
+        if (enrollResult.success && enrollResult.firestoreData) {
+          const contactRef = db.collection('contacts').doc(params.contactId);
+          await contactRef.update({
+            ...enrollResult.firestoreData,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+          console.log(`✅ Contact ${params.contactId} updated with billing info`);
+
+          // ===== Also log to payments collection for audit trail =====
+          await db.collection('payments').add({
+            contactId: params.contactId,
+            type: 'enrollment',
+            planId: params.planId,
+            planName: enrollResult.planName,
+            monthlyAmount: enrollResult.firestoreData.billingMonthlyAmount,
+            setupFee: enrollResult.firestoreData.billingSetupFee,
+            nmiVaultId: enrollResult.vaultId,
+            nmiSubscriptionId: enrollResult.subscriptionId,
+            setupFeeTransactionId: enrollResult.setupFeeTransactionId || null,
+            status: 'active',
+            steps: enrollResult.steps,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            createdBy: 'system',
+          });
+          console.log('✅ Payment audit log created');
+        }
+
+        result = {
+          success: enrollResult.success,
+          vaultId: enrollResult.vaultId || null,
+          subscriptionId: enrollResult.subscriptionId || null,
+          planName: enrollResult.planName || null,
+          error: enrollResult.error || null,
+          steps: enrollResult.steps || [],
+        };
+
+      } catch (enrollError) {
+        console.error('❌ processNewEnrollment error:', enrollError);
+        result = { success: false, error: enrollError.message };
+      }
+
+      break;
+    }
+
+
+    case 'chargeCustomer': {
+      console.log('💰 ===== CHARGE CUSTOMER =====');
+
+      if (!params.contactId) {
+        response.status(400).json({ success: false, error: 'contactId is required' });
+        return;
+      }
+      if (!params.amount || params.amount <= 0) {
+        response.status(400).json({ success: false, error: 'Valid amount is required' });
+        return;
+      }
+
+      try {
+        // ===== Get the vault ID from the contact's Firestore document =====
+        const chargeContactDoc = await db.collection('contacts').doc(params.contactId).get();
+        if (!chargeContactDoc.exists) {
+          result = { success: false, error: 'Contact not found' };
+          break;
+        }
+        const chargeContact = chargeContactDoc.data();
+        if (!chargeContact.nmiVaultId) {
+          result = { success: false, error: 'No payment method on file. Client must complete ACH authorization first.' };
+          break;
+        }
+
+        const chargeResult = await payment.chargeCustomer({
+          vaultId: chargeContact.nmiVaultId,
+          amount: params.amount,
+          description: params.description || 'Speedy Credit Repair Service',
+          orderId: `CHG-${params.contactId}-${Date.now()}`,
+          paymentType: chargeContact.paymentType || 'ach',
+        });
+
+        // ===== Log to payments collection =====
+        if (chargeResult.firestoreData) {
+          await db.collection('payments').add({
+            contactId: params.contactId,
+            type: 'one_time',
+            ...chargeResult.firestoreData,
+            description: params.description || 'Service charge',
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            createdBy: params.initiatedBy || 'system',
+          });
+        }
+
+        result = {
+          success: chargeResult.success,
+          transactionId: chargeResult.transactionId || null,
+          amount: params.amount,
+          message: chargeResult.message,
+          error: chargeResult.success ? null : chargeResult.message,
+        };
+
+      } catch (chargeError) {
+        console.error('❌ chargeCustomer error:', chargeError);
+        result = { success: false, error: chargeError.message };
+      }
+
+      break;
+    }
+
+
+    case 'cancelSubscription': {
+      console.log('🛑 ===== CANCEL SUBSCRIPTION =====');
+
+      if (!params.contactId) {
+        response.status(400).json({ success: false, error: 'contactId is required' });
+        return;
+      }
+
+      try {
+        const cancelContactDoc = await db.collection('contacts').doc(params.contactId).get();
+        if (!cancelContactDoc.exists) {
+          result = { success: false, error: 'Contact not found' };
+          break;
+        }
+        const cancelContact = cancelContactDoc.data();
+        if (!cancelContact.nmiSubscriptionId) {
+          result = { success: false, error: 'No active subscription found for this contact' };
+          break;
+        }
+
+        const cancelResult = await payment.cancelRecurring({
+          subscriptionId: cancelContact.nmiSubscriptionId,
+        });
+
+        // ===== Update contact document =====
+        if (cancelResult.success) {
+          await db.collection('contacts').doc(params.contactId).update({
+            billingStatus: 'cancelled',
+            billingCancelledAt: admin.firestore.FieldValue.serverTimestamp(),
+            billingCancelReason: params.reason || 'Not specified',
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+
+          // ===== Audit log =====
+          await db.collection('payments').add({
+            contactId: params.contactId,
+            type: 'cancellation',
+            nmiSubscriptionId: cancelContact.nmiSubscriptionId,
+            reason: params.reason || 'Not specified',
+            status: 'cancelled',
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            createdBy: params.initiatedBy || 'admin',
+          });
+        }
+
+        result = {
+          success: cancelResult.success,
+          message: cancelResult.message,
+          error: cancelResult.success ? null : cancelResult.message,
+        };
+
+      } catch (cancelError) {
+        console.error('❌ cancelSubscription error:', cancelError);
+        result = { success: false, error: cancelError.message };
+      }
+
+      break;
+    }
+
+
+    case 'processRefund': {
+      console.log('💸 ===== PROCESS REFUND =====');
+
+      if (!params.transactionId) {
+        response.status(400).json({ success: false, error: 'transactionId is required' });
+        return;
+      }
+
+      try {
+        const refundResult = await payment.processRefund({
+          transactionId: params.transactionId,
+          amount: params.amount || null,
+        });
+
+        // ===== Audit log =====
+        if (refundResult.firestoreData) {
+          await db.collection('payments').add({
+            contactId: params.contactId || 'unknown',
+            type: 'refund',
+            originalTransactionId: params.transactionId,
+            ...refundResult.firestoreData,
+            reason: params.reason || 'Not specified',
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            createdBy: params.initiatedBy || 'admin',
+          });
+        }
+
+        result = {
+          success: refundResult.success,
+          refundTransactionId: refundResult.refundTransactionId || null,
+          amount: refundResult.amount,
+          message: refundResult.message,
+          error: refundResult.success ? null : refundResult.message,
+        };
+
+      } catch (refundError) {
+        console.error('❌ processRefund error:', refundError);
+        result = { success: false, error: refundError.message };
+      }
+
+      break;
+    }
+
+
+    case 'updatePaymentMethod': {
+      console.log('📝 ===== UPDATE PAYMENT METHOD =====');
+
+      if (!params.contactId) {
+        response.status(400).json({ success: false, error: 'contactId is required' });
+        return;
+      }
+
+      try {
+        const updateContactDoc = await db.collection('contacts').doc(params.contactId).get();
+        if (!updateContactDoc.exists) {
+          result = { success: false, error: 'Contact not found' };
+          break;
+        }
+        const updateContact = updateContactDoc.data();
+        if (!updateContact.nmiVaultId) {
+          result = { success: false, error: 'No vault record found. Client must enroll first.' };
+          break;
+        }
+
+        const updateResult = await payment.updateVault({
+          vaultId: updateContact.nmiVaultId,
+          ...params,
+        });
+
+        // ===== Update contact document with new payment info =====
+        if (updateResult.success && updateResult.firestoreData) {
+          await db.collection('contacts').doc(params.contactId).update({
+            ...updateResult.firestoreData,
+            bankName: params.bankName || updateContact.bankName,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+
+          // ===== Audit log =====
+          await db.collection('payments').add({
+            contactId: params.contactId,
+            type: 'payment_method_update',
+            paymentType: updateResult.firestoreData.paymentType,
+            lastFour: updateResult.firestoreData.lastFour,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            createdBy: params.initiatedBy || 'client',
+          });
+        }
+
+        result = {
+          success: updateResult.success,
+          message: updateResult.message,
+          error: updateResult.success ? null : updateResult.message,
+        };
+
+      } catch (updateError) {
+        console.error('❌ updatePaymentMethod error:', updateError);
+        result = { success: false, error: updateError.message };
+      }
+
+      break;
+    }
+
+
+    case 'chargeDeletionFee': {
+      console.log('🎯 ===== CHARGE DELETION FEE =====');
+
+      if (!params.contactId) {
+        response.status(400).json({ success: false, error: 'contactId is required' });
+        return;
+      }
+
+      try {
+        const delContactDoc = await db.collection('contacts').doc(params.contactId).get();
+        if (!delContactDoc.exists) {
+          result = { success: false, error: 'Contact not found' };
+          break;
+        }
+        const delContact = delContactDoc.data();
+        if (!delContact.nmiVaultId) {
+          result = { success: false, error: 'No payment method on file' };
+          break;
+        }
+
+        const delResult = await payment.chargeDeletionFee({
+          vaultId: delContact.nmiVaultId,
+          contactId: params.contactId,
+          itemName: params.itemName || 'Deleted Item',
+          bureau: params.bureau || 'Bureau',
+          planId: delContact.billingPlanId || 'professional',
+          paymentType: delContact.paymentType || 'ach',
+        });
+
+        // ===== Audit log =====
+        if (delResult.firestoreData && !delResult.skipped) {
+          await db.collection('payments').add({
+            contactId: params.contactId,
+            ...delResult.firestoreData,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            createdBy: 'system',
+          });
+        }
+
+        result = {
+          success: delResult.success,
+          amount: delResult.amount || 0,
+          skipped: delResult.skipped || false,
+          message: delResult.message,
+          error: delResult.success ? null : delResult.message,
+        };
+
+      } catch (delError) {
+        console.error('❌ chargeDeletionFee error:', delError);
+        result = { success: false, error: delError.message };
+      }
+
+      break;
+    }
+
+
+    case 'getPaymentStatus': {
+      console.log('📊 ===== GET PAYMENT STATUS =====');
+
+      if (!params.contactId) {
+        response.status(400).json({ success: false, error: 'contactId is required' });
+        return;
+      }
+
+      try {
+        const statusContactDoc = await db.collection('contacts').doc(params.contactId).get();
+        if (!statusContactDoc.exists) {
+          result = { success: false, error: 'Contact not found' };
+          break;
+        }
+        const statusContact = statusContactDoc.data();
+
+        // ===== Get recent payments =====
+        const paymentsSnapshot = await db
+          .collection('payments')
+          .where('contactId', '==', params.contactId)
+          .orderBy('createdAt', 'desc')
+          .limit(10)
+          .get();
+
+        const recentPayments = paymentsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || null,
+        }));
+
+        result = {
+          success: true,
+          billing: {
+            hasPaymentOnFile: !!statusContact.nmiVaultId,
+            paymentType: statusContact.paymentType || null,
+            lastFour: statusContact.lastFour || null,
+            bankName: statusContact.bankName || null,
+            planId: statusContact.billingPlanId || null,
+            planName: statusContact.billingPlanName || null,
+            monthlyAmount: statusContact.billingMonthlyAmount || null,
+            status: statusContact.billingStatus || 'none',
+            enrolledAt: statusContact.billingEnrolledAt || null,
+            cancelledAt: statusContact.billingCancelledAt || null,
+          },
+          recentPayments: recentPayments,
+        };
+
+      } catch (statusError) {
+        console.error('❌ getPaymentStatus error:', statusError);
+        result = { success: false, error: statusError.message };
+      }
+
+      break;
+    }
+
     
     default:
       console.error(`❌ Unknown action requested: ${action}`);
@@ -7657,7 +8630,14 @@ console.log('🔐 Enrollment token generated:', token.substring(0, 10) + '...');
           'landingPageContact',
           'captureWebLead',
           'validateEnrollmentToken',
-          'markTokenUsed'
+          'markTokenUsed',
+          'processNewEnrollment',
+          'chargeCustomer',
+          'cancelSubscription',
+          'processRefund',
+          'updatePaymentMethod',
+          'chargeDeletionFee',
+          'getPaymentStatus'
         ]
       });
       return;

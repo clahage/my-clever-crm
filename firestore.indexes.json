@@ -1,4 +1,142 @@
 {
-  "indexes": [],
+  "indexes": [
+    {
+      "collectionGroup": "contacts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "workflowActive", "order": "ASCENDING" },
+        { "fieldPath": "workflowPaused", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "contacts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "contractSigned", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "contacts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "achAuthorized", "order": "ASCENDING" },
+        { "fieldPath": "dripCompleted", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "contacts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "contractSigned", "order": "ASCENDING" },
+        { "fieldPath": "achAuthorized", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "contacts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "hasRecentDeletions", "order": "ASCENDING" },
+        { "fieldPath": "deletionCelebrationSent", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "contacts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "hasRecentResults", "order": "ASCENDING" },
+        { "fieldPath": "recentDeletionCount", "order": "ASCENDING" },
+        { "fieldPath": "noDeletePivotSent", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "contacts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "newRoundFiled", "order": "ASCENDING" },
+        { "fieldPath": "newRoundNotificationSent", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "contacts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "role", "order": "ASCENDING" },
+        { "fieldPath": "serviceStatus", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "contacts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "source", "order": "ASCENDING" },
+        { "fieldPath": "enrollmentStatus", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "contacts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "serviceStatus", "order": "ASCENDING" },
+        { "fieldPath": "graduationEmailSent", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "contacts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "graduationEmailSent", "order": "ASCENDING" },
+        { "fieldPath": "graduationEmailSentAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "contacts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "idiq.enrollmentStatus", "order": "ASCENDING" },
+        { "fieldPath": "idiqFailureEmailSent", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "scheduledEmails",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "scheduledFor", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "idiqEnrollments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "contactId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "idiqEnrollments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "enrolledAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "analyticsLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "type", "order": "ASCENDING" },
+        { "fieldPath": "runAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "emailLog",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "contactId", "order": "ASCENDING" },
+        { "fieldPath": "sentAt", "order": "DESCENDING" }
+      ]
+    }
+  ],
   "fieldOverrides": []
 }

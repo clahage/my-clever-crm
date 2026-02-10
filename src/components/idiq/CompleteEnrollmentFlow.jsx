@@ -518,6 +518,7 @@ const CompleteEnrollmentFlow = ({
   const idUploadRef = useRef(null);
   const utilityUploadRef = useRef(null);
   const autoSaveTimerRef = useRef(null);
+  const ssnUploadRef = useRef(null);
 
   // ===== STATE =====
   const [currentPhase, setCurrentPhase] = useState(1);
@@ -4573,8 +4574,8 @@ A+ BBB Rating | 4.9 Google (580+ reviews)
             {/* Photo ID - REQUIRED */}
             <Grid item xs={12} sm={6} md={4}>
               <DocumentCard
-                title="Photo ID *"
-                subtitle="Driver's License, Passport, or State ID"
+                title="Photo ID"
+                subtitle="Driver's License, Passport, or State ID (optional)"
                 icon={CameraIcon}
                 url={idPhotoUrl}
                 onUpload={(file) => handlePhotoUpload(file, 'id')}
@@ -4589,8 +4590,8 @@ A+ BBB Rating | 4.9 Google (580+ reviews)
             {/* Utility Bill - REQUIRED */}
             <Grid item xs={12} sm={6} md={4}>
               <DocumentCard
-                title="Proof of Address *"
-                subtitle="Utility Bill, Bank Statement, or Lease"
+                title="Proof of Address"
+                subtitle="Utility Bill, Bank Statement, or Lease (optional)"
                 icon={DocumentIcon}
                 url={utilityPhotoUrl}
                 onUpload={(file) => handlePhotoUpload(file, 'utility')}
@@ -4612,7 +4613,7 @@ A+ BBB Rating | 4.9 Google (580+ reviews)
                 onUpload={handleSSNCardUpload}
                 onDelete={() => handleDeleteDocument('ssn')}
                 onView={handleViewDocument}
-                inputRef={useRef(null)}
+                inputRef={ssnUploadRef}
                 type="ssn"
                 isUploading={uploadingDoc === 'ssn'}
               />
@@ -4747,7 +4748,7 @@ A+ BBB Rating | 4.9 Google (580+ reviews)
         {/* Progress indicator */}
         <Box sx={{ mb: 3 }}>
           <Typography variant="body2" color="text.secondary" gutterBottom>
-            Document Progress: {[idPhotoUrl, utilityPhotoUrl].filter(Boolean).length}/2 required
+            Document Progress: {[idPhotoUrl, utilityPhotoUrl].filter(Boolean).length}/2 uploaded (optional — you can add these later)
           </Typography>
           <LinearProgress 
             variant="determinate" 
@@ -4763,7 +4764,7 @@ A+ BBB Rating | 4.9 Google (580+ reviews)
           </Button>
           <GlowingButton
             onClick={() => setCurrentPhase(5)}
-            disabled={!idPhotoUrl || !utilityPhotoUrl}
+            disabled={false}
             endIcon={<ArrowForwardIcon />}
           >
             Continue to Signature
