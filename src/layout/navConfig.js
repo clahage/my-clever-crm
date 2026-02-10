@@ -27,7 +27,7 @@ import {
   FolderOpen, File, FilePlus, Layers,
 
   // ===== COMMUNICATION =====
-  MessageSquare, Mail, Phone, Bell, Zap, Calendar, Send, Inbox,
+  MessageSquare, Mail, Phone, Bell, Zap, Calendar, Send, Inbox, Printer,
 
   // ===== CREDIT & FINANCE =====
   CreditCard as LucideCreditCard, TrendingUp, Calculator, GitBranch, List, DollarSign, Wallet,
@@ -391,6 +391,17 @@ export const navigationItems = [
         consolidated: ['DocumentsHub', 'Forms', 'Templates', 'EContracts', 'FullAgreement', 'Addendums', 'InformationSheet', 'DocumentCenter', 'DocumentStorage', 'ContractManagementHub']
       },
 
+      // FAX CENTER - Bureau fax with smart health monitoring
+      {
+        id: 'fax-center',
+        title: 'Fax Center',
+        path: '/fax-center',
+        icon: Printer,
+        permission: 'user',
+        badge: 'AI',
+        description: 'Send faxes to credit bureaus with smart number health monitoring and auto-rotation'
+      },
+      
       // HUB 6: TASKS & PRODUCTIVITY
       {
   id: 'tasks-productivity-hub',

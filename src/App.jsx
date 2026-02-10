@@ -297,6 +297,7 @@ const AIReportGenerator = lazy(() => import('@/components/AIReportGenerator'));
 const DisputeAdminPanel = lazy(() => import('@/pages/hubs/DisputeAdminPanel'));
 const DisputeHub = lazy(() => import('@/pages/hubs/DisputeHub'));
 const DripCampaignsHub = lazy(() => import('@/pages/hubs/DripCampaignsHub'));
+const FaxCenter = lazy(() => import('@/pages/hubs/FaxCenter'));
 const LearningHub = lazy(() => import('@/pages/hubs/LearningHub'));
 const MarketingHub = lazy(() => import('@/pages/hubs/MarketingHub'));
 const MobileAppHub = lazy(() => import('@/pages/hubs/MobileAppHub'));
@@ -1144,6 +1145,18 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="user">
       <Suspense fallback={<LoadingFallback />}>
         <DripCampaignsHub />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+
+{/* Fax Center - Bureau fax with smart health monitoring */}
+<Route
+  path="fax-center"
+  element={
+    <ProtectedRoute requiredRole="user">
+      <Suspense fallback={<LoadingFallback />}>
+        <FaxCenter />
       </Suspense>
     </ProtectedRoute>
   }
