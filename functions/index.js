@@ -182,10 +182,13 @@ const SERVICE_PLANS_CONFIG = {
 // ============================================
 // EMAIL HTML WRAPPER HELPER (Original - Keep for backward compatibility)
 // ============================================
-function wrapEmailInHTML(subject, bodyText, recipientName = '') {
+function wrapEmailInHTML(subject, bodyText, recipientName = '', unsubscribeEmail = '') {
   const htmlBody = bodyText
     .replace(/\n\n/g, '</p><p style="margin: 0 0 15px; color: #374151; font-size: 16px; line-height: 1.6;">')
     .replace(/\n/g, '<br>');
+  
+  // Generate unsubscribe URL (base64-encoded email for one-click opt-out)
+  const unsubUrl = `https://us-central1-my-clever-crm.cloudfunctions.net/operationsManager?action=unsubscribe&e=${unsubscribeEmail ? Buffer.from(unsubscribeEmail.toLowerCase()).toString('base64') : ''}`;
   
   return `
 <!DOCTYPE html>
@@ -209,7 +212,9 @@ function wrapEmailInHTML(subject, bodyText, recipientName = '') {
             <td style="background-color: #f9fafb; padding: 25px 40px; border-top: 1px solid #e5e7eb; text-align: center;">
                 <p style="margin: 0 0 8px; color: #374151; font-size: 14px; font-weight: bold;">Speedy Credit Repair Inc.</p>
                 <p style="margin: 0 0 5px; color: #6b7280; font-size: 13px;">📞 (888) 724-7344 | 📧 chris@speedycreditrepair.com</p>
-                <p style="margin: 15px 0 0; color: #9ca3af; font-size: 11px;">© 1995-${new Date().getFullYear()} Speedy Credit Repair Inc. | All Rights Reserved</p>
+                <p style="margin: 0 0 5px; color: #9ca3af; font-size: 11px;">117 Main St #202, Huntington Beach, CA 92648</p>
+                <p style="margin: 12px 0 0; color: #9ca3af; font-size: 11px;">© 1995-${new Date().getFullYear()} Speedy Credit Repair Inc. | All Rights Reserved</p>
+                <p style="margin: 8px 0 0;"><a href="${unsubUrl}" style="color: #9ca3af; font-size: 11px; text-decoration: underline;">Unsubscribe from marketing emails</a></p>
             </td>
         </tr>
     </table>
@@ -265,7 +270,8 @@ function createRichEmail(options) {
     urgencyLevel = 'normal',
     showProgress = null,
     showTrustBadges = true,
-    trackingPixelUrl = null
+    trackingPixelUrl = null,
+    unsubscribeEmail = ''
   } = options;
 
   const urgencyColors = {
@@ -380,8 +386,14 @@ function createRichEmail(options) {
           📞 <a href="tel:${SPEEDY_BRAND.phoneLink}" style="color: #60a5fa; text-decoration: none;">${SPEEDY_BRAND.phone}</a> | 
           📧 <a href="mailto:${SPEEDY_BRAND.email}" style="color: #60a5fa; text-decoration: none;">${SPEEDY_BRAND.email}</a>
         </p>
+        <p style="margin: 8px 0 0; color: #9ca3af; font-size: 11px;">
+          117 Main St #202, Huntington Beach, CA 92648
+        </p>
         <p style="margin: 15px 0 0; color: #6b7280; font-size: 11px;">
           © 1995-${new Date().getFullYear()} ${SPEEDY_BRAND.companyName} Inc. | All Rights Reserved
+        </p>
+        <p style="margin: 10px 0 0;">
+          <a href="https://us-central1-my-clever-crm.cloudfunctions.net/operationsManager?action=unsubscribe&e=${unsubscribeEmail ? Buffer.from(unsubscribeEmail.toLowerCase()).toString('base64') : ''}" style="color: #9ca3af; font-size: 11px; text-decoration: underline;">Unsubscribe from marketing emails</a>
         </p>
       </td>
     </tr>
@@ -1686,13 +1698,42 @@ exports.emailService = onCall(
         case 'send': {
           const { to, subject, body, recipientName, contactId, templateType } = params;
           
+          // ===== CAN-SPAM: Check suppression list before sending =====
+          if (to) {
+            try {
+              const suppressionDoc = await db.collection('emailSuppressionList').doc(to.toLowerCase()).get();
+              if (suppressionDoc.exists) {
+                console.log(`⛔ Email blocked — ${to} is on suppression list`);
+                return { success: false, message: 'Recipient has unsubscribed', blocked: true };
+              }
+            } catch (suppressErr) {
+              console.warn('⚠️ Suppression list check failed (sending anyway):', suppressErr.message);
+            }
+            
+            // Also check contact-level opt-out
+            if (contactId) {
+              try {
+                const contactDoc = await db.collection('contacts').doc(contactId).get();
+                if (contactDoc.exists) {
+                  const contactData = contactDoc.data();
+                  if (contactData.emailOptOut === true || contactData.unsubscribed === true) {
+                    console.log(`⛔ Email blocked — contact ${contactId} opted out`);
+                    return { success: false, message: 'Contact has opted out of emails', blocked: true };
+                  }
+                }
+              } catch (optOutErr) {
+                console.warn('⚠️ Contact opt-out check failed (sending anyway):', optOutErr.message);
+              }
+            }
+          }
+          
           await transporter.sendMail({
             from: `"${gmailFromName.value() || 'Speedy Credit Repair'}" <${user}>`,
             to,
             replyTo: gmailReplyTo.value() || user,
             subject,
             text: body,
-            html: wrapEmailInHTML(subject, body, recipientName)
+            html: wrapEmailInHTML(subject, body, recipientName, to)
           });
           
           // Log email sent
@@ -8148,12 +8189,130 @@ exports.operationsManager = onRequest(
   async (request, response) => {
     // Enable CORS
     response.set('Access-Control-Allow-Origin', '*');
-    response.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    response.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     response.set('Access-Control-Allow-Headers', 'Content-Type');
     
     // Handle preflight requests
     if (request.method === 'OPTIONS') {
       response.status(204).send('');
+      return;
+    }
+
+    // ===================================================================
+    // CAN-SPAM: Handle GET requests for one-click email unsubscribe
+    // ===================================================================
+    // When a user clicks the unsubscribe link in an email, it arrives as
+    // a GET request with ?action=unsubscribe&e={base64_email}
+    // This immediately processes the opt-out and shows a confirmation page.
+    // ===================================================================
+    if (request.method === 'GET' && request.query?.action === 'unsubscribe') {
+      const encodedEmail = request.query.e || '';
+      let decodedEmail = '';
+      
+      try {
+        decodedEmail = Buffer.from(encodedEmail, 'base64').toString('utf-8').trim().toLowerCase();
+      } catch (decodeErr) {
+        decodedEmail = '';
+      }
+      
+      console.log('📧 GET Unsubscribe request for:', decodedEmail || '(no email)');
+      
+      if (decodedEmail && decodedEmail.includes('@')) {
+        // Process the unsubscribe
+        const db = admin.firestore();
+        try {
+          // Update contact records
+          const emailQuery = await db.collection('contacts')
+            .where('email', '==', decodedEmail)
+            .get();
+          
+          if (!emailQuery.empty) {
+            const batch = admin.firestore().batch();
+            emailQuery.docs.forEach(doc => {
+              batch.update(doc.ref, {
+                emailOptOut: true,
+                unsubscribed: true,
+                unsubscribedAt: admin.firestore.FieldValue.serverTimestamp(),
+                unsubscribeSource: 'one_click_email',
+                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                timeline: admin.firestore.FieldValue.arrayUnion({
+                  id: Date.now(),
+                  type: 'unsubscribed',
+                  description: 'Contact unsubscribed via one-click email link',
+                  timestamp: new Date().toISOString(),
+                  source: 'system'
+                })
+              });
+            });
+            await batch.commit();
+          }
+          
+          // Add to suppression list (backup)
+          await db.collection('emailSuppressionList').doc(decodedEmail).set({
+            email: decodedEmail,
+            reason: 'unsubscribe',
+            source: 'one_click_email',
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+          
+          // Log the event
+          await db.collection('activityLogs').add({
+            type: 'unsubscribe',
+            action: 'one_click_email_opt_out',
+            email: decodedEmail,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            createdBy: 'system:unsubscribe'
+          });
+          
+          console.log(`✅ One-click unsubscribe processed for: ${decodedEmail}`);
+        } catch (unsubErr) {
+          console.error('❌ One-click unsubscribe error:', unsubErr);
+        }
+      }
+      
+      // ===== SERVE CONFIRMATION HTML PAGE =====
+      // This is what the user sees after clicking unsubscribe in their email.
+      const confirmHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unsubscribed — Speedy Credit Repair</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f3f4f6; margin: 0; padding: 40px 20px; }
+    .card { max-width: 480px; margin: 0 auto; background: #fff; border-radius: 16px; padding: 40px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+    .logo { font-size: 28px; font-weight: 700; color: #1e40af; margin-bottom: 8px; }
+    .subtitle { color: #6b7280; font-size: 13px; margin-bottom: 30px; }
+    .icon { font-size: 48px; margin-bottom: 16px; }
+    h1 { color: #1f2937; font-size: 22px; margin: 0 0 12px; }
+    p { color: #6b7280; font-size: 15px; line-height: 1.6; margin: 0 0 20px; }
+    .email { color: #1e40af; font-weight: 600; }
+    .note { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 16px; font-size: 13px; color: #166534; margin: 20px 0; }
+    .footer { margin-top: 30px; color: #9ca3af; font-size: 11px; }
+    a { color: #1e40af; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">⚡ Speedy Credit Repair</div>
+    <div class="subtitle">Established 1995 | A+ BBB Rating</div>
+    <div class="icon">✅</div>
+    <h1>You've Been Unsubscribed</h1>
+    ${decodedEmail ? `<p>We've removed <span class="email">${decodedEmail}</span> from our marketing email list.</p>` : '<p>Your email has been removed from our marketing list.</p>'}
+    <div class="note">
+      <strong>Note:</strong> You may still receive essential service emails (payment confirmations, security alerts, and account updates) related to your active credit repair service.
+    </div>
+    <p>If you unsubscribed by mistake, simply reply to any of our previous emails or contact us:</p>
+    <p>📞 <a href="tel:8887247344">(888) 724-7344</a> | 📧 <a href="mailto:chris@speedycreditrepair.com">chris@speedycreditrepair.com</a></p>
+    <div class="footer">
+      <p>© 1995-${new Date().getFullYear()} Speedy Credit Repair Inc. | All Rights Reserved</p>
+      <p>117 Main St #202, Huntington Beach, CA 92648</p>
+    </div>
+  </div>
+</body>
+</html>`;
+      
+      response.status(200).send(confirmHtml);
       return;
     }
 
@@ -8213,7 +8372,8 @@ exports.operationsManager = onRequest(
           'updatePaymentMethod',
           'chargeDeletionFee',
           'getPaymentStatus',
-          'nmiWebhook'
+          'nmiWebhook',
+          'processUnsubscribe'
         ]
       });
       return;
@@ -9417,6 +9577,100 @@ console.log('🔐 Enrollment token generated:', token.substring(0, 10) + '...');
     }
 
     // ============================================================
+    // CAN-SPAM UNSUBSCRIBE — Process opt-out requests
+    // ============================================================
+    // Called when a user clicks the unsubscribe link in any email.
+    // The link format is:
+    //   POST { action: 'processUnsubscribe', email: 'user@example.com' }
+    //   OR via GET (one-click from email): handled above in GET handler
+    //
+    // Sets emailOptOut=true on the contact, preventing all future
+    // marketing emails. Transactional emails (payment receipts,
+    // security alerts) are NOT affected per CAN-SPAM guidelines.
+    // ============================================================
+    case 'processUnsubscribe': {
+      console.log('📧 ===== PROCESS UNSUBSCRIBE REQUEST =====');
+      
+      const unsubEmail = (params.email || '').trim().toLowerCase();
+      
+      if (!unsubEmail || !unsubEmail.includes('@')) {
+        response.status(400).json({
+          success: false,
+          error: 'Valid email address is required'
+        });
+        return;
+      }
+      
+      try {
+        // ===== Find contact by email =====
+        let contactFound = false;
+        
+        // Search primary email field
+        const emailQuery = await db.collection('contacts')
+          .where('email', '==', unsubEmail)
+          .get();
+        
+        if (!emailQuery.empty) {
+          const batch = admin.firestore().batch();
+          emailQuery.docs.forEach(doc => {
+            batch.update(doc.ref, {
+              emailOptOut: true,
+              unsubscribed: true,
+              unsubscribedAt: admin.firestore.FieldValue.serverTimestamp(),
+              unsubscribeSource: 'email_link',
+              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+              timeline: admin.firestore.FieldValue.arrayUnion({
+                id: Date.now(),
+                type: 'unsubscribed',
+                description: 'Contact unsubscribed from marketing emails via CAN-SPAM link',
+                timestamp: new Date().toISOString(),
+                source: 'system'
+              })
+            });
+          });
+          await batch.commit();
+          contactFound = true;
+          console.log(`✅ Unsubscribed ${emailQuery.size} contact(s) for: ${unsubEmail}`);
+        }
+        
+        // Also check emails array (some contacts store email in emails[].address)
+        // Firestore doesn't support array-contains on nested fields, so we
+        // add to a suppression list as a backup
+        await db.collection('emailSuppressionList').doc(unsubEmail).set({
+          email: unsubEmail,
+          reason: 'unsubscribe',
+          source: 'email_link',
+          createdAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        
+        console.log(`📝 Added ${unsubEmail} to suppression list`);
+        
+        // Log the unsubscribe event
+        await db.collection('activityLogs').add({
+          type: 'unsubscribe',
+          action: 'email_opt_out',
+          email: unsubEmail,
+          contactFound: contactFound,
+          contactCount: emailQuery?.size || 0,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          createdBy: 'system:unsubscribe'
+        });
+        
+        result = {
+          success: true,
+          message: 'Successfully unsubscribed',
+          email: unsubEmail
+        };
+        
+      } catch (unsubError) {
+        console.error('❌ Unsubscribe error:', unsubError);
+        result = { success: false, error: 'Failed to process unsubscribe request' };
+      }
+      
+      break;
+    }
+
+    // ============================================================
     // NMI PAYMENT WEBHOOK — Receives POST from NMI Gateway
     // ============================================================
     // NMI sends webhooks when payment events occur (success, failure,
@@ -9888,7 +10142,8 @@ console.log('🔐 Enrollment token generated:', token.substring(0, 10) + '...');
           'updatePaymentMethod',
           'chargeDeletionFee',
           'getPaymentStatus',
-          'nmiWebhook'
+          'nmiWebhook',
+          'processUnsubscribe'
         ]
       });
       return;
