@@ -4043,20 +4043,21 @@ const QuickAccessPanel = ({ onAddClient, onNewDispute, onSendEmail, onScheduleCa
   useEffect(() => {
     if (!currentUser) return;
 
-    // Load real notifications from Firebase
+    // Load real notifications from Firebase staffNotifications collection
+    // This reads the same collection that ProtectedLayout bell icon uses
     const loadNotifications = async () => {
       try {
-        // Query recent activities as notifications
-        const activitiesQuery = query(
-          collection(db, 'activities'),
-          orderBy('timestamp', 'desc'),
+        // Query recent staff notifications (same collection as bell dropdown)
+        const notifsQuery = query(
+          collection(db, 'staffNotifications'),
+          orderBy('createdAt', 'desc'),
           limit(5)
         );
-        const activitiesSnap = await getDocs(activitiesQuery);
+        const notifsSnap = await getDocs(notifsQuery);
 
-        const notifs = activitiesSnap.docs.map(doc => {
+        const notifs = notifsSnap.docs.map(doc => {
           const data = doc.data();
-          const timestamp = data.timestamp?.toDate ? data.timestamp.toDate() : new Date();
+          const timestamp = data.createdAt?.toDate ? data.createdAt.toDate() : new Date();
           const now = new Date();
           const diffMs = now - timestamp;
           const diffMins = Math.floor(diffMs / 60000);
@@ -4068,16 +4069,18 @@ const QuickAccessPanel = ({ onAddClient, onNewDispute, onSendEmail, onScheduleCa
           else if (diffHours > 0) timeAgo = `${diffHours}h ago`;
           else if (diffMins > 0) timeAgo = `${diffMins}m ago`;
 
-          // Determine notification type
+          // Map staffNotification type to display type
           let type = 'info';
-          if (data.type === 'client_enrolled' || data.type === 'payment_received') type = 'success';
-          else if (data.type === 'payment_overdue' || data.type === 'task_overdue') type = 'warning';
+          if (data.type === 'hot_lead' || data.priority === 'critical') type = 'warning';
+          else if (data.type === 'enrollment' || data.type === 'payment') type = 'success';
+          else if (data.type === 'new_contact') type = 'info';
 
           return {
             id: doc.id,
             type,
-            message: data.message || data.description || 'Activity logged',
+            message: data.title || data.message || 'Notification',
             time: timeAgo,
+            contactId: data.contactId || null,
           };
         });
 

@@ -1651,17 +1651,18 @@ exports.emailService = onCall(
     secrets: [gmailUser, gmailAppPassword, gmailFromName, gmailReplyTo]
   },
   async (request) => {
-    const { action, ...params } = request.body;
+    // ===== BUG #5 FIX: onCall uses request.data, NOT request.body =====
+    // emailService is an onCall function (not onRequest), so:
+    //   - Data comes from request.data (not request.body)
+    //   - Errors are thrown (not sent via response.status())
+    //   - Return values go directly to the client
+    const { action, ...params } = request.data || {};
     
-    console.log('⚙️ Operations Manager:', action, params);
+    console.log('📧 Email Service action:', action);
     
-    // Validate action
+    // Validate action — onCall has no 'response' object, so we throw
     if (!action) {
-      response.status(400).json({
-        success: false,
-        error: 'Missing required parameter: action'
-      });
-      return;
+      throw new Error('Missing required parameter: action');
     }
     
     const db = admin.firestore();
@@ -1673,7 +1674,7 @@ exports.emailService = onCall(
     const user = gmailUser.value();
     const pass = gmailAppPassword.value();
     
-    const transporter = nodemailer.createTransporter({
+    const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
       port: 587,
       secure: false,
@@ -2585,6 +2586,38 @@ exports.onContactUpdated = onDocumentUpdated(
             createdBy: 'system:speed_to_lead'
           });
           
+          // ─── STAFF NOTIFICATION: Hot Lead Alert (in-app real-time) ─────────
+          // This fires the bell chime + toast + browser push in ProtectedLayout
+          // ───────────────────────────────────────────────────────────────────
+          try {
+            await db.collection('staffNotifications').add({
+              type: 'hot_lead',
+              priority: 'critical',
+              title: `🔥 HOT LEAD: ${afterData.firstName} ${afterData.lastName} (Score ${afterData.leadScore})`,
+              message: `Speed-to-lead auto-engagement sent! Source: ${afterData.source || afterData.leadSource || 'unknown'} • Email: ${recipientEmail ? '✅' : '❌'} • SMS: ${(afterData.phone && afterData.smsConsent) ? '✅' : '❌'} • Call within 5 min for best conversion!`,
+              contactId: contactId,
+              contactName: `${afterData.firstName} ${afterData.lastName}`,
+              contactEmail: recipientEmail || null,
+              contactPhone: afterData.phone || null,
+              leadScore: afterData.leadScore,
+              source: afterData.source || afterData.leadSource || 'unknown',
+              targetRoles: ['masterAdmin', 'admin', 'manager', 'user'],
+              readBy: {},
+              createdAt: admin.firestore.FieldValue.serverTimestamp(),
+              createdBy: 'system:speed_to_lead',
+              speedToLeadDetails: {
+                emailSent: !!recipientEmail,
+                smsSent: !!(afterData.phone && afterData.smsConsent === true),
+                previousScore: beforeData.leadScore || 0,
+                newScore: afterData.leadScore,
+                enrollmentLink: enrollLink
+              }
+            });
+            console.log('🔔 Hot lead staff notification created');
+          } catch (notifErr) {
+            console.warn('⚠️ Hot lead staff notification failed (non-fatal):', notifErr.message);
+          }
+          
           console.log('✅ Speed-to-lead engagement complete for', contactId);
           
         } catch (speedErr) {
@@ -2643,7 +2676,8 @@ exports.onContactCreated = onDocumentCreated(
     document: 'contacts/{contactId}',
     ...defaultConfig,
     memory: '512MiB',
-    timeoutSeconds: 60
+    timeoutSeconds: 120,  // Increased from 60 — now sends email + logs + updates
+    secrets: [gmailUser, gmailAppPassword, gmailFromName, gmailReplyTo]  // Gmail secrets for welcome email
   },
   async (event) => {
     const contactId = event.params.contactId;
@@ -2753,7 +2787,212 @@ exports.onContactCreated = onDocumentCreated(
         console.log('   Reason: needsLeadRole=', needsLeadRole, ', hasLeadIndicators=', hasLeadIndicators);
       }
       
-      return { success: true, contactId, roleAssigned: needsLeadRole && hasLeadIndicators ? 'lead' : null };
+      // ═══════════════════════════════════════════════════════════════════════
+      // WELCOME EMAIL WITH ENROLLMENT LINK — Sends to ALL new contacts
+      // ═══════════════════════════════════════════════════════════════════════
+      // This is the #1 conversion driver: every new contact gets an immediate
+      // branded email with a direct link to start their free credit analysis.
+      // Template is chosen based on how the contact entered the system.
+      // ═══════════════════════════════════════════════════════════════════════
+      
+      let leadWelcomeEmailSent = false;
+      
+      try {
+        // ===== CHECK: Does the contact have an email address? =====
+        const contactEmail = contactData.email || 
+          (contactData.emails && contactData.emails.length > 0 ? contactData.emails[0].address : null);
+        
+        if (!contactEmail) {
+          console.log('📧 No email address found for contact — skipping welcome email');
+          console.log('   Contact will need manual outreach (phone/SMS)');
+          
+          // ===== LOG: No-email contacts still get tracked =====
+          await db.collection('contacts').doc(contactId).update({
+            leadWelcomeEmailSent: false,
+            leadWelcomeEmailSkipReason: 'no_email_address',
+            leadWelcomeEmailCheckedAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+          
+        } else {
+          // ===== CHECK: Don't send if already enrolled or enrolling =====
+          const enrollmentStatus = contactData.enrollmentStatus || 'not_started';
+          if (enrollmentStatus === 'enrolled' || enrollmentStatus === 'completed' || enrollmentStatus === 'started') {
+            console.log(`📧 Skipping welcome email — contact already has enrollmentStatus: ${enrollmentStatus}`);
+            
+          } else {
+            // ===== DETERMINE: Which email template to use based on source =====
+            const contactSource = (contactData.source || contactData.leadSource || 'manual').toLowerCase();
+            
+            // AI phone calls get the "thanks for calling" template
+            // Everything else gets the warm welcome template
+            const templateId = (contactSource === 'ai_receptionist' || contactSource === 'ai_phone' || contactSource === 'phone_call')
+              ? 'ai-welcome-immediate'
+              : 'web-welcome-immediate';
+            
+            console.log(`📧 Sending welcome email to ${contactEmail}`);
+            console.log(`   Template: ${templateId}`);
+            console.log(`   Source: ${contactSource}`);
+            
+            // ===== BUILD: Template data with contact info =====
+            const templateData = {
+              firstName: contactData.firstName || 'there',
+              lastName: contactData.lastName || '',
+              name: `${contactData.firstName || ''} ${contactData.lastName || ''}`.trim() || 'there',
+              email: contactEmail,
+              phone: contactData.phone || (contactData.phones && contactData.phones[0]?.number) || '',
+              contactId: contactId,
+              leadScore: contactData.leadScore || 5,
+              sentiment: contactData.aiTracking?.sentiment || { description: 'neutral' },
+              source: contactSource
+            };
+            
+            // ===== RENDER: Get subject + HTML from emailTemplates.js =====
+            const { getEmailTemplate } = require('./emailTemplates');
+            const emailContent = getEmailTemplate(templateId, templateData);
+            
+            // ===== SEND: Via Gmail SMTP =====
+            const user = gmailUser.value();
+            const pass = gmailAppPassword.value();
+            const fromName = gmailFromName.value() || 'Chris Lahage - Speedy Credit Repair';
+            const replyTo = gmailReplyTo.value() || 'contact@speedycreditrepair.com';
+            
+            const transporter = nodemailer.createTransport({
+              host: 'smtp.gmail.com',
+              port: 587,
+              secure: false,
+              auth: { user, pass }
+            });
+            
+            const mailResult = await transporter.sendMail({
+              from: `"${fromName}" <${user}>`,
+              replyTo: replyTo,
+              to: contactEmail,
+              subject: emailContent.subject,
+              html: emailContent.html
+            });
+            
+            console.log(`✅ Welcome email SENT to ${contactEmail} — MessageId: ${mailResult.messageId}`);
+            leadWelcomeEmailSent = true;
+            
+            // ===== LOG: Record in emailLog collection for analytics =====
+            await db.collection('emailLog').add({
+              contactId: contactId,
+              recipientEmail: contactEmail,
+              recipientName: templateData.name,
+              templateId: templateId,
+              subject: emailContent.subject,
+              type: 'welcome_email',
+              source: contactSource,
+              sentAt: admin.firestore.FieldValue.serverTimestamp(),
+              messageId: mailResult.messageId,
+              status: 'sent',
+              metadata: emailContent.metadata || {},
+              // ===== Tracking fields (for future open/click tracking) =====
+              opened: false,
+              openedAt: null,
+              clicked: false,
+              clickedAt: null,
+              converted: false,
+              convertedAt: null
+            });
+            
+            // ===== UPDATE: Mark contact so we don't send duplicates =====
+            await db.collection('contacts').doc(contactId).update({
+              leadWelcomeEmailSent: true,
+              leadWelcomeEmailSentAt: admin.firestore.FieldValue.serverTimestamp(),
+              leadWelcomeEmailTemplate: templateId,
+              // ===== Add to contact timeline =====
+              timeline: admin.firestore.FieldValue.arrayUnion({
+                id: Date.now() + 1,  // +1 to avoid collision with role assignment timeline entry
+                type: 'email_sent',
+                description: `Welcome email sent with enrollment link (template: ${templateId})`,
+                timestamp: new Date().toISOString(),
+                metadata: {
+                  templateId: templateId,
+                  recipientEmail: contactEmail,
+                  messageId: mailResult.messageId,
+                  source: contactSource
+                },
+                source: 'system'
+              })
+            });
+            
+            console.log(`✅ Contact ${contactId} marked as leadWelcomeEmailSent: true`);
+          }
+        }
+        
+      } catch (emailError) {
+        // ===== SAFETY: Email failure should NEVER crash contact creation =====
+        console.error('⚠️ Welcome email failed (non-fatal):', emailError.message);
+        console.error('   Stack:', emailError.stack);
+        
+        // Still mark the attempt so we can retry or investigate
+        try {
+          await db.collection('contacts').doc(contactId).update({
+            leadWelcomeEmailSent: false,
+            leadWelcomeEmailError: emailError.message,
+            leadWelcomeEmailAttemptedAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+        } catch (updateError) {
+          console.error('⚠️ Failed to log email error on contact:', updateError.message);
+        }
+      }
+      
+      // ═══════════════════════════════════════════════════════════════════════
+      // STAFF NOTIFICATION — Real-time in-app alert for CRM dashboard
+      // ═══════════════════════════════════════════════════════════════════════
+      // Writes to staffNotifications collection which ProtectedLayout.jsx
+      // listens to via onSnapshot. Staff see bell badge + toast + sound.
+      // ═══════════════════════════════════════════════════════════════════════
+      try {
+        const contactName = `${contactData.firstName || ''} ${contactData.lastName || ''}`.trim() || 'Unknown';
+        const contactSource = (contactData.source || contactData.leadSource || 'manual').toLowerCase();
+        const staffNotifEmail = contactData.email || 
+          (contactData.emails && contactData.emails.length > 0 ? contactData.emails[0].address : null);
+        const score = contactData.leadScore || 0;
+        
+        const isHotLead = score >= 7;
+        const notifPriority = isHotLead ? 'critical' : (score >= 5 ? 'high' : 'medium');
+        const notifType = isHotLead ? 'hot_lead' : 'new_contact';
+        
+        let notifMessage = `New contact from ${contactSource}`;
+        if (staffNotifEmail) notifMessage += ` • ${staffNotifEmail}`;
+        if (contactData.phone) notifMessage += ` • ${contactData.phone}`;
+        if (score > 0) notifMessage += ` • Score: ${score}/10`;
+        if (leadWelcomeEmailSent) notifMessage += ' • Welcome email sent ✅';
+        
+        await db.collection('staffNotifications').add({
+          type: notifType,
+          priority: notifPriority,
+          title: isHotLead
+            ? `🔥 HOT LEAD: ${contactName} (Score ${score})`
+            : `👤 New Contact: ${contactName}`,
+          message: notifMessage,
+          contactId: contactId,
+          contactName: contactName,
+          contactEmail: staffNotifEmail || null,
+          contactPhone: contactData.phone || null,
+          leadScore: score,
+          source: contactSource,
+          targetRoles: ['masterAdmin', 'admin', 'manager', 'user'],
+          readBy: {},
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          createdBy: 'system:onContactCreated',
+          welcomeEmailSent: leadWelcomeEmailSent,
+          roleAssigned: (needsLeadRole && hasLeadIndicators) ? 'lead' : null
+        });
+        
+        console.log(`🔔 Staff notification created for new contact: ${contactName} (${notifType})`);
+      } catch (notifError) {
+        console.error('⚠️ Staff notification failed (non-fatal):', notifError.message);
+      }
+      
+      return { 
+        success: true, 
+        contactId, 
+        roleAssigned: needsLeadRole && hasLeadIndicators ? 'lead' : null,
+        welcomeEmailSent: leadWelcomeEmailSent
+      };
       
     } catch (error) {
       console.error('❌ Error in onContactCreated AI role assessment:', error);
@@ -2762,7 +3001,7 @@ exports.onContactCreated = onDocumentCreated(
   }
 );
 
-console.log('✅ Function 4B/11: onContactCreated loaded (AI ROLE ASSESSMENT)');
+console.log('✅ Function 4B/11: onContactCreated loaded (AI ROLE ASSESSMENT + WELCOME EMAIL WITH ENROLLMENT LINK)');
 
 // ============================================
 // FUNCTION 5: IDIQ SERVICE (PRODUCTION)
@@ -3628,17 +3867,40 @@ exports.idiqService = onCall(
             }
 
             // =====================================================================
-            // STEP 4: Pull Credit Report (with verification retry)
+            // STEP 4: Pull Credit Report (with retry on failure)
             // =====================================================================
+            // ===== BUG #6 FIX: IDIQ API sometimes returns 400 if queried too =====
+            // soon after enrollment or verification. We retry once with a delay.
             console.log('📈 Fetching credit report data...');
-            const reportResponse = await fetch(`${IDIQ_BASE_URL}v1/credit-report`, {
-              method: 'GET',
-              headers: { 
-                'Authorization': `Bearer ${memberToken}`, 
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
+            
+            let reportResponse;
+            let retryAttempt = 0;
+            const maxReportRetries = 2;  // Try up to 2 times
+            
+            while (retryAttempt < maxReportRetries) {
+              reportResponse = await fetch(`${IDIQ_BASE_URL}v1/credit-report`, {
+                method: 'GET',
+                headers: { 
+                  'Authorization': `Bearer ${memberToken}`, 
+                  'Accept': 'application/json',
+                  'Content-Type': 'application/json'
+                }
+              });
+              
+              // If success or 422 (verification needed), stop retrying
+              if (reportResponse.ok || reportResponse.status === 422) {
+                break;
               }
-            });
+              
+              retryAttempt++;
+              if (retryAttempt < maxReportRetries) {
+                console.log(`⚠️ Credit report returned ${reportResponse.status} — retrying in 4 seconds (attempt ${retryAttempt}/${maxReportRetries})...`);
+                await new Promise(resolve => setTimeout(resolve, 4000));
+              }
+            }
+            
+            console.log(`📋 Credit report final status: ${reportResponse.status} (after ${retryAttempt + 1} attempt(s))`);
+
 
             // ===== HANDLE 422 ERROR (Verification Required) =====
             if (reportResponse.status === 422) {
@@ -4609,7 +4871,7 @@ exports.processWorkflowStages = onSchedule(
           const user = gmailUser.value();
           const pass = gmailAppPassword.value();
           
-          const transporter = nodemailer.createTransporter({
+          const transporter = nodemailer.createTransport({
             host: 'smtp.gmail.com',
             port: 587,
             secure: false,
@@ -4676,7 +4938,7 @@ exports.processWorkflowStages = onSchedule(
             const user = gmailUser.value();
             const pass = gmailAppPassword.value();
             
-            const transporter = nodemailer.createTransporter({
+            const transporter = nodemailer.createTransport({
               host: 'smtp.gmail.com',
               port: 587,
               secure: false,
@@ -4717,7 +4979,7 @@ exports.processWorkflowStages = onSchedule(
             const user = gmailUser.value();
             const pass = gmailAppPassword.value();
             
-            const transporter = nodemailer.createTransporter({
+            const transporter = nodemailer.createTransport({
               host: 'smtp.gmail.com',
               port: 587,
               secure: false,
@@ -6234,6 +6496,536 @@ exports.processAbandonmentEmails = onSchedule(
       
       console.log(`✅ Quiz nurture emails sent: ${quizNurtureSent}`);
       
+      // ─────────────────────────────────────────────────────────────────────
+      // RULE 13: UNIVERSAL LEAD NURTURE DRIP (ALL NON-QUIZ SOURCES)
+      // ─────────────────────────────────────────────────────────────────────
+      // Sends timed nurture emails to ALL leads who received a welcome email
+      // but haven't started enrollment. Uses templates from emailTemplates.js
+      // which already have enrollment links, branding, and personalization.
+      //
+      // AI PHONE leads get: 4h → 24h → 48h → 7d (4 emails)
+      // WEB/OTHER leads get: 12h → 24h → 48h → 7d → 14d (5 emails)
+      //
+      // Each step has its own sent flag to prevent duplicates.
+      // Quiz leads are EXCLUDED (handled by Rule 12 above).
+      // ─────────────────────────────────────────────────────────────────────
+      
+      console.log('\n📬 Processing universal lead nurture drip...');
+      let leadNurtureSent = 0;
+      let leadNurtureSmsSent = 0;
+      
+      // ===== QUERY: Contacts who got welcome email but haven't enrolled =====
+      // leadWelcomeEmailSent: true means they entered the system and got Priority #1 email
+      const nurtureSnapshot = await db.collection('contacts')
+        .where('leadWelcomeEmailSent', '==', true)
+        .limit(100)
+        .get();
+      
+      console.log(`📊 Found ${nurtureSnapshot.size} contacts with welcome email sent — checking for nurture eligibility`);
+      
+      for (const contactDoc of nurtureSnapshot.docs) {
+        const contact = contactDoc.data();
+        const contactId = contactDoc.id;
+        
+        // ===== SKIP: Already enrolled or enrolling =====
+        const enrollStatus = contact.enrollmentStatus || 'not_started';
+        if (enrollStatus === 'enrolled' || enrollStatus === 'completed' || enrollStatus === 'started') continue;
+        
+        // ===== SKIP: Quiz leads (handled by Rule 12) =====
+        const contactSource = (contact.source || contact.leadSource || 'manual').toLowerCase();
+        if (contactSource === 'quiz') continue;
+        
+        // ===== SKIP: No email address =====
+        const recipientEmail = contact.email || contact.emails?.[0]?.address;
+        if (!recipientEmail) continue;
+        
+        // ===== SKIP: Contact opted out of emails =====
+        if (contact.emailOptOut === true || contact.unsubscribed === true) continue;
+        
+        // ===== CALCULATE: Hours since contact was created =====
+        const createdAt = contact.createdAt?.toDate?.() || contact.leadWelcomeEmailSentAt?.toDate?.();
+        if (!createdAt) continue;
+        
+        const hoursSinceCreated = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
+        
+        // ===== DETERMINE: Is this an AI phone lead or web/other? =====
+        const isAIPhoneLead = (contactSource === 'ai_receptionist' || contactSource === 'ai_phone' || contactSource === 'phone_call');
+        
+        // ===== TEMPLATE DATA: Same format used by all emailTemplates.js templates =====
+        const templateData = {
+          firstName: contact.firstName || 'there',
+          lastName: contact.lastName || '',
+          name: `${contact.firstName || ''} ${contact.lastName || ''}`.trim() || 'there',
+          email: recipientEmail,
+          phone: contact.phone || contact.phones?.[0]?.number || '',
+          contactId: contactId,
+          leadScore: contact.leadScore || 5,
+          sentiment: contact.aiTracking?.sentiment || { description: 'neutral' },
+          source: contactSource
+        };
+        
+        try {
+          const { getEmailTemplate } = require('./emailTemplates');
+          
+          // ═══════════════════════════════════════════════════════════════════
+          // AI PHONE LEAD NURTURE SEQUENCE (4h → 24h → 48h → 7d)
+          // ═══════════════════════════════════════════════════════════════════
+          if (isAIPhoneLead) {
+            
+            // 13A-AI: 4-HOUR REMINDER — "Your analysis is still waiting"
+            if (hoursSinceCreated >= 4 && hoursSinceCreated < 24 && !contact.nurtureDrip4hSent) {
+              const emailContent = getEmailTemplate('ai-report-reminder-4h', templateData);
+              
+              await transporter.sendMail({
+                from: `"${fromName}" <${user}>`,
+                replyTo: replyTo,
+                to: recipientEmail,
+                subject: emailContent.subject,
+                html: emailContent.html
+              });
+              
+              await contactDoc.ref.update({
+                nurtureDrip4hSent: true,
+                nurtureDrip4hSentAt: admin.firestore.FieldValue.serverTimestamp(),
+                lastNurtureEmailAt: admin.firestore.FieldValue.serverTimestamp(),
+                nurtureEmailCount: (contact.nurtureEmailCount || 0) + 1
+              });
+              
+              // ===== LOG to emailLog =====
+              await db.collection('emailLog').add({
+                contactId, recipientEmail, templateId: 'ai-report-reminder-4h',
+                subject: emailContent.subject, type: 'lead_nurture_drip',
+                dripStep: '4h', source: contactSource,
+                sentAt: admin.firestore.FieldValue.serverTimestamp(),
+                status: 'sent', opened: false, clicked: false, converted: false
+              });
+              
+              leadNurtureSent++;
+              console.log(`✅ AI 4h nurture sent to ${contact.firstName} (${contactId})`);
+              continue; // One email per contact per run
+            }
+            
+            // 13B-AI: 24-HOUR HELP OFFER — "Is there anything I can help with?"
+            if (hoursSinceCreated >= 24 && hoursSinceCreated < 48 && !contact.nurtureDrip24hSent) {
+              const emailContent = getEmailTemplate('ai-help-offer-24h', templateData);
+              
+              await transporter.sendMail({
+                from: `"${fromName}" <${user}>`,
+                replyTo: replyTo,
+                to: recipientEmail,
+                subject: emailContent.subject,
+                html: emailContent.html
+              });
+              
+              await contactDoc.ref.update({
+                nurtureDrip24hSent: true,
+                nurtureDrip24hSentAt: admin.firestore.FieldValue.serverTimestamp(),
+                lastNurtureEmailAt: admin.firestore.FieldValue.serverTimestamp(),
+                nurtureEmailCount: (contact.nurtureEmailCount || 0) + 1
+              });
+              
+              await db.collection('emailLog').add({
+                contactId, recipientEmail, templateId: 'ai-help-offer-24h',
+                subject: emailContent.subject, type: 'lead_nurture_drip',
+                dripStep: '24h', source: contactSource,
+                sentAt: admin.firestore.FieldValue.serverTimestamp(),
+                status: 'sent', opened: false, clicked: false, converted: false
+              });
+              
+              leadNurtureSent++;
+              console.log(`✅ AI 24h nurture sent to ${contact.firstName} (${contactId})`);
+              continue;
+            }
+            
+            // 13C-AI: 48-HOUR REPORT READY — "Your report is ready and waiting"
+            if (hoursSinceCreated >= 48 && hoursSinceCreated < (7 * 24) && !contact.nurtureDrip48hSent) {
+              const emailContent = getEmailTemplate('ai-report-ready-48h', templateData);
+              
+              await transporter.sendMail({
+                from: `"${fromName}" <${user}>`,
+                replyTo: replyTo,
+                to: recipientEmail,
+                subject: emailContent.subject,
+                html: emailContent.html
+              });
+              
+              // ===== SMS at 48h for AI phone leads (they gave their phone number) =====
+              if (contact.smsConsent !== false && contact.phone && telnyxApiKey.value() && telnyxSmsPhone.value()) {
+                try {
+                  let smsPhone = (contact.phone || '').replace(/\D/g, '');
+                  if (smsPhone.length === 10) smsPhone = '+1' + smsPhone;
+                  else if (!smsPhone.startsWith('+')) smsPhone = '+' + smsPhone;
+                  
+                  await fetch('https://api.telnyx.com/v2/messages', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${telnyxApiKey.value()}` },
+                    body: JSON.stringify({
+                      from: telnyxSmsPhone.value(),
+                      to: smsPhone,
+                      text: `Hi ${contact.firstName}, it's Chris from Speedy Credit Repair. Your free credit analysis is still waiting — takes just 5 min. Start here: https://myclevercrm.com/complete-enrollment?contactId=${contactId}&source=sms-48h`
+                    })
+                  });
+                  leadNurtureSmsSent++;
+                  console.log(`📱 48h SMS sent to ${contact.firstName}`);
+                } catch (smsErr) {
+                  console.error(`⚠️ 48h SMS failed for ${contactId}:`, smsErr.message);
+                }
+              }
+              
+              await contactDoc.ref.update({
+                nurtureDrip48hSent: true,
+                nurtureDrip48hSentAt: admin.firestore.FieldValue.serverTimestamp(),
+                lastNurtureEmailAt: admin.firestore.FieldValue.serverTimestamp(),
+                nurtureEmailCount: (contact.nurtureEmailCount || 0) + 1
+              });
+              
+              await db.collection('emailLog').add({
+                contactId, recipientEmail, templateId: 'ai-report-ready-48h',
+                subject: emailContent.subject, type: 'lead_nurture_drip',
+                dripStep: '48h', source: contactSource,
+                sentAt: admin.firestore.FieldValue.serverTimestamp(),
+                status: 'sent', opened: false, clicked: false, converted: false
+              });
+              
+              leadNurtureSent++;
+              console.log(`✅ AI 48h nurture sent to ${contact.firstName} (${contactId})`);
+              continue;
+            }
+            
+            // 13D-AI: 7-DAY FINAL ATTEMPT — Last chance before going cold
+            if (hoursSinceCreated >= (7 * 24) && !contact.nurtureDripFinalSent) {
+              const emailContent = getEmailTemplate('final-attempt', templateData);
+              
+              await transporter.sendMail({
+                from: `"${fromName}" <${user}>`,
+                replyTo: replyTo,
+                to: recipientEmail,
+                subject: emailContent.subject,
+                html: emailContent.html
+              });
+              
+              await contactDoc.ref.update({
+                nurtureDripFinalSent: true,
+                nurtureDripFinalSentAt: admin.firestore.FieldValue.serverTimestamp(),
+                lastNurtureEmailAt: admin.firestore.FieldValue.serverTimestamp(),
+                nurtureEmailCount: (contact.nurtureEmailCount || 0) + 1,
+                nurtureDripCompleted: true,
+                leadTemperature: 'cold' // Mark as cold after final attempt
+              });
+              
+              await db.collection('emailLog').add({
+                contactId, recipientEmail, templateId: 'final-attempt',
+                subject: emailContent.subject, type: 'lead_nurture_drip',
+                dripStep: '7d-final', source: contactSource,
+                sentAt: admin.firestore.FieldValue.serverTimestamp(),
+                status: 'sent', opened: false, clicked: false, converted: false
+              });
+              
+              leadNurtureSent++;
+              console.log(`✅ AI 7d final attempt sent to ${contact.firstName} (${contactId})`);
+              continue;
+            }
+            
+          // ═══════════════════════════════════════════════════════════════════
+          // WEB / OTHER SOURCE NURTURE SEQUENCE (12h → 24h → 48h → 7d → 14d)
+          // ═══════════════════════════════════════════════════════════════════
+          } else {
+            
+            // 13A-WEB: 12-HOUR VALUE ADD — "Why credit repair matters"
+            if (hoursSinceCreated >= 12 && hoursSinceCreated < 24 && !contact.nurtureDrip12hSent) {
+              const emailContent = getEmailTemplate('web-value-add-12h', templateData);
+              
+              await transporter.sendMail({
+                from: `"${fromName}" <${user}>`,
+                replyTo: replyTo,
+                to: recipientEmail,
+                subject: emailContent.subject,
+                html: emailContent.html
+              });
+              
+              await contactDoc.ref.update({
+                nurtureDrip12hSent: true,
+                nurtureDrip12hSentAt: admin.firestore.FieldValue.serverTimestamp(),
+                lastNurtureEmailAt: admin.firestore.FieldValue.serverTimestamp(),
+                nurtureEmailCount: (contact.nurtureEmailCount || 0) + 1
+              });
+              
+              await db.collection('emailLog').add({
+                contactId, recipientEmail, templateId: 'web-value-add-12h',
+                subject: emailContent.subject, type: 'lead_nurture_drip',
+                dripStep: '12h', source: contactSource,
+                sentAt: admin.firestore.FieldValue.serverTimestamp(),
+                status: 'sent', opened: false, clicked: false, converted: false
+              });
+              
+              leadNurtureSent++;
+              console.log(`✅ Web 12h nurture sent to ${contact.firstName} (${contactId})`);
+              continue;
+            }
+            
+            // 13B-WEB: 24-HOUR SOCIAL PROOF — Testimonials + reviews
+            if (hoursSinceCreated >= 24 && hoursSinceCreated < 48 && !contact.nurtureDrip24hSent) {
+              const emailContent = getEmailTemplate('web-social-proof-24h', templateData);
+              
+              await transporter.sendMail({
+                from: `"${fromName}" <${user}>`,
+                replyTo: replyTo,
+                to: recipientEmail,
+                subject: emailContent.subject,
+                html: emailContent.html
+              });
+              
+              await contactDoc.ref.update({
+                nurtureDrip24hSent: true,
+                nurtureDrip24hSentAt: admin.firestore.FieldValue.serverTimestamp(),
+                lastNurtureEmailAt: admin.firestore.FieldValue.serverTimestamp(),
+                nurtureEmailCount: (contact.nurtureEmailCount || 0) + 1
+              });
+              
+              await db.collection('emailLog').add({
+                contactId, recipientEmail, templateId: 'web-social-proof-24h',
+                subject: emailContent.subject, type: 'lead_nurture_drip',
+                dripStep: '24h', source: contactSource,
+                sentAt: admin.firestore.FieldValue.serverTimestamp(),
+                status: 'sent', opened: false, clicked: false, converted: false
+              });
+              
+              leadNurtureSent++;
+              console.log(`✅ Web 24h nurture sent to ${contact.firstName} (${contactId})`);
+              continue;
+            }
+            
+            // 13C-WEB: 48-HOUR CONSULTATION OFFER — Free consultation CTA
+            if (hoursSinceCreated >= 48 && hoursSinceCreated < (7 * 24) && !contact.nurtureDrip48hSent) {
+              const emailContent = getEmailTemplate('web-consultation-48h', templateData);
+              
+              await transporter.sendMail({
+                from: `"${fromName}" <${user}>`,
+                replyTo: replyTo,
+                to: recipientEmail,
+                subject: emailContent.subject,
+                html: emailContent.html
+              });
+              
+              await contactDoc.ref.update({
+                nurtureDrip48hSent: true,
+                nurtureDrip48hSentAt: admin.firestore.FieldValue.serverTimestamp(),
+                lastNurtureEmailAt: admin.firestore.FieldValue.serverTimestamp(),
+                nurtureEmailCount: (contact.nurtureEmailCount || 0) + 1
+              });
+              
+              await db.collection('emailLog').add({
+                contactId, recipientEmail, templateId: 'web-consultation-48h',
+                subject: emailContent.subject, type: 'lead_nurture_drip',
+                dripStep: '48h', source: contactSource,
+                sentAt: admin.firestore.FieldValue.serverTimestamp(),
+                status: 'sent', opened: false, clicked: false, converted: false
+              });
+              
+              leadNurtureSent++;
+              console.log(`✅ Web 48h nurture sent to ${contact.firstName} (${contactId})`);
+              continue;
+            }
+            
+            // 13D-WEB: 7-DAY FINAL ATTEMPT — Last chance with urgency
+            if (hoursSinceCreated >= (7 * 24) && hoursSinceCreated < (14 * 24) && !contact.nurtureDripFinalSent) {
+              const emailContent = getEmailTemplate('final-attempt', templateData);
+              
+              await transporter.sendMail({
+                from: `"${fromName}" <${user}>`,
+                replyTo: replyTo,
+                to: recipientEmail,
+                subject: emailContent.subject,
+                html: emailContent.html
+              });
+              
+              // ===== SMS at 7 days for web leads with phone =====
+              if (contact.smsConsent !== false && contact.phone && telnyxApiKey.value() && telnyxSmsPhone.value()) {
+                try {
+                  let smsPhone = (contact.phone || '').replace(/\D/g, '');
+                  if (smsPhone.length === 10) smsPhone = '+1' + smsPhone;
+                  else if (!smsPhone.startsWith('+')) smsPhone = '+' + smsPhone;
+                  
+                  await fetch('https://api.telnyx.com/v2/messages', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${telnyxApiKey.value()}` },
+                    body: JSON.stringify({
+                      from: telnyxSmsPhone.value(),
+                      to: smsPhone,
+                      text: `Hi ${contact.firstName}, Chris here from Speedy Credit Repair. We've been trying to reach you about your free credit analysis. Still interested? Takes 5 min: https://myclevercrm.com/complete-enrollment?contactId=${contactId}&source=sms-7d`
+                    })
+                  });
+                  leadNurtureSmsSent++;
+                  console.log(`📱 7d SMS sent to ${contact.firstName}`);
+                } catch (smsErr) {
+                  console.error(`⚠️ 7d SMS failed for ${contactId}:`, smsErr.message);
+                }
+              }
+              
+              await contactDoc.ref.update({
+                nurtureDripFinalSent: true,
+                nurtureDripFinalSentAt: admin.firestore.FieldValue.serverTimestamp(),
+                lastNurtureEmailAt: admin.firestore.FieldValue.serverTimestamp(),
+                nurtureEmailCount: (contact.nurtureEmailCount || 0) + 1
+              });
+              
+              await db.collection('emailLog').add({
+                contactId, recipientEmail, templateId: 'final-attempt',
+                subject: emailContent.subject, type: 'lead_nurture_drip',
+                dripStep: '7d-final', source: contactSource,
+                sentAt: admin.firestore.FieldValue.serverTimestamp(),
+                status: 'sent', opened: false, clicked: false, converted: false
+              });
+              
+              leadNurtureSent++;
+              console.log(`✅ Web 7d final attempt sent to ${contact.firstName} (${contactId})`);
+              continue;
+            }
+            
+            // 13E-WEB: 14-DAY EDUCATIONAL RE-ENGAGEMENT — Educational value (last email)
+            if (hoursSinceCreated >= (14 * 24) && !contact.nurtureDripEducationalSent) {
+              const emailContent = getEmailTemplate('educational-tip', templateData);
+              
+              await transporter.sendMail({
+                from: `"${fromName}" <${user}>`,
+                replyTo: replyTo,
+                to: recipientEmail,
+                subject: emailContent.subject,
+                html: emailContent.html
+              });
+              
+              await contactDoc.ref.update({
+                nurtureDripEducationalSent: true,
+                nurtureDripEducationalSentAt: admin.firestore.FieldValue.serverTimestamp(),
+                lastNurtureEmailAt: admin.firestore.FieldValue.serverTimestamp(),
+                nurtureEmailCount: (contact.nurtureEmailCount || 0) + 1,
+                nurtureDripCompleted: true,
+                leadTemperature: 'cold' // Mark as cold after all attempts exhausted
+              });
+              
+              await db.collection('emailLog').add({
+                contactId, recipientEmail, templateId: 'educational-tip',
+                subject: emailContent.subject, type: 'lead_nurture_drip',
+                dripStep: '14d-educational', source: contactSource,
+                sentAt: admin.firestore.FieldValue.serverTimestamp(),
+                status: 'sent', opened: false, clicked: false, converted: false
+              });
+              
+              leadNurtureSent++;
+              console.log(`✅ Web 14d educational sent to ${contact.firstName} (${contactId}) — drip complete`);
+              continue;
+            }
+          }
+          
+        } catch (err) {
+          console.error(`❌ Lead nurture failed for ${contactId}:`, err.message);
+        }
+      }
+      
+      console.log(`✅ Lead nurture drip: ${leadNurtureSent} emails, ${leadNurtureSmsSent} SMS sent`);
+      
+      // ─────────────────────────────────────────────────────────────────────
+      // RULE 14: DOCUMENT UPLOAD REMINDER (24h after enrollment)
+      // ─────────────────────────────────────────────────────────────────────
+      // Clients who enrolled and got the initial document request email
+      // but haven't uploaded documents within 24 hours get a gentle nudge.
+      // Uses the existing documentUploadRequest template with reminder subject.
+      // ─────────────────────────────────────────────────────────────────────
+      
+      console.log('\n📄 Processing document upload reminders...');
+      let docRemindersSent = 0;
+      
+      const docReminderSnapshot = await db.collection('contacts')
+        .where('documentRequestSent', '==', true)
+        .limit(100)
+        .get();
+      
+      console.log(`📊 Found ${docReminderSnapshot.size} contacts with document request sent — checking for reminder eligibility`);
+      
+      for (const contactDoc of docReminderSnapshot.docs) {
+        const contact = contactDoc.data();
+        const contactId = contactDoc.id;
+        
+        // ===== SKIP: Already sent reminder =====
+        if (contact.documentReminderSent === true) continue;
+        
+        // ===== SKIP: Already uploaded documents =====
+        if (contact.documentsUploaded === true || contact.documentsComplete === true) continue;
+        
+        // ===== SKIP: No email =====
+        const recipientEmail = contact.email || contact.emails?.[0]?.address;
+        if (!recipientEmail) continue;
+        
+        // ===== SKIP: Opted out =====
+        if (contact.emailOptOut === true || contact.unsubscribed === true) continue;
+        
+        // ===== CHECK: Has it been 24+ hours since document request was sent? =====
+        const docRequestSentAt = contact.documentRequestSentAt?.toDate?.();
+        if (!docRequestSentAt) continue;
+        
+        const hoursSinceDocRequest = (now.getTime() - docRequestSentAt.getTime()) / (1000 * 60 * 60);
+        if (hoursSinceDocRequest < 24 || hoursSinceDocRequest > (7 * 24)) continue; // 24h to 7d window
+        
+        // ===== CHECK: Do they actually have docs in clientDocuments? =====
+        // Quick subcollection check — if they have any docs, skip
+        try {
+          const docsCheck = await db.collection('contacts').doc(contactId)
+            .collection('clientDocuments').limit(1).get();
+          if (!docsCheck.empty) {
+            // They have docs — mark and skip
+            await contactDoc.ref.update({ documentsUploaded: true });
+            continue;
+          }
+        } catch (subErr) {
+          // Subcollection might not exist — that's fine, means no docs
+        }
+        
+        try {
+          const portalUrl = 'https://myclevercrm.com';
+          const reminderHtml = EMAIL_TEMPLATES.documentUploadRequest(
+            { ...contact, id: contactId },
+            portalUrl
+          );
+          
+          await transporter.sendMail({
+            from: `"${fromName}" <${user}>`,
+            to: recipientEmail,
+            subject: `Friendly reminder, ${contact.firstName} — a few optional documents to speed things up`,
+            html: reminderHtml
+          });
+          
+          await contactDoc.ref.update({
+            documentReminderSent: true,
+            documentReminderSentAt: admin.firestore.FieldValue.serverTimestamp(),
+            // ===== Timeline entry =====
+            timeline: admin.firestore.FieldValue.arrayUnion({
+              id: Date.now(),
+              type: 'email_sent',
+              description: 'Document upload reminder sent (24h post-enrollment)',
+              timestamp: new Date().toISOString(),
+              metadata: { templateId: 'documentUploadRequest-reminder' },
+              source: 'system'
+            })
+          });
+          
+          await db.collection('emailLog').add({
+            contactId, recipientEmail, templateId: 'documentUploadRequest-reminder',
+            subject: `Friendly reminder, ${contact.firstName} — a few optional documents to speed things up`,
+            type: 'document_reminder',
+            sentAt: admin.firestore.FieldValue.serverTimestamp(),
+            status: 'sent', opened: false, clicked: false, converted: false
+          });
+          
+          docRemindersSent++;
+          console.log(`✅ Doc reminder sent to ${contact.firstName} (${contactId})`);
+          
+        } catch (err) {
+          console.error(`❌ Doc reminder failed for ${contactId}:`, err.message);
+        }
+      }
+      
+      console.log(`✅ Document reminders sent: ${docRemindersSent}`);
+      
       console.log('\n═══════════════════════════════════════════════════════════════');
       console.log('📊 FULL LIFECYCLE EMAIL SUMMARY');
       console.log('═══════════════════════════════════════════════════════════════');
@@ -6248,6 +7040,8 @@ exports.processAbandonmentEmails = onSchedule(
       console.log(`Graduation/maintenance: ${graduationSent} sent`);
       console.log(`Growth (reviews/referrals/anniversaries): ${growthEmailsSent} sent`);
       console.log(`Quiz nurture: ${quizNurtureSent} sent`);
+      console.log(`Lead nurture drip: ${leadNurtureSent} emails, ${leadNurtureSmsSent} SMS`);
+      console.log(`Document reminders: ${docRemindersSent} sent`);
       console.log('═══════════════════════════════════════════════════════════════\n');
       
       // Log to analytics
@@ -6264,6 +7058,8 @@ exports.processAbandonmentEmails = onSchedule(
         graduation: { sent: graduationSent },
         growth: { sent: growthEmailsSent },
         quizNurture: { sent: quizNurtureSent },
+        leadNurture: { sent: leadNurtureSent, smsSent: leadNurtureSmsSent },
+        documentReminders: { sent: docRemindersSent },
         runAt: admin.firestore.FieldValue.serverTimestamp()
       });
       
@@ -6285,7 +7081,7 @@ exports.processAbandonmentEmails = onSchedule(
   }
 );
 
-      console.log('✅ Function 6B/11: processAbandonmentEmails loaded (FULL LIFECYCLE: 12 rules, 24 email types)');
+      console.log('✅ Function 6B/11: processAbandonmentEmails loaded (FULL LIFECYCLE: 14 rules, 34 email types)');
 
 // ============================================
 // FUNCTION 7: AI CONTENT GENERATOR (Consolidated)
@@ -7362,9 +8158,16 @@ exports.operationsManager = onRequest(
     }
 
     // ENHANCED: Better request body parsing
+    // ===== BUG #7 FIX: Handle httpsCallable data wrapper =====
+    // When the frontend calls operationsManager via httpsCallable(),
+    // Firebase wraps the data as { data: { action: '...', ... } }.
+    // When called directly via REST, the body IS the data.
+    // This line handles BOTH formats gracefully:
+    //   - httpsCallable: request.body = { data: { action:'...', ... } } → unwraps
+    //   - Direct REST:   request.body = { action:'...', ... } → stays as-is
     let requestBody;
     try {
-      requestBody = request.body || {};
+      requestBody = request.body?.data || request.body || {};
     } catch (parseError) {
       console.error('❌ Request body parsing error:', parseError);
       response.status(400).json({
@@ -8795,17 +9598,14 @@ exports.enrollmentSupportService = onCall(
     ]
   },
   async (request) => {
-    const { action, ...params } = request.body;
+    // ===== SAME FIX AS emailService: onCall uses request.data =====
+    const { action, ...params } = request.data || {};
     
-    console.log('⚙️ Operations Manager:', action, params);
+    console.log('🆘 Enrollment Support action:', action);
     
-    // Validate action
+    // Validate action — onCall has no 'response' object, so we throw
     if (!action) {
-      response.status(400).json({
-        success: false,
-        error: 'Missing required parameter: action'
-      });
-      return;
+      throw new Error('Missing required parameter: action');
     }
     
     const db = admin.firestore();
@@ -8838,7 +9638,7 @@ exports.enrollmentSupportService = onCall(
             const user = gmailUser.value();
             const pass = gmailAppPassword.value();
             
-            const transporter = nodemailer.createTransporter({
+            const transporter = nodemailer.createTransport({
               host: 'smtp.gmail.com',
               port: 587,
               secure: false,
@@ -8943,7 +9743,7 @@ Timestamp: ${new Date().toISOString()}
             const user = gmailUser.value();
             const pass = gmailAppPassword.value();
             
-            const transporter = nodemailer.createTransporter({
+            const transporter = nodemailer.createTransport({
               host: 'smtp.gmail.com',
               port: 587,
               secure: false,

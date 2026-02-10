@@ -232,8 +232,19 @@ const createPhoneCorrectionNotification = (info) => ({
 // ============================================================================
 // AUTOSAVE CONSTANTS
 // ============================================================================
+// ============================================================================
+// BUG #13 FIX: AUTOSAVE KEY NAMESPACED BY MODE
+// ============================================================================
+// The old key 'speedycrm_enrollment_autosave' was shared between admin and
+// public sessions, causing Christopher's admin session name to bleed into
+// public enrollment forms. Now we use separate keys per mode.
+//
+// Public enrollments:  speedycrm_enrollment_public
+// CRM staff enrollments: speedycrm_enrollment_crm
+// This prevents cross-contamination between windows/tabs.
+// ============================================================================
 const AUTOSAVE_INTERVAL = 30000; // 30 seconds
-const AUTOSAVE_KEY = 'speedycrm_enrollment_autosave';
+const AUTOSAVE_KEY_PREFIX = 'speedycrm_enrollment_';
 const SESSION_EXPIRY_HOURS = 24;
 
 // ============================================================================
@@ -513,6 +524,16 @@ const CompleteEnrollmentFlow = ({
   // Determine if we're in CRM mode
   const isCRMMode = mode === 'crm' || !!preFilledContactId;
 
+  // ===== BUG #13 FIX (ENHANCED): Computed localStorage key per mode + contactId =====
+  // Public sessions:  'speedycrm_enrollment_public'  (one public session at a time)
+  // CRM sessions:     'speedycrm_enrollment_crm_CONTACTID'  (per-contact so enrollments
+  //                    for different clients don't contaminate each other)
+  // This prevents admin data from bleeding into public forms AND prevents
+  // one CRM enrollment from loading another client's saved data.
+  const AUTOSAVE_KEY = isCRMMode && preFilledContactId
+    ? `${AUTOSAVE_KEY_PREFIX}crm_${preFilledContactId}`
+    : `${AUTOSAVE_KEY_PREFIX}${isCRMMode ? 'crm' : 'public'}`;
+
   // ===== REFS =====
   const signatureRef = useRef(null);
   const idUploadRef = useRef(null);
@@ -604,6 +625,41 @@ const [analysisProgress, setAnalysisProgress] = useState(0);
   const [paymentComplete, setPaymentComplete] = useState(false);
   const [showPaymentOptions, setShowPaymentOptions] = useState(false);
 
+  // ===== NMI PAYMENT FORM STATE =====
+  // paymentMethod: Which tab is selected — 'ach' (bank account) or 'cc' (credit card)
+  // paymentFields: All the input values for the payment form
+  // paymentError: Specific error message for payment failures (separate from global 'error')
+  const [paymentMethod, setPaymentMethod] = useState('ach');  // Default to ACH (most popular)
+  const [paymentError, setPaymentError] = useState(null);
+  const [paymentFields, setPaymentFields] = useState({
+    // ===== ACH (Bank Account) Fields =====
+    checkName: '',       // Account holder name (e.g., "John A. Doe")
+    checkAba: '',        // Routing number (9 digits)
+    checkAccount: '',    // Account number
+    accountType: 'checking',  // 'checking' or 'savings'
+    bankName: '',        // Bank name (e.g., "Chase")
+    // ===== Credit Card Fields =====
+    ccNumber: '',        // Full card number (13-19 digits)
+    ccExp: '',           // Expiration in MMYY format (e.g., "1228")
+    cvv: '',             // CVV (3 or 4 digits)
+    cardholderName: '',  // Name on card
+  });
+
+  // ===== Auto-fill payment name fields from formData =====
+  // When the user enters Phase 7, we pre-populate the "Account Holder Name"
+  // and "Cardholder Name" fields with their first + last name from Phase 1.
+  // This saves them typing and reduces errors.
+  useEffect(() => {
+    if (currentPhase === 7 && formData.firstName && formData.lastName) {
+      const fullName = `${formData.firstName} ${formData.lastName}`;
+      setPaymentFields(prev => ({
+        ...prev,
+        checkName: prev.checkName || fullName,
+        cardholderName: prev.cardholderName || fullName,
+      }));
+    }
+  }, [currentPhase, formData.firstName, formData.lastName]);
+
   
 
   // Social proof
@@ -615,6 +671,52 @@ const [analysisProgress, setAnalysisProgress] = useState(0);
 
   // SSN visibility
   const [showSSN, setShowSSN] = useState(false);
+
+  // ===== Bug #9 FIX: Floating "Continue" timer on credit report page =====
+  // After 8 seconds on Phase 3, a floating button appears at the bottom
+  // of the screen so the user knows to continue (they may not scroll down).
+  const [showFloatingContinue, setShowFloatingContinue] = useState(false);
+  const [floatingCountdown, setFloatingCountdown] = useState(15);
+  
+  useEffect(() => {
+    // Only activate on Phase 3 (credit report review page)
+    if (currentPhase !== 3) {
+      setShowFloatingContinue(false);
+      setFloatingCountdown(15);
+      return;
+    }
+    
+    // Show the floating button after 8 seconds
+    const showTimer = setTimeout(() => {
+      setShowFloatingContinue(true);
+    }, 8000);
+    
+    // Start a 15-second countdown once floating button is shown
+    // When countdown reaches 0, auto-scrolls to the Continue button
+    let countdownInterval;
+    const countdownTimer = setTimeout(() => {
+      countdownInterval = setInterval(() => {
+        setFloatingCountdown(prev => {
+          if (prev <= 1) {
+            clearInterval(countdownInterval);
+            // Auto-scroll to the bottom Continue button
+            const continueBtn = document.getElementById('phase3-continue-btn');
+            if (continueBtn) {
+              continueBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }, 8000);
+    
+    return () => {
+      clearTimeout(showTimer);
+      clearTimeout(countdownTimer);
+      if (countdownInterval) clearInterval(countdownInterval);
+    };
+  }, [currentPhase]);
   
   // Password visibility (for IDIQ portal password field)
   const [showPassword, setShowPassword] = useState(false);  
@@ -1689,6 +1791,45 @@ const [creditAnalysisError, setCreditAnalysisError] = useState(null);
         }
       }
 
+      // ============================================================================
+      // BUG #11 FIX: CREATE PORTAL ACCOUNT AT PHASE 1 (not Phase 10)
+      // ============================================================================
+      // Christopher's decision: Create Firebase Auth account the moment they
+      // submit Phase 1 (name, email, phone, password). This gives us:
+      //   - Login credentials for recovery/drip campaigns
+      //   - Email with account info sent immediately
+      //   - Full campaign capability even if they abandon at Phase 2+
+      //
+      // Non-blocking: enrollment continues even if this fails.
+      // The createPortalAccount case in operationsManager handles:
+      //   1. Creates Firebase Auth user (email + password)
+      //   2. Creates userProfiles doc (role: 'client', permissions)
+      //   3. Updates contact with portalUserId
+      // If account already exists (auth/email-already-exists), it's caught gracefully.
+      // ============================================================================
+      if (formData.email && formData.password && !isCRMMode) {
+        try {
+          console.log('🔑 Creating portal account at Phase 1 for:', formData.email);
+          const portalResult = await operationsManager({
+            action: 'createPortalAccount',
+            contactId: contactId,
+            email: formData.email,
+            password: formData.password,
+            firstName: formData.firstName || '',
+            lastName: formData.lastName || '',
+          });
+
+          if (portalResult.data?.success) {
+            console.log('✅ Portal account created at Phase 1! UID:', portalResult.data.portalUserId);
+          } else {
+            console.warn('⚠️ Portal account creation returned:', portalResult.data?.error);
+          }
+        } catch (portalErr) {
+          // Common case: account already exists — that's fine, means they've been here before
+          console.warn('⚠️ Phase 1 portal account creation failed (non-blocking):', portalErr.message);
+        }
+      }
+
       setCurrentPhase(2);
       startCreditAnalysis();
 
@@ -1916,6 +2057,41 @@ const [creditAnalysisError, setCreditAnalysisError] = useState(null);
         });
         
         console.log('✅ IDIQ enrollment status updated (no verification)');
+
+        // ============================================================================
+        // BUG #6 FIX: Store full credit report data to Firestore
+        // ============================================================================
+        // Previously, only summary data (score, counts) was saved to the contact.
+        // The full tradeline/account data stayed in React state only, which means:
+        //   - AI can't analyze the report (no data in Firestore)
+        //   - Client portal has nothing to display
+        //   - Dispute strategy can't be generated
+        //
+        // Now we save the full report to a 'creditReports' subcollection under the contact.
+        // We strip internal fields (_freshFromAPI, _fetchedAt) before saving.
+        // Non-blocking: if this fails, enrollment still continues.
+        // ============================================================================
+        try {
+          const reportToSave = { ...completeCreditReport };
+          // Remove internal flags that shouldn't go to Firestore
+          delete reportToSave._freshFromAPI;
+          delete reportToSave._fetchedAt;
+
+          await addDoc(collection(db, 'contacts', contactId, 'creditReports'), {
+            source: 'idiq',
+            fetchedAt: serverTimestamp(),
+            vantageScore: completeCreditReport.vantageScore || null,
+            accountCount: extractedAccounts?.length || 0,
+            negativeItemCount: completeCreditReport.negativeItems?.length || 0,
+            inquiryCount: completeCreditReport.inquiries?.length || 0,
+            membershipNumber: response.data.membershipNumber || null,
+            enrollmentId: response.data.enrollmentId || null,
+            reportData: reportToSave,
+          });
+          console.log('✅ Full credit report data stored to Firestore (creditReports subcollection)');
+        } catch (reportSaveErr) {
+          console.error('⚠️ Failed to save full credit report to Firestore (non-blocking):', reportSaveErr.message);
+        }
       } catch (updateErr) {
         console.error('❌ Failed to update IDIQ enrollment status:', updateErr);
       }
@@ -2134,6 +2310,27 @@ const submitVerificationAnswers = async () => {
           // Don't block the enrollment process if emails fail
         }
         // ===== END EMAIL AUTOMATION FIX =====
+
+        // ============================================================================
+        // BUG #6 FIX: Store full credit report data (verification path)
+        // ============================================================================
+        try {
+          await addDoc(collection(db, 'contacts', contactId, 'creditReports'), {
+            source: 'idiq',
+            fetchedAt: serverTimestamp(),
+            vantageScore: resData.vantageScore || resData.score || null,
+            accountCount: resData?.accounts?.length || 0,
+            negativeItemCount: resData?.negativeItems?.length || 0,
+            inquiryCount: resData?.inquiries?.length || 0,
+            membershipNumber: membershipNumber || response.data.membershipNumber || null,
+            enrollmentId: enrollmentId || null,
+            verificationRequired: true,
+            reportData: resData,
+          });
+          console.log('✅ Full credit report saved to Firestore (verified path)');
+        } catch (reportSaveErr) {
+          console.error('⚠️ Failed to save credit report to Firestore (non-blocking):', reportSaveErr.message);
+        }
         
       } catch (updateErr) {
         console.error('❌ Failed to update IDIQ enrollment status:', updateErr);
@@ -2391,109 +2588,310 @@ Time: ${new Date().toLocaleString()}`,
     console.log('✅ Plan selected:', planId);
   };
 
-  const handlePayment = async () => {
-  const plan = SERVICE_PLANS.find((p) => p.id === selectedPlan);
-  const finalPrice = Math.max(plan.price - appliedDiscount, 0);
+  // ============================================================================
+  // handleNMIPayment — MAIN PAYMENT HANDLER
+  // ============================================================================
+  // This is called when the user clicks "Complete Payment" in Phase 7.
+  // It validates the payment fields, then calls our Cloud Function
+  // (operationsManager → processNewEnrollment), which talks to NMI server-side.
+  //
+  // FLOW:
+  //   1. Validate all required fields based on payment method (ACH or CC)
+  //   2. Build the params object with customer info + payment info
+  //   3. Call operationsManager({ action: 'processNewEnrollment', ... })
+  //   4. If success → finalizeEnrollment() (moves to Phase 8)
+  //   5. If failure → show error message to user
+  //
+  // SECURITY:
+  //   - Bank/card numbers are sent over HTTPS to our Cloud Function
+  //   - Cloud Function sends them to NMI (server-side, never exposed)
+  //   - NMI returns a vault token — that's all we store in Firestore
+  //   - Raw numbers are NEVER stored anywhere in our system
+  // ============================================================================
+  const handleNMIPayment = async () => {
+    // ===== Clear any previous errors =====
+    setPaymentError(null);
+    setError(null);
 
-  console.log('💳 Processing ACH/Zelle payment:', { plan: plan.name, price: finalPrice });
+    // ===== Get the selected plan data =====
+    const plan = SERVICE_PLANS.find((p) => p.id === selectedPlan);
+    const finalPrice = Math.max(plan.price - appliedDiscount, 0);
 
-  // Skip payment if CRM mode with skipPayment flag
-  if (skipPayment || finalPrice <= 0) {
+    console.log('💳 handleNMIPayment called:', {
+      plan: plan.name,
+      price: finalPrice,
+      method: paymentMethod,
+      contactId: contactId,
+    });
+
+    // ─────────────────────────────────────────────
+    // SKIP PAYMENT — CRM mode or free trial
+    // ─────────────────────────────────────────────
+    if (skipPayment || finalPrice <= 0) {
+      setLoading(true);
+      try {
+        console.log('🎁 Activating free trial/promotional enrollment');
+        await logInteraction('payment_completed', {
+          description: `${skipPayment ? 'Payment skipped (CRM)' : 'Free trial activated'} - ${plan.name} plan`,
+          plan: plan.name,
+          planId: selectedPlan,
+          amount: 0,
+          paymentMethod: skipPayment ? 'crm_skip' : 'free_trial',
+          phase: currentPhase,
+        });
+        await finalizeEnrollment();
+        return;
+      } catch (err) {
+        console.error('❌ Trial activation error:', err);
+        setError('Error activating trial account. Please contact support.');
+        setLoading(false);
+        return;
+      }
+    }
+
+    // ─────────────────────────────────────────────
+    // VALIDATE — ACH fields
+    // ─────────────────────────────────────────────
+    if (paymentMethod === 'ach') {
+      if (!paymentFields.checkName.trim()) {
+        setPaymentError('Please enter the account holder name.');
+        return;
+      }
+      if (!paymentFields.checkAba || paymentFields.checkAba.length !== 9) {
+        setPaymentError('Please enter a valid 9-digit routing number.');
+        return;
+      }
+      if (!paymentFields.checkAccount || paymentFields.checkAccount.length < 4) {
+        setPaymentError('Please enter a valid account number (at least 4 digits).');
+        return;
+      }
+    }
+
+    // ─────────────────────────────────────────────
+    // VALIDATE — Credit Card fields
+    // ─────────────────────────────────────────────
+    if (paymentMethod === 'cc') {
+      if (!paymentFields.ccNumber || paymentFields.ccNumber.length < 13) {
+        setPaymentError('Please enter a valid card number (13-19 digits).');
+        return;
+      }
+      if (!paymentFields.ccExp || paymentFields.ccExp.length !== 4) {
+        setPaymentError('Please enter the expiration date in MMYY format (e.g. 1228).');
+        return;
+      }
+      // ===== Basic month validation =====
+      const expMonth = parseInt(paymentFields.ccExp.slice(0, 2), 10);
+      if (expMonth < 1 || expMonth > 12) {
+        setPaymentError('Invalid expiration month. Please use MMYY format (01-12 for month).');
+        return;
+      }
+      if (!paymentFields.cvv || paymentFields.cvv.length < 3) {
+        setPaymentError('Please enter a valid CVV (3 or 4 digits).');
+        return;
+      }
+    }
+
+    // ─────────────────────────────────────────────
+    // CALL NMI via operationsManager Cloud Function
+    // ─────────────────────────────────────────────
     setLoading(true);
     try {
-      console.log('🎁 Activating free trial/promotional enrollment');
-      
-      await logInteraction('payment_completed', {
-        description: `${skipPayment ? 'Payment skipped (CRM)' : 'Free trial activated'} - ${plan.name} plan`,
-        plan: plan.name,
+      console.log('🚀 Calling operationsManager → processNewEnrollment...');
+
+      // ===== Build the params for the Cloud Function =====
+      // These match what paymentGateway.js → processNewEnrollment() expects
+      const nmiParams = {
+        action: 'processNewEnrollment',
+        contactId: contactId,
         planId: selectedPlan,
-        amount: 0,
-        paymentMethod: skipPayment ? 'crm_skip' : 'free_trial',
-        phase: currentPhase
-      });
-      
-      await finalizeEnrollment();
-      return;
-    } catch (err) {
-      console.error('❌ Trial activation error:', err);
-      setError('Error activating trial account. Please contact support.');
-      setLoading(false);
-      return;
-    }
-  }
-
-  // Show ACH/Zelle payment selection instead of Stripe checkout
-  setShowPaymentOptions(true);
-};
-
-const handleACHPayment = async () => {
-  setLoading(true);
-  try {
-    console.log('🏦 Setting up ACH payment...');
-    
-    const plan = SERVICE_PLANS.find((p) => p.id === selectedPlan);
-    const setupFee = 99;
-    const billingDate = new Date();
-    billingDate.setDate(billingDate.getDate() + 30); // 30 days from today
-    
-    // Create payment intent in Firebase
-    const paymentRef = await addDoc(collection(db, 'paymentIntents'), {
-      contactId: contactId,
-      type: 'ach_setup',
-      planId: selectedPlan,
-      planName: plan.name,
-      setupFee: setupFee,
-      monthlyAmount: plan.price,
-      billingDate: billingDate,
-      status: 'pending_ach_setup',
-      paymentMethod: 'ACH',
-      customerInfo: {
+        // ===== Customer info (from form data collected in earlier phases) =====
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
-        phone: formData.phone
-      },
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    });
+        phone: formData.phone,
+        address: formData.street,
+        city: formData.city,
+        state: formData.state,
+        zip: formData.zip,
+        // ===== Billing preferences =====
+        billingDay: formData.billingDay || 1,
+        discountApplied: appliedDiscount,
+      };
 
-    // Send ACH setup instructions email using working emailService
-    await emailService({
-      action: 'send',
-      to: formData.email,
-      subject: 'ACH Setup Instructions - Speedy Credit Repair',
-      body: `Hi ${formData.firstName},
+      // ===== Add ACH-specific fields =====
+      if (paymentMethod === 'ach') {
+        nmiParams.checkAccount = paymentFields.checkAccount;
+        nmiParams.checkAba = paymentFields.checkAba;
+        nmiParams.checkName = paymentFields.checkName;
+        nmiParams.accountType = paymentFields.accountType;     // 'checking' or 'savings'
+        nmiParams.bankName = paymentFields.bankName || '';
+      }
 
-Thank you for selecting the ${plan.name} plan!
+      // ===== Add Credit Card-specific fields =====
+      if (paymentMethod === 'cc') {
+        nmiParams.ccNumber = paymentFields.ccNumber;
+        nmiParams.ccExp = paymentFields.ccExp;                 // MMYY format
+        nmiParams.cvv = paymentFields.cvv;
+      }
 
-ACH PAYMENT SETUP DETAILS:
-• Setup Fee: $${setupFee}
-• Monthly Fee: $${plan.price}
-• First Payment: ${billingDate.toLocaleDateString()}
+      // ===== Make the actual Cloud Function call =====
+      const response = await operationsManager(nmiParams);
+      const result = response.data;
 
-NEXT STEPS:
-1. Call (888) 724-7344 to securely provide banking details
-2. ACH auto-pay setup within 24 hours
-3. Email confirmation once complete
+      console.log('📦 NMI enrollment result:', result);
 
-Your credit repair starts immediately!
+      // ─────────────────────────────────────────────
+      // HANDLE RESPONSE
+      // ─────────────────────────────────────────────
+      if (result.success) {
+        // ===== SUCCESS! Payment method vaulted + recurring set up =====
+        console.log('✅ NMI enrollment succeeded!', {
+          vaultId: result.vaultId,
+          subscriptionId: result.subscriptionId,
+        });
 
-Best regards,
-Christopher Lahage & Team`,
-      recipientName: formData.firstName,
-      contactId: contactId,
-      templateType: 'ach_setup'
-    });
+        // Log the successful payment interaction
+        await logInteraction('payment_completed', {
+          description: `Payment completed via ${paymentMethod.toUpperCase()} - ${plan.name} plan`,
+          plan: plan.name,
+          planId: selectedPlan,
+          amount: plan.setupFee || finalPrice,
+          paymentMethod: paymentMethod,
+          nmiVaultId: result.vaultId,
+          nmiSubscriptionId: result.subscriptionId,
+          phase: currentPhase,
+        });
 
-    console.log('✅ ACH setup completed with email sent');
-    await finalizeEnrollment();
-    
-  } catch (error) {
-    console.error('❌ ACH setup error:', error);
-    setError('ACH setup failed. Please call (888) 724-7344 for assistance.');
-    setLoading(false);
-  }
-};
+        // Clear sensitive payment fields from memory immediately
+        setPaymentFields({
+          checkName: '',
+          checkAba: '',
+          checkAccount: '',
+          accountType: 'checking',
+          bankName: '',
+          ccNumber: '',
+          ccExp: '',
+          cvv: '',
+          cardholderName: '',
+        });
+
+        // Move to celebration phase!
+        await finalizeEnrollment();
+
+      } else {
+        // ===== PAYMENT FAILED — Show user-friendly error =====
+        console.error('❌ NMI enrollment failed:', result.error);
+
+        // ===== Map common NMI errors to friendly messages =====
+        let friendlyError = result.error || 'Payment could not be processed.';
+        if (friendlyError.includes('DECLINE') || friendlyError.includes('decline')) {
+          friendlyError = 'Your payment was declined. Please check your information and try again, or use a different payment method.';
+        } else if (friendlyError.includes('routing') || friendlyError.includes('ABA')) {
+          friendlyError = 'The routing number appears to be invalid. Please double-check it (9 digits, bottom-left of your check).';
+        } else if (friendlyError.includes('account')) {
+          friendlyError = 'The account number could not be verified. Please check and try again.';
+        } else if (friendlyError.includes('expired')) {
+          friendlyError = 'This card appears to be expired. Please use a different card.';
+        }
+
+        setPaymentError(friendlyError + ' If you continue to have trouble, call us at (888) 724-7344.');
+        setLoading(false);
+      }
+
+    } catch (callError) {
+      // ===== Cloud Function itself failed (network error, timeout, etc.) =====
+      console.error('❌ operationsManager call failed:', callError);
+      setPaymentError(
+        'We couldn\'t connect to our payment processor. Please check your internet connection and try again. ' +
+        'If this continues, call us at (888) 724-7344 and we\'ll process your payment over the phone.'
+      );
+      setLoading(false);
+    }
+  };
+
+  // ============================================================================
+  // handleZelleFallback — Alternative payment for customers who prefer Zelle
+  // ============================================================================
+  // Some customers don't want to enter bank/card info online. This sends them
+  // Zelle payment instructions via email and finalizes enrollment.
+  // The payment team follows up manually to confirm receipt.
+  // ============================================================================
+  const handleZelleFallback = async () => {
+    setLoading(true);
+    setPaymentError(null);
+    try {
+      const plan = SERVICE_PLANS.find((p) => p.id === selectedPlan);
+      const setupFee = plan.setupFee || 0;
+
+      console.log('📱 Processing Zelle fallback payment...');
+
+      // ===== Create a pending payment record in Firestore =====
+      await addDoc(collection(db, 'paymentIntents'), {
+        contactId: contactId,
+        type: 'zelle_pending',
+        planId: selectedPlan,
+        planName: plan.name,
+        setupFee: setupFee,
+        monthlyAmount: plan.price,
+        status: 'pending_zelle',
+        paymentMethod: 'zelle',
+        customerInfo: {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+        },
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+
+      // ===== Send Zelle instructions email =====
+      try {
+        await emailService({
+          action: 'send',
+          to: formData.email,
+          subject: 'Zelle Payment Instructions - Speedy Credit Repair',
+          body: `Hi ${formData.firstName},\n\nThank you for selecting the ${plan.name} plan!\n\n` +
+            `ZELLE PAYMENT:\n` +
+            `${setupFee > 0 ? `• Setup Fee: $${setupFee} (pay now)\n` : ''}` +
+            `• Monthly Fee: $${plan.price} (starts in 30 days)\n\n` +
+            `PAY NOW WITH ZELLE:\n` +
+            `1. Open your banking app\n` +
+            `2. Select "Send with Zelle"\n` +
+            `3. Send to: billing@speedycreditrepair.com\n` +
+            `4. Amount: $${setupFee > 0 ? setupFee : plan.price}\n` +
+            `5. Memo: "${formData.firstName} ${formData.lastName} Setup"\n\n` +
+            `We'll activate your account within 2 hours!\n\n` +
+            `Best regards,\nChristopher Lahage & Team`,
+          recipientName: formData.firstName,
+          contactId: contactId,
+          templateType: 'zelle_instructions',
+        });
+        console.log('✅ Zelle instructions email sent');
+      } catch (emailErr) {
+        // ===== Email failure is non-blocking — log but continue =====
+        console.error('⚠️ Zelle email failed (non-blocking):', emailErr);
+      }
+
+      // ===== Log the interaction =====
+      await logInteraction('payment_completed', {
+        description: `Zelle payment selected - ${plan.name} plan (pending confirmation)`,
+        plan: plan.name,
+        planId: selectedPlan,
+        amount: setupFee > 0 ? setupFee : plan.price,
+        paymentMethod: 'zelle',
+        status: 'pending_confirmation',
+        phase: currentPhase,
+      });
+
+      await finalizeEnrollment();
+
+    } catch (error) {
+      console.error('❌ Zelle fallback error:', error);
+      setPaymentError('Something went wrong. Please call (888) 724-7344 for assistance.');
+      setLoading(false);
+    }
+  };
 
 const finalizeEnrollment = async () => {
   setPaymentComplete(true);
@@ -2662,33 +3060,9 @@ const finalizeEnrollment = async () => {
       console.error('❌ Failed to update enrollment status:', err);
     }
     
-    // ===== CREATE PORTAL ACCOUNT =====
-    // Creates a Firebase Auth account so the client can log into myclevercrm.com
-    // Uses email + password from enrollment form. Also creates userProfiles doc.
-    // Non-blocking: if this fails, enrollment still completes.
-    if (formData.email && !isCRMMode) {
-      try {
-        console.log('🔑 Creating portal account for:', formData.email);
-        const portalResult = await operationsManager({
-          action: 'createPortalAccount',
-          contactId: contactId,
-          email: formData.email,
-          password: formData.password || null,
-          firstName: formData.firstName || '',
-          lastName: formData.lastName || ''
-        });
-        
-        if (portalResult.data?.success) {
-          console.log('✅ Portal account created! UID:', portalResult.data.portalUserId);
-          setSuccess('🎉 Your client portal account has been created! You can now log in at myclevercrm.com');
-        } else {
-          console.warn('⚠️ Portal account creation returned:', portalResult.data?.error);
-        }
-      } catch (portalErr) {
-        // Common case: account already exists (auth/email-already-exists)
-        console.warn('⚠️ Portal account creation failed (non-blocking):', portalErr.message);
-      }
-    }
+    // ===== PORTAL ACCOUNT — Already created at Phase 1 submit (Bug #11 fix) =====
+    // No need to create here. If it failed at Phase 1, it was non-blocking.
+    // The createPortalAccount case handles auth/email-already-exists gracefully.
 
     // ═════ AI DISPUTE PIPELINE - RIVAL-FREE SYSTEM ═════
     // Instead of a simple loop, we now trigger the full AI dispute pipeline:
@@ -3964,16 +4338,71 @@ A+ BBB Rating | 4.9 Google (580+ reviews)
         ===== */}
 
         {/* Projected Improvement */}
+        {/* ===== Bug #8 FIX: Calculate real improvement potential ===== */}
+        {/* Instead of the hardcoded "85", we calculate based on:         */}
+        {/*   - Number of negative items (each removal = ~10-20 pts)      */}
+        {/*   - Current credit score (lower scores improve faster)        */}
+        {/*   - Timeline based on how many items need disputing           */}
         <Card sx={{ mb: 4, bgcolor: 'success.50' }}>
           <CardContent>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <TrendingUpIcon sx={{ fontSize: 48, color: 'success.main' }} />
               <Box>
                 <Typography variant="h5" fontWeight={700} color="success.main">
-                  +{creditReport?.projectedImprovement || 85} Point Potential
+                  +{(() => {
+                    // ===== CALCULATE PROJECTED IMPROVEMENT =====
+                    // If the analysis already calculated it, use that value
+                    if (creditReport?.projectedImprovement) return creditReport.projectedImprovement;
+                    
+                    // Otherwise, estimate based on negative items and current score
+                    const negCount = creditReport?.negativeItems?.length
+                      || creditReport?.negativeItemCount
+                      || creditAnalysisResult?.negativeItemsCount
+                      || 0;
+                    const currentScore = creditReport?.vantageScore
+                      || creditReport?.creditScore
+                      || creditAnalysisResult?.creditScore
+                      || 0;
+                    
+                    // No data at all? Show a conservative range instead of a fake number
+                    if (negCount === 0 && currentScore === 0) return '40-100';
+                    
+                    // Each negative item removal can improve score by 10-20 points
+                    // Lower scores see bigger jumps per item removed
+                    let perItemImprovement;
+                    if (currentScore > 0 && currentScore < 550) {
+                      perItemImprovement = 18;  // Low scores improve more per item
+                    } else if (currentScore < 650) {
+                      perItemImprovement = 14;  // Mid-range scores
+                    } else {
+                      perItemImprovement = 10;  // Higher scores improve less per item
+                    }
+                    
+                    // Calculate total, cap at 200 (realistic max improvement)
+                    const projected = Math.min(negCount * perItemImprovement, 200);
+                    
+                    // Minimum 20 if they have any negative items
+                    return negCount > 0 ? Math.max(projected, 20) : '20-40';
+                  })()} Point Potential
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Based on our analysis, we project significant improvement within {creditReport?.improvementTimeline || 6} months
+                  {(() => {
+                    // ===== CALCULATE TIMELINE =====
+                    const negCount = creditReport?.negativeItems?.length
+                      || creditReport?.negativeItemCount
+                      || creditAnalysisResult?.negativeItemsCount
+                      || 0;
+                    
+                    if (creditReport?.improvementTimeline) {
+                      return `Based on our analysis, we project significant improvement within ${creditReport.improvementTimeline} months`;
+                    }
+                    
+                    // Estimate timeline: ~2 items per dispute round, rounds every 35 days
+                    if (negCount <= 3) return 'Based on your report, we project significant improvement within 3-4 months';
+                    if (negCount <= 8) return 'Based on your report, we project significant improvement within 4-6 months';
+                    if (negCount <= 15) return 'Based on your report, we project significant improvement within 6-9 months';
+                    return 'Based on your report, we project significant improvement within 9-12 months';
+                  })()}
                 </Typography>
               </Box>
             </Box>
@@ -4147,12 +4576,56 @@ A+ BBB Rating | 4.9 Google (580+ reviews)
           </Alert>
         )}
 
-        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+        {/* ===== Bug #9 FIX: Floating Continue prompt ===== */}
+        {/* This appears after 8 seconds so users know to continue, even if they */}
+        {/* haven't scrolled past the tall IDIQ credit report widget.             */}
+        {showFloatingContinue && (
+          <Box
+            sx={{
+              position: 'fixed',
+              bottom: 20,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 1200,
+              bgcolor: 'primary.main',
+              color: 'white',
+              px: 3,
+              py: 1.5,
+              borderRadius: 3,
+              boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 2,
+              cursor: 'pointer',
+              transition: 'all 0.3s',
+              '&:hover': { transform: 'translateX(-50%) translateY(-2px)', boxShadow: '0 6px 25px rgba(0,0,0,0.4)' },
+              maxWidth: '90vw',
+            }}
+            onClick={() => {
+              setShowFloatingContinue(false);
+              setCurrentPhase(4);
+            }}
+          >
+            <Typography variant="body1" fontWeight={600}>
+              Ready to continue?
+            </Typography>
+            <ArrowForwardIcon />
+            {floatingCountdown > 0 && (
+              <Chip
+                label={`${floatingCountdown}s`}
+                size="small"
+                sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white', fontWeight: 600 }}
+              />
+            )}
+          </Box>
+        )}
+
+        <Box id="phase3-continue-btn" sx={{ display: 'flex', justifyContent: 'space-between' }}>
           <Button onClick={() => setCurrentPhase(1)} startIcon={<ArrowBackIcon />}>
             Back
           </Button>
           <GlowingButton
-            onClick={() => setCurrentPhase(4)}
+            onClick={() => { setShowFloatingContinue(false); setCurrentPhase(4); }}
             endIcon={<ArrowForwardIcon />}
           >
             Continue to Document Upload
@@ -4365,6 +4838,11 @@ A+ BBB Rating | 4.9 Google (580+ reviews)
             ? analysisResult.error 
             : analysisResult.error?.message || 'Analysis failed. Manual review will follow.'
         );
+        // ===== Bug #10 FIX: Clear the "in progress" success message =====
+        // Previously, the success "Analysis in progress..." stayed visible
+        // while the error "Analysis encountered an issue" also appeared.
+        // Now we clear the success state so only the error shows.
+        setSuccess(null);
         setError('Analysis encountered an issue. Our team will review manually within 24 hours.');
         
         // Still advance
@@ -4377,6 +4855,8 @@ A+ BBB Rating | 4.9 Google (580+ reviews)
       console.error('❌ Analysis error:', error);
       
       setCreditAnalysisError(error.message);
+      // ===== Bug #10 FIX: Clear "in progress" success message in catch block too =====
+      setSuccess(null);
       setError('Unable to complete automatic analysis. Manual review will follow.');
       
       // Log error to Firestore
@@ -5006,9 +5486,34 @@ A+ BBB Rating | 4.9 Google (580+ reviews)
     </Fade>
   );
 
+  // ============================================================================
+  // PHASE 7: NMI PAYMENT FORM — ACH (Bank Account) + Credit Card
+  // ============================================================================
+  // This renders the actual payment form that collects bank or card info
+  // and sends it to operationsManager → processNewEnrollment → NMI gateway.
+  //
+  // HOW IT WORKS:
+  //   1. Customer picks ACH (bank) or Credit Card tab
+  //   2. Fills in their info (routing/account # OR card #)
+  //   3. Clicks "Complete Payment"
+  //   4. handleNMIPayment() sends everything to our Cloud Function
+  //   5. Cloud Function talks to NMI (server-side, PCI compliant)
+  //   6. NMI vaults the payment method + sets up recurring billing
+  //   7. On success → finalizeEnrollment() → Phase 8 celebration
+  //
+  // SECURITY NOTE:
+  //   Bank/card numbers are sent ONCE to our Cloud Function over HTTPS,
+  //   then stored in NMI's PCI-compliant Customer Vault as a token.
+  //   We NEVER store raw account/card numbers in Firestore.
+  // ============================================================================
   const renderPhase7 = () => {
     const selectedPlanData = SERVICE_PLANS.find((p) => p.id === selectedPlan) || SERVICE_PLANS[1];
-    const finalPrice = selectedPlanData.price - appliedDiscount;
+    const finalPrice = Math.max(selectedPlanData.price - appliedDiscount, 0);
+
+    // ===== Calculate what's due today =====
+    // Setup fee (if any) is charged today. Monthly starts in 30 days.
+    const setupFee = selectedPlanData.setupFee || 0;
+    const dueToday = setupFee + (appliedDiscount > 0 ? Math.max(selectedPlanData.price - appliedDiscount, 0) : 0);
 
     return (
       <Fade in timeout={500}>
@@ -5017,10 +5522,10 @@ A+ BBB Rating | 4.9 Google (580+ reviews)
             Secure Payment
           </Typography>
           <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-            Your payment is protected by 256-bit SSL encryption.
+            Your payment information is encrypted and sent securely. We never store your full account or card numbers.
           </Typography>
 
-          {/* Discount Banner */}
+          {/* ===== Discount Banner ===== */}
           {discountApplied && (
             <Alert
               severity="success"
@@ -5032,45 +5537,338 @@ A+ BBB Rating | 4.9 Google (580+ reviews)
             </Alert>
           )}
 
+          {/* ===== Payment Error Display ===== */}
+          {paymentError && (
+            <Alert severity="error" onClose={() => setPaymentError(null)} sx={{ mb: 3 }}>
+              <AlertTitle>Payment Issue</AlertTitle>
+              {paymentError}
+            </Alert>
+          )}
+
           <Grid container spacing={4}>
+            {/* ===== LEFT COLUMN: Payment Form ===== */}
             <Grid item xs={12} md={8}>
               <Card sx={{ p: 3 }}>
+                {/* ===== Security Badge ===== */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
                   <ShieldIcon color="success" />
                   <Typography variant="body1">
-                    Secure checkout powered by Stripe
+                    256-bit SSL encrypted • PCI compliant
                   </Typography>
                 </Box>
 
-                <Alert severity="info" sx={{ mb: 3 }}>
-                  <AlertTitle>You'll be redirected to Stripe</AlertTitle>
-                  After clicking "Complete Payment", you'll be securely redirected to Stripe to
-                  enter your payment details.
+                {/* ===== Payment Method Tabs: ACH vs Credit Card ===== */}
+                <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
+                  {/* ACH Tab Button */}
+                  <Button
+                    variant={paymentMethod === 'ach' ? 'contained' : 'outlined'}
+                    onClick={() => setPaymentMethod('ach')}
+                    startIcon={<span>🏦</span>}
+                    sx={{
+                      flex: 1,
+                      py: 1.5,
+                      borderRadius: 2,
+                      textTransform: 'none',
+                      fontWeight: paymentMethod === 'ach' ? 700 : 400,
+                    }}
+                  >
+                    Bank Account (ACH)
+                  </Button>
+                  {/* Credit Card Tab Button */}
+                  <Button
+                    variant={paymentMethod === 'cc' ? 'contained' : 'outlined'}
+                    onClick={() => setPaymentMethod('cc')}
+                    startIcon={<CreditIcon />}
+                    sx={{
+                      flex: 1,
+                      py: 1.5,
+                      borderRadius: 2,
+                      textTransform: 'none',
+                      fontWeight: paymentMethod === 'cc' ? 700 : 400,
+                    }}
+                  >
+                    Credit / Debit Card
+                  </Button>
+                </Box>
+
+                {/* ================================================================ */}
+                {/* ACH (BANK ACCOUNT) FORM                                          */}
+                {/* Shows when paymentMethod === 'ach'                               */}
+                {/* Collects: account holder name, bank name, routing #, account #,  */}
+                {/*           and whether it's checking or savings                   */}
+                {/* ================================================================ */}
+                {paymentMethod === 'ach' && (
+                  <Box>
+                    <Alert severity="info" sx={{ mb: 3 }}>
+                      <AlertTitle>ACH Bank Transfer — Most Popular</AlertTitle>
+                      Pay directly from your bank account. Lower fees and automatic monthly billing.
+                      Your routing and account numbers are on the bottom of your checks.
+                    </Alert>
+
+                    {/* Row 1: Account Holder Name + Bank Name */}
+                    <Grid container spacing={2} sx={{ mb: 2 }}>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          fullWidth
+                          label="Account Holder Name"
+                          placeholder="John A. Doe"
+                          value={paymentFields.checkName}
+                          onChange={(e) => setPaymentFields(prev => ({ ...prev, checkName: e.target.value }))}
+                          helperText="Name on the bank account"
+                          required
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          fullWidth
+                          label="Bank Name"
+                          placeholder="Chase, Wells Fargo, etc."
+                          value={paymentFields.bankName}
+                          onChange={(e) => setPaymentFields(prev => ({ ...prev, bankName: e.target.value }))}
+                          helperText="Your bank's name"
+                        />
+                      </Grid>
+                    </Grid>
+
+                    {/* Row 2: Routing Number + Account Number */}
+                    <Grid container spacing={2} sx={{ mb: 2 }}>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          fullWidth
+                          label="Routing Number (9 digits)"
+                          placeholder="021000021"
+                          value={paymentFields.checkAba}
+                          onChange={(e) => {
+                            // ===== Only allow digits, max 9 =====
+                            const val = e.target.value.replace(/\D/g, '').slice(0, 9);
+                            setPaymentFields(prev => ({ ...prev, checkAba: val }));
+                          }}
+                          inputProps={{ maxLength: 9, inputMode: 'numeric' }}
+                          helperText={
+                            paymentFields.checkAba.length > 0 && paymentFields.checkAba.length !== 9
+                              ? `${paymentFields.checkAba.length}/9 digits entered`
+                              : 'Bottom-left of your check'
+                          }
+                          error={paymentFields.checkAba.length > 0 && paymentFields.checkAba.length !== 9}
+                          required
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          fullWidth
+                          label="Account Number"
+                          placeholder="123456789"
+                          value={paymentFields.checkAccount}
+                          onChange={(e) => {
+                            // ===== Only allow digits, max 17 =====
+                            const val = e.target.value.replace(/\D/g, '').slice(0, 17);
+                            setPaymentFields(prev => ({ ...prev, checkAccount: val }));
+                          }}
+                          inputProps={{ maxLength: 17, inputMode: 'numeric' }}
+                          helperText="Bottom-center of your check"
+                          required
+                        />
+                      </Grid>
+                    </Grid>
+
+                    {/* Row 3: Account Type (Checking / Savings) */}
+                    <FormControl component="fieldset" sx={{ mb: 2 }}>
+                      <FormLabel component="legend">Account Type</FormLabel>
+                      <RadioGroup
+                        row
+                        value={paymentFields.accountType}
+                        onChange={(e) => setPaymentFields(prev => ({ ...prev, accountType: e.target.value }))}
+                      >
+                        <FormControlLabel value="checking" control={<Radio />} label="Checking" />
+                        <FormControlLabel value="savings" control={<Radio />} label="Savings" />
+                      </RadioGroup>
+                    </FormControl>
+
+                    {/* ===== Visual Check Diagram ===== */}
+                    <Box
+                      sx={{
+                        p: 2,
+                        border: '1px dashed',
+                        borderColor: 'divider',
+                        borderRadius: 2,
+                        bgcolor: 'grey.50',
+                        mb: 2,
+                      }}
+                    >
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1, fontWeight: 600 }}>
+                        Where to find your numbers:
+                      </Typography>
+                      <Box sx={{ fontFamily: 'monospace', fontSize: '0.85rem', color: 'text.secondary' }}>
+                        <Typography variant="caption" component="div">
+                          ┌─────────────────────────────────────┐
+                        </Typography>
+                        <Typography variant="caption" component="div">
+                          │&nbsp;&nbsp;YOUR NAME&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│
+                        </Typography>
+                        <Typography variant="caption" component="div">
+                          │&nbsp;&nbsp;123 Main St&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│
+                        </Typography>
+                        <Typography variant="caption" component="div">
+                          │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│
+                        </Typography>
+                        <Typography variant="caption" component="div">
+                          │&nbsp;&nbsp;⮟ Routing #&nbsp;&nbsp;&nbsp;⮟ Account #&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│
+                        </Typography>
+                        <Typography variant="caption" component="div">
+                          │&nbsp;&nbsp;⌊021000021⌋&nbsp;&nbsp;⌊123456789⌋&nbsp;&nbsp;1001&nbsp;&nbsp;&nbsp;│
+                        </Typography>
+                        <Typography variant="caption" component="div">
+                          └─────────────────────────────────────┘
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Box>
+                )}
+
+                {/* ================================================================ */}
+                {/* CREDIT / DEBIT CARD FORM                                         */}
+                {/* Shows when paymentMethod === 'cc'                                */}
+                {/* Collects: card number, expiration (MM/YY), CVV                   */}
+                {/* ================================================================ */}
+                {paymentMethod === 'cc' && (
+                  <Box>
+                    <Alert severity="info" sx={{ mb: 3 }}>
+                      <AlertTitle>Credit or Debit Card</AlertTitle>
+                      We accept Visa, Mastercard, Discover, and American Express.
+                    </Alert>
+
+                    {/* Card Number */}
+                    <TextField
+                      fullWidth
+                      label="Card Number"
+                      placeholder="4111 1111 1111 1111"
+                      value={paymentFields.ccNumber}
+                      onChange={(e) => {
+                        // ===== Only allow digits, max 19 (some cards are 16-19) =====
+                        const val = e.target.value.replace(/\D/g, '').slice(0, 19);
+                        setPaymentFields(prev => ({ ...prev, ccNumber: val }));
+                      }}
+                      inputProps={{ maxLength: 19, inputMode: 'numeric' }}
+                      helperText="Enter your full card number (no spaces)"
+                      sx={{ mb: 2 }}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <CreditIcon color="action" />
+                          </InputAdornment>
+                        ),
+                      }}
+                      required
+                    />
+
+                    {/* Expiration + CVV Row */}
+                    <Grid container spacing={2} sx={{ mb: 2 }}>
+                      <Grid item xs={6}>
+                        <TextField
+                          fullWidth
+                          label="Expiration (MMYY)"
+                          placeholder="1228"
+                          value={paymentFields.ccExp}
+                          onChange={(e) => {
+                            // ===== Only digits, max 4 (MMYY format) =====
+                            const val = e.target.value.replace(/\D/g, '').slice(0, 4);
+                            setPaymentFields(prev => ({ ...prev, ccExp: val }));
+                          }}
+                          inputProps={{ maxLength: 4, inputMode: 'numeric' }}
+                          helperText="Format: MMYY (e.g. 1228 = Dec 2028)"
+                          error={paymentFields.ccExp.length > 0 && paymentFields.ccExp.length !== 4}
+                          required
+                        />
+                      </Grid>
+                      <Grid item xs={6}>
+                        <TextField
+                          fullWidth
+                          label="CVV"
+                          placeholder="123"
+                          value={paymentFields.cvv}
+                          onChange={(e) => {
+                            // ===== Only digits, max 4 (AmEx has 4-digit CVV) =====
+                            const val = e.target.value.replace(/\D/g, '').slice(0, 4);
+                            setPaymentFields(prev => ({ ...prev, cvv: val }));
+                          }}
+                          inputProps={{ maxLength: 4, inputMode: 'numeric' }}
+                          helperText="3 or 4 digits on back of card"
+                          required
+                        />
+                      </Grid>
+                    </Grid>
+
+                    {/* Cardholder Name (optional, helps NMI with verification) */}
+                    <TextField
+                      fullWidth
+                      label="Cardholder Name"
+                      placeholder="John A. Doe"
+                      value={paymentFields.cardholderName}
+                      onChange={(e) => setPaymentFields(prev => ({ ...prev, cardholderName: e.target.value }))}
+                      helperText="Name as it appears on the card"
+                      sx={{ mb: 2 }}
+                    />
+                  </Box>
+                )}
+
+                {/* ===== Authorization Disclaimer ===== */}
+                <Alert severity="warning" sx={{ mb: 3, mt: 1 }}>
+                  <Typography variant="body2">
+                    By clicking "Complete Payment" you authorize Speedy Credit Repair Inc. to{' '}
+                    {setupFee > 0
+                      ? `charge a one-time setup fee of $${setupFee} today and `
+                      : ''}
+                    set up recurring monthly billing of ${finalPrice}/mo beginning 30 days from today.
+                    You may cancel at any time by calling (888) 724-7344.
+                  </Typography>
                 </Alert>
 
+                {/* ===== SUBMIT BUTTON ===== */}
                 <GlowingButton
                   fullWidth
-                  onClick={handlePayment}
+                  onClick={handleNMIPayment}
                   disabled={loading}
                   size="large"
                   startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <PaymentIcon />}
                   sx={discountApplied ? { background: 'linear-gradient(45deg, #4CAF50, #8BC34A)' } : {}}
                 >
-                  {loading ? 'Processing...' : `Complete Payment - $${finalPrice}/mo`}
+                  {loading ? 'Processing securely...' : `Complete Payment — $${setupFee > 0 ? setupFee + ' today' : finalPrice + '/mo'}`}
                 </GlowingButton>
 
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2, textAlign: 'center' }}>
                   Cancel anytime. No long-term contracts. 30-day satisfaction guarantee.
                 </Typography>
+
+                {/* ===== Zelle Fallback Option ===== */}
+                <Divider sx={{ my: 3 }}>
+                  <Chip label="OR" size="small" />
+                </Divider>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    Prefer to pay a different way?
+                  </Typography>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={handleZelleFallback}
+                    disabled={loading}
+                    sx={{ textTransform: 'none' }}
+                  >
+                    📱 Pay with Zelle Instead
+                  </Button>
+                </Box>
               </Card>
             </Grid>
 
+            {/* ===== RIGHT COLUMN: Order Summary ===== */}
             <Grid item xs={12} md={4}>
               <Card sx={{ p: 3, bgcolor: discountApplied ? 'success.50' : 'grey.50' }}>
                 <Typography variant="h6" gutterBottom>
                   Order Summary
                 </Typography>
                 <Divider sx={{ my: 2 }} />
+
+                {/* Plan Name + Monthly Price */}
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                   <Typography>{selectedPlanData.name} Plan</Typography>
                   <Typography
@@ -5080,6 +5878,8 @@ A+ BBB Rating | 4.9 Google (580+ reviews)
                     ${selectedPlanData.price}/mo
                   </Typography>
                 </Box>
+
+                {/* Discount Line (only if discount applied) */}
                 {discountApplied && (
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                     <Typography color="success.main" fontWeight={600}>
@@ -5090,24 +5890,75 @@ A+ BBB Rating | 4.9 Google (580+ reviews)
                     </Typography>
                   </Box>
                 )}
+
+                {/* Setup Fee Line */}
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                   <Typography color="text.secondary">Setup Fee</Typography>
-                  <Typography color="success.main" fontWeight={600}>
-                    $0 (Waived)
+                  <Typography fontWeight={600} color={setupFee > 0 ? 'text.primary' : 'success.main'}>
+                    {setupFee > 0 ? `$${setupFee}` : '$0 (Waived)'}
                   </Typography>
                 </Box>
+
+                {/* Per-Deletion Fee Note (Professional plan) */}
+                {selectedPlanData.perDeletion && (
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                    <Typography color="text.secondary" variant="body2">Per Deletion</Typography>
+                    <Typography variant="body2">${selectedPlanData.perDeletion}/item</Typography>
+                  </Box>
+                )}
+
                 <Divider sx={{ my: 2 }} />
+
+                {/* Due Today */}
+                {setupFee > 0 && (
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                    <Typography variant="subtitle1" fontWeight={600}>Due Today (Setup)</Typography>
+                    <Typography variant="subtitle1" fontWeight={700} color="primary">
+                      ${setupFee}
+                    </Typography>
+                  </Box>
+                )}
+
+                {/* Monthly Amount */}
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="h6">Due Today</Typography>
+                  <Typography variant="h6">{setupFee > 0 ? 'Monthly (starts in 30 days)' : 'Monthly Amount'}</Typography>
                   <Typography variant="h6" fontWeight={700} color={discountApplied ? 'success.main' : 'primary'}>
-                    ${finalPrice}
+                    ${finalPrice}/mo
                   </Typography>
                 </Box>
+
                 {discountApplied && (
                   <Typography variant="caption" color="success.main" sx={{ display: 'block', mt: 1, textAlign: 'center' }}>
                     You're saving ${appliedDiscount}!
                   </Typography>
                 )}
+
+                {/* ===== Trust Badges ===== */}
+                <Divider sx={{ my: 2 }} />
+                <Box sx={{ textAlign: 'center' }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, mb: 1, flexWrap: 'wrap' }}>
+                    <Chip icon={<ShieldIcon />} label="SSL Encrypted" size="small" variant="outlined" />
+                    <Chip icon={<VerifiedIcon />} label="PCI Compliant" size="small" variant="outlined" />
+                  </Box>
+                  <Typography variant="caption" color="text.secondary">
+                    A+ BBB Rated • 30 Years in Business
+                  </Typography>
+                </Box>
+              </Card>
+
+              {/* ===== Billing Day Reminder ===== */}
+              <Card sx={{ p: 2, mt: 2, bgcolor: 'info.50' }}>
+                <Typography variant="body2" color="text.secondary">
+                  <strong>Billing Day:</strong> {formData.billingDay || 1}
+                  {formData.billingDay === 1
+                    ? 'st'
+                    : formData.billingDay === 2
+                    ? 'nd'
+                    : formData.billingDay === 3
+                    ? 'rd'
+                    : 'th'}{' '}
+                  of each month, starting 30 days from today.
+                </Typography>
               </Card>
             </Grid>
           </Grid>
@@ -5505,148 +6356,7 @@ A+ BBB Rating | 4.9 Google (580+ reviews)
 
       {/* Session Recovery Dialog */}
       {renderRecoveryDialog()}
-{/* ACH/Zelle Payment Options Dialog */}
-<Dialog 
-  open={showPaymentOptions} 
-  onClose={() => setShowPaymentOptions(false)}
-  maxWidth="sm" 
-  fullWidth
->
-  <DialogTitle>
-    <Typography variant="h5" component="h2">
-      Complete Your Payment Setup
-    </Typography>
-  </DialogTitle>
-  <DialogContent>
-    <Box sx={{ py: 2 }}>
-      <Typography variant="h6" gutterBottom>
-        {SERVICE_PLANS.find(p => p.id === selectedPlan)?.name} Plan
-      </Typography>
-      
-      <Typography variant="body1" sx={{ mb: 2 }}>
-        Setup Fee: <strong>$99</strong> • Monthly: <strong>${SERVICE_PLANS.find(p => p.id === selectedPlan)?.price}</strong>
-      </Typography>
-      
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        First monthly payment begins 30 days from today
-      </Typography>
-      
-      <Grid container spacing={2}>
-        <Grid item xs={12} sm={6}>
-          <Card 
-            sx={{ 
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              border: '2px solid transparent',
-              '&:hover': { 
-                transform: 'translateY(-2px)', 
-                boxShadow: 3,
-                borderColor: 'primary.main' 
-              }
-            }}
-            onClick={handleACHPayment}
-          >
-            <CardContent sx={{ textAlign: 'center', py: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                🏦 ACH Bank Transfer
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                Direct from your bank account
-              </Typography>
-              <Chip 
-                label="Most Popular" 
-                color="primary" 
-                size="small" 
-              />
-            </CardContent>
-          </Card>
-        </Grid>
-        
-        <Grid item xs={12} sm={6}>
-          <Card 
-            sx={{ 
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              border: '2px solid transparent',
-              '&:hover': { 
-                transform: 'translateY(-2px)', 
-                boxShadow: 3,
-                borderColor: 'secondary.main' 
-              }
-            }}
-            onClick={async () => {
-              setLoading(true);
-              try {
-                const plan = SERVICE_PLANS.find((p) => p.id === selectedPlan);
-                
-                // Send Zelle instructions email
-                await emailService({
-                  action: 'send',
-                  to: formData.email,
-                  subject: 'Zelle Payment Instructions - Speedy Credit Repair',
-                  body: `Hi ${formData.firstName},
-
-Thank you for selecting the ${plan.name} plan!
-
-ZELLE PAYMENT:
-• Setup Fee: $99 (pay now)
-• Monthly Fee: $${plan.price} (starts in 30 days)
-
-PAY NOW WITH ZELLE:
-1. Open your banking app
-2. Select "Send with Zelle"
-3. Send to: billing@speedycreditrepair.com
-4. Amount: $99
-5. Memo: "${formData.firstName} ${formData.lastName} Setup"
-
-We'll activate your account within 2 hours!
-
-Best regards,
-Christopher Lahage & Team`,
-                  recipientName: formData.firstName,
-                  contactId: contactId,
-                  templateType: 'zelle_instructions'
-                });
-
-                console.log('✅ Zelle instructions sent');
-                await finalizeEnrollment();
-              } catch (error) {
-                console.error('❌ Zelle setup error:', error);
-                setError('Zelle setup failed. Please call (888) 724-7344.');
-                setLoading(false);
-              }
-            }}
-          >
-            <CardContent sx={{ textAlign: 'center', py: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                📱 Zelle
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                Quick payment via banking app  
-              </Typography>
-              <Chip 
-                label="Instant" 
-                color="secondary" 
-                size="small" 
-              />
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-      
-      <Alert severity="info" sx={{ mt: 2 }}>
-        <Typography variant="body2">
-          <strong>Secure Payment:</strong> We accept ACH and Zelle only. Your information is protected.
-        </Typography>
-      </Alert>
-    </Box>
-  </DialogContent>
-  <DialogActions>
-    <Button onClick={() => setShowPaymentOptions(false)}>
-      Back to Plan Selection
-    </Button>
-  </DialogActions>
-</Dialog>
+{/* ===== NMI Payment is now handled inline in renderPhase7() ===== */}
     </Box>
   );
 };
