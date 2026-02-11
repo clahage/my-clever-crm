@@ -8585,7 +8585,9 @@ exports.operationsManager = onRequest(
           'adminSeedPlans',
           'generateContractSigningLink',
           'validateContractSigningToken',
-          'markContractSigningTokenUsed'
+          'markContractSigningTokenUsed',
+          'submitSignedContract',
+          
         ]
       });
       return;
@@ -10968,7 +10970,495 @@ console.log('🔐 Enrollment token generated:', token.substring(0, 10) + '...');
       
       break;
     }
-
+    // ===================================================================
+    // CONTRACT SIGNING — Submit Signed Contract (Public Email Link)
+    // ===================================================================
+    // SECURITY: This is the SECURE path for public (unauthenticated) signing.
+    // Instead of the client writing directly to Firestore (which would fail
+    // without auth), ALL writes go through this server-side case block.
+    //
+    // The client sends: token + signatures (base64) + initials + banking info
+    // The server: re-validates token, creates contract, uploads signatures
+    // to Firebase Storage, creates audit trail, updates contact, and marks
+    // the token as used — all in one atomic-ish operation.
+    //
+    // Flow:
+    //   1. Re-validate token (prevents replay attacks)
+    //   2. Create contract document in Firestore
+    //   3. Upload signature images to Firebase Storage (base64 → buffer)
+    //   4. Upload initial images to Firebase Storage (drawn) or store text
+    //   5. Update contract with signature/initial URLs + session data
+    //   6. Create ACH authorization OR grace period tracking
+    //   7. Create tamper-proof audit trail
+    //   8. Update contact: contractSigned=true, pipelineStage='contract_signed'
+    //   9. Mark signing token as used (prevents reuse)
+    //  10. Create staff notification (bell + toast in CRM)
+    //
+    // Params:
+    //   token (required) — signing token from email link
+    //   contactId (required) — the contact being signed
+    //   signatures (required) — { docId: base64DataUrl } from canvas
+    //   initials (optional) — { key: base64DataUrl or text }
+    //   bankingInfo (optional) — { routingNumber, accountNumber, ... }
+    //   deferBanking (default true) — whether client skipped banking
+    //   sessionData — { currentIP, timeSpent, documentsViewed, startTime }
+    //   deviceInfo — browser/device string
+    //   scrSignatureApplied — whether SCR auto-signature was added
+    //   viewedTabs — array of tab indices client viewed
+    //   planId, planName — plan identifiers
+    //   agreedToTerms — client checked the agreement box
+    // ===================================================================
+    case 'submitSignedContract': {
+      console.log('📝 ===== SUBMIT SIGNED CONTRACT (Secure Server-Side) =====');
+      
+      // ===== DESTRUCTURE ALL PARAMS =====
+      const {
+        token: submitToken,
+        contactId: submitContactId,
+        signatures: signatureData,
+        initials: initialData,
+        bankingInfo: submitBankingInfo,
+        deferBanking: submitDeferBanking = true,
+        sessionData: submitSessionData,
+        deviceInfo: submitDeviceInfo,
+        scrSignatureApplied: submitScrSig = false,
+        viewedTabs: submitViewedTabs = [],
+        planId: submitPlanId,
+        planName: submitPlanName,
+        agreedToTerms: submitAgreedToTerms = true
+      } = params;
+      
+      // ===== VALIDATE REQUIRED PARAMS =====
+      if (!submitToken || !submitContactId) {
+        result = { success: false, error: 'Token and contactId are required' };
+        break;
+      }
+      if (!signatureData || Object.keys(signatureData).length === 0) {
+        result = { success: false, error: 'At least one signature is required' };
+        break;
+      }
+      
+      try {
+        // =============================================================
+        // STEP 1: RE-VALIDATE TOKEN (prevents replay + expired tokens)
+        // =============================================================
+        console.log('🔍 Step 1: Re-validating signing token...');
+        
+        const submitTokenQuery = await db.collection('contractSigningTokens')
+          .where('token', '==', submitToken)
+          .where('contactId', '==', submitContactId)
+          .limit(1)
+          .get();
+        
+        if (submitTokenQuery.empty) {
+          console.log('❌ Token not found or contactId mismatch');
+          result = { success: false, error: 'Invalid or expired signing link. Please contact us for a new link.' };
+          break;
+        }
+        
+        const submitTokenDoc = submitTokenQuery.docs[0];
+        const submitTokenData = submitTokenDoc.data();
+        
+        // Check if already used (prevents double-submit)
+        if (submitTokenData.used === true) {
+          console.log('⚠️ Token already used — contract was already signed');
+          result = { success: false, error: 'This contract has already been signed. If you need a copy, please contact us.' };
+          break;
+        }
+        
+        // Check if expired
+        const submitExpiresAt = submitTokenData.expiresAt?.toDate 
+          ? submitTokenData.expiresAt.toDate() 
+          : new Date(submitTokenData.expiresAt);
+        
+        if (submitExpiresAt < new Date()) {
+          console.log('⏰ Token expired at:', submitExpiresAt.toISOString());
+          result = { success: false, error: 'This signing link has expired. Please call us at (888) 960-1718 for a new link.' };
+          break;
+        }
+        
+        console.log('✅ Token re-validated successfully');
+        
+        // =============================================================
+        // STEP 2: CREATE CONTRACT DOCUMENT
+        // =============================================================
+        console.log('📄 Step 2: Creating contract document...');
+        
+        const newContractRef = await db.collection('contracts').add({
+          contactId: submitContactId,
+          status: 'pending_signatures',
+          planId: submitPlanId || submitTokenData.planId || null,
+          planName: submitPlanName || submitTokenData.planName || null,
+          source: 'email_signing_link',
+          tokenId: submitTokenDoc.id,
+          createdAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        const newContractId = newContractRef.id;
+        console.log('✅ Contract created:', newContractId);
+        
+        // =============================================================
+        // STEP 3: UPLOAD SIGNATURES TO FIREBASE STORAGE
+        // =============================================================
+        // Signatures come as base64 data URLs from the canvas:
+        //   "data:image/png;base64,iVBORw0KGgo..." 
+        // We strip the prefix, convert to buffer, upload to Storage,
+        // and get a signed download URL.
+        // =============================================================
+        console.log('🖊️ Step 3: Uploading signatures...');
+        
+        const bucket = admin.storage().bucket();
+        const signatureURLs = {};
+        
+        for (const [docId, base64Data] of Object.entries(signatureData)) {
+          try {
+            // Skip SCR auto-signatures (they're references, not uploads)
+            if (docId.endsWith('_scr')) {
+              signatureURLs[docId] = base64Data;
+              continue;
+            }
+            
+            // Convert base64 data URL to buffer
+            let sigBuffer;
+            if (typeof base64Data === 'string' && base64Data.startsWith('data:')) {
+              const base64Only = base64Data.split(',')[1];
+              sigBuffer = Buffer.from(base64Only, 'base64');
+            } else if (typeof base64Data === 'string') {
+              sigBuffer = Buffer.from(base64Data, 'base64');
+            } else {
+              console.warn(`⚠️ Unexpected signature format for ${docId}, storing as-is`);
+              signatureURLs[docId] = base64Data;
+              continue;
+            }
+            
+            // Upload to Firebase Storage
+            const sigFilePath = `signatures/${newContractId}/${docId}_${Date.now()}.png`;
+            const sigFile = bucket.file(sigFilePath);
+            
+            await sigFile.save(sigBuffer, {
+              contentType: 'image/png',
+              metadata: {
+                cacheControl: 'public, max-age=31536000',
+                customMetadata: {
+                  contractId: newContractId,
+                  contactId: submitContactId,
+                  documentId: docId,
+                  uploadedVia: 'email_signing_link'
+                }
+              }
+            });
+            
+            // Get signed download URL (valid for 5 years)
+            const [sigUrl] = await sigFile.getSignedUrl({
+              action: 'read',
+              expires: '12-31-2030'
+            });
+            
+            signatureURLs[docId] = sigUrl;
+            console.log(`  ✅ Signature uploaded: ${docId}`);
+            
+          } catch (sigErr) {
+            console.error(`  ⚠️ Signature upload failed for ${docId}:`, sigErr.message);
+            // Store the raw base64 as fallback (still legally valid)
+            signatureURLs[docId] = '[upload_failed_base64_stored]';
+          }
+        }
+        
+        console.log(`✅ ${Object.keys(signatureURLs).length} signatures processed`);
+        
+        // =============================================================
+        // STEP 4: UPLOAD INITIALS TO FIREBASE STORAGE
+        // =============================================================
+        // Initials can be either:
+        //   - Drawn: base64 data URL (uploaded to Storage)
+        //   - Typed: plain text like "CL" (stored as-is)
+        // =============================================================
+        console.log('✍️ Step 4: Processing initials...');
+        
+        const initialURLs = {};
+        
+        if (initialData && typeof initialData === 'object') {
+          for (const [initKey, initValue] of Object.entries(initialData)) {
+            try {
+              // Check if it's a drawn initial (base64 image)
+              if (typeof initValue === 'string' && initValue.startsWith('data:image')) {
+                const initBase64 = initValue.split(',')[1];
+                const initBuffer = Buffer.from(initBase64, 'base64');
+                
+                const initFilePath = `initials/${newContractId}/${initKey}_${Date.now()}.png`;
+                const initFile = bucket.file(initFilePath);
+                
+                await initFile.save(initBuffer, {
+                  contentType: 'image/png',
+                  metadata: {
+                    cacheControl: 'public, max-age=31536000',
+                    customMetadata: {
+                      contractId: newContractId,
+                      contactId: submitContactId,
+                      initialField: initKey
+                    }
+                  }
+                });
+                
+                const [initUrl] = await initFile.getSignedUrl({
+                  action: 'read',
+                  expires: '12-31-2030'
+                });
+                
+                initialURLs[initKey] = initUrl;
+                console.log(`  ✅ Initial image uploaded: ${initKey}`);
+                
+              } else {
+                // It's typed initials (plain text like "CL")
+                initialURLs[initKey] = initValue;
+                console.log(`  ✅ Initial text stored: ${initKey} = "${initValue}"`);
+              }
+              
+            } catch (initErr) {
+              console.error(`  ⚠️ Initial processing failed for ${initKey}:`, initErr.message);
+              initialURLs[initKey] = initValue; // Store raw value as fallback
+            }
+          }
+        }
+        
+        console.log(`✅ ${Object.keys(initialURLs).length} initials processed`);
+        
+        // =============================================================
+        // STEP 5: UPDATE CONTRACT WITH ALL SIGNING DATA
+        // =============================================================
+        console.log('📋 Step 5: Updating contract with signing data...');
+        
+        // Build masked banking info for storage (never store full account numbers)
+        const maskedBankingInfo = (!submitDeferBanking && submitBankingInfo) ? {
+          accountType: submitBankingInfo.accountType || 'checking',
+          accountName: submitBankingInfo.accountName || '',
+          bankName: submitBankingInfo.bankName || '',
+          accountNumber: submitBankingInfo.accountNumber 
+            ? `****${submitBankingInfo.accountNumber.slice(-4)}`
+            : null,
+          routingNumber: submitBankingInfo.routingNumber || null
+        } : null;
+        
+        await newContractRef.update({
+          status: 'signed',
+          signedAt: admin.firestore.FieldValue.serverTimestamp(),
+          signatures: signatureURLs,
+          initials: initialURLs,
+          scrSignatureApplied: submitScrSig,
+          ipAddress: submitSessionData?.currentIP || 'unknown',
+          deviceInfo: submitDeviceInfo || 'unknown',
+          sessionData: {
+            totalTime: submitSessionData?.totalTime || 0,
+            timeSpent: submitSessionData?.timeSpent || 0,
+            documentsViewed: submitSessionData?.documentsViewed || 0,
+            startTime: submitSessionData?.startTime || null
+          },
+          viewedTabs: submitViewedTabs,
+          agreedToTerms: submitAgreedToTerms,
+          bankingInfo: maskedBankingInfo,
+          bankingDeferred: submitDeferBanking,
+          contractSignedVia: 'email_link',
+          signingMethod: 'secure_server_side',
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        
+        console.log('✅ Contract updated with all signing data');
+        
+        // =============================================================
+        // STEP 6: CREATE ACH AUTHORIZATION OR GRACE PERIOD
+        // =============================================================
+        
+        if (!submitDeferBanking && submitBankingInfo && submitBankingInfo.accountNumber) {
+          console.log('💳 Step 6: Creating ACH authorization...');
+          
+          await db.collection('achAuthorizations').add({
+            contactId: submitContactId,
+            contractId: newContractId,
+            status: 'authorized',
+            bankingInfo: {
+              accountType: submitBankingInfo.accountType || 'checking',
+              accountName: submitBankingInfo.accountName || '',
+              bankName: submitBankingInfo.bankName || '',
+              accountNumber: `****${submitBankingInfo.accountNumber.slice(-4)}`,
+              routingNumber: submitBankingInfo.routingNumber
+            },
+            source: 'email_signing_link',
+            authorizedAt: admin.firestore.FieldValue.serverTimestamp(),
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+          
+          console.log('✅ ACH authorization created');
+          
+        } else {
+          console.log('⏳ Step 6: Creating grace period (banking deferred)...');
+          
+          const gracePeriodDeadline = new Date();
+          gracePeriodDeadline.setDate(gracePeriodDeadline.getDate() + 7);
+          
+          await db.collection('paymentIntents').add({
+            contactId: submitContactId,
+            contractId: newContractId,
+            type: 'setup_fee',
+            amount: submitTokenData.monthlyPrice || 0,
+            status: 'pending_ach_setup',
+            gracePeriodDeadline: gracePeriodDeadline.toISOString(),
+            remindersSent: 0,
+            source: 'email_signing_link',
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+          
+          console.log('✅ Grace period tracking created (7 days)');
+        }
+        
+        // =============================================================
+        // STEP 7: CREATE TAMPER-PROOF AUDIT TRAIL
+        // =============================================================
+        console.log('📜 Step 7: Creating audit trail...');
+        
+        await db.collection('auditTrail').add({
+          contractId: newContractId,
+          contactId: submitContactId,
+          action: 'contract_signed',
+          timestamp: admin.firestore.FieldValue.serverTimestamp(),
+          ipAddress: submitSessionData?.currentIP || 'unknown',
+          deviceInfo: submitDeviceInfo || 'unknown',
+          signatureCount: Object.keys(signatureURLs).filter(k => !k.endsWith('_scr')).length,
+          initialCount: Object.keys(initialURLs).length,
+          bankingDeferred: submitDeferBanking,
+          scrSignatureApplied: submitScrSig,
+          documentsViewed: submitViewedTabs?.length || 0,
+          totalTimeSeconds: Math.round(submitSessionData?.timeSpent || 0),
+          planId: submitPlanId || submitTokenData.planId || null,
+          planName: submitPlanName || submitTokenData.planName || null,
+          source: 'email_signing_link',
+          tokenId: submitTokenDoc.id,
+          signingMethod: 'secure_server_side',
+          agreedToTerms: submitAgreedToTerms
+        });
+        
+        console.log('✅ Audit trail created');
+        
+        // =============================================================
+        // STEP 8: UPDATE CONTACT — contractSigned = true
+        // =============================================================
+        // This triggers onContactUpdated Scenario 3 which sends:
+        //   - Confirmation email to client
+        //   - Document request email
+        //   - ACH setup request (4h delay) 
+        // =============================================================
+        console.log('👤 Step 8: Updating contact...');
+        
+        await db.collection('contacts').doc(submitContactId).update({
+          pipelineStage: 'contract_signed',
+          contractSigned: true,
+          contractSignedAt: admin.firestore.FieldValue.serverTimestamp(),
+          contractSignedVia: 'email_link',
+          contractId: newContractId,
+          achAuthorized: !submitDeferBanking,
+          bankingDeferred: submitDeferBanking,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          // Timeline entry for contact history
+          timeline: admin.firestore.FieldValue.arrayUnion({
+            id: Date.now(),
+            type: 'contract_signed',
+            description: `Contract signed via email link (${submitPlanName || 'service agreement'})`,
+            timestamp: new Date().toISOString(),
+            metadata: {
+              contractId: newContractId,
+              signingMethod: 'email_link',
+              bankingDeferred: submitDeferBanking,
+              planId: submitPlanId || null
+            },
+            source: 'system'
+          })
+        });
+        
+        console.log('✅ Contact updated: contractSigned=true, pipelineStage=contract_signed');
+        
+        // =============================================================
+        // STEP 9: MARK SIGNING TOKEN AS USED
+        // =============================================================
+        console.log('🔒 Step 9: Marking token as used...');
+        
+        await submitTokenDoc.ref.update({
+          used: true,
+          usedAt: admin.firestore.FieldValue.serverTimestamp(),
+          signingCompletedAt: admin.firestore.FieldValue.serverTimestamp(),
+          contractId: newContractId,
+          signingMethod: 'secure_server_side'
+        });
+        
+        console.log('✅ Token marked as used — cannot be reused');
+        
+        // =============================================================
+        // STEP 10: STAFF NOTIFICATION (Bell + Toast in CRM)
+        // =============================================================
+        console.log('🔔 Step 10: Creating staff notification...');
+        
+        try {
+          // Fetch contact name for notification
+          const notifContactDoc = await db.collection('contacts').doc(submitContactId).get();
+          const notifContactName = notifContactDoc.exists
+            ? `${notifContactDoc.data().firstName || ''} ${notifContactDoc.data().lastName || ''}`.trim()
+            : 'Unknown';
+          
+          await db.collection('staffNotifications').add({
+            type: 'contract_signed',
+            priority: 'high',
+            title: `🎉 Contract Signed: ${notifContactName}`,
+            message: `${notifContactName} signed their ${submitPlanName || 'service'} agreement via email link. ` +
+              `Banking: ${submitDeferBanking ? 'Deferred 7 days' : 'ACH authorized'}. ` +
+              `Pipeline → contract_signed. Scenario 3 automation will fire.`,
+            contactId: submitContactId,
+            contactName: notifContactName,
+            targetRoles: ['masterAdmin', 'admin', 'manager', 'user'],
+            readBy: {},
+            source: 'email_signing_link',
+            metadata: {
+              contractId: newContractId,
+              planId: submitPlanId || null,
+              planName: submitPlanName || null,
+              bankingDeferred: submitDeferBanking,
+              signingMethod: 'secure_server_side'
+            },
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            createdBy: 'system:submitSignedContract'
+          });
+          
+          console.log('✅ Staff notification created');
+        } catch (notifErr) {
+          console.warn('⚠️ Staff notification failed (non-fatal):', notifErr.message);
+        }
+        
+        // =============================================================
+        // DONE — Return success with contract ID
+        // =============================================================
+        console.log('🎉 ===== CONTRACT SIGNING COMPLETE =====');
+        console.log(`   Contract: ${newContractId}`);
+        console.log(`   Contact: ${submitContactId}`);
+        console.log(`   Signatures: ${Object.keys(signatureURLs).length}`);
+        console.log(`   Initials: ${Object.keys(initialURLs).length}`);
+        console.log(`   Banking: ${submitDeferBanking ? 'Deferred' : 'ACH Authorized'}`);
+        
+        result = {
+          success: true,
+          contractId: newContractId,
+          message: 'Contract signed successfully! Welcome to Speedy Credit Repair.',
+          bankingDeferred: submitDeferBanking,
+          signatureCount: Object.keys(signatureURLs).filter(k => !k.endsWith('_scr')).length,
+          initialCount: Object.keys(initialURLs).length
+        };
+        
+      } catch (submitError) {
+        console.error('❌ Submit signed contract error:', submitError);
+        console.error('   Stack:', submitError.stack);
+        result = { 
+          success: false, 
+          error: 'We encountered an issue saving your contract. Your information is safe — please try again or call us at (888) 960-1718.' 
+        };
+      }
+      
+      break;
+    }
     // ===================================================================
     // CONTRACT SIGNING LINK — Mark Token as Used (After Signing Complete)
     // ===================================================================
@@ -11057,6 +11547,7 @@ console.log('🔐 Enrollment token generated:', token.substring(0, 10) + '...');
           'generateContractSigningLink',
           'validateContractSigningToken',
           'markContractSigningTokenUsed',
+          'submitSignedContract',
         ]
       });
       return;

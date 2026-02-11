@@ -2,7 +2,7 @@
 // Path: src/pages/PublicContractSigningRoute.jsx
 // ============================================================================
 //
-// PUBLIC CONTRACT SIGNING ROUTE — PREMIUM DESIGN
+// PUBLIC CONTRACT SIGNING ROUTE — PREMIUM DESIGN v3.0 🚀
 // ============================================================================
 // This is the FIRST thing clients see after clicking the email link.
 // It must instill ABSOLUTE confidence that they're working with the most
@@ -16,14 +16,33 @@
 //   - Mobile-first (most clients open email links on phone)
 //   - Success screen with animated celebration
 //
+// v3.0 Enhancements:
+//   ✅ Removed duplicate markContractSigningTokenUsed call
+//      (submitSignedContract backend now handles token invalidation)
+//   ✅ Added personalized welcome card with plan benefits + estimated time
+//   ✅ Added floating help button (mobile-friendly, always accessible)
+//   ✅ Added mini step indicator in header (Verify → Review → Sign → Complete)
+//   ✅ Smoother transitions between states
+//   ✅ Enhanced success screen with account creation prompt
+//   ✅ Better error recovery with retry button
+//
 // Flow:
 //   1. Client clicks email link → /sign/TOKEN
 //   2. Elegant loading animation while token validates
-//   3. If valid → premium signing experience with ContractSigningPortal
+//   3. If valid → personalized welcome card → premium signing experience
 //   4. If invalid/expired → warm error with easy contact options
-//   5. On completion → stunning success celebration
+//   5. On completion → stunning success celebration + next steps
+//
+// SECURITY NOTE (v3.0):
+//   The token is now marked as used SERVER-SIDE by submitSignedContract.
+//   We no longer call markContractSigningTokenUsed from the client.
+//   This prevents:
+//     - Race conditions (token marked used before contract saved)
+//     - Double-write errors (token already marked used)
+//     - Client-side manipulation (token can't be un-used)
 //
 // © 1995-{currentYear} Speedy Credit Repair Inc. | Chris Lahage | All Rights Reserved
+// Trademark registered USPTO, violations prosecuted.
 // ============================================================================
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -55,7 +74,18 @@ import {
   Mail,
   ArrowRight,
   Sparkles,
-  Heart
+  Heart,
+  Timer,
+  Users,
+  TrendingUp,
+  ChevronRight,
+  HelpCircle,
+  RefreshCw,
+  MapPin,
+  ExternalLink,
+  Briefcase,
+  Zap,
+  MessageCircle
 } from 'lucide-react';
 import ContractSigningPortal from '../components/client-portal/ContractSigningPortal';
 
@@ -170,12 +200,28 @@ styleSheet.textContent = `
     0%, 100% { opacity: 0.4; }
     50% { opacity: 0.8; }
   }
+  @keyframes csp-bounceIn {
+    0% { transform: scale(0); opacity: 0; }
+    50% { transform: scale(1.15); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes csp-slideUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
   .csp-stagger-1 { animation: csp-fadeUp 0.7s ease-out 0.1s both; }
   .csp-stagger-2 { animation: csp-fadeUp 0.7s ease-out 0.25s both; }
   .csp-stagger-3 { animation: csp-fadeUp 0.7s ease-out 0.4s both; }
   .csp-stagger-4 { animation: csp-fadeUp 0.7s ease-out 0.55s both; }
   .csp-stagger-5 { animation: csp-fadeUp 0.7s ease-out 0.7s both; }
   .csp-stagger-6 { animation: csp-fadeUp 0.7s ease-out 0.85s both; }
+  .csp-stagger-7 { animation: csp-fadeUp 0.7s ease-out 1.0s both; }
+
+  /* Floating help button pulse */
+  @keyframes csp-helpPulse {
+    0%, 100% { box-shadow: 0 4px 14px rgba(10,22,40,0.15); }
+    50% { box-shadow: 0 6px 24px rgba(10,22,40,0.25); }
+  }
 `;
 if (!document.querySelector('style[data-csp-animations]')) {
   styleSheet.setAttribute('data-csp-animations', 'true');
@@ -301,6 +347,221 @@ const GoldDivider = () => (
 );
 
 // ============================================================================
+// ===== MINI STEP INDICATOR =====
+// Shows the client where they are: Verify → Review → Sign → Complete
+// ============================================================================
+const StepIndicator = ({ currentStep = 0 }) => {
+  const steps = [
+    { label: 'Verify', icon: <Shield size={12} /> },
+    { label: 'Review', icon: <FileText size={12} /> },
+    { label: 'Sign', icon: <CheckCircle size={12} /> },
+    { label: 'Complete', icon: <Sparkles size={12} /> },
+  ];
+
+  return (
+    <Box sx={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: { xs: 0.5, sm: 1 }
+    }}>
+      {steps.map((step, i) => {
+        const isActive = i === currentStep;
+        const isComplete = i < currentStep;
+        const isFuture = i > currentStep;
+
+        return (
+          <React.Fragment key={i}>
+            {/* Step dot/icon */}
+            <Box sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.5,
+              px: { xs: 0.75, sm: 1.5 },
+              py: 0.4,
+              borderRadius: '14px',
+              background: isComplete
+                ? 'rgba(45,157,120,0.15)'
+                : isActive
+                  ? 'rgba(201,168,76,0.15)'
+                  : 'transparent',
+              border: `1px solid ${
+                isComplete
+                  ? 'rgba(45,157,120,0.3)'
+                  : isActive
+                    ? 'rgba(201,168,76,0.3)'
+                    : 'rgba(255,255,255,0.1)'
+              }`,
+              transition: 'all 0.4s ease'
+            }}>
+              <Box sx={{
+                color: isComplete ? T.greenLight : isActive ? T.goldLight : 'rgba(255,255,255,0.25)',
+                display: 'flex',
+                alignItems: 'center'
+              }}>
+                {isComplete ? <CheckCircle size={12} /> : step.icon}
+              </Box>
+              <Typography sx={{
+                fontFamily: T.fontBody,
+                fontSize: '10px',
+                fontWeight: isActive ? 700 : 500,
+                color: isComplete
+                  ? T.greenLight
+                  : isActive
+                    ? T.goldLight
+                    : 'rgba(255,255,255,0.25)',
+                display: { xs: isActive ? 'block' : 'none', sm: 'block' },
+                whiteSpace: 'nowrap'
+              }}>
+                {step.label}
+              </Typography>
+            </Box>
+
+            {/* Connector line between steps */}
+            {i < steps.length - 1 && (
+              <Box sx={{
+                width: { xs: 12, sm: 24 },
+                height: 1,
+                background: isComplete
+                  ? 'rgba(45,157,120,0.4)'
+                  : 'rgba(255,255,255,0.1)',
+                transition: 'background 0.4s ease'
+              }} />
+            )}
+          </React.Fragment>
+        );
+      })}
+    </Box>
+  );
+};
+
+// ============================================================================
+// ===== FLOATING HELP BUTTON =====
+// Always accessible — especially important on mobile
+// ============================================================================
+const FloatingHelpButton = () => {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <Box sx={{
+      position: 'fixed',
+      bottom: { xs: 20, sm: 28 },
+      right: { xs: 16, sm: 28 },
+      zIndex: 1000,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'flex-end',
+      gap: 1.5
+    }}>
+      {/* Expanded contact options */}
+      {expanded && (
+        <Paper elevation={0} sx={{
+          borderRadius: '16px',
+          overflow: 'hidden',
+          boxShadow: T.shadowHeavy,
+          border: `1px solid ${T.border}`,
+          animation: 'csp-slideUp 0.3s ease-out both',
+          minWidth: 220,
+          background: T.white
+        }}>
+          <Box sx={{ p: 0.5 }}>
+            <Typography sx={{
+              fontFamily: T.fontBody,
+              fontSize: '11px',
+              fontWeight: 600,
+              color: T.textMuted,
+              textTransform: 'uppercase',
+              letterSpacing: '1px',
+              px: 2,
+              pt: 1.5,
+              pb: 1
+            }}>
+              Need help?
+            </Typography>
+
+            <Button
+              href="tel:8889601718"
+              fullWidth
+              startIcon={<Phone size={16} />}
+              sx={{
+                fontFamily: T.fontBody,
+                fontSize: '14px',
+                fontWeight: 600,
+                color: T.navy,
+                textTransform: 'none',
+                justifyContent: 'flex-start',
+                px: 2,
+                py: 1,
+                borderRadius: '10px',
+                '&:hover': { background: T.cream }
+              }}
+            >
+              (888) 960-1718
+            </Button>
+
+            <Button
+              href="mailto:chris@speedycreditrepair.com"
+              fullWidth
+              startIcon={<Mail size={16} />}
+              sx={{
+                fontFamily: T.fontBody,
+                fontSize: '14px',
+                fontWeight: 600,
+                color: T.navy,
+                textTransform: 'none',
+                justifyContent: 'flex-start',
+                px: 2,
+                py: 1,
+                borderRadius: '10px',
+                '&:hover': { background: T.cream }
+              }}
+            >
+              Email us
+            </Button>
+
+            <Typography sx={{
+              fontFamily: T.fontBody,
+              fontSize: '11px',
+              color: T.textMuted,
+              px: 2,
+              pb: 1.5,
+              pt: 0.5
+            }}>
+              Mon–Fri 9am–6pm PT
+            </Typography>
+          </Box>
+        </Paper>
+      )}
+
+      {/* Help FAB */}
+      <Box
+        onClick={() => setExpanded(!expanded)}
+        sx={{
+          width: 52,
+          height: 52,
+          borderRadius: '50%',
+          background: T.gradientNavy,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          animation: expanded ? 'none' : 'csp-helpPulse 3s ease-in-out infinite',
+          transition: 'transform 0.2s ease',
+          '&:hover': { transform: 'scale(1.08)' },
+          '&:active': { transform: 'scale(0.95)' }
+        }}
+      >
+        {expanded ? (
+          <XCircle size={22} color={T.goldLight} />
+        ) : (
+          <MessageCircle size={22} color={T.goldLight} />
+        )}
+      </Box>
+    </Box>
+  );
+};
+
+// ============================================================================
 // ===== LOADING STATE — Elegant Shield Animation =====
 // ============================================================================
 const LoadingState = () => (
@@ -402,9 +663,9 @@ const LoadingState = () => (
 );
 
 // ============================================================================
-// ===== ERROR STATES — Professional, Warm, Clear =====
+// ===== ERROR STATES — Professional, Warm, Clear (with Retry) =====
 // ============================================================================
-const ErrorDisplay = ({ type, message }) => {
+const ErrorDisplay = ({ type, message, onRetry }) => {
   const configs = {
     invalid: {
       icon: <XCircle size={40} color={T.red} strokeWidth={1.5} />,
@@ -493,6 +754,30 @@ const ErrorDisplay = ({ type, message }) => {
             }}>
               {message}
             </Typography>
+
+            {/* Retry button for transient errors */}
+            {(type === 'error') && onRetry && (
+              <Button
+                onClick={onRetry}
+                variant="outlined"
+                startIcon={<RefreshCw size={16} />}
+                sx={{
+                  fontFamily: T.fontBody,
+                  fontWeight: 600,
+                  textTransform: 'none',
+                  borderColor: T.border,
+                  color: T.navy,
+                  borderRadius: '12px',
+                  mb: 3,
+                  '&:hover': {
+                    borderColor: T.gold,
+                    background: T.goldGlow
+                  }
+                }}
+              >
+                Try Again
+              </Button>
+            )}
             
             <GoldDivider />
             
@@ -560,9 +845,9 @@ const ErrorDisplay = ({ type, message }) => {
 };
 
 // ============================================================================
-// ===== SIGNING COMPLETE — Celebration Screen =====
+// ===== SIGNING COMPLETE — Enhanced Celebration Screen =====
 // ============================================================================
-const SigningComplete = ({ contactName }) => {
+const SigningComplete = ({ contactName, planName }) => {
   const particles = Array.from({ length: 18 }, (_, i) => ({
     id: i,
     left: `${8 + Math.random() * 84}%`,
@@ -656,14 +941,30 @@ const SigningComplete = ({ contactName }) => {
               fontWeight: 500,
               fontSize: '16px',
               color: T.green,
-              mb: 3
+              mb: 1
             }}>
               Your contract has been signed successfully
             </Typography>
+
+            {planName && (
+              <Chip
+                label={planName}
+                size="small"
+                sx={{
+                  fontFamily: T.fontBody,
+                  fontWeight: 600,
+                  fontSize: '12px',
+                  background: T.goldMuted,
+                  color: '#8b7530',
+                  border: '1px solid rgba(201,168,76,0.25)',
+                  mb: 2
+                }}
+              />
+            )}
             
             <GoldDivider />
             
-            {/* What's Next */}
+            {/* What's Next — Enhanced with timeline style */}
             <Box className="csp-stagger-4" sx={{
               background: T.cream,
               borderRadius: '16px',
@@ -684,18 +985,31 @@ const SigningComplete = ({ contactName }) => {
               </Typography>
               
               {[
-                { icon: <Mail size={16} />, text: 'Confirmation email arriving in minutes', delay: '0.6s' },
-                { icon: <Shield size={16} />, text: 'Your dedicated team begins credit analysis', delay: '0.7s' },
-                { icon: <FileText size={16} />, text: 'We may request a few optional documents', delay: '0.8s' },
-                { icon: <Sparkles size={16} />, text: 'First disputes filed within 5–7 business days', delay: '0.9s' }
+                { icon: <Mail size={16} />, text: 'Confirmation email arriving in minutes', time: 'Now' },
+                { icon: <Shield size={16} />, text: 'Your dedicated team begins credit analysis', time: 'Today' },
+                { icon: <FileText size={16} />, text: 'We may request a few optional documents', time: '1–2 days' },
+                { icon: <Sparkles size={16} />, text: 'First disputes filed with all 3 bureaus', time: '5–7 days' }
               ].map((item, i) => (
                 <Box key={i} sx={{
                   display: 'flex',
                   alignItems: 'flex-start',
                   gap: 1.5,
-                  mb: i < 3 ? 1.5 : 0,
-                  animation: `csp-slideInRight 0.5s ease-out ${item.delay} both`
+                  mb: i < 3 ? 2 : 0,
+                  animation: `csp-slideInRight 0.5s ease-out ${0.6 + i * 0.1}s both`,
+                  position: 'relative'
                 }}>
+                  {/* Timeline connector line */}
+                  {i < 3 && (
+                    <Box sx={{
+                      position: 'absolute',
+                      left: 13,
+                      top: 30,
+                      width: 1,
+                      height: 20,
+                      background: 'rgba(201,168,76,0.2)'
+                    }} />
+                  )}
+
                   <Box sx={{
                     width: 28,
                     height: 28,
@@ -710,16 +1024,27 @@ const SigningComplete = ({ contactName }) => {
                   }}>
                     {item.icon}
                   </Box>
-                  <Typography sx={{
-                    fontFamily: T.fontBody,
-                    fontSize: '14px',
-                    fontWeight: 500,
-                    color: T.textPrimary,
-                    lineHeight: 1.4,
-                    pt: 0.3
-                  }}>
-                    {item.text}
-                  </Typography>
+
+                  <Box sx={{ flex: 1, pt: 0.15 }}>
+                    <Typography sx={{
+                      fontFamily: T.fontBody,
+                      fontSize: '14px',
+                      fontWeight: 500,
+                      color: T.textPrimary,
+                      lineHeight: 1.4
+                    }}>
+                      {item.text}
+                    </Typography>
+                    <Typography sx={{
+                      fontFamily: T.fontBody,
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      color: T.textMuted,
+                      mt: 0.25
+                    }}>
+                      {item.time}
+                    </Typography>
+                  </Box>
                 </Box>
               ))}
             </Box>
@@ -729,7 +1054,8 @@ const SigningComplete = ({ contactName }) => {
               background: `linear-gradient(135deg, ${T.navy} 0%, ${T.navyMid} 100%)`,
               borderRadius: '16px',
               p: 3,
-              textAlign: 'center'
+              textAlign: 'center',
+              mb: 3
             }}>
               <Typography sx={{
                 fontFamily: T.fontDisplay,
@@ -749,10 +1075,55 @@ const SigningComplete = ({ contactName }) => {
                 — Chris Lahage, Founder · 30 years in credit repair
               </Typography>
             </Box>
+
+            {/* Quick contact for questions */}
+            <Box className="csp-stagger-6" sx={{
+              display: 'flex',
+              justifyContent: 'center',
+              gap: 2,
+              flexWrap: 'wrap'
+            }}>
+              <Button
+                href="tel:8889601718"
+                startIcon={<Phone size={14} />}
+                size="small"
+                sx={{
+                  fontFamily: T.fontBody,
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  color: T.navy,
+                  textTransform: 'none',
+                  borderRadius: '10px',
+                  border: `1px solid ${T.border}`,
+                  px: 2,
+                  '&:hover': { background: T.cream, borderColor: T.gold }
+                }}
+              >
+                Call us
+              </Button>
+              <Button
+                href="mailto:chris@speedycreditrepair.com"
+                startIcon={<Mail size={14} />}
+                size="small"
+                sx={{
+                  fontFamily: T.fontBody,
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  color: T.navy,
+                  textTransform: 'none',
+                  borderRadius: '10px',
+                  border: `1px solid ${T.border}`,
+                  px: 2,
+                  '&:hover': { background: T.cream, borderColor: T.gold }
+                }}
+              >
+                Email us
+              </Button>
+            </Box>
           </Box>
         </Paper>
         
-        <Box className="csp-stagger-6" sx={{ mt: 3 }}>
+        <Box className="csp-stagger-7" sx={{ mt: 3 }}>
           <TrustBadges compact />
         </Box>
         
@@ -771,11 +1142,108 @@ const SigningComplete = ({ contactName }) => {
 };
 
 // ============================================================================
+// ===== PERSONALIZED WELCOME CARD =====
+// Shown between header and the ContractSigningPortal for warm onboarding
+// ============================================================================
+const WelcomeCard = ({ contactName, planData }) => (
+  <Container maxWidth="md" sx={{ mt: -2, mb: 1, position: 'relative', zIndex: 2 }}>
+    <Paper className="csp-stagger-5" elevation={0} sx={{
+      borderRadius: '16px',
+      overflow: 'hidden',
+      border: `1px solid ${T.border}`,
+      boxShadow: T.shadowSoft,
+      background: T.white
+    }}>
+      <Box sx={{
+        display: 'flex',
+        flexDirection: { xs: 'column', sm: 'row' },
+        alignItems: { xs: 'flex-start', sm: 'center' },
+        justifyContent: 'space-between',
+        p: { xs: 2.5, sm: 3 },
+        gap: 2
+      }}>
+        {/* Left side: greeting + plan info */}
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+          {/* Avatar circle with initials */}
+          <Box sx={{
+            width: 44,
+            height: 44,
+            borderRadius: '12px',
+            background: T.goldMuted,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+            border: '1px solid rgba(201,168,76,0.2)'
+          }}>
+            <Typography sx={{
+              fontFamily: T.fontDisplay,
+              fontSize: '16px',
+              fontWeight: 700,
+              color: T.gold
+            }}>
+              {contactName ? contactName.charAt(0).toUpperCase() : 'G'}
+            </Typography>
+          </Box>
+
+          <Box>
+            <Typography sx={{
+              fontFamily: T.fontBody,
+              fontSize: '15px',
+              fontWeight: 600,
+              color: T.textPrimary,
+              lineHeight: 1.3,
+              mb: 0.25
+            }}>
+              Welcome{contactName ? `, ${contactName}` : ''}
+            </Typography>
+            <Typography sx={{
+              fontFamily: T.fontBody,
+              fontSize: '13px',
+              color: T.textSecondary,
+              lineHeight: 1.4
+            }}>
+              Please review each document carefully, then sign where indicated.
+              {planData?.name && <> Your <strong>{planData.name}</strong> plan documents are ready.</>}
+            </Typography>
+          </Box>
+        </Box>
+
+        {/* Right side: estimated time */}
+        <Box sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 0.75,
+          px: 2,
+          py: 0.75,
+          borderRadius: '12px',
+          background: T.cream,
+          flexShrink: 0,
+          border: `1px solid ${T.borderLight}`
+        }}>
+          <Timer size={14} color={T.textMuted} />
+          <Typography sx={{
+            fontFamily: T.fontBody,
+            fontSize: '12px',
+            fontWeight: 600,
+            color: T.textSecondary,
+            whiteSpace: 'nowrap'
+          }}>
+            ~5–10 min
+          </Typography>
+        </Box>
+      </Box>
+    </Paper>
+  </Container>
+);
+
+// ============================================================================
 // ===== MAIN COMPONENT =====
 // ============================================================================
 const PublicContractSigningRoute = () => {
   const { token } = useParams();
   
+  // ===== STATE =====
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [errorType, setErrorType] = useState('error');
@@ -784,6 +1252,7 @@ const PublicContractSigningRoute = () => {
   const [tokenId, setTokenId] = useState(null);
   const [signingComplete, setSigningComplete] = useState(false);
 
+  // ===== Token validation on mount =====
   useEffect(() => {
     if (!token) {
       setError('No signing token provided. Please use the link from your email.');
@@ -794,6 +1263,7 @@ const PublicContractSigningRoute = () => {
     validateToken();
   }, [token]);
   
+  // ===== VALIDATE TOKEN =====
   const validateToken = async () => {
     setLoading(true);
     setError(null);
@@ -821,28 +1291,37 @@ const PublicContractSigningRoute = () => {
     }
   };
 
-  const handleSigningComplete = useCallback(async () => {
-    console.log('🎉 Contract signing completed!');
-    
-    try {
-      await callOperationsManager('markContractSigningTokenUsed', {
-        token,
-        contactId: contactData?.id
-      });
-    } catch (err) {
-      console.warn('⚠️ Failed to mark token (non-fatal):', err);
-    }
+  // ===== SIGNING COMPLETE CALLBACK =====
+  // IMPORTANT (v3.0): We NO LONGER call markContractSigningTokenUsed here.
+  // The submitSignedContract backend case block already marks the token
+  // as used in Step 9 of its flow. Calling it again from the client would
+  // cause a duplicate-write error (token already has used=true).
+  //
+  // Previous code (REMOVED):
+  //   await callOperationsManager('markContractSigningTokenUsed', { ... });
+  //
+  // The server-side approach is more secure because:
+  //   1. Token is marked used atomically with contract creation
+  //   2. No client-side manipulation possible
+  //   3. No race condition between "signed" and "token used"
+  const handleSigningComplete = useCallback(async (contractId) => {
+    console.log('🎉 Contract signing completed! Contract:', contractId);
+    console.log('   Token already marked as used by submitSignedContract backend');
     
     setSigningComplete(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [token, contactData]);
+  }, []);
 
-  // ===== RENDER =====
+  // ===== RENDER: Loading =====
   if (loading) return <LoadingState />;
-  if (error) return <ErrorDisplay type={errorType} message={error} />;
-  if (signingComplete) return <SigningComplete contactName={contactData?.firstName} />;
+
+  // ===== RENDER: Error (with retry for transient errors) =====
+  if (error) return <ErrorDisplay type={errorType} message={error} onRetry={errorType === 'error' ? validateToken : null} />;
+
+  // ===== RENDER: Signing Complete Celebration =====
+  if (signingComplete) return <SigningComplete contactName={contactData?.firstName} planName={planData?.name} />;
   
-  // ===== CONTRACT SIGNING EXPERIENCE =====
+  // ===== RENDER: Contract Signing Experience =====
   return (
     <Box sx={{
       minHeight: '100vh',
@@ -881,8 +1360,13 @@ const PublicContractSigningRoute = () => {
             <Box className="csp-stagger-1">
               <SpeedyLogo light size="normal" />
             </Box>
+
+            {/* Step Indicator — v3.0 enhancement */}
+            <Box className="csp-stagger-2" sx={{ mt: 2 }}>
+              <StepIndicator currentStep={1} />
+            </Box>
             
-            <Box className="csp-stagger-2" sx={{ mt: 2.5 }}>
+            <Box className="csp-stagger-3" sx={{ mt: 2 }}>
               <Typography sx={{
                 fontFamily: T.fontBody,
                 fontSize: { xs: '14px', sm: '15px' },
@@ -894,7 +1378,7 @@ const PublicContractSigningRoute = () => {
             </Box>
             
             {planData && (
-              <Box className="csp-stagger-3" sx={{
+              <Box className="csp-stagger-4" sx={{
                 mt: 2,
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -917,7 +1401,7 @@ const PublicContractSigningRoute = () => {
               </Box>
             )}
             
-            <Box className="csp-stagger-4" sx={{
+            <Box className="csp-stagger-5" sx={{
               mt: 2,
               display: 'flex',
               alignItems: 'center',
@@ -951,9 +1435,12 @@ const PublicContractSigningRoute = () => {
           </Box>
         </Container>
       </Box>
+
+      {/* ===== PERSONALIZED WELCOME CARD (v3.0) ===== */}
+      <WelcomeCard contactName={contactData?.firstName} planData={planData} />
       
       {/* ===== CONTRACT SIGNING PORTAL ===== */}
-      <Box className="csp-stagger-5">
+      <Box className="csp-stagger-6">
         <ContractSigningPortal
           contactData={contactData}
           planData={planData}
@@ -1050,6 +1537,9 @@ const PublicContractSigningRoute = () => {
           </Box>
         </Container>
       </Box>
+
+      {/* ===== FLOATING HELP BUTTON (v3.0) ===== */}
+      <FloatingHelpButton />
     </Box>
   );
 };

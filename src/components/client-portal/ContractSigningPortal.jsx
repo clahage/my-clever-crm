@@ -119,6 +119,29 @@ import { getCachedSCRSignature } from '@/utils/scrSignatureGenerator';
 import { generateZellePaymentCard } from '@/utils/zelleQRGenerator';
 
 // ============================================================================
+// ===== OPERATIONS MANAGER URL (for secure server-side public signing) =====
+// When isPublicSigning=true, ALL Firestore writes route through this API
+// instead of direct client-side writes (client has no Firebase auth).
+// ============================================================================
+const OPERATIONS_MANAGER_URL = 'https://operationsmanager-tvkxcewmxq-uc.a.run.app';
+
+// ===== Helper: Call operationsManager API =====
+const callOperationsManager = async (action, data = {}) => {
+  console.log(`📡 [ContractSigningPortal] Calling operationsManager: ${action}`);
+  const response = await fetch(OPERATIONS_MANAGER_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ data: { action, ...data } })
+  });
+  const result = await response.json();
+  console.log(`📡 [ContractSigningPortal] Response for ${action}:`, result);
+  if (!result.success && result.error) {
+    throw new Error(result.error);
+  }
+  return result;
+};
+
+// ============================================================================
 // ===== TAB ICON MAP =====
 // ============================================================================
 const TAB_ICONS = {
@@ -679,19 +702,23 @@ export default function ContractSigningPortal({
         }
         setPlanConfig(selectedPlan);
 
-        // Create new contract for public signing
-        const newContractRef = await addDoc(collection(db, 'contracts'), {
-          contactId: contactData.id,
-          status: 'pending',
-          planId: selectedPlan.id,
+        // ===== PUBLIC SIGNING: In-memory contract placeholder =====
+        // We do NOT create a Firestore contract doc here because the client
+        // has no Firebase auth. The real contract will be created server-side
+        // by the `submitSignedContract` case block when they hit Submit.
+        // This placeholder just satisfies the UI's need for a contract object.
+        const placeholderContractId = `pending_${Date.now()}`;
+        const contractData2 = { 
+          id: placeholderContractId, 
+          planId: selectedPlan.id, 
           planName: selectedPlan.name,
-          source: 'email_signing_link',
-          createdAt: serverTimestamp()
-        });
-        const contractData2 = { id: newContractRef.id, planId: selectedPlan.id, planName: selectedPlan.name };
+          status: 'pending_public_signing'
+        };
         setContract(contractData2);
-        setContractId(newContractRef.id);
-        console.log('✅ Contract created for public signing:', newContractRef.id);
+        setContractId(placeholderContractId);
+        console.log('✅ In-memory contract placeholder created:', placeholderContractId);
+        console.log('   (Real contract will be created server-side on Submit)');
+
 
       } else {
         // ===== NORMAL FLOW: Load from Firestore =====
@@ -974,6 +1001,87 @@ export default function ContractSigningPortal({
         online: navigator.onLine
       };
 
+      // =================================================================
+      // PUBLIC SIGNING PATH: Route ALL writes through backend API
+      // =================================================================
+      // When signing via email link, the client has no Firebase auth.
+      // Instead of writing to Firestore directly (which would fail),
+      // we send everything to the `submitSignedContract` case block
+      // in operationsManager. The server handles:
+      //   - Contract creation
+      //   - Signature uploads to Storage
+      //   - ACH authorization / grace period
+      //   - Audit trail
+      //   - Contact update (triggers Scenario 3 automation)
+      //   - Token invalidation
+      // =================================================================
+      if (isPublicSigning && signingToken) {
+        console.log('🔒 PUBLIC SIGNING: Routing through secure server-side API');
+        
+        try {
+          const apiResult = await callOperationsManager('submitSignedContract', {
+            token: signingToken,
+            contactId: contact.id,
+            // Send raw base64 signatures — server uploads to Storage
+            signatures: { ...signatures },
+            // Send raw initials (base64 for drawn, text for typed)
+            initials: { ...initials },
+            // Banking info (or null if deferred)
+            bankingInfo: deferBanking ? null : bankingInfo,
+            deferBanking: deferBanking,
+            // Session forensics for audit trail
+            sessionData: {
+              currentIP: sessionData.currentIP,
+              timeSpent: sessionData.timeSpent,
+              totalTime: sessionData.totalTime,
+              documentsViewed: sessionData.documentsViewed,
+              startTime: sessionData.startTime
+            },
+            deviceInfo: JSON.stringify(deviceInfo),
+            scrSignatureApplied: scrSignatureApplied,
+            viewedTabs: Array.from(viewedTabs),
+            planId: contract.planId || planConfig?.id,
+            planName: contract.planName || planConfig?.name,
+            agreedToTerms: true
+          });
+          
+          console.log('✅ Server-side contract submission successful:', apiResult);
+          
+          // Update local state with real contract ID from server
+          if (apiResult.contractId) {
+            setContract(prev => ({ ...prev, id: apiResult.contractId }));
+            setContractId(apiResult.contractId);
+          }
+          
+          // Success
+          setSuccess(true);
+          setActiveStep(2);
+          
+          setSnackbar({
+            open: true,
+            message: '🎉 All documents signed successfully!',
+            severity: 'success'
+          });
+          
+          // Call the PublicContractSigningRoute completion callback
+          if (onSigningComplete) {
+            console.log('📝 Public signing complete — calling onSigningComplete callback');
+            onSigningComplete(apiResult.contractId);
+          }
+          
+          return; // Don't continue to the in-app Firestore path below
+          
+        } catch (apiError) {
+          console.error('❌ Server-side submission failed:', apiError);
+          throw new Error(apiError.message || 'Failed to submit contract. Please try again or call (888) 960-1718.');
+        }
+      }
+
+      // =================================================================
+      // IN-APP SIGNING PATH: Direct Firestore writes (user is authenticated)
+      // =================================================================
+      console.log('📝 IN-APP SIGNING: Using direct Firestore writes');
+
       // Upload signatures
       const signatureURLs = {};
       for (const [docId, dataURL] of Object.entries(signatures)) {
@@ -1124,13 +1232,6 @@ export default function ContractSigningPortal({
         message: '🎉 All documents signed successfully!',
         severity: 'success'
       });
-
-      // ===== PUBLIC SIGNING: Call completion callback instead of redirecting =====
-      if (isPublicSigning && onSigningComplete) {
-        console.log('📝 Public signing complete — calling onSigningComplete callback');
-        onSigningComplete(contract.id);
-        return; // Don't navigate — the PublicContractSigningRoute handles the success screen
-      }
 
       if (onComplete) {
         onComplete(contract.id);
