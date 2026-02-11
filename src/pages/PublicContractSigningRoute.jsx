@@ -2,26 +2,26 @@
 // Path: src/pages/PublicContractSigningRoute.jsx
 // ============================================================================
 //
-// PUBLIC CONTRACT SIGNING ROUTE
+// PUBLIC CONTRACT SIGNING ROUTE — PREMIUM DESIGN
 // ============================================================================
-// This component handles the /sign/:token URL that clients receive via email.
-// It validates the signing token, loads the client's data, and renders the
-// ContractSigningPortal for them to sign — all WITHOUT requiring login.
+// This is the FIRST thing clients see after clicking the email link.
+// It must instill ABSOLUTE confidence that they're working with the most
+// professional, trustworthy credit repair company in the country.
+//
+// Design Direction: Luxury Financial Services
+//   - Deep navy + warm gold palette (authority + warmth)
+//   - Playfair Display headings + DM Sans body (elegant + readable)
+//   - Staggered fade-in animations on every screen
+//   - Trust signals woven throughout (BBB, Google, 30 years, encryption)
+//   - Mobile-first (most clients open email links on phone)
+//   - Success screen with animated celebration
 //
 // Flow:
-//   1. Client clicks email link → /sign/abc123def456...
-//   2. This component extracts the token from the URL
-//   3. Calls validateContractSigningToken via operationsManager
-//   4. If valid → renders ContractSigningPortal with pre-filled data
-//   5. If invalid/expired/used → shows appropriate error message
-//   6. On signing completion → calls markContractSigningTokenUsed
-//
-// Security:
-//   - Token is 64-char hex (32 bytes of randomness)
-//   - Expires after 72 hours
-//   - One-time use (marked as used after signing)
-//   - No authentication required (public route)
-//   - All sensitive operations happen server-side
+//   1. Client clicks email link → /sign/TOKEN
+//   2. Elegant loading animation while token validates
+//   3. If valid → premium signing experience with ContractSigningPortal
+//   4. If invalid/expired → warm error with easy contact options
+//   5. On completion → stunning success celebration
 //
 // © 1995-{currentYear} Speedy Credit Repair Inc. | Chris Lahage | All Rights Reserved
 // ============================================================================
@@ -36,8 +36,10 @@ import {
   Button,
   Alert,
   Container,
+  Chip,
   Fade,
-  Chip
+  Grow,
+  Slide
 } from '@mui/material';
 import {
   Shield,
@@ -46,82 +48,387 @@ import {
   CheckCircle,
   FileText,
   Phone,
-  RefreshCw,
   Lock,
-  XCircle
+  XCircle,
+  Star,
+  Award,
+  Mail,
+  ArrowRight,
+  Sparkles,
+  Heart
 } from 'lucide-react';
 import ContractSigningPortal from '../components/client-portal/ContractSigningPortal';
 
 // ============================================================================
-// CONFIGURATION
+// ===== CONFIGURATION =====
 // ============================================================================
 const OPERATIONS_MANAGER_URL = 'https://operationsmanager-tvkxcewmxq-uc.a.run.app';
 
 // ============================================================================
-// HELPER: Call operationsManager (no auth needed for token validation)
+// ===== GOOGLE FONTS LOADER =====
+// Loads Playfair Display (elegant serif) + DM Sans (clean modern)
+// ============================================================================
+const fontLink = document.createElement('link');
+fontLink.href = 'https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600;700&display=swap';
+fontLink.rel = 'stylesheet';
+if (!document.querySelector('link[href*="Playfair+Display"]')) {
+  document.head.appendChild(fontLink);
+}
+
+// ============================================================================
+// ===== DESIGN TOKENS =====
+// ============================================================================
+const T = {
+  // Colors — Deep navy authority + warm gold trust
+  navy: '#0a1628',
+  navyLight: '#162035',
+  navyMid: '#1e3050',
+  slate: '#334766',
+  gold: '#c9a84c',
+  goldLight: '#dfc06a',
+  goldMuted: 'rgba(201,168,76,0.15)',
+  goldGlow: 'rgba(201,168,76,0.08)',
+  cream: '#faf8f3',
+  white: '#ffffff',
+  offWhite: '#f7f8fa',
+  green: '#2d9d78',
+  greenLight: '#34d399',
+  greenMuted: 'rgba(45,157,120,0.1)',
+  red: '#e74c3c',
+  redMuted: 'rgba(231,76,60,0.08)',
+  amber: '#e6a817',
+  amberMuted: 'rgba(230,168,23,0.08)',
+  textPrimary: '#0f1729',
+  textSecondary: '#4a5568',
+  textMuted: '#8896a6',
+  border: '#e2e6ec',
+  borderLight: '#f0f2f5',
+  // Typography
+  fontDisplay: '"Playfair Display", Georgia, "Times New Roman", serif',
+  fontBody: '"DM Sans", -apple-system, BlinkMacSystemFont, sans-serif',
+  // Shadows
+  shadowSoft: '0 2px 20px rgba(10,22,40,0.06)',
+  shadowMedium: '0 8px 40px rgba(10,22,40,0.10)',
+  shadowHeavy: '0 20px 60px rgba(10,22,40,0.15)',
+  shadowGold: '0 4px 24px rgba(201,168,76,0.20)',
+  // Gradients
+  gradientNavy: 'linear-gradient(145deg, #0a1628 0%, #162035 40%, #1e3050 100%)',
+  gradientGold: 'linear-gradient(135deg, #c9a84c 0%, #dfc06a 50%, #c9a84c 100%)',
+  gradientGreen: 'linear-gradient(135deg, #2d9d78 0%, #34d399 100%)',
+};
+
+// ============================================================================
+// ===== KEYFRAME ANIMATIONS (injected into head) =====
+// ============================================================================
+const styleSheet = document.createElement('style');
+styleSheet.textContent = `
+  @keyframes csp-fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes csp-fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes csp-scaleIn {
+    from { opacity: 0; transform: scale(0.85); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  @keyframes csp-shimmer {
+    0% { background-position: -200% center; }
+    100% { background-position: 200% center; }
+  }
+  @keyframes csp-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(201,168,76,0.3); }
+    50% { box-shadow: 0 0 0 16px rgba(201,168,76,0); }
+  }
+  @keyframes csp-pulseGreen {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(45,157,120,0.3); }
+    50% { box-shadow: 0 0 0 20px rgba(45,157,120,0); }
+  }
+  @keyframes csp-float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-8px); }
+  }
+  @keyframes csp-spinSlow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  @keyframes csp-checkDraw {
+    from { stroke-dashoffset: 50; }
+    to { stroke-dashoffset: 0; }
+  }
+  @keyframes csp-confetti {
+    0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(-120px) rotate(720deg); opacity: 0; }
+  }
+  @keyframes csp-slideInRight {
+    from { opacity: 0; transform: translateX(30px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes csp-breathe {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 0.8; }
+  }
+  .csp-stagger-1 { animation: csp-fadeUp 0.7s ease-out 0.1s both; }
+  .csp-stagger-2 { animation: csp-fadeUp 0.7s ease-out 0.25s both; }
+  .csp-stagger-3 { animation: csp-fadeUp 0.7s ease-out 0.4s both; }
+  .csp-stagger-4 { animation: csp-fadeUp 0.7s ease-out 0.55s both; }
+  .csp-stagger-5 { animation: csp-fadeUp 0.7s ease-out 0.7s both; }
+  .csp-stagger-6 { animation: csp-fadeUp 0.7s ease-out 0.85s both; }
+`;
+if (!document.querySelector('style[data-csp-animations]')) {
+  styleSheet.setAttribute('data-csp-animations', 'true');
+  document.head.appendChild(styleSheet);
+}
+
+// ============================================================================
+// ===== HELPER: Call operationsManager =====
 // ============================================================================
 const callOperationsManager = async (action, params = {}) => {
   console.log(`📡 Calling operationsManager: ${action}`, params);
-  
   const response = await fetch(OPERATIONS_MANAGER_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ data: { action, ...params } })
   });
-  
   const data = await response.json();
   console.log(`📡 Response for ${action}:`, data);
   return data;
 };
 
 // ============================================================================
-// THEME COLORS
+// ===== SPEEDY CREDIT REPAIR LOGO =====
+// Refined text-based logo with gold accent line
 // ============================================================================
-const COLORS = {
-  primary: '#1e3a5f',
-  primaryLight: '#2d5a8e',
-  success: '#059669',
-  successLight: '#10b981',
-  warning: '#d97706',
-  error: '#dc2626',
-  bg: '#f8fafc',
-  cardBg: '#ffffff',
-  textPrimary: '#1e293b',
-  textSecondary: '#64748b',
-  textMuted: '#94a3b8',
-  border: '#e2e8f0',
-  gradientHeader: 'linear-gradient(135deg, #1e3a5f 0%, #2d5a8e 50%, #1e3a5f 100%)',
-  gradientSuccess: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+const SpeedyLogo = ({ size = 'normal', light = false }) => {
+  const isSmall = size === 'small';
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <Typography sx={{
+        fontFamily: T.fontDisplay,
+        fontWeight: 700,
+        fontSize: isSmall ? '18px' : { xs: '22px', sm: '28px' },
+        color: light ? T.white : T.navy,
+        letterSpacing: '-0.5px',
+        lineHeight: 1.1
+      }}>
+        Speedy Credit Repair
+      </Typography>
+      {/* Gold accent line */}
+      <Box sx={{
+        width: isSmall ? 40 : 56,
+        height: 2,
+        background: T.gradientGold,
+        borderRadius: 1,
+        mt: isSmall ? 0.5 : 0.75,
+        mb: isSmall ? 0.3 : 0.5
+      }} />
+      <Typography sx={{
+        fontFamily: T.fontBody,
+        fontWeight: 400,
+        fontSize: isSmall ? '10px' : '12px',
+        color: light ? 'rgba(255,255,255,0.6)' : T.textMuted,
+        letterSpacing: '2px',
+        textTransform: 'uppercase'
+      }}>
+        Est. 1995
+      </Typography>
+    </Box>
+  );
 };
 
 // ============================================================================
-// ERROR STATES
+// ===== TRUST BADGE ROW =====
+// ============================================================================
+const TrustBadges = ({ compact = false }) => {
+  const badges = [
+    { icon: <Award size={compact ? 13 : 15} />, label: 'A+ BBB', color: T.gold },
+    { icon: <Star size={compact ? 13 : 15} />, label: '4.9★ Google', color: T.gold },
+    { icon: <Shield size={compact ? 13 : 15} />, label: '30 Years', color: T.gold },
+    { icon: <Lock size={compact ? 13 : 15} />, label: '256-bit SSL', color: T.green },
+  ];
+  
+  return (
+    <Box sx={{
+      display: 'flex',
+      justifyContent: 'center',
+      gap: compact ? 0.75 : 1,
+      flexWrap: 'wrap'
+    }}>
+      {badges.map((b, i) => (
+        <Box key={i} sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 0.5,
+          px: compact ? 1 : 1.5,
+          py: compact ? 0.3 : 0.5,
+          borderRadius: '20px',
+          background: b.color === T.green ? T.greenMuted : T.goldMuted,
+          border: `1px solid ${b.color === T.green ? 'rgba(45,157,120,0.2)' : 'rgba(201,168,76,0.2)'}`,
+        }}>
+          <Box sx={{ color: b.color, display: 'flex', alignItems: 'center' }}>{b.icon}</Box>
+          <Typography sx={{
+            fontFamily: T.fontBody,
+            fontSize: compact ? '10px' : '11px',
+            fontWeight: 600,
+            color: b.color === T.green ? T.green : '#8b7530',
+            whiteSpace: 'nowrap'
+          }}>
+            {b.label}
+          </Typography>
+        </Box>
+      ))}
+    </Box>
+  );
+};
+
+// ============================================================================
+// ===== GOLD DIVIDER =====
+// ============================================================================
+const GoldDivider = () => (
+  <Box sx={{
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+    my: 3
+  }}>
+    <Box sx={{ width: 60, height: 1, background: 'linear-gradient(to right, transparent, rgba(201,168,76,0.4))' }} />
+    <Box sx={{ width: 6, height: 6, borderRadius: '50%', background: T.gold, opacity: 0.5 }} />
+    <Box sx={{ width: 60, height: 1, background: 'linear-gradient(to left, transparent, rgba(201,168,76,0.4))' }} />
+  </Box>
+);
+
+// ============================================================================
+// ===== LOADING STATE — Elegant Shield Animation =====
+// ============================================================================
+const LoadingState = () => (
+  <Box sx={{
+    minHeight: '100vh',
+    background: T.cream,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'column',
+    p: 3
+  }}>
+    {/* Animated shield with gold pulse ring */}
+    <Box className="csp-stagger-1" sx={{
+      position: 'relative',
+      width: 100,
+      height: 100,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      mb: 4
+    }}>
+      {/* Outer pulse ring */}
+      <Box sx={{
+        position: 'absolute',
+        inset: 0,
+        borderRadius: '50%',
+        animation: 'csp-pulse 2s ease-in-out infinite',
+      }} />
+      {/* Spinning border */}
+      <Box sx={{
+        position: 'absolute',
+        inset: 4,
+        borderRadius: '50%',
+        border: '2px solid transparent',
+        borderTopColor: T.gold,
+        borderRightColor: 'rgba(201,168,76,0.3)',
+        animation: 'csp-spinSlow 2s linear infinite',
+      }} />
+      {/* Shield icon */}
+      <Box sx={{
+        width: 64,
+        height: 64,
+        borderRadius: '50%',
+        background: T.white,
+        boxShadow: T.shadowMedium,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        <Shield size={30} color={T.gold} strokeWidth={1.5} />
+      </Box>
+    </Box>
+    
+    <Box className="csp-stagger-2" sx={{ mb: 3 }}>
+      <SpeedyLogo />
+    </Box>
+    
+    <Box className="csp-stagger-3" sx={{ textAlign: 'center' }}>
+      <Typography sx={{
+        fontFamily: T.fontBody,
+        fontSize: '16px',
+        fontWeight: 500,
+        color: T.textPrimary,
+        mb: 0.5
+      }}>
+        Verifying your secure signing link
+      </Typography>
+      <Typography sx={{
+        fontFamily: T.fontBody,
+        fontSize: '13px',
+        color: T.textMuted
+      }}>
+        This will only take a moment...
+      </Typography>
+    </Box>
+    
+    <Box className="csp-stagger-4" sx={{
+      mt: 4,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 0.75,
+      px: 2,
+      py: 0.75,
+      borderRadius: '20px',
+      background: T.greenMuted,
+    }}>
+      <Lock size={13} color={T.green} />
+      <Typography sx={{
+        fontFamily: T.fontBody,
+        fontSize: '11px',
+        fontWeight: 600,
+        color: T.green
+      }}>
+        Encrypted Connection
+      </Typography>
+    </Box>
+  </Box>
+);
+
+// ============================================================================
+// ===== ERROR STATES — Professional, Warm, Clear =====
 // ============================================================================
 const ErrorDisplay = ({ type, message }) => {
   const configs = {
     invalid: {
-      icon: <XCircle size={56} color={COLORS.error} />,
-      title: 'Invalid Signing Link',
-      color: COLORS.error,
-      bgColor: '#fef2f2'
+      icon: <XCircle size={40} color={T.red} strokeWidth={1.5} />,
+      title: 'Link Not Recognized',
+      accent: T.red,
+      bgTint: T.redMuted
     },
     expired: {
-      icon: <Clock size={56} color={COLORS.warning} />,
-      title: 'Link Expired',
-      color: COLORS.warning,
-      bgColor: '#fffbeb'
+      icon: <Clock size={40} color={T.amber} strokeWidth={1.5} />,
+      title: 'This Link Has Expired',
+      accent: T.amber,
+      bgTint: T.amberMuted
     },
     alreadyUsed: {
-      icon: <CheckCircle size={56} color={COLORS.success} />,
-      title: 'Already Signed',
-      color: COLORS.success,
-      bgColor: '#f0fdf4'
+      icon: <CheckCircle size={40} color={T.green} strokeWidth={1.5} />,
+      title: 'Contract Already Signed',
+      accent: T.green,
+      bgTint: T.greenMuted
     },
     error: {
-      icon: <AlertCircle size={56} color={COLORS.error} />,
+      icon: <AlertCircle size={40} color={T.red} strokeWidth={1.5} />,
       title: 'Something Went Wrong',
-      color: COLORS.error,
-      bgColor: '#fef2f2'
+      accent: T.red,
+      bgTint: T.redMuted
     }
   };
   
@@ -130,39 +437,32 @@ const ErrorDisplay = ({ type, message }) => {
   return (
     <Box sx={{
       minHeight: '100vh',
-      background: COLORS.bg,
+      background: T.cream,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      p: 2
+      p: 3
     }}>
       <Container maxWidth="sm">
-        {/* Header */}
-        <Box sx={{ textAlign: 'center', mb: 4 }}>
-          <Typography variant="h5" sx={{ color: COLORS.primary, fontWeight: 700, mb: 0.5 }}>
-            Speedy Credit Repair
-          </Typography>
-          <Typography variant="body2" sx={{ color: COLORS.textMuted }}>
-            Trusted Credit Repair Since 1995
-          </Typography>
+        <Box className="csp-stagger-1" sx={{ textAlign: 'center', mb: 4 }}>
+          <SpeedyLogo />
         </Box>
         
-        <Paper elevation={0} sx={{
-          borderRadius: 4,
+        <Paper className="csp-stagger-2" elevation={0} sx={{
+          borderRadius: '20px',
           overflow: 'hidden',
-          border: `1px solid ${COLORS.border}`,
-          textAlign: 'center'
+          border: `1px solid ${T.border}`,
+          boxShadow: T.shadowMedium,
+          background: T.white
         }}>
-          {/* Colored top bar */}
-          <Box sx={{ height: 6, background: config.color }} />
+          <Box sx={{ height: 4, background: config.accent }} />
           
-          <Box sx={{ p: 5 }}>
-            {/* Icon */}
+          <Box sx={{ p: { xs: 4, sm: 5 }, textAlign: 'center' }}>
             <Box sx={{
-              width: 88,
-              height: 88,
+              width: 80,
+              height: 80,
               borderRadius: '50%',
-              background: config.bgColor,
+              background: config.bgTint,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -172,209 +472,310 @@ const ErrorDisplay = ({ type, message }) => {
               {config.icon}
             </Box>
             
-            <Typography variant="h5" sx={{ fontWeight: 700, color: COLORS.textPrimary, mb: 2 }}>
+            <Typography sx={{
+              fontFamily: T.fontDisplay,
+              fontWeight: 700,
+              fontSize: { xs: '22px', sm: '26px' },
+              color: T.textPrimary,
+              mb: 1.5
+            }}>
               {config.title}
             </Typography>
             
-            <Typography variant="body1" sx={{ color: COLORS.textSecondary, lineHeight: 1.7, mb: 3 }}>
+            <Typography sx={{
+              fontFamily: T.fontBody,
+              fontSize: '15px',
+              color: T.textSecondary,
+              lineHeight: 1.7,
+              mb: 3,
+              maxWidth: 400,
+              mx: 'auto'
+            }}>
               {message}
             </Typography>
             
-            {/* Contact Info */}
-            <Paper elevation={0} sx={{
-              background: '#f0f9ff',
-              border: '1px solid #bae6fd',
-              borderRadius: 3,
-              p: 2.5,
+            <GoldDivider />
+            
+            <Box sx={{
+              background: T.cream,
+              borderRadius: '16px',
+              p: 3,
               mb: 2
             }}>
-              <Typography variant="body2" sx={{ color: '#0369a1', fontWeight: 600, mb: 1 }}>
-                Need help? Contact us:
+              <Typography sx={{
+                fontFamily: T.fontBody,
+                fontSize: '13px',
+                fontWeight: 600,
+                color: T.textSecondary,
+                mb: 1.5,
+                textTransform: 'uppercase',
+                letterSpacing: '1px'
+              }}>
+                We're here to help
               </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-                <Phone size={16} color="#0369a1" />
-                <Typography 
-                  component="a" 
-                  href="tel:8889601718" 
-                  sx={{ color: '#0369a1', fontWeight: 600, textDecoration: 'none', fontSize: '16px' }}
-                >
-                  (888) 960-1718
-                </Typography>
-              </Box>
-            </Paper>
-            
-            <Button
-              variant="text"
-              href="https://speedycreditrepair.com"
-              sx={{ color: COLORS.textMuted, textTransform: 'none', mt: 1 }}
-            >
-              Visit speedycreditrepair.com
-            </Button>
+              
+              <Button
+                href="tel:8889601718"
+                startIcon={<Phone size={18} />}
+                sx={{
+                  fontFamily: T.fontBody,
+                  fontSize: '17px',
+                  fontWeight: 700,
+                  color: T.navy,
+                  textTransform: 'none',
+                  mb: 1,
+                  '&:hover': { background: 'rgba(10,22,40,0.04)' }
+                }}
+              >
+                (888) 960-1718
+              </Button>
+              
+              <Typography sx={{
+                fontFamily: T.fontBody,
+                fontSize: '13px',
+                color: T.textMuted
+              }}>
+                Mon–Fri 9am–6pm PT
+              </Typography>
+            </Box>
           </Box>
         </Paper>
         
-        {/* Footer */}
-        <Box sx={{ textAlign: 'center', mt: 3 }}>
-          <Typography variant="caption" sx={{ color: COLORS.textMuted }}>
-            © {new Date().getFullYear()} Speedy Credit Repair Inc. | All Rights Reserved
-          </Typography>
+        <Box className="csp-stagger-3" sx={{ mt: 3, mb: 2 }}>
+          <TrustBadges compact />
         </Box>
+        
+        <Typography className="csp-stagger-4" sx={{
+          textAlign: 'center',
+          fontFamily: T.fontBody,
+          fontSize: '11px',
+          color: T.textMuted,
+          mt: 2
+        }}>
+          © {new Date().getFullYear()} Speedy Credit Repair Inc. · All Rights Reserved
+        </Typography>
       </Container>
     </Box>
   );
 };
 
 // ============================================================================
-// SIGNING COMPLETE STATE
+// ===== SIGNING COMPLETE — Celebration Screen =====
 // ============================================================================
-const SigningComplete = ({ contactName }) => (
-  <Box sx={{
-    minHeight: '100vh',
-    background: COLORS.bg,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    p: 2
-  }}>
-    <Container maxWidth="sm">
-      <Paper elevation={0} sx={{
-        borderRadius: 4,
-        overflow: 'hidden',
-        border: `1px solid ${COLORS.border}`,
-        textAlign: 'center'
-      }}>
-        {/* Success gradient bar */}
-        <Box sx={{ height: 6, background: COLORS.gradientSuccess }} />
-        
-        <Box sx={{ p: 5 }}>
-          {/* Animated checkmark */}
-          <Box sx={{
-            width: 96,
-            height: 96,
-            borderRadius: '50%',
-            background: '#f0fdf4',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            mx: 'auto',
-            mb: 3,
-            animation: 'pulse 2s ease-in-out infinite',
-            '@keyframes pulse': {
-              '0%, 100%': { boxShadow: '0 0 0 0 rgba(5,150,105,0.2)' },
-              '50%': { boxShadow: '0 0 0 20px rgba(5,150,105,0)' }
-            }
-          }}>
-            <CheckCircle size={56} color={COLORS.success} />
-          </Box>
+const SigningComplete = ({ contactName }) => {
+  const particles = Array.from({ length: 18 }, (_, i) => ({
+    id: i,
+    left: `${8 + Math.random() * 84}%`,
+    delay: `${Math.random() * 1.5}s`,
+    duration: `${1.8 + Math.random() * 1.2}s`,
+    color: [T.gold, T.goldLight, T.green, T.greenLight, '#6366f1', '#f472b6'][i % 6],
+    size: 5 + Math.random() * 6,
+    rotation: Math.random() * 360
+  }));
+
+  return (
+    <Box sx={{
+      minHeight: '100vh',
+      background: T.cream,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      p: 3,
+      position: 'relative',
+      overflow: 'hidden'
+    }}>
+      {/* Confetti particles */}
+      {particles.map(p => (
+        <Box key={p.id} sx={{
+          position: 'absolute',
+          bottom: '40%',
+          left: p.left,
+          width: p.size,
+          height: p.size,
+          borderRadius: p.id % 3 === 0 ? '50%' : '2px',
+          background: p.color,
+          animation: `csp-confetti ${p.duration} ease-out ${p.delay} both`,
+          transform: `rotate(${p.rotation}deg)`,
+          opacity: 0,
+          pointerEvents: 'none'
+        }} />
+      ))}
+      
+      <Container maxWidth="sm" sx={{ position: 'relative', zIndex: 1 }}>
+        <Paper className="csp-stagger-1" elevation={0} sx={{
+          borderRadius: '24px',
+          overflow: 'hidden',
+          boxShadow: T.shadowHeavy,
+          background: T.white,
+          border: `1px solid ${T.border}`
+        }}>
+          <Box sx={{ height: 4, background: T.gradientGold }} />
           
-          <Typography variant="h4" sx={{ fontWeight: 700, color: COLORS.textPrimary, mb: 1 }}>
-            All Signed! 🎉
-          </Typography>
-          
-          <Typography variant="h6" sx={{ color: COLORS.success, fontWeight: 600, mb: 2 }}>
-            Welcome to Speedy Credit Repair{contactName ? `, ${contactName}` : ''}!
-          </Typography>
-          
-          <Typography variant="body1" sx={{ color: COLORS.textSecondary, lineHeight: 1.7, mb: 3 }}>
-            Your contract has been signed and submitted successfully. We're now processing your enrollment and you'll receive a confirmation email shortly with next steps.
-          </Typography>
-          
-          {/* What happens next */}
-          <Paper elevation={0} sx={{
-            background: '#f0f9ff',
-            border: '1px solid #bae6fd',
-            borderRadius: 3,
-            p: 2.5,
-            mb: 3,
-            textAlign: 'left'
-          }}>
-            <Typography variant="body2" sx={{ color: '#0369a1', fontWeight: 700, mb: 1.5 }}>
-              📋 What happens next:
+          <Box sx={{ p: { xs: 4, sm: 6 }, textAlign: 'center' }}>
+            {/* Animated checkmark */}
+            <Box className="csp-stagger-2" sx={{
+              width: 96,
+              height: 96,
+              borderRadius: '50%',
+              background: T.greenMuted,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              mx: 'auto',
+              mb: 3,
+              animation: 'csp-pulseGreen 2.5s ease-in-out infinite',
+            }}>
+              <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                <circle cx="24" cy="24" r="22" stroke={T.green} strokeWidth="2" opacity="0.3" />
+                <path
+                  d="M14 24 L21 31 L34 18"
+                  stroke={T.green}
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  fill="none"
+                  strokeDasharray="50"
+                  style={{ animation: 'csp-checkDraw 0.8s ease-out 0.5s both' }}
+                />
+              </svg>
+            </Box>
+            
+            <Typography className="csp-stagger-3" sx={{
+              fontFamily: T.fontDisplay,
+              fontWeight: 800,
+              fontSize: { xs: '28px', sm: '34px' },
+              color: T.textPrimary,
+              mb: 1,
+              lineHeight: 1.15
+            }}>
+              You're All Set{contactName ? `, ${contactName}` : ''}!
             </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              <Typography variant="body2" sx={{ color: '#334155' }}>
-                ✅ You'll receive a confirmation email within minutes
+            
+            <Typography className="csp-stagger-3" sx={{
+              fontFamily: T.fontBody,
+              fontWeight: 500,
+              fontSize: '16px',
+              color: T.green,
+              mb: 3
+            }}>
+              Your contract has been signed successfully
+            </Typography>
+            
+            <GoldDivider />
+            
+            {/* What's Next */}
+            <Box className="csp-stagger-4" sx={{
+              background: T.cream,
+              borderRadius: '16px',
+              p: 3,
+              textAlign: 'left',
+              mb: 3
+            }}>
+              <Typography sx={{
+                fontFamily: T.fontBody,
+                fontSize: '13px',
+                fontWeight: 600,
+                color: T.textMuted,
+                textTransform: 'uppercase',
+                letterSpacing: '1.5px',
+                mb: 2
+              }}>
+                What happens next
               </Typography>
-              <Typography variant="body2" sx={{ color: '#334155' }}>
-                📄 We may ask for a few optional documents (ID, proof of address)
+              
+              {[
+                { icon: <Mail size={16} />, text: 'Confirmation email arriving in minutes', delay: '0.6s' },
+                { icon: <Shield size={16} />, text: 'Your dedicated team begins credit analysis', delay: '0.7s' },
+                { icon: <FileText size={16} />, text: 'We may request a few optional documents', delay: '0.8s' },
+                { icon: <Sparkles size={16} />, text: 'First disputes filed within 5–7 business days', delay: '0.9s' }
+              ].map((item, i) => (
+                <Box key={i} sx={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 1.5,
+                  mb: i < 3 ? 1.5 : 0,
+                  animation: `csp-slideInRight 0.5s ease-out ${item.delay} both`
+                }}>
+                  <Box sx={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: '8px',
+                    background: T.goldMuted,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    color: T.gold,
+                    mt: 0.2
+                  }}>
+                    {item.icon}
+                  </Box>
+                  <Typography sx={{
+                    fontFamily: T.fontBody,
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    color: T.textPrimary,
+                    lineHeight: 1.4,
+                    pt: 0.3
+                  }}>
+                    {item.text}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+            
+            {/* Personal touch from Chris */}
+            <Box className="csp-stagger-5" sx={{
+              background: `linear-gradient(135deg, ${T.navy} 0%, ${T.navyMid} 100%)`,
+              borderRadius: '16px',
+              p: 3,
+              textAlign: 'center'
+            }}>
+              <Typography sx={{
+                fontFamily: T.fontDisplay,
+                fontSize: '16px',
+                fontWeight: 600,
+                color: T.white,
+                mb: 0.5,
+                lineHeight: 1.5
+              }}>
+                "Thank you for trusting us with your credit journey."
               </Typography>
-              <Typography variant="body2" sx={{ color: '#334155' }}>
-                💳 Your ACH payment will be set up per your authorization
-              </Typography>
-              <Typography variant="body2" sx={{ color: '#334155' }}>
-                🚀 We'll begin analyzing your credit reports right away
+              <Typography sx={{
+                fontFamily: T.fontBody,
+                fontSize: '13px',
+                color: 'rgba(255,255,255,0.6)'
+              }}>
+                — Chris Lahage, Founder · 30 years in credit repair
               </Typography>
             </Box>
-          </Paper>
-          
-          {/* Trust badges */}
-          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, flexWrap: 'wrap', mb: 2 }}>
-            <Chip size="small" label="A+ BBB Rating" sx={{ background: '#dbeafe', color: '#1e40af', fontWeight: 600, fontSize: '11px' }} />
-            <Chip size="small" label="⭐ 4.9 Google" sx={{ background: '#fef3c7', color: '#92400e', fontWeight: 600, fontSize: '11px' }} />
-            <Chip size="small" label="Est. 1995" sx={{ background: '#e0e7ff', color: '#3730a3', fontWeight: 600, fontSize: '11px' }} />
           </Box>
-          
-          <Typography variant="body2" sx={{ color: COLORS.textMuted }}>
-            Questions? Call <a href="tel:8889601718" style={{ color: '#2563eb', textDecoration: 'none' }}>(888) 960-1718</a>
-          </Typography>
+        </Paper>
+        
+        <Box className="csp-stagger-6" sx={{ mt: 3 }}>
+          <TrustBadges compact />
         </Box>
-      </Paper>
-      
-      <Box sx={{ textAlign: 'center', mt: 3 }}>
-        <Typography variant="caption" sx={{ color: COLORS.textMuted }}>
-          © {new Date().getFullYear()} Speedy Credit Repair Inc. | Chris Lahage | All Rights Reserved
+        
+        <Typography sx={{
+          textAlign: 'center',
+          fontFamily: T.fontBody,
+          fontSize: '11px',
+          color: T.textMuted,
+          mt: 2
+        }}>
+          © {new Date().getFullYear()} Speedy Credit Repair Inc. · Chris Lahage · All Rights Reserved
         </Typography>
-      </Box>
-    </Container>
-  </Box>
-);
+      </Container>
+    </Box>
+  );
+};
 
 // ============================================================================
-// LOADING STATE
-// ============================================================================
-const LoadingState = () => (
-  <Box sx={{
-    minHeight: '100vh',
-    background: COLORS.bg,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'column',
-    gap: 3
-  }}>
-    <Box sx={{ textAlign: 'center' }}>
-      <Typography variant="h5" sx={{ color: COLORS.primary, fontWeight: 700, mb: 0.5 }}>
-        Speedy Credit Repair
-      </Typography>
-      <Typography variant="body2" sx={{ color: COLORS.textMuted }}>
-        Trusted Credit Repair Since 1995
-      </Typography>
-    </Box>
-    
-    <CircularProgress size={48} sx={{ color: COLORS.primary }} />
-    
-    <Box sx={{ textAlign: 'center' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 1 }}>
-        <Lock size={16} color={COLORS.success} />
-        <Typography variant="body2" sx={{ color: COLORS.success, fontWeight: 600 }}>
-          Secure Connection
-        </Typography>
-      </Box>
-      <Typography variant="body2" sx={{ color: COLORS.textSecondary }}>
-        Verifying your signing link...
-      </Typography>
-    </Box>
-  </Box>
-);
-
-// ============================================================================
-// MAIN COMPONENT: PublicContractSigningRoute
+// ===== MAIN COMPONENT =====
 // ============================================================================
 const PublicContractSigningRoute = () => {
-  // ===== Extract token from URL =====
   const { token } = useParams();
   
-  // ===== State =====
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [errorType, setErrorType] = useState('error');
@@ -383,7 +784,6 @@ const PublicContractSigningRoute = () => {
   const [tokenId, setTokenId] = useState(null);
   const [signingComplete, setSigningComplete] = useState(false);
 
-  // ===== Validate token on mount =====
   useEffect(() => {
     if (!token) {
       setError('No signing token provided. Please use the link from your email.');
@@ -391,11 +791,9 @@ const PublicContractSigningRoute = () => {
       setLoading(false);
       return;
     }
-    
     validateToken();
   }, [token]);
   
-  // ===== VALIDATE TOKEN =====
   const validateToken = async () => {
     setLoading(true);
     setError(null);
@@ -404,13 +802,11 @@ const PublicContractSigningRoute = () => {
       const result = await callOperationsManager('validateContractSigningToken', { token });
       
       if (result.valid) {
-        // ===== TOKEN IS VALID =====
         setContactData(result.contact);
         setPlanData(result.plan);
         setTokenId(result.tokenId);
-        console.log('✅ Token validated, loading signing portal for:', result.contact.firstName);
+        console.log('✅ Token validated for:', result.contact.firstName);
       } else {
-        // ===== TOKEN IS INVALID/EXPIRED/USED =====
         setError(result.error || 'Invalid signing link.');
         if (result.alreadyUsed) setErrorType('alreadyUsed');
         else if (result.expired) setErrorType('expired');
@@ -418,134 +814,241 @@ const PublicContractSigningRoute = () => {
       }
     } catch (err) {
       console.error('❌ Token validation failed:', err);
-      setError('Unable to verify your signing link. Please try again or contact us at (888) 960-1718.');
+      setError('Unable to verify your signing link. Please try again or call us at (888) 960-1718.');
       setErrorType('error');
     } finally {
       setLoading(false);
     }
   };
 
-  // ===== HANDLE SIGNING COMPLETE =====
-  // This is called by ContractSigningPortal when the client finishes signing
   const handleSigningComplete = useCallback(async () => {
     console.log('🎉 Contract signing completed!');
     
     try {
-      // Mark the token as used
       await callOperationsManager('markContractSigningTokenUsed', {
         token,
         contactId: contactData?.id
       });
-      console.log('✅ Token marked as used');
     } catch (err) {
-      console.warn('⚠️ Failed to mark token as used (non-fatal):', err);
+      console.warn('⚠️ Failed to mark token (non-fatal):', err);
     }
     
-    // Show the success screen
     setSigningComplete(true);
-    
-    // Scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [token, contactData]);
 
-  // ===== RENDER: Loading =====
-  if (loading) {
-    return <LoadingState />;
-  }
+  // ===== RENDER =====
+  if (loading) return <LoadingState />;
+  if (error) return <ErrorDisplay type={errorType} message={error} />;
+  if (signingComplete) return <SigningComplete contactName={contactData?.firstName} />;
   
-  // ===== RENDER: Error =====
-  if (error) {
-    return <ErrorDisplay type={errorType} message={error} />;
-  }
-  
-  // ===== RENDER: Signing Complete =====
-  if (signingComplete) {
-    return <SigningComplete contactName={contactData?.firstName} />;
-  }
-  
-  // ===== RENDER: Contract Signing Portal =====
-  // We render ContractSigningPortal with the contact data pre-filled
-  // The portal handles all the actual signing logic
+  // ===== CONTRACT SIGNING EXPERIENCE =====
   return (
-    <Box sx={{ minHeight: '100vh', background: COLORS.bg }}>
-      {/* ===== HEADER BAR ===== */}
+    <Box sx={{
+      minHeight: '100vh',
+      background: T.cream,
+      fontFamily: T.fontBody
+    }}>
+      {/* ===== PREMIUM HEADER ===== */}
       <Box sx={{
-        background: COLORS.gradientHeader,
-        py: 2,
-        px: 3,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: 1
+        background: T.gradientNavy,
+        position: 'relative',
+        overflow: 'hidden'
       }}>
-        <Box>
-          <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 700, fontSize: { xs: '16px', sm: '20px' } }}>
-            Speedy Credit Repair
-          </Typography>
-          <Typography variant="caption" sx={{ color: '#93c5fd' }}>
-            Secure Contract Signing
-          </Typography>
-        </Box>
+        {/* Gold accent line at top */}
+        <Box sx={{ height: 3, background: T.gradientGold }} />
         
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Shield size={16} color="#10b981" />
-          <Typography variant="caption" sx={{ color: '#10b981', fontWeight: 600 }}>
-            Encrypted & Secure
-          </Typography>
-        </Box>
+        {/* Decorative background dots */}
+        <Box sx={{
+          position: 'absolute',
+          inset: 0,
+          opacity: 0.03,
+          backgroundImage: `radial-gradient(circle at 20% 50%, ${T.gold} 1px, transparent 1px),
+                           radial-gradient(circle at 80% 20%, ${T.gold} 1px, transparent 1px),
+                           radial-gradient(circle at 60% 80%, ${T.gold} 1px, transparent 1px)`,
+          backgroundSize: '60px 60px, 80px 80px, 40px 40px',
+          pointerEvents: 'none'
+        }} />
+        
+        <Container maxWidth="md" sx={{ position: 'relative', zIndex: 1 }}>
+          <Box sx={{
+            py: { xs: 3, sm: 4 },
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            textAlign: 'center'
+          }}>
+            <Box className="csp-stagger-1">
+              <SpeedyLogo light size="normal" />
+            </Box>
+            
+            <Box className="csp-stagger-2" sx={{ mt: 2.5 }}>
+              <Typography sx={{
+                fontFamily: T.fontBody,
+                fontSize: { xs: '14px', sm: '15px' },
+                color: 'rgba(255,255,255,0.85)',
+                fontWeight: 400
+              }}>
+                Welcome{contactData?.firstName ? `, ${contactData.firstName}` : ''}. Your agreement is ready for review.
+              </Typography>
+            </Box>
+            
+            {planData && (
+              <Box className="csp-stagger-3" sx={{
+                mt: 2,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 1,
+                px: 2.5,
+                py: 0.75,
+                borderRadius: '24px',
+                background: 'rgba(201,168,76,0.12)',
+                border: '1px solid rgba(201,168,76,0.25)',
+              }}>
+                <FileText size={14} color={T.goldLight} />
+                <Typography sx={{
+                  fontFamily: T.fontBody,
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  color: T.goldLight
+                }}>
+                  {planData.name} — ${planData.monthlyPrice}/mo
+                </Typography>
+              </Box>
+            )}
+            
+            <Box className="csp-stagger-4" sx={{
+              mt: 2,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 2,
+              flexWrap: 'wrap',
+              justifyContent: 'center'
+            }}>
+              {[
+                { icon: <Lock size={12} />, text: 'Bank-Level Encryption' },
+                { icon: <Shield size={12} />, text: 'Legally Binding' },
+                { icon: <Award size={12} />, text: 'CROA Compliant' }
+              ].map((item, i) => (
+                <Box key={i} sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  color: 'rgba(255,255,255,0.45)'
+                }}>
+                  {item.icon}
+                  <Typography sx={{
+                    fontFamily: T.fontBody,
+                    fontSize: '11px',
+                    fontWeight: 500,
+                    color: 'rgba(255,255,255,0.45)'
+                  }}>
+                    {item.text}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        </Container>
       </Box>
       
-      {/* ===== WELCOME MESSAGE ===== */}
-      <Container maxWidth="md" sx={{ mt: 3, mb: 2 }}>
-        <Alert 
-          severity="info" 
-          icon={<FileText size={20} />}
-          sx={{ 
-            borderRadius: 3, 
-            border: '1px solid #bae6fd',
-            '& .MuiAlert-message': { width: '100%' }
-          }}
-        >
-          <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
-            Welcome{contactData?.firstName ? `, ${contactData.firstName}` : ''}! Please review and sign your contract below.
-          </Typography>
-          <Typography variant="caption" sx={{ color: '#64748b' }}>
-            {planData ? `Plan: ${planData.name} — $${planData.monthlyPrice}/month · ` : ''}
-            Take your time reviewing each section. All fields marked with a signature are required.
-          </Typography>
-        </Alert>
-      </Container>
-      
       {/* ===== CONTRACT SIGNING PORTAL ===== */}
-      <ContractSigningPortal
-        contactData={contactData}
-        planData={planData}
-        isPublicSigning={true}
-        onSigningComplete={handleSigningComplete}
-        signingToken={token}
-      />
+      <Box className="csp-stagger-5">
+        <ContractSigningPortal
+          contactData={contactData}
+          planData={planData}
+          isPublicSigning={true}
+          onSigningComplete={handleSigningComplete}
+          signingToken={token}
+        />
+      </Box>
       
-      {/* ===== FOOTER ===== */}
+      {/* ===== PREMIUM FOOTER ===== */}
       <Box sx={{
-        background: '#f8fafc',
-        borderTop: '1px solid #e2e8f0',
-        py: 3,
-        mt: 4,
-        textAlign: 'center'
+        background: T.white,
+        borderTop: `1px solid ${T.border}`,
+        py: 4,
+        mt: 2
       }}>
-        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, flexWrap: 'wrap', mb: 1.5 }}>
-          <Chip size="small" label="A+ BBB Rating" sx={{ background: '#dbeafe', color: '#1e40af', fontWeight: 600, fontSize: '10px' }} />
-          <Chip size="small" label="⭐ 4.9 Google (580+ Reviews)" sx={{ background: '#fef3c7', color: '#92400e', fontWeight: 600, fontSize: '10px' }} />
-          <Chip size="small" label="Est. 1995" sx={{ background: '#e0e7ff', color: '#3730a3', fontWeight: 600, fontSize: '10px' }} />
-          <Chip size="small" label="🔒 256-bit Encryption" sx={{ background: '#f0fdf4', color: '#166534', fontWeight: 600, fontSize: '10px' }} />
-        </Box>
-        <Typography variant="caption" sx={{ color: COLORS.textMuted, display: 'block' }}>
-          © {new Date().getFullYear()} Speedy Credit Repair Inc. | Chris Lahage | All Rights Reserved
-        </Typography>
-        <Typography variant="caption" sx={{ color: COLORS.textMuted }}>
-          Speedy Credit Repair® — USPTO Registered Trademark
-        </Typography>
+        <Container maxWidth="md">
+          <Box sx={{ mb: 2.5 }}>
+            <TrustBadges />
+          </Box>
+          
+          <Box sx={{ textAlign: 'center', mb: 2.5 }}>
+            <Typography sx={{
+              fontFamily: T.fontBody,
+              fontSize: '13px',
+              color: T.textSecondary,
+              mb: 0.5
+            }}>
+              Questions about your agreement? We're happy to walk you through it.
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+              <Button
+                href="tel:8889601718"
+                startIcon={<Phone size={14} />}
+                sx={{
+                  fontFamily: T.fontBody,
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  color: T.navy,
+                  textTransform: 'none',
+                  '&:hover': { background: 'rgba(10,22,40,0.04)' }
+                }}
+              >
+                (888) 960-1718
+              </Button>
+              <Typography sx={{ color: T.textMuted, fontSize: '12px' }}>·</Typography>
+              <Button
+                href="mailto:chris@speedycreditrepair.com"
+                startIcon={<Mail size={14} />}
+                sx={{
+                  fontFamily: T.fontBody,
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  color: T.navy,
+                  textTransform: 'none',
+                  '&:hover': { background: 'rgba(10,22,40,0.04)' }
+                }}
+              >
+                Email Us
+              </Button>
+            </Box>
+          </Box>
+          
+          {/* Gold divider */}
+          <Box sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 2,
+            mb: 2
+          }}>
+            <Box sx={{ width: 80, height: 1, background: `linear-gradient(to right, transparent, ${T.border})` }} />
+            <Box sx={{ width: 5, height: 5, borderRadius: '50%', background: T.gold, opacity: 0.4 }} />
+            <Box sx={{ width: 80, height: 1, background: `linear-gradient(to left, transparent, ${T.border})` }} />
+          </Box>
+          
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography sx={{
+              fontFamily: T.fontBody,
+              fontSize: '11px',
+              color: T.textMuted,
+              mb: 0.25
+            }}>
+              © {new Date().getFullYear()} Speedy Credit Repair Inc. · Chris Lahage · All Rights Reserved
+            </Typography>
+            <Typography sx={{
+              fontFamily: T.fontBody,
+              fontSize: '10px',
+              color: T.textMuted,
+              opacity: 0.7
+            }}>
+              Speedy Credit Repair® — USPTO Registered Trademark · Established 1995
+            </Typography>
+          </Box>
+        </Container>
       </Box>
     </Box>
   );
