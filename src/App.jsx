@@ -338,6 +338,7 @@ const DocumentVault = lazy(() => import('@/components/operations/DocumentVault')
 const ClientOnboardingWizard = lazy(() => import('@/components/onboarding/ClientOnboardingWizard'));
 const ReferralManager = lazy(() => import('@/components/sales/ReferralManager'));
 const AutoOpportunityDashboard = lazy(() => import('@/components/revenue/AutoOpportunityDashboard'));
+const PublicContractSigningRoute = lazy(() => import('@/pages/PublicContractSigningRoute'));
 
 // ============================================================================
 // PROTECTED ROUTE WRAPPER
@@ -520,7 +521,8 @@ const AppContent = () => {
           </Suspense>
         } 
       />
-
+      {/* PUBLIC CONTRACT SIGNING - Email link signing (no login required) */}
+      <Route path="/sign/:token" element={<Suspense fallback={<LoadingFallback />}><PublicContractSigningRoute /></Suspense>} />
       {/* PROTECTED ROUTES */}
       <Route path="/" element={<ProtectedRoute><ProtectedLayout /></ProtectedRoute>}>
         <Route index element={<SmartRedirect />} />

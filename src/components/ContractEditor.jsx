@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { SIGNATURE_PROVIDERS, getProviderHandler } from "../utils/eSignatureProviders";
 import { db } from "../lib/firebase";
 import { collection, addDoc, updateDoc, doc, serverTimestamp } from "firebase/firestore";
 import { showSuccess, showError, showPromise } from "../utils/toast";

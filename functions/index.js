@@ -54,9 +54,9 @@ const telnyxPhone = defineSecret('TELNYX_PHONE');
 const telnyxSmsPhone = defineSecret('TELNYX_SMS_PHONE');
 
 // Other Secrets
-const docusignAccountId = defineSecret('DOCUSIGN_ACCOUNT_ID');
 const webhookSecret = defineSecret('WEBHOOK_SECRET');
 const nmiSecurityKey = defineSecret('NMI_SECURITY_KEY');
+
 
 // ============================================
 // DEFAULT CONFIGURATION
@@ -8582,7 +8582,10 @@ exports.operationsManager = onRequest(
           'getPaymentStatus',
           'nmiWebhook',
           'processUnsubscribe',
-          'adminSeedPlans'
+          'adminSeedPlans',
+          'generateContractSigningLink',
+          'validateContractSigningToken',
+          'markContractSigningTokenUsed'
         ]
       });
       return;
@@ -10533,7 +10536,496 @@ console.log('🔐 Enrollment token generated:', token.substring(0, 10) + '...');
       break;
     }
 
-    
+    // ===================================================================
+// CONTRACT SIGNING LINK — Generate Secure Token + Send Email
+// ===================================================================
+// Creates a secure, time-limited token that allows a client to sign
+// their contract via email link WITHOUT needing to log in.
+//
+// Flow:
+//   1. Staff clicks "Send Contract" from CRM
+//   2. This generates a unique token + stores in contractSigningTokens
+//   3. Sends professional email with link: myclevercrm.com/sign/TOKEN
+//   4. Client clicks link → PublicContractSigningRoute validates token
+//   5. Client signs → existing ContractSigningPortal handles signing
+//   6. On completion → markContractSigningTokenUsed + triggers automation
+//
+// Params: contactId (required), planId (optional), sendEmail (default true)
+// ===================================================================
+    case 'generateContractSigningLink': {
+      console.log('📝 ===== GENERATE CONTRACT SIGNING LINK =====');
+      
+      const { contactId: signContactId, planId: signPlanId, sendEmail: shouldSendEmail = true } = params;
+      
+      // ===== VALIDATE =====
+      if (!signContactId) {
+        result = { success: false, error: 'contactId is required' };
+        break;
+      }
+      
+      try {
+        // ===== 1) LOAD CONTACT =====
+        const contactDoc = await db.collection('contacts').doc(signContactId).get();
+        if (!contactDoc.exists) {
+          result = { success: false, error: 'Contact not found' };
+          break;
+        }
+        const contactData = contactDoc.data();
+        const contactEmail = contactData.email || contactData.emails?.[0];
+        const contactName = `${contactData.firstName || ''} ${contactData.lastName || ''}`.trim() || 'Client';
+        
+        if (!contactEmail && shouldSendEmail) {
+          result = { success: false, error: 'Contact has no email address' };
+          break;
+        }
+        
+        // ===== 2) LOAD PLAN (if provided) =====
+        let planData = null;
+        if (signPlanId) {
+          const planDoc = await db.collection('servicePlans').doc(signPlanId).get();
+          if (planDoc.exists) {
+            planData = { id: planDoc.id, ...planDoc.data() };
+          }
+        }
+        
+        // ===== 3) GENERATE SECURE TOKEN =====
+        // 64-character hex token (32 bytes of randomness = very secure)
+        const crypto = require('crypto');
+        const signingToken = crypto.randomBytes(32).toString('hex');
+        
+        // Token expires in 72 hours (3 days — gives client time to sign)
+        const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000);
+        
+        // ===== 4) STORE TOKEN IN FIRESTORE =====
+        const tokenRef = await db.collection('contractSigningTokens').add({
+          token: signingToken,
+          contactId: signContactId,
+          contactEmail: contactEmail || '',
+          contactName: contactName,
+          planId: signPlanId || null,
+          planName: planData?.name || null,
+          monthlyPrice: planData?.monthlyPrice || null,
+          // Token lifecycle
+          used: false,
+          usedAt: null,
+          expired: false,
+          expiresAt: admin.firestore.Timestamp.fromDate(expiresAt),
+          // Tracking
+          emailSent: false,
+          emailSentAt: null,
+          linkClickedAt: null,
+          signingStartedAt: null,
+          signingCompletedAt: null,
+          // Metadata
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          createdBy: requestBody.userId || 'system',
+          source: 'crm'
+        });
+        
+        console.log('✅ Contract signing token created:', tokenRef.id);
+        
+        // ===== 5) BUILD SIGNING URL =====
+        const signingUrl = `https://myclevercrm.com/sign/${signingToken}`;
+        console.log('🔗 Signing URL:', signingUrl);
+        
+        // ===== 6) SEND EMAIL (if requested) =====
+        let emailSent = false;
+        if (shouldSendEmail && contactEmail) {
+          try {
+            const user = gmailUser.value();
+            const pass = gmailAppPassword.value();
+            const fromName = gmailFromName.value() || 'Chris Lahage - Speedy Credit Repair';
+            const replyTo = gmailReplyTo.value() || 'chris@speedycreditrepair.com';
+            
+            const transporter = nodemailer.createTransport({
+              host: 'smtp.gmail.com',
+              port: 587,
+              secure: false,
+              auth: { user, pass }
+            });
+            
+            const planInfo = planData 
+              ? `<strong>${planData.name}</strong> — $${planData.monthlyPrice}/month`
+              : 'Your selected service plan';
+            
+            const emailHtml = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#f8fafc;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;padding:40px 20px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+        
+        <!-- Header with gradient -->
+        <tr><td style="background:linear-gradient(135deg,#1e3a5f 0%,#2d5a8e 50%,#1e3a5f 100%);padding:40px 40px 30px;text-align:center;">
+          <h1 style="color:#ffffff;font-size:26px;margin:0 0 8px;font-weight:700;letter-spacing:-0.5px;">Speedy Credit Repair</h1>
+          <p style="color:#93c5fd;font-size:14px;margin:0;">Trusted Credit Repair Since 1995</p>
+        </td></tr>
+        
+        <!-- Body -->
+        <tr><td style="padding:40px;">
+          <h2 style="color:#1e293b;font-size:22px;margin:0 0 16px;font-weight:600;">Hi ${contactData.firstName || 'there'},</h2>
+          
+          <p style="color:#475569;font-size:16px;line-height:1.6;margin:0 0 20px;">
+            Your credit repair service agreement is ready for your review and signature. This secure document covers everything we discussed and outlines how we'll work together to improve your credit.
+          </p>
+          
+          <!-- Plan Info Box -->
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+            <tr><td style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:12px;padding:20px;">
+              <p style="color:#0369a1;font-size:14px;font-weight:600;margin:0 0 4px;">📋 Your Service Plan:</p>
+              <p style="color:#1e293b;font-size:16px;margin:0;">${planInfo}</p>
+            </td></tr>
+          </table>
+          
+          <p style="color:#475569;font-size:15px;line-height:1.6;margin:0 0 8px;">
+            <strong>What you'll be signing:</strong>
+          </p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+            <tr><td style="padding:6px 0;color:#475569;font-size:15px;">✅ Credit Repair Service Agreement (CROA compliant)</td></tr>
+            <tr><td style="padding:6px 0;color:#475569;font-size:15px;">✅ Privacy Policy & Data Protection Notice</td></tr>
+            <tr><td style="padding:6px 0;color:#475569;font-size:15px;">✅ Limited Power of Attorney (for disputes)</td></tr>
+            <tr><td style="padding:6px 0;color:#475569;font-size:15px;">✅ ACH Payment Authorization</td></tr>
+            <tr><td style="padding:6px 0;color:#475569;font-size:15px;">✅ Right to Cancel Notice (3-day cooling off)</td></tr>
+          </table>
+          
+          <!-- CTA Button -->
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+            <tr><td align="center">
+              <a href="${signingUrl}" style="display:inline-block;background:linear-gradient(135deg,#059669 0%,#10b981 100%);color:#ffffff;font-size:18px;font-weight:700;text-decoration:none;padding:16px 48px;border-radius:12px;letter-spacing:0.5px;box-shadow:0 4px 12px rgba(5,150,105,0.3);">
+                ✍️ Review &amp; Sign Your Contract
+              </a>
+            </td></tr>
+          </table>
+          
+          <!-- Security Notice -->
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+            <tr><td style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:16px;">
+              <p style="color:#166534;font-size:13px;margin:0;line-height:1.5;">
+                🔒 <strong>Secure Signing:</strong> This link is unique to you and expires in 72 hours. Your information is encrypted and protected. You can review all documents before signing.
+              </p>
+            </td></tr>
+          </table>
+          
+          <p style="color:#64748b;font-size:14px;line-height:1.6;margin:0 0 8px;">
+            <strong>Questions?</strong> Reply to this email or call us at <a href="tel:8889601718" style="color:#2563eb;text-decoration:none;">(888) 960-1718</a>
+          </p>
+          <p style="color:#64748b;font-size:14px;line-height:1.6;margin:0;">
+            If the button above doesn't work, copy and paste this link into your browser:<br>
+            <a href="${signingUrl}" style="color:#2563eb;font-size:12px;word-break:break-all;">${signingUrl}</a>
+          </p>
+        </td></tr>
+        
+        <!-- Footer -->
+        <tr><td style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:24px 40px;text-align:center;">
+          <p style="color:#94a3b8;font-size:12px;margin:0 0 4px;">© ${new Date().getFullYear()} Speedy Credit Repair Inc. | Chris Lahage | All Rights Reserved</p>
+          <p style="color:#94a3b8;font-size:11px;margin:0 0 4px;">Speedy Credit Repair® — USPTO Registered Trademark</p>
+          <p style="color:#94a3b8;font-size:11px;margin:0;">
+            <a href="https://speedycreditrepair.com" style="color:#64748b;text-decoration:none;">speedycreditrepair.com</a> · 
+            <a href="tel:8889601718" style="color:#64748b;text-decoration:none;">(888) 960-1718</a>
+          </p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0 0;">
+            <tr><td align="center">
+              <span style="display:inline-block;background:#dbeafe;color:#1e40af;font-size:10px;font-weight:600;padding:4px 12px;border-radius:20px;">A+ BBB Rating</span>
+              <span style="display:inline-block;background:#fef3c7;color:#92400e;font-size:10px;font-weight:600;padding:4px 12px;border-radius:20px;margin-left:8px;">⭐ 4.9 Google (580+ Reviews)</span>
+              <span style="display:inline-block;background:#e0e7ff;color:#3730a3;font-size:10px;font-weight:600;padding:4px 12px;border-radius:20px;margin-left:8px;">Est. 1995</span>
+            </tr></td>
+          </table>
+        </td></tr>
+        
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+            await transporter.sendMail({
+              from: `"${fromName}" <${user}>`,
+              replyTo: replyTo,
+              to: contactEmail,
+              subject: `${contactData.firstName || 'Hi'}, your Speedy Credit Repair agreement is ready to sign`,
+              html: emailHtml
+            });
+            
+            emailSent = true;
+            console.log('✅ Contract signing email sent to:', contactEmail);
+            
+            // Update token record
+            await tokenRef.update({
+              emailSent: true,
+              emailSentAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            
+            // Log email
+            await db.collection('emailLog').add({
+              contactId: signContactId,
+              recipientEmail: contactEmail,
+              recipientName: contactName,
+              templateId: 'contract_signing_link',
+              subject: `${contactData.firstName || 'Hi'}, your Speedy Credit Repair agreement is ready to sign`,
+              type: 'contract_signing_link',
+              source: 'crm',
+              sentAt: admin.firestore.FieldValue.serverTimestamp(),
+              status: 'sent'
+            });
+            
+          } catch (emailError) {
+            console.error('⚠️ Email send failed (link still works):', emailError.message);
+            // Don't fail the whole operation — the link still works
+          }
+        }
+        
+        // ===== 7) LOG ACTIVITY =====
+        await db.collection('activityLogs').add({
+          type: 'contract_signing_link_created',
+          contactId: signContactId,
+          action: 'signing_link_generated',
+          details: {
+            tokenId: tokenRef.id,
+            signingUrl,
+            emailSent,
+            planId: signPlanId || null,
+            expiresAt: expiresAt.toISOString()
+          },
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          createdBy: requestBody.userId || 'system'
+        });
+        
+        // ===== 8) STAFF NOTIFICATION =====
+        try {
+          await db.collection('staffNotifications').add({
+            type: 'contract_link_sent',
+            priority: 'info',
+            title: '📝 Contract Signing Link Sent',
+            message: `Contract signing link ${emailSent ? 'emailed' : 'generated'} for ${contactName} (${contactEmail || 'no email'})`,
+            contactId: signContactId,
+            targetRoles: ['masterAdmin', 'admin', 'manager', 'user'],
+            readBy: {},
+            source: 'contract_signing',
+            metadata: { signingUrl, tokenId: tokenRef.id },
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+        } catch (notifErr) {
+          console.warn('⚠️ Staff notification failed (non-fatal):', notifErr.message);
+        }
+        
+        // ===== 9) UPDATE CONTACT =====
+        await db.collection('contacts').doc(signContactId).update({
+          contractSigningLinkSent: true,
+          contractSigningLinkSentAt: admin.firestore.FieldValue.serverTimestamp(),
+          contractSigningToken: signingToken,
+          pipelineStage: contactData.pipelineStage === 'contract_signed' ? contactData.pipelineStage : 'contract_sent',
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        
+        result = {
+          success: true,
+          signingUrl,
+          tokenId: tokenRef.id,
+          emailSent,
+          expiresAt: expiresAt.toISOString(),
+          message: emailSent 
+            ? `Contract signing link emailed to ${contactEmail}`
+            : `Contract signing link generated (copy and share): ${signingUrl}`
+        };
+        
+      } catch (genError) {
+        console.error('❌ Generate contract signing link error:', genError);
+        result = { success: false, error: genError.message };
+      }
+      
+      break;
+    }
+
+    // ===================================================================
+    // CONTRACT SIGNING LINK — Validate Token (Public, No Auth Required)
+    // ===================================================================
+    // Called by PublicContractSigningRoute when client clicks the link.
+    // Validates the token and returns contact + plan data to pre-fill
+    // the ContractSigningPortal.
+    //
+    // Params: token (required)
+    // ===================================================================
+    case 'validateContractSigningToken': {
+      console.log('🔍 ===== VALIDATE CONTRACT SIGNING TOKEN =====');
+      
+      const { token: csToken } = params;
+      
+      if (!csToken) {
+        result = { success: false, valid: false, error: 'Token is required' };
+        break;
+      }
+      
+      try {
+        // ===== FIND TOKEN IN FIRESTORE =====
+        const tokenQuery = await db.collection('contractSigningTokens')
+          .where('token', '==', csToken)
+          .limit(1)
+          .get();
+        
+        if (tokenQuery.empty) {
+          console.log('❌ Contract signing token not found');
+          result = {
+            success: true,
+            valid: false,
+            error: 'This signing link is invalid or has expired. Please contact us for a new link.',
+            invalid: true
+          };
+          break;
+        }
+        
+        const tokenDoc = tokenQuery.docs[0];
+        const tokenData = tokenDoc.data();
+        
+        // ===== CHECK IF ALREADY USED =====
+        if (tokenData.used === true) {
+          console.log('⚠️ Token already used');
+          result = {
+            success: true,
+            valid: false,
+            error: 'This contract has already been signed. If you need a copy, please contact us.',
+            alreadyUsed: true
+          };
+          break;
+        }
+        
+        // ===== CHECK IF EXPIRED =====
+        const expiresAt = tokenData.expiresAt?.toDate 
+          ? tokenData.expiresAt.toDate() 
+          : new Date(tokenData.expiresAt);
+        
+        if (expiresAt < new Date()) {
+          console.log('⏰ Token has expired');
+          result = {
+            success: true,
+            valid: false,
+            error: 'This signing link has expired. Please contact us at (888) 960-1718 for a new link.',
+            expired: true
+          };
+          break;
+        }
+        
+        // ===== TOKEN IS VALID — FETCH CONTACT DATA =====
+        console.log('✅ Token valid! Fetching contact data...');
+        
+        const contactDoc = await db.collection('contacts').doc(tokenData.contactId).get();
+        if (!contactDoc.exists) {
+          result = { success: true, valid: false, error: 'Contact not found. Please contact us for assistance.', invalid: true };
+          break;
+        }
+        
+        const contactData = contactDoc.data();
+        
+        // ===== LOAD PLAN DATA =====
+        let planData = null;
+        if (tokenData.planId) {
+          const planDoc = await db.collection('servicePlans').doc(tokenData.planId).get();
+          if (planDoc.exists) {
+            planData = { id: planDoc.id, ...planDoc.data() };
+          }
+        }
+        
+        // ===== RECORD LINK CLICK =====
+        await tokenDoc.ref.update({
+          linkClickedAt: admin.firestore.FieldValue.serverTimestamp(),
+          lastAccessedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        
+        // ===== RETURN SUCCESS =====
+        result = {
+          success: true,
+          valid: true,
+          tokenId: tokenDoc.id,
+          contact: {
+            id: tokenData.contactId,
+            firstName: contactData.firstName || '',
+            lastName: contactData.lastName || '',
+            email: contactData.email || '',
+            phone: contactData.phone || '',
+            address: contactData.address || '',
+            city: contactData.city || '',
+            state: contactData.state || '',
+            zip: contactData.zip || '',
+            ssn: contactData.ssn || '',
+            dob: contactData.dob || ''
+          },
+          plan: planData ? {
+            id: planData.id,
+            name: planData.name,
+            monthlyPrice: planData.monthlyPrice,
+            setupFee: planData.setupFee || 0,
+            features: planData.features || []
+          } : null,
+          expiresAt: expiresAt.toISOString()
+        };
+        
+        console.log('✅ Token validated for:', contactData.firstName, contactData.lastName);
+        
+      } catch (validateError) {
+        console.error('❌ Token validation error:', validateError);
+        result = { success: false, valid: false, error: 'Failed to validate signing link. Please try again.' };
+      }
+      
+      break;
+    }
+
+    // ===================================================================
+    // CONTRACT SIGNING LINK — Mark Token as Used (After Signing Complete)
+    // ===================================================================
+    // Called after the client completes signing in ContractSigningPortal.
+    // Marks the token as used so it can't be reused.
+    //
+    // Params: token (required), contactId (required)
+    // ===================================================================
+    case 'markContractSigningTokenUsed': {
+      console.log('🔒 ===== MARK CONTRACT SIGNING TOKEN USED =====');
+      
+      const { token: usedCSToken, contactId: usedCSContactId } = params;
+      
+      if (!usedCSToken || !usedCSContactId) {
+        result = { success: false, error: 'Token and contactId are required' };
+        break;
+      }
+      
+      try {
+        const tokenQuery = await db.collection('contractSigningTokens')
+          .where('token', '==', usedCSToken)
+          .where('contactId', '==', usedCSContactId)
+          .limit(1)
+          .get();
+        
+        if (tokenQuery.empty) {
+          result = { success: false, error: 'Token not found' };
+          break;
+        }
+        
+        const tokenDoc = tokenQuery.docs[0];
+        
+        // Mark as used
+        await tokenDoc.ref.update({
+          used: true,
+          usedAt: admin.firestore.FieldValue.serverTimestamp(),
+          signingCompletedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        
+        // The actual contract signing + automation is handled by
+        // the ContractSigningPortal component which updates the contact
+        // with contractSigned=true, triggering onContactUpdated Scenario 3
+        
+        console.log('✅ Contract signing token marked as used');
+        
+        result = {
+          success: true,
+          message: 'Token marked as used'
+        };
+        
+      } catch (markError) {
+        console.error('❌ Mark token used error:', markError);
+        result = { success: false, error: markError.message };
+      }
+      
+      break;
+    }
     default:
       console.error(`❌ Unknown action requested: ${action}`);
       response.status(400).json({
@@ -10561,7 +11053,10 @@ console.log('🔐 Enrollment token generated:', token.substring(0, 10) + '...');
           'getPaymentStatus',
           'nmiWebhook',
           'processUnsubscribe',
-          'adminSeedPlans'
+          'adminSeedPlans',
+          'generateContractSigningLink',
+          'validateContractSigningToken',
+          'markContractSigningTokenUsed',
         ]
       });
       return;

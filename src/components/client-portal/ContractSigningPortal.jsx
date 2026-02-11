@@ -322,10 +322,20 @@ function DocumentSignatureCanvas({ docId, onSignatureChange, signatureType, exis
 // ===== MAIN COMPONENT: ContractSigningPortal (ENHANCED) =====
 // ============================================================================
 
-export default function ContractSigningPortal({ contractId: propContractId, onComplete }) {
+export default function ContractSigningPortal({ 
+  contractId: propContractId, 
+  onComplete,
+  // ===== NEW: Public signing props (from email link flow) =====
+  contactData: propContactData,   // Pre-loaded contact from token validation
+  planData: propPlanData,         // Pre-loaded plan from token validation
+  isPublicSigning = false,        // true = via email link, no auth required
+  onSigningComplete = null,       // Callback when signing finishes (public flow)
+  signingToken = null             // Token for marking as used after signing
+}) {
   const { contactId: urlContactId } = useParams();
   const navigate = useNavigate();
-  const contactId = urlContactId;
+  // Use contactId from props (public signing) or URL params (normal flow)
+  const contactId = propContactData?.id || urlContactId;
   const [contractId, setContractId] = useState(propContractId);
 
   // ============================================================================
@@ -651,6 +661,41 @@ export default function ContractSigningPortal({ contractId: propContractId, onCo
       setLoading(true);
       setError(null);
 
+      let contactData;
+      let selectedPlan;
+
+      // ===== PUBLIC SIGNING: Use prop data (from email link token validation) =====
+      if (isPublicSigning && propContactData) {
+        console.log('📝 Public signing mode — using pre-loaded contact data');
+        contactData = { ...propContactData };
+        setContact(contactData);
+        console.log('✅ Contact loaded from props:', contactData.firstName, contactData.lastName);
+
+        // Use prop plan data or default
+        if (propPlanData) {
+          selectedPlan = propPlanData;
+        } else {
+          selectedPlan = { id: 'standard', name: 'Standard Plan', monthlyPrice: 149, setupFee: 99 };
+        }
+        setPlanConfig(selectedPlan);
+
+        // Create new contract for public signing
+        const newContractRef = await addDoc(collection(db, 'contracts'), {
+          contactId: contactData.id,
+          status: 'pending',
+          planId: selectedPlan.id,
+          planName: selectedPlan.name,
+          source: 'email_signing_link',
+          createdAt: serverTimestamp()
+        });
+        const contractData2 = { id: newContractRef.id, planId: selectedPlan.id, planName: selectedPlan.name };
+        setContract(contractData2);
+        setContractId(newContractRef.id);
+        console.log('✅ Contract created for public signing:', newContractRef.id);
+
+      } else {
+        // ===== NORMAL FLOW: Load from Firestore =====
+
       // Load contact
       const contactRef = doc(db, 'contacts', contactId);
       const contactSnap = await getDoc(contactRef);
@@ -659,7 +704,7 @@ export default function ContractSigningPortal({ contractId: propContractId, onCo
         throw new Error('Contact not found');
       }
 
-      const contactData = { id: contactSnap.id, ...contactSnap.data() };
+      contactData = { id: contactSnap.id, ...contactSnap.data() };
       setContact(contactData);
       console.log('✅ Contact loaded:', contactData.firstName, contactData.lastName);
 
@@ -693,7 +738,6 @@ export default function ContractSigningPortal({ contractId: propContractId, onCo
       const plansQuery = query(collection(db, 'servicePlans'), where('id', '==', planId), limit(1));
       const plansSnap = await getDocs(plansQuery);
 
-      let selectedPlan;
       if (!plansSnap.empty) {
         selectedPlan = plansSnap.docs[0].data();
       } else {
@@ -701,6 +745,8 @@ export default function ContractSigningPortal({ contractId: propContractId, onCo
       }
 
       setPlanConfig(selectedPlan);
+
+      } // end normal flow
 
       // Generate documents
       const generatedDocs = await generateContractDocuments(contactData, selectedPlan);
@@ -1047,6 +1093,7 @@ export default function ContractSigningPortal({ contractId: propContractId, onCo
         pipelineStage: 'contract_signed',
         contractSigned: true,
         contractSignedAt: serverTimestamp(),
+        contractSignedVia: isPublicSigning ? 'email_link' : 'in_app',
         contractId: contract.id,
         achAuthorized: !deferBanking,
         bankingDeferred: deferBanking,
@@ -1074,9 +1121,16 @@ export default function ContractSigningPortal({ contractId: propContractId, onCo
 
       setSnackbar({
         open: true,
-        message: '🎉 All documents signed successfully! Redirecting...',
+        message: '🎉 All documents signed successfully!',
         severity: 'success'
       });
+
+      // ===== PUBLIC SIGNING: Call completion callback instead of redirecting =====
+      if (isPublicSigning && onSigningComplete) {
+        console.log('📝 Public signing complete — calling onSigningComplete callback');
+        onSigningComplete(contract.id);
+        return; // Don't navigate — the PublicContractSigningRoute handles the success screen
+      }
 
       if (onComplete) {
         onComplete(contract.id);
