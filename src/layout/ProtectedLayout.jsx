@@ -289,7 +289,7 @@ const ProtectedLayout = () => {
   const isMobile = windowWidth < 768;
 
   // Get user role
-  const userRole = userProfile?.role || user?.role || 'user';
+  const userRole = userProfile?.role || user?.role || 'viewer'; // ⚠️ SECURITY: default 'viewer' not 'user'
 
   // =========================================================================
   // PERSIST SOUND SETTINGS to localStorage whenever they change

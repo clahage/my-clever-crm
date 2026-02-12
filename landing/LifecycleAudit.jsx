@@ -1,9 +1,9 @@
 import { useState } from "react";
 
 // ============================================================================
-// SpeedyCRM COMPLETE LIFECYCLE AUDIT — Updated 2026-02-12 (Session 6)
+// SpeedyCRM COMPLETE LIFECYCLE AUDIT — Updated 2026-02-12 (Session 7)
 // Maps every contact path from entry → outcome, showing built vs missing
-// Reflects: 2/9 workflow, 2/10 email/fax, 2/11 contract V3.0, 2/12 IDIQ disputes + E2E testing
+// Reflects: 2/9 workflow, 2/10 email/fax, 2/11 contract V3.0, 2/12 IDIQ disputes + E2E testing + 80-hub audit + crasher fixes
 // ============================================================================
 
 const COLORS = {
@@ -38,7 +38,7 @@ const ENTRY_POINTS = [
   { id: "landing", label: "Landing Page / Website Form", icon: "🌐", status: "built", detail: "captureWebLead / landingPageContact in operationsManager → creates contact → onContactCreated sends welcome email + Rule 13 nurture drip (12h, 24h, 48h, 7d, 14d)" },
   { id: "quiz", label: "Quiz Funnel", icon: "🧩", status: "built", detail: "Quiz creates contact → Rule 12 sends 24h + 72h nurture emails. Rule 13 also covers quiz leads with extended drip." },
   { id: "manual", label: "Manual CRM Entry (Staff)", icon: "👤", status: "built", detail: "UltimateContactForm.jsx → creates contact → onContactCreated triggers AI role assessment + welcome email + enrollment link" },
-  { id: "email_sign", label: "Email Contract Signing Link", icon: "✍️", status: "built", detail: "BUILT 2/11, V3.0 2/11: Staff sends signing link via generateContractSigningLink → client clicks → signs at /sign/TOKEN → ContractSigningPortal V3.0 (marker system, 11 click-to-initial, 5-Day Right, positive cancellation, SCR auto-sig) → triggers Scenario 3 automation." },
+  { id: "email_sign", label: "Email Contract Signing Link", icon: "✉️", status: "built", detail: "BUILT 2/11, V3.0 2/11: Staff sends signing link via generateContractSigningLink → client clicks → signs at /sign/TOKEN → ContractSigningPortal V3.0 (marker system, 11 click-to-initial, 5-Day Right, positive cancellation, SCR auto-sig) → triggers Scenario 3 automation." },
   { id: "social", label: "Yelp / Google / Social Media", icon: "⭐", status: "missing", detail: "No webhook or integration to auto-capture leads from Yelp messages, Google Business, Facebook, or Instagram DMs" },
   { id: "affiliate", label: "Affiliate / Referral Partner", icon: "🤝", status: "missing", detail: "No affiliate portal, tracking links, or commission system. ReferralEngineHub exists as placeholder only" },
   { id: "walkin", label: "Walk-in / Phone Call (Non-AI)", icon: "🚶", status: "built", detail: "Manual entry by staff via UltimateContactForm with source='walk_in' or 'phone_call'. Same automation triggers as all contacts." },
@@ -105,10 +105,12 @@ const LIFECYCLE_STAGES = [
       { label: "Dispute Letter Generation", status: "built", where: "aiContentGenerator disputeLetter case + AIDisputeGenerator.jsx", notes: "BUILT 2/12: Cloud Function generates FCRA-compliant letters. Claim code mapping: factual_error→INACCURATE, validation→NOT_MINE, outdated→OUTDATED, fraud→FRAUD. Handles per-bureau strategy." },
       { label: "Bureau Fax Sending (Disputes)", status: "built", where: "FaxCenter.jsx (1,212 lines) + sendFaxOutbound", notes: "BUILT 2/10: Telnyx fax integration with smart auto-rotation, 3 numbers per bureau, health monitoring." },
       { label: "Fax Health Monitoring + Auto-Rotation", status: "built", where: "bureauFaxHealth + Telnyx webhook", notes: "BUILT 2/10: Auto-disables numbers after 3 consecutive failures, switches to backup, sends staff notification." },
+      { label: "Bureau Response Tracking", status: "built", where: "BureauCommunicationHub.jsx (1,329 lines)", notes: "BUILT 2/12 S7: Response Manager tab with outcome→dispute status mapping, Bulk Operations tab for batch actions, Bureau-specific Analytics (Experian/Equifax/TransUnion), Settings." },
       { label: "Dispute Result Notifications", status: "built", where: "Rule 7 in processAbandonmentEmails", notes: "Checks disputeResults collection, emails client when results arrive with details." },
       { label: "Monthly Credit Report Re-Pull", status: "built", where: "idiqService refreshCreditReport case block", notes: "BUILT 2/12: Pulls new report via IDIQ, compares scores vs previous, calculates deltas, logs to creditReportHistory collection." },
       { label: "Monthly Progress Report Email", status: "built", where: "Rule 8 in processAbandonmentEmails", notes: "Sends monthly progress email with score changes, items removed, timeline." },
       { label: "Score Milestone Celebrations", status: "built", where: "Rule 9 in processAbandonmentEmails", notes: "Celebrates 50+ and 100+ point score improvements with branded email + confetti." },
+      { label: "Collections & Accounts Receivable", status: "built", where: "CollectionsARHub.jsx (1,404 lines)", notes: "BUILT 2/12 S7: 6 tabs — Collections, Payment Plans, Automation, Templates, Analytics, Settings. AI Collections Engine with prioritizeAccounts(), calculateRecoveryMetrics(), suggestPaymentPlan(). Firebase: collectionCases, paymentPlans, collectionRules, collectionTemplates." },
       { label: "Payment Failure Notifications", status: "built", where: "nmiWebhook case in operationsManager", notes: "BUILT 2/10: NMI webhook catches payment_failed → emails client + staff notification + logs to paymentLogs. 6-action flow." },
       { label: "Staff Real-Time Notifications", status: "built", where: "staffNotifications collection", notes: "BUILT 2/10: Triggers on new lead, payment failure, fax failure, contract sent. Real-time onSnapshot with bell/toast/chime." },
     ]
@@ -136,6 +138,21 @@ const LIFECYCLE_STAGES = [
       { label: "Lead Recycling (90-Day Cold → Re-Engage)", status: "missing", where: "No rule exists", notes: "Leads that went cold 90+ days should be re-engaged with fresh offer" },
     ]
   },
+  {
+    phase: "H",
+    title: "CRM Hub Quality & Completeness",
+    stages: [
+      { label: "80-Hub Audit Completed", status: "built", where: "All 80 hubs in src/pages/hubs/", notes: "COMPLETED 2/12 S7: Full inventory of all 80 hubs. Identified 10 'coming soon' placeholders across 9 hubs, 3 suspected crashers, and orphan files." },
+      { label: "Coming Soon Placeholders Eliminated (13 of 18)", status: "built", where: "CollectionsARHub, BureauCommunicationHub, ReportsHub, LearningHub", notes: "BUILT 2/12 S7: Eliminated 13 placeholders + 1 TODO with fake data across 4 rebuilt files. Remaining 5: CreditScoreOptimizer (1), SocialListening (1), ReferralPartnerHub (3)." },
+      { label: "Crasher Files Fixed", status: "built", where: "LearningHub.jsx", notes: "FIXED 2/12 S7: LearningHub had 10 tabs declared but 0 rendered (white screen crasher). Rebuilt all 10 tabs (1,047→2,091 lines). TrainingLibrary.jsx and CampaignPlanner.jsx confirmed NOT crashers." },
+      { label: "CalendarSchedulingHub Mega-Enhancement", status: "built", where: "CalendarSchedulingHub.jsx (2,548 lines)", notes: "BUILT 2/12 S7: 8-tab hub built by Christopher." },
+      { label: "ReportsHub Real Data", status: "built", where: "ReportsHub.jsx (2,261 lines)", notes: "REBUILT 2/12 S7: Replaced fake setTimeout + hardcoded insights with real Firebase queries (contacts, bureauDisputes, invoices). Conditional AI recommendations." },
+      { label: "TrainingLibrary.jsx Cleanup", status: "missing", where: "src/pages/TrainingLibrary.jsx + src/pages/hubs/TrainingLibrary.jsx", notes: "DELETE BOTH copies — orphan with no route in navConfig, contains SAMPLE_COURSES fake data. LearningHub.jsx covers all functionality. Also remove lazy import + Route from App.jsx." },
+      { label: "Remaining Coming Soon Placeholders", status: "partial", where: "CreditScoreOptimizer, SocialListening, ReferralPartnerHub", notes: "5 cosmetic 'coming soon' placeholders remain across 3 files. Won't crash but look unprofessional." },
+      { label: "Static-Only Hubs (No Firebase)", status: "partial", where: "AnalyticsHub, CertificationAcademyHub, others", notes: "Multiple hubs exist but have no real data connections. Need Firebase integration for production readiness." },
+      { label: "Client Registration Security", status: "missing", where: "Register.jsx, ProtectedLayout.jsx, SmartDashboard.jsx, Firestore rules", notes: "CRITICAL: New registrants get role 'user' (employee level 5). Must be 'viewer' or 'prospect'. ProtectedLayout must redirect low-role users to /client-portal. SmartDashboard greeting hardcoded to 'Chris'. Firestore rules allow clients to read all data." },
+    ]
+  },
 ];
 
 const PRIORITY_ACTIONS = [
@@ -157,6 +174,14 @@ const PRIORITY_ACTIONS = [
   },
   {
     rank: 3,
+    title: "Delete TrainingLibrary.jsx + NavConfig Cleanup",
+    impact: "MEDIUM — Remove orphan files with fake data, clean up navigation",
+    effort: "~15 min",
+    where: "src/pages/TrainingLibrary.jsx, src/pages/hubs/TrainingLibrary.jsx, App.jsx, navConfig.js",
+    why: "TrainingLibrary is orphan (no route), contains SAMPLE_COURSES hardcoded data. LearningHub (2,091 lines) covers all functionality. Also remove redundant navConfig entries.",
+  },
+  {
+    rank: 4,
     title: "NMI Recurring Billing Wiring (NO STRIPE)",
     impact: "HIGH — Monthly billing must work for revenue",
     effort: "~2 hours",
@@ -164,7 +189,15 @@ const PRIORITY_ACTIONS = [
     why: "NMI gateway built (paymentGateway.js). Zelle + ACH live to Chase. Need recurring subscription automation. NO STRIPE — Stripe/PayPal/Square all ban credit repair. Future: 5 Star Processing.",
   },
   {
-    rank: 4,
+    rank: 5,
+    title: "Remaining Coming Soon Placeholders (5 left)",
+    impact: "LOW — Cosmetic but unprofessional",
+    effort: "~1 hour",
+    where: "CreditScoreOptimizer.jsx (1), SocialListening.jsx (1), ReferralPartnerHub.jsx (3)",
+    why: "Won't crash but 'coming soon' text looks unfinished. Replace with empty states or real functionality.",
+  },
+  {
+    rank: 6,
     title: "Cancellation / Offboarding Flow",
     impact: "MEDIUM — Clean client exits + win-back opportunity",
     effort: "~1 hour",
@@ -172,7 +205,7 @@ const PRIORITY_ACTIONS = [
     why: "Clients currently cannot self-cancel. No NMI subscription cancellation handler. No exit survey or win-back drip.",
   },
   {
-    rank: 5,
+    rank: 7,
     title: "90-Day Cold Lead Recycling",
     impact: "LOW — Re-engage dormant leads with fresh offer",
     effort: "~30 min",
@@ -180,33 +213,41 @@ const PRIORITY_ACTIONS = [
     why: "Leads from 90+ days ago who never enrolled could be reactivated with a new offer or updated plan pricing.",
   },
   {
-    rank: 6,
+    rank: 8,
+    title: "✅ DONE: 80-Hub Audit + Coming Soon Elimination + Crasher Fixes",
+    impact: "COMPLETED 2/12 S7 — 13 placeholders eliminated, 1 crasher fixed, 5 files rebuilt (~7,085 lines)",
+    effort: "DONE",
+    where: "CollectionsARHub (1,404), BureauCommunicationHub (1,329), ReportsHub (2,261), LearningHub (2,091), CalendarSchedulingHub (2,548)",
+    why: "Full audit of all 80 hubs. Rebuilt 5 files totaling ~7,085 lines. LearningHub crasher fixed (10 tabs). ReportsHub fake data replaced with real Firebase. CollectionsARHub 6 tabs from scratch. BureauCommunicationHub 4 new tabs.",
+  },
+  {
+    rank: 9,
     title: "✅ DONE: IDIQ Dispute API Integration",
-    impact: "COMPLETED 2/12 — 5 case blocks in idiqService, AIDisputeGenerator.jsx fully wired",
+    impact: "COMPLETED 2/12 S6 — 5 case blocks in idiqService, AIDisputeGenerator.jsx fully wired",
     effort: "DONE",
     where: "index.js idiqService + AIDisputeGenerator.jsx",
     why: "pullDisputeReport, getDisputeReport, submitIDIQDispute, getDisputeStatus, refreshCreditReport. TransUnion via IDIQ API, Experian/Equifax via FaxCenter.",
   },
   {
-    rank: 7,
+    rank: 10,
     title: "✅ DONE: Monthly Credit Report Re-Pull",
-    impact: "COMPLETED 2/12 — idiqService refreshCreditReport case block",
+    impact: "COMPLETED 2/12 S6 — idiqService refreshCreditReport case block",
     effort: "DONE",
     where: "index.js idiqService refreshCreditReport",
     why: "Pulls new report, compares scores, calculates deltas, logs to creditReportHistory.",
   },
   {
-    rank: 8,
+    rank: 11,
     title: "✅ DONE: E2E Test — Contract Signing Flow",
-    impact: "COMPLETED 2/12 — Works end-to-end, 20 UX items found",
+    impact: "COMPLETED 2/12 S6 — Works end-to-end, 20 UX items found",
     effort: "DONE",
     where: "generateContractSigningLink → email → /sign/:token → all 6 tabs → submit → Scenario 3",
-    why: "Plumbing confirmed working. Bell notification fires. Automation triggers. 20 UX polish items documented in SESSION_6_HANDOFF.md.",
+    why: "Plumbing confirmed working. Bell notification fires. Automation triggers. 20 UX polish items documented.",
   },
   {
-    rank: 9,
+    rank: 12,
     title: "✅ DONE (FAILED): E2E Test — Client Login Flow",
-    impact: "COMPLETED 2/12 — CRITICAL security issues found, 4 fixes needed",
+    impact: "COMPLETED 2/12 S6 — CRITICAL security issues found, 4 fixes needed",
     effort: "DONE (needs fixes)",
     where: "Register.jsx, ProtectedLayout.jsx, SmartDashboard.jsx, Firestore rules",
     why: "New registrant gets role=user (employee level), sees full admin dashboard, all data exposed. Fix is Priority #1 above.",
@@ -228,28 +269,25 @@ export default function SpeedyCRMLifecycleAudit() {
       
       {/* Header */}
       <div style={{ maxWidth: 900, margin: "0 auto", marginBottom: 32 }}>
-        <h1 style={{ fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>
-          🔍 SpeedyCRM Lifecycle Audit
+        <h1 style={{ fontSize: 28, fontWeight: 800, margin: 0, background: "linear-gradient(135deg, #60a5fa, #a78bfa)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+          SpeedyCRM Lifecycle Audit
         </h1>
         <p style={{ color: COLORS.muted, margin: "8px 0 0", fontSize: 14 }}>
-          Every path from contact entry → final outcome. What's built, what's partial, what's missing.
+          Complete A-to-Z contact flow mapping • Updated {new Date().toLocaleDateString()} (Session 7)
         </p>
-        <p style={{ color: "#818cf8", margin: "4px 0 0", fontSize: 12 }}>
-          Last updated: February 11, 2026 — Reflects 2/9 workflow chain, 2/10 email/fax/notifications, 2/11 contract signing system
-        </p>
-        
-        {/* Stats Bar */}
+
+        {/* Summary Stats */}
         <div style={{ display: "flex", gap: 16, marginTop: 20, flexWrap: "wrap" }}>
           {[
             { label: "Total Stages", value: totalStages, color: COLORS.accent },
             { label: "Built", value: builtCount, color: COLORS.built },
             { label: "Partial", value: partialCount, color: COLORS.partial },
             { label: "Missing", value: missingCount, color: COLORS.missing },
-            { label: "Completion", value: `${Math.round(((builtCount + partialCount * 0.5) / totalStages) * 100)}%`, color: COLORS.accent },
+            { label: "Coverage", value: `${Math.round((builtCount / totalStages) * 100)}%`, color: builtCount / totalStages > 0.8 ? COLORS.built : COLORS.partial },
           ].map((stat, i) => (
-            <div key={i} style={{ background: COLORS.card, borderRadius: 10, padding: "12px 20px", flex: "1 1 auto", minWidth: 100, textAlign: "center", border: `1px solid ${COLORS.border}` }}>
+            <div key={i} style={{ background: COLORS.card, borderRadius: 10, padding: "14px 20px", minWidth: 100, flex: 1 }}>
               <div style={{ fontSize: 24, fontWeight: 800, color: stat.color }}>{stat.value}</div>
-              <div style={{ fontSize: 11, color: COLORS.muted, textTransform: "uppercase", letterSpacing: 0.5 }}>{stat.label}</div>
+              <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>{stat.label}</div>
             </div>
           ))}
         </div>
@@ -257,11 +295,8 @@ export default function SpeedyCRMLifecycleAudit() {
 
       {/* Entry Points */}
       <div style={{ maxWidth: 900, margin: "0 auto", marginBottom: 32 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
-          📥 Entry Points
-          <span style={{ fontSize: 12, color: COLORS.muted, fontWeight: 400 }}>How contacts enter the system</span>
-        </h2>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))", gap: 10 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 12 }}>🚪 Contact Entry Points</h2>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 10 }}>
           {ENTRY_POINTS.map((ep) => (
             <div
               key={ep.id}
@@ -272,17 +307,20 @@ export default function SpeedyCRMLifecycleAudit() {
                 padding: "14px 16px",
                 cursor: "pointer",
                 border: `1px solid ${expandedEntry === ep.id ? COLORS.accent : COLORS.border}`,
-                transition: "all 0.2s",
+                transition: "border-color 0.2s",
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: 15, fontWeight: 600 }}>{ep.icon} {ep.label}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontSize: 20 }}>{ep.icon}</span>
+                  <span style={{ fontSize: 14, fontWeight: 600 }}>{ep.label}</span>
+                </div>
                 <StatusBadge status={ep.status} />
               </div>
               {expandedEntry === ep.id && (
-                <p style={{ fontSize: 12, color: COLORS.muted, margin: "10px 0 0", lineHeight: 1.5, borderTop: `1px solid ${COLORS.border}`, paddingTop: 10 }}>
+                <div style={{ marginTop: 10, fontSize: 12, color: COLORS.muted, lineHeight: 1.5, borderTop: `1px solid ${COLORS.border}`, paddingTop: 10 }}>
                   {ep.detail}
-                </p>
+                </div>
               )}
             </div>
           ))}
@@ -291,36 +329,32 @@ export default function SpeedyCRMLifecycleAudit() {
 
       {/* Lifecycle Phases */}
       <div style={{ maxWidth: 900, margin: "0 auto", marginBottom: 32 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
-          🔄 Lifecycle Stages
-          <span style={{ fontSize: 12, color: COLORS.muted, fontWeight: 400 }}>Click any phase to expand</span>
-        </h2>
-        
+        <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 12 }}>📊 Lifecycle Phases</h2>
         {LIFECYCLE_STAGES.map((phase) => {
           const isOpen = activePhase === phase.phase;
           const pb = phase.stages.filter(s => s.status === "built").length;
           const pp = phase.stages.filter(s => s.status === "partial").length;
           const pm = phase.stages.filter(s => s.status === "missing").length;
-          const pct = Math.round(((pb + pp * 0.5) / phase.stages.length) * 100);
+          const pct = Math.round((pb / phase.stages.length) * 100);
           
           return (
-            <div key={phase.phase} style={{ marginBottom: 8 }}>
+            <div key={phase.phase} style={{ marginBottom: 6 }}>
               <div
                 onClick={() => setActivePhase(isOpen ? null : phase.phase)}
                 style={{
-                  background: COLORS.card,
+                  background: isOpen ? "linear-gradient(135deg, #1e3a5f 0%, #1e293b 100%)" : COLORS.card,
                   borderRadius: isOpen ? "10px 10px 0 0" : 10,
                   padding: "14px 18px",
                   cursor: "pointer",
-                  border: `1px solid ${isOpen ? COLORS.accent : COLORS.border}`,
-                  borderBottom: isOpen ? "none" : undefined,
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
+                  border: `1px solid ${isOpen ? COLORS.accent : COLORS.border}`,
+                  borderBottom: isOpen ? "none" : undefined,
                   transition: "all 0.2s",
                 }}
               >
-                <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <span style={{ fontSize: 13, fontWeight: 800, color: COLORS.accent, marginRight: 10 }}>PHASE {phase.phase}</span>
                   <span style={{ fontSize: 15, fontWeight: 600 }}>{phase.title}</span>
                 </div>
@@ -390,7 +424,7 @@ export default function SpeedyCRMLifecycleAudit() {
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
                   <div style={{
                     width: 32, height: 32, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
-                    background: i < 2 ? COLORS.missing : i < 4 ? COLORS.partial : COLORS.accent,
+                    background: i < 2 ? COLORS.missing : i < 5 ? COLORS.partial : i < 7 ? COLORS.accent : COLORS.built,
                     color: "#fff", fontWeight: 800, fontSize: 14, flexShrink: 0
                   }}>
                     {action.rank}
@@ -412,7 +446,7 @@ export default function SpeedyCRMLifecycleAudit() {
 
       {/* Summary */}
       <div style={{ maxWidth: 900, margin: "0 auto", textAlign: "center", padding: "20px 0 40px", color: COLORS.muted, fontSize: 12 }}>
-        Audit based on index.js (11,511 lines) + CompleteEnrollmentFlow.jsx (6,363 lines) + SmartDashboard.jsx (5,348 lines) + ContractSigningPortal V3.0 (1,781 lines) + contractTemplates V3.0 (1,262 lines) + PublicContractSigningRoute (1,057 lines) + project architecture • {new Date().toLocaleDateString()}
+        Audit based on index.js (12,987 lines) + CompleteEnrollmentFlow.jsx (6,363 lines) + SmartDashboard.jsx (5,348 lines) + ContractSigningPortal V3.0 (1,781 lines) + contractTemplates V3.0 (1,262 lines) + PublicContractSigningRoute (1,057 lines) + 80-hub audit (Session 7) + project architecture • {new Date().toLocaleDateString()}
       </div>
     </div>
   );

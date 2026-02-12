@@ -47,11 +47,14 @@ export const AuthProvider = ({ children }) => {
     }
     
     // Create user profile in Firestore
+    // ⚠️ SECURITY: Default to 'viewer' (most restrictive role).
+    // Admin must manually upgrade role after verifying the person.
+    // Clients get 'client' role assigned during contract signing flow.
     await setDoc(doc(db, 'userProfiles', result.user.uid), {
       uid: result.user.uid,
       email: result.user.email,
       displayName: displayName || 'User',
-      role: 'user',
+      role: 'viewer',
       permissions: ['read_basic'],
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
@@ -84,12 +87,14 @@ export const AuthProvider = ({ children }) => {
         return profileData;
       } else {
         console.log('⚠️ No profile found, creating new one');
-        // Create profile if doesn't exist
+        // ⚠️ SECURITY: Default to 'viewer' (most restrictive).
+        // This prevents unknown users from seeing staff tools.
+        // Admin upgrades role manually or contract signing sets 'client'.
         const newProfile = {
           uid: uid,
           email: auth.currentUser?.email,
           displayName: auth.currentUser?.displayName || 'User',
-          role: 'user',
+          role: 'viewer',
           permissions: ['read_basic'],
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()

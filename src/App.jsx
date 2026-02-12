@@ -122,10 +122,13 @@ class ErrorBoundary extends React.Component {
 }
 
 // ============================================================================
-// SMART REDIRECT COMPONENT - Redirects to SmartDashboard
+// SMART REDIRECT COMPONENT - Routes users to role-appropriate landing page
+// ============================================================================
+// ⚠️ SECURITY FIX S2: Previously sent ALL users to /smart-dashboard.
+// Now clients → /client-portal, prospects → /client-portal, staff → /smart-dashboard
 // ============================================================================
 const SmartRedirect = () => {
-  const { currentUser, loading } = useAuth();
+  const { currentUser, userProfile, loading } = useAuth();
 
   if (loading) {
     return <LoadingFallback />;
@@ -135,7 +138,26 @@ const SmartRedirect = () => {
     return <Navigate to="/login" replace />;
   }
 
-  // Always redirect to SmartDashboard - it handles role-based routing internally
+  // ===== Role-based routing =====
+  const role = userProfile?.role || 'viewer';
+  console.log('🔀 SmartRedirect — role:', role);
+
+  // Clients and prospects go to client portal
+  if (role === 'client' || role === 'prospect') {
+    return <Navigate to="/client-portal" replace />;
+  }
+
+  // Viewers (unverified signups) go to a restricted view
+  if (role === 'viewer') {
+    return <Navigate to="/client-portal" replace />;
+  }
+
+  // Affiliates go to referral dashboard
+  if (role === 'affiliate') {
+    return <Navigate to="/referral-partner-hub" replace />;
+  }
+
+  // Staff (user/manager/admin/masterAdmin) go to SmartDashboard
   return <Navigate to="/smart-dashboard" replace />;
 };
 
@@ -374,7 +396,7 @@ const ProtectedRoute = ({ children, requiredRole = null, requiredRoles = null })
   }
 
   if (allowedRoles) {
-    const userRole = userProfile?.role || currentUser?.role || 'user';
+    const userRole = userProfile?.role || currentUser?.role || 'viewer'; // ⚠️ SECURITY: default 'viewer' not 'user'
 
     // Convert numeric role arrays to strings for consistent comparison, but keep non-numeric role checks.
     const normalizedAllowed = allowedRoles.map(r => (typeof r === 'number' ? String(r) : r));
@@ -382,20 +404,29 @@ const ProtectedRoute = ({ children, requiredRole = null, requiredRoles = null })
 
     console.debug && console.debug('🔒 Protected Route Check:', { userRole: normalizedUserRole, allowedRoles: normalizedAllowed });
 
+    // ===== masterAdmin bypasses all checks =====
     if (normalizedUserRole === 'masterAdmin') {
       return <>{children}</>;
     }
 
-    if (normalizedAllowed.includes('admin') && normalizedUserRole === 'admin') {
+    // ===== admin passes 'admin' and lower checks =====
+    if (normalizedUserRole === 'admin' && normalizedAllowed.some(r => 
+      ['admin', 'manager', 'user', 'affiliate', 'client', 'prospect', 'viewer'].includes(r)
+    )) {
       return <>{children}</>;
     }
 
-    if (normalizedAllowed.includes('user') && (normalizedUserRole === 'user' || normalizedUserRole === 'client')) {
-      return <>{children}</>;
-    }
-
-    // Check numeric/string role membership
-    if (normalizedAllowed.includes(normalizedUserRole)) {
+    // ===== SECURITY FIX S4: Hierarchical permission check =====
+    // Uses ROLE_HIERARCHY levels so each role only accesses its level and below.
+    // Previously, clients (level 3) could pass 'user' (level 5) checks — that's fixed.
+    const ROLE_LEVELS = {
+      masterAdmin: 8, admin: 7, manager: 6, user: 5,
+      affiliate: 4, client: 3, prospect: 2, viewer: 1
+    };
+    const userLevel = ROLE_LEVELS[normalizedUserRole] || 0;
+    // User passes if their level >= the MINIMUM required level among allowedRoles
+    const minRequiredLevel = Math.min(...normalizedAllowed.map(r => ROLE_LEVELS[r] || 0));
+    if (userLevel >= minRequiredLevel) {
       return <>{children}</>;
     }
 
