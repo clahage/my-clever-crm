@@ -424,21 +424,23 @@
 	margin-bottom: 2px;
 }
 
-/* Intro Banner */
+/* Intro Banner — sits inside #banner which has background-color:#fff from stylesheet.css */
+/* So text must be DARK, not white. Using same colors as landing page banner text. */
 .quiz-intro-banner {
 	text-align: center;
 	padding: 30px 0 10px 0;
 }
 .quiz-intro-banner h1 {
 	font-size: 28px;
-	color: #fff;
+	color: #333;
 	margin: 0 0 8px 0;
-	text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+	font-weight: 700;
 }
 .quiz-intro-banner p {
 	font-size: 16px;
-	color: rgba(255,255,255,0.9);
+	color: #090;
 	margin: 0;
+	font-weight: 600;
 }
 
 /* Mobile Responsive */
@@ -677,8 +679,8 @@
 						</div>
 						<div class="form-group">
 							<label for="phone">Phone Number <span class="required">*</span></label>
-							<input type="tel" id="phone" name="phone" placeholder="(555) 123-4567" required autocomplete="tel">
-							<small>We'll text your results too (optional)</small>
+							<input type="tel" id="phone" name="phone" placeholder="(555) 123-4567" required autocomplete="off" inputmode="numeric">
+							<small>Please type your 10-digit phone number manually</small>
 						</div>
 						
 						<!-- SMS Consent (TCPA Compliance) -->
@@ -926,19 +928,44 @@ document.addEventListener('DOMContentLoaded', function() {
 	document.getElementById('back4').addEventListener('click', function() { goToStep(3); });
 	
 	// ═══════════════════════════════════════════════════════════════
-	// PHONE AUTO-FORMAT
+	// PHONE AUTO-FORMAT (deletion-friendly)
 	// ═══════════════════════════════════════════════════════════════
 	var phoneInput = document.getElementById('phone');
+	var lastPhoneLength = 0;
+	
 	phoneInput.addEventListener('input', function(e) {
-		var value = e.target.value.replace(/\D/g, '');
-		if (value.length > 10) value = value.slice(0, 10);
-		if (value.length >= 6) {
-			value = '(' + value.slice(0,3) + ') ' + value.slice(3,6) + '-' + value.slice(6);
-		} else if (value.length >= 3) {
-			value = '(' + value.slice(0,3) + ') ' + value.slice(3);
+		var raw = e.target.value.replace(/\D/g, '');
+		
+		// If user is deleting, don't reformat — let them delete freely
+		if (e.target.value.length < lastPhoneLength) {
+			lastPhoneLength = e.target.value.length;
+			validateCaptureForm();
+			return;
 		}
-		e.target.value = value;
+		
+		if (raw.length > 10) raw = raw.slice(0, 10);
+		
+		var formatted = '';
+		if (raw.length >= 7) {
+			formatted = '(' + raw.slice(0,3) + ') ' + raw.slice(3,6) + '-' + raw.slice(6);
+		} else if (raw.length >= 4) {
+			formatted = '(' + raw.slice(0,3) + ') ' + raw.slice(3);
+		} else if (raw.length >= 1) {
+			formatted = '(' + raw;
+		}
+		
+		e.target.value = formatted;
+		lastPhoneLength = formatted.length;
 		validateCaptureForm();
+	});
+	
+	// Clear if browser auto-filled junk
+	phoneInput.addEventListener('focus', function() {
+		var raw = phoneInput.value.replace(/\D/g, '');
+		if (raw.length > 10) {
+			phoneInput.value = '';
+			lastPhoneLength = 0;
+		}
 	});
 	
 	// ═══════════════════════════════════════════════════════════════

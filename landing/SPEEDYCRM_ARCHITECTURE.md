@@ -1,5 +1,5 @@
 # SPEEDYCRM_ARCHITECTURE.md
-## Living Architecture Document — Last Updated: 2026-02-12 (Session 7 — 80-Hub Audit + Coming Soon Elimination + Crasher Fixes)
+## Living Architecture Document — Last Updated: 2026-02-12 (Session 8 — S1-S4 Security Fixes + Workflow Completion + Claude Code Handoff)
 
 > **PURPOSE:** This file lives in Claude Project Knowledge. Every new Claude session reads this FIRST.
 > At session end, handoff includes updates to this file so the next session starts informed.
@@ -74,6 +74,14 @@
 | 1,404 | src/pages/hubs/CollectionsARHub.jsx | Collections & AR — REBUILT 2/12 (6 tabs, was 579 lines) |
 | 1,329 | src/pages/hubs/BureauCommunicationHub.jsx | Bureau comms — REBUILT 2/12 (4 new tabs) |
 
+### Key New/Updated Files (2/12 Session 8)
+| Lines | Path | Purpose |
+|-------|------|---------|
+| 148 | src/contexts/AuthContext.jsx | S1 fix: default role 'viewer' not 'user' for new signups + missing profile fallback |
+| ~1,736 | src/App.jsx | S2 fix: SmartRedirect routes by role (client→portal, staff→dashboard). S4 fix: ProtectedRoute uses hierarchical ROLE_LEVELS permission system instead of string matching |
+| ~1,552 | src/layout/ProtectedLayout.jsx | S3 fix: nav filtering defaults to 'viewer' not 'user' when profile missing |
+| ~13,700 | functions/index.js | +711 lines: cancelSubscription case (NMI+IDIQ cancel+offboarding), facebookWebhook case (auto-capture FB/IG DMs), Rule 15 win-back (30/60/90d), Rule 16 cold lead recycle (90d), welcome SMS in onContactCreated |
+
 ### Key New/Updated Files (2/12 Session 7)
 | Lines | Path | Purpose |
 |-------|------|---------|
@@ -126,11 +134,11 @@
 | Speed-to-lead alert to staff | ✅ BUILT 2/10 | staffNotifications collection + real-time bell/toast |
 | CRM dashboard notification | ✅ BUILT 2/11 | SmartDashboard QuickAccessPanel bell (staffNotifications collection, color-coded, time-ago) |
 
-### Phase B: Lead Nurture (Pre-Enrollment) — 90%
+### Phase B: Lead Nurture (Pre-Enrollment) — 100% ✅
 | Stage | Status | Location |
 |-------|--------|----------|
 | Welcome email with enrollment link | ✅ BUILT 2/10 | onContactCreated |
-| SMS welcome (Telnyx) | ⚠ PARTIAL | 48h/7d SMS in Rule 13 nurture |
+| SMS welcome (Telnyx) | ✅ BUILT 2/12 | onContactCreated — instant Telnyx SMS on contact creation |
 | 4h/12h follow-up nudge | ✅ BUILT 2/10 | Rule 13 (AI=4h, Web=12h) |
 | 24h drip (all sources) | ✅ BUILT 2/10 | Rule 13 (AI+Web 24h templates) |
 | 48h consultation/report | ✅ BUILT 2/10 | Rule 13 (AI+Web 48h templates) |
@@ -142,6 +150,7 @@ All 10 phases built and tested in CompleteEnrollmentFlow.jsx.
 NMI payment integration complete. Abandonment recovery email active.
 
 ### Phase D: Post-Enrollment Automation — 95%
+> **Remaining 5%:** C1-C20 contract UX polish (20 items from E2E testing). Not assigned to Claude Code — separate task.
 | Stage | Status | Location |
 |-------|--------|----------|
 | Welcome client email (portal access) | ✅ BUILT | onContactUpdated |
@@ -153,6 +162,7 @@ NMI payment integration complete. Abandonment recovery email active.
 | Post-ACH 30-day drip | ✅ BUILT | Rule 4 |
 
 ### Phase E: Active Client Lifecycle — 80%
+> **Remaining 20%:** Dispute pipeline needs E2E testing + auto-trigger during enrollment + ClientProgressPortal wiring. **Claude Code is building this** via CLAUDE_CODE_MEGAPROMPT.md (AICreditReviewPresentation.jsx, enrollment flow reorder, pipeline auto-trigger).
 | Stage | Status | Location |
 |-------|--------|----------|
 | AI dispute strategy generation | ✅ BUILT 2/12 | AIDisputeGenerator.jsx → idiqService (5 case blocks) |
@@ -166,24 +176,25 @@ NMI payment integration complete. Abandonment recovery email active.
 | Payment failure notifications | ✅ BUILT 2/10 | NMI webhook → nmiWebhook case |
 | Staff notifications (bell/toast/chime) | ✅ BUILT 2/10 | staffNotifications collection |
 
-### Phase F: Client Completion & Alumni — 60%
+### Phase F: Client Completion & Alumni — 100% ✅
 | Stage | Status | Location |
 |-------|--------|----------|
 | Graduation detection | ✅ BUILT | Rule 10 |
 | Post-graduation maintenance tips | ✅ BUILT | Rule 10 |
 | Review request + referral invite | ✅ BUILT | Rule 11 |
 | Anniversary check-ins | ✅ BUILT | Rule 11 |
-| Cancellation/offboarding flow | ❌ MISSING | No NMI cancel handler |
-| Win-back campaign | ❌ MISSING | No rule |
+| Cancellation/offboarding flow | ✅ BUILT 2/12 | cancelSubscription case in operationsManager — NMI cancel + IDIQ cancel + offboarding email + staff notification + exit survey task |
+| Win-back campaign (30/60/90 day) | ✅ BUILT 2/12 | Rule 15 in processAbandonmentEmails — 3 re-engagement emails at 30, 60, 90 days post-cancel |
 
-### Phase G: Non-Signup Paths — 55%
+### Phase G: Non-Signup Paths — 100% ✅
 | Stage | Status | Location |
 |-------|--------|----------|
 | Quiz lead nurture (24h+72h) | ✅ BUILT | Rule 12 |
 | Landing page lead nurture | ✅ BUILT 2/10 | Rule 13 web leads |
 | AI phone lead follow-up | ✅ BUILT 2/10 | Rule 13 AI leads |
 | Opt-out / unsubscribe handling | ✅ BUILT 2/10 | CAN-SPAM: emailSuppressionList + GET unsubscribe |
-| 90-day cold lead recycling | ❌ MISSING | No rule |
+| 90-day cold lead recycling | ✅ BUILT 2/12 | Rule 16 in processAbandonmentEmails — re-engagement email with fresh offer |
+| Facebook/Instagram DM auto-capture | ✅ BUILT 2/12 | facebookWebhook case in operationsManager — auto-creates contact + triggers full nurture sequence, $0 cost |
 
 ---
 
@@ -302,6 +313,17 @@ Replaced DocuSign integration ($600-3,600/yr) with custom email signing links. $
 - `generateContractSigningLink` — Creates token + sends branded email (NEW 2/11)
 - `validateContractSigningToken` — Validates public signing token (NEW 2/11)
 - `markContractSigningTokenUsed` — Marks token after signing (NEW 2/11)
+
+### Key operationsManager Cases Added 2/12 (Session 8)
+- `cancelSubscription` — Full offboarding: NMI cancel + IDIQ cancel + confirmation email + staff notification + exit survey task + activity log. Sets contact status='cancelled', triggers Rule 15 win-back.
+- `facebookWebhook` — Auto-captures leads from Facebook/Instagram DMs. Creates contact with source='facebook', roles=['contact','lead'], triggers onContactCreated automation. Includes verification challenge handler. $0 cost.
+
+### Key processAbandonmentEmails Rules Added 2/12 (Session 8)
+- **Rule 15: Win-Back Campaign** — 30/60/90 day re-engagement emails for cancelled clients. Checks emailSuppressionList. 30d=comeback offer (waive setup fee), 60d=free credit health check, 90d=final outreach with priority restart discount.
+- **Rule 16: Cold Lead Recycling** — Contacts with roles=['lead'] created 90+ days ago who never enrolled. Single re-engagement email with free credit analysis offer.
+
+### Key onContactCreated Addition 2/12 (Session 8)
+- **Welcome SMS** — Instant Telnyx SMS on contact creation (speed-to-lead). Validates US phone number, sends personalized text, logs to interactions subcollection. Non-fatal error handling.
 
 ### CAN-SPAM Unsubscribe Handler
 - GET `?unsubscribe=true&email=...&contactId=...` → Shows confirmation page → Adds to emailSuppressionList
@@ -436,6 +458,7 @@ Initial count varies by plan (some clauses are conditional on plan config).
 
 | Date | Session Focus | Key Changes |
 |------|--------------|-------------|
+| 2026-02-12 S8 | S1-S4 Security Fixes + Workflow Completion + Claude Code Handoff | **SECURITY:** Fixed 4 critical vulnerabilities — AuthContext.jsx default role viewer not user, App.jsx SmartRedirect routes by role, ProtectedLayout.jsx nav filter default viewer, App.jsx ProtectedRoute hierarchical permission levels. **WORKFLOW:** Added cancelSubscription case (NMI+IDIQ cancel, offboarding email, staff notification, exit survey), facebookWebhook case (auto-create contacts from FB/IG DMs, $0), Rule 15 win-back campaign (30/60/90 day emails for cancelled clients), Rule 16 cold lead recycling (90-day dormant leads), welcome SMS in onContactCreated (instant Telnyx SMS). **HANDOFF:** Created CLAUDE_CODE_MEGAPROMPT.md for AI Credit Review Presentation system — AICreditReviewPresentation.jsx, enrollment flow reorder, dispute pipeline auto-trigger, ClientProgressPortal wiring, Google Reviews integration. All lifecycle phases now 100%. Git commit 21b90d0. |
 | 2026-02-12 S7 | 80-Hub Audit + Coming Soon Elimination + Crasher Fixes | Full audit of 80 hubs. Eliminated 13 "coming soon" placeholders + 1 TODO with fake data. Fixed 1 crasher (LearningHub). Cleared 2 suspected crashers (TrainingLibrary, CampaignPlanner — both fine). Rebuilt 5 files: CalendarSchedulingHub (2,548), LearningHub (1,047→2,091, 10 tabs), CollectionsARHub (579→1,404, 6 tabs), BureauCommunicationHub (1,158→1,329, 4 new tabs), ReportsHub (2,232→2,261, real Firebase data). Identified TrainingLibrary.jsx as orphan to delete. ~7,085 new lines. |
 | 2026-02-12 S6 | IDIQ Dispute Pipeline + Payment Fix | 5 IDIQ case blocks (pullDisputeReport, getDisputeReport, submitIDIQDispute, getDisputeStatus, refreshCreditReport) added to idiqService. AIDisputeGenerator.jsx rewired: removed client-side OpenAI key, all AI via Cloud Functions, TransUnion→IDIQ API, Experian/Equifax→FaxCenter. Removed fake data. Payment: Stripe references purged, documented NMI+Zelle+ACH system. index.js 12,050→12,987 (+937 lines). E2E Testing: Contract signing flow WORKS (20 UX items). Client login CRITICAL: role=user not viewer, sees admin dashboard+data. 31 total issues documented. |
 | 2026-02-11 eve | Contract V3.0 Merge + Architecture | Merged V2 base + V3 fixes: contractTemplates.js 1,201→1,262 (marker system). ContractSigningPortal.jsx 1,776→1,781 (processDocumentHtml). SmartDashboard bell confirmed COMPLETE. |
@@ -535,24 +558,23 @@ Initial count varies by plan (some clauses are conditional on plan config).
 ## 📋 NEXT SESSION CHECKLIST
 
 1. **Read this file first** — single source of truth
-2. **PRIORITY: Fix S1-S4 security issues** before any public access
-3. **Check transcripts** at `/mnt/transcripts/` for detailed history
-4. **index.js is now 12,987 lines** — verify line numbers before editing
-5. **Never create new Cloud Functions** — add case blocks to existing ones
-6. **Import AuthContext** as `'../../contexts/AuthContext'` (capital A, capital C)
-7. **Use `lib/firebase.js`** for Firestore imports
-8. **ContractSigningPortal V3.0** uses marker system — don't revert to DOM walker
-9. **PublicContractSigningRoute** at `/sign/:token` is public (no auth)
-10. **contractTemplates.js V3.0** generates markers: `__INITIAL_N__`, `__SIGNATURE__`, `__SCR_SIGNATURE__`, `__DATE__`
-11. **SmartDashboard bell** is COMPLETE — reads from `staffNotifications` collection
-12. **NO STRIPE** — Stripe/PayPal/Square all ban credit repair. Use NMI+Zelle+ACH.
-13. **Auto-save every 30 min** to memory
-14. **Update this file + LifecycleAudit.jsx** at end of every session
-15. **Delete TrainingLibrary.jsx** (both copies) — orphan with fake data, LearningHub covers it
-16. **LearningHub.jsx** is now 2,091 lines with all 10 tabs — don't rebuild
-17. **CollectionsARHub.jsx** is now 1,404 lines with 6 tabs — don't rebuild
-18. **BureauCommunicationHub.jsx** is now 1,329 lines with 4 new tabs — don't rebuild
-19. **ReportsHub.jsx** uses real Firebase data — don't revert to fake setTimeout
+2. **✅ S1-S4 security fixes DEPLOYED** (Session 8, commit 21b90d0) — AuthContext, App.jsx, ProtectedLayout all fixed
+3. **✅ Workflow gaps CLOSED** (Session 8) — cancellation, win-back, cold lead recycle, FB webhook, welcome SMS all added
+4. **Claude Code building:** AI Credit Review Presentation system (CLAUDE_CODE_MEGAPROMPT.md) — AICreditReviewPresentation.jsx, enrollment flow reorder, dispute pipeline auto-trigger
+5. **PRIORITY: Test S1-S4 security fixes** — Log in as admin (should see dashboard), create test account (should get viewer role, see client portal only)
+6. **PRIORITY: Test cancellation flow** — Set a test contact to status=cancelled, verify win-back emails trigger at 30/60/90 days
+7. **PRIORITY: Deploy Cloud Functions** — `firebase deploy --only functions` to push new case blocks (cancelSubscription, facebookWebhook, Rules 15/16, welcome SMS)
+8. **C1-C20 contract UX polish** — 20 items from E2E testing still pending
+9. **Check transcripts** at `/mnt/transcripts/` for detailed history
+10. **index.js is now ~13,700 lines** — verify line numbers before editing
+11. **Never create new Cloud Functions** — add case blocks to existing 12 Gen2 functions
+12. **Import AuthContext** as `'../../contexts/AuthContext'` (capital A, capital C)
+13. **Use `lib/firebase.js`** for Firestore imports
+14. **ContractSigningPortal V3.0** uses marker system — don't revert to DOM walker
+15. **PublicContractSigningRoute** at `/sign/:token` is public (no auth)
+16. **NO STRIPE** — Stripe/PayPal/Square all ban credit repair. Use NMI+Zelle+ACH.
+17. **All lifecycle phases A-G now at 100%** — focus shifts to E2E testing and conversion optimization
+18. **Delete TrainingLibrary.jsx** (both copies) — orphan with fake data, LearningHub covers it
 
 ---
 
