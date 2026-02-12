@@ -1392,13 +1392,20 @@ const ClientProgressPortal = () => {
   const loadDisputes = async () => {
     try {
       // ===== TRY MULTIPLE QUERIES =====
+      // Query by userId, clientId, AND contactId to support all dispute creation methods
       const queries = [
         query(collection(db, 'disputes'), where('userId', '==', user.uid)),
         query(collection(db, 'disputes'), where('clientId', '==', user.uid))
       ];
 
+      // ===== ADD CONTACTID QUERY IF CONTACT DATA LOADED =====
+      // This supports disputes created by the AI pipeline during enrollment
+      if (contactData?.id) {
+        queries.push(query(collection(db, 'disputes'), where('contactId', '==', contactData.id)));
+      }
+
       let allDisputes = [];
-      
+
       for (const q of queries) {
         try {
           const snapshot = await getDocs(q);
@@ -1406,12 +1413,14 @@ const ClientProgressPortal = () => {
           allDisputes = [...allDisputes, ...disputeData];
         } catch (e) {
           // Query may fail if index doesn't exist, continue
+          console.log('Dispute query failed (index may not exist):', e.message);
         }
       }
 
       // ===== REMOVE DUPLICATES =====
       const uniqueDisputes = Array.from(new Map(allDisputes.map(d => [d.id, d])).values());
       setDisputes(uniqueDisputes);
+      console.log(`✅ Loaded ${uniqueDisputes.length} disputes for user ${user.uid}`);
     } catch (error) {
       console.error('Error loading disputes:', error);
     }
@@ -1541,6 +1550,15 @@ const ClientProgressPortal = () => {
       calculateStats();
     }
   }, [disputes, creditScores, clientData, idiqData]);
+
+  // ===== RELOAD DISPUTES WHEN CONTACT DATA LOADS =====
+  // This ensures disputes created with contactId (from AI pipeline) are loaded
+  useEffect(() => {
+    if (contactData?.id && !loading) {
+      console.log('📋 Contact data loaded - reloading disputes to include contactId query');
+      loadDisputes();
+    }
+  }, [contactData?.id]);
 
   // ===== FINANCIAL IMPACT CALCULATORS =====
   const calculateMortgageSavings = (currentScore, targetScore) => {

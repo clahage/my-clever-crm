@@ -12496,6 +12496,200 @@ console.log('🔐 Enrollment token generated:', token.substring(0, 10) + '...');
       
       break;
     }
+
+    // ===================================================================
+    // GOOGLE REVIEWS WEBHOOK — Check for New Google Business Reviews
+    // ===================================================================
+    // Periodically checks for new Google Business Profile reviews.
+    // When a new review is found:
+    // - Creates a staff notification
+    // - If 4+ stars: auto-generates thank-you response via AI
+    // - If <4 stars: creates high-priority task for manual response
+    //
+    // API: Google Business Profile API (FREE)
+    // Setup: Enable API in Google Cloud Console, use service account
+    // Endpoint: accounts/{accountId}/locations/{locationId}/reviews
+    //
+    // Params: accountId (optional), locationId (optional)
+    // ===================================================================
+    case 'googleReviewsCheck': {
+      console.log('⭐ ===== GOOGLE REVIEWS CHECK =====');
+
+      try {
+        // TODO: Add Google Business Profile API credentials in Firebase config
+        // For now, return a placeholder response indicating setup is needed
+
+        const { accountId, locationId } = params;
+
+        // Check if Google API credentials are configured
+        // In production, this would use Google service account credentials
+        const googleApiConfigured = false; // Set to true once API is set up
+
+        if (!googleApiConfigured) {
+          console.log('⚠️ Google Business Profile API not yet configured');
+          result = {
+            success: true,
+            message: 'Google Reviews check scheduled but API not yet configured',
+            action: 'googleReviewsCheck',
+            nextSteps: [
+              '1. Enable Google Business Profile API in Google Cloud Console',
+              '2. Create service account or OAuth credentials',
+              '3. Add credentials to Firebase config',
+              '4. Configure accountId and locationId'
+            ],
+            placeholder: true
+          };
+          break;
+        }
+
+        // ===== GOOGLE BUSINESS PROFILE API INTEGRATION =====
+        // When API is configured, uncomment and implement this section:
+        /*
+        const { google } = require('googleapis');
+        const mybusiness = google.mybusinessbusinessinformation('v1');
+
+        // Authenticate with service account
+        const auth = new google.auth.GoogleAuth({
+          keyFile: 'path/to/service-account-key.json',
+          scopes: ['https://www.googleapis.com/auth/business.manage']
+        });
+
+        const authClient = await auth.getClient();
+
+        // Fetch recent reviews
+        const response = await mybusiness.accounts.locations.reviews.list({
+          auth: authClient,
+          parent: `accounts/${accountId}/locations/${locationId}`,
+          pageSize: 10,
+          orderBy: 'updateTime desc'
+        });
+
+        const reviews = response.data.reviews || [];
+
+        // Check for new reviews (compare with last check timestamp)
+        const lastCheckRef = db.collection('systemConfig').doc('googleReviewsLastCheck');
+        const lastCheckDoc = await lastCheckRef.get();
+        const lastCheckTime = lastCheckDoc.exists ? lastCheckDoc.data().timestamp : null;
+
+        const newReviews = reviews.filter(review => {
+          const reviewTime = new Date(review.updateTime);
+          return !lastCheckTime || reviewTime > lastCheckTime.toDate();
+        });
+
+        console.log(`✅ Found ${newReviews.length} new reviews`);
+
+        // Process each new review
+        for (const review of newReviews) {
+          const rating = review.starRating === 'FIVE' ? 5 :
+                        review.starRating === 'FOUR' ? 4 :
+                        review.starRating === 'THREE' ? 3 :
+                        review.starRating === 'TWO' ? 2 : 1;
+
+          const reviewerName = review.reviewer?.displayName || 'Anonymous';
+          const reviewText = review.comment || '';
+
+          // Create staff notification
+          await db.collection('staffNotifications').add({
+            type: 'google_review',
+            title: `New ${rating}⭐ Google Review`,
+            message: `${reviewerName}: "${reviewText.substring(0, 100)}..."`,
+            priority: rating < 4 ? 'high' : 'normal',
+            rating: rating,
+            reviewId: review.name,
+            reviewerName: reviewerName,
+            reviewText: reviewText,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            read: false,
+            link: review.reviewReply?.updateTime ? null : `/admin/reviews/${review.name}`
+          });
+
+          // Handle based on rating
+          if (rating >= 4) {
+            // ===== 4+ STARS: AUTO-GENERATE THANK-YOU RESPONSE =====
+            console.log('✨ Generating AI thank-you response for positive review');
+
+            // Call aiContentGenerator to create thank-you message
+            const aiResponse = await admin.functions().httpsCallable('aiContentGenerator')({
+              type: 'generateReviewResponse',
+              reviewText: reviewText,
+              reviewerName: reviewerName,
+              rating: rating
+            });
+
+            if (aiResponse.data?.success && aiResponse.data?.response) {
+              // Post the response to Google
+              await mybusiness.accounts.locations.reviews.updateReply({
+                auth: authClient,
+                name: review.name,
+                requestBody: {
+                  comment: aiResponse.data.response
+                }
+              });
+
+              console.log('✅ Posted AI-generated thank-you response');
+
+              // Log the response
+              await db.collection('reviewResponses').add({
+                reviewId: review.name,
+                rating: rating,
+                reviewerName: reviewerName,
+                response: aiResponse.data.response,
+                responseType: 'ai_generated',
+                postedAt: admin.firestore.FieldValue.serverTimestamp(),
+                postedBy: 'system:ai'
+              });
+            }
+          } else {
+            // ===== <4 STARS: CREATE HIGH-PRIORITY TASK FOR MANUAL RESPONSE =====
+            console.log('⚠️ Creating high-priority task for negative review');
+
+            await db.collection('tasks').add({
+              type: 'review_response',
+              title: `Respond to ${rating}⭐ Google Review`,
+              description: `Reviewer: ${reviewerName}\n\nReview: "${reviewText}"\n\nPlease craft a thoughtful, empathetic response addressing their concerns.`,
+              priority: 'high',
+              status: 'pending',
+              assignedTo: null, // Unassigned - first available staff member
+              dueDate: admin.firestore.FieldValue.serverTimestamp(), // Due immediately
+              reviewId: review.name,
+              reviewRating: rating,
+              createdAt: admin.firestore.FieldValue.serverTimestamp(),
+              createdBy: 'system:google_reviews'
+            });
+
+            console.log('✅ Created high-priority task for manual review response');
+          }
+        }
+
+        // Update last check timestamp
+        await lastCheckRef.set({
+          timestamp: admin.firestore.FieldValue.serverTimestamp(),
+          reviewsChecked: reviews.length,
+          newReviewsFound: newReviews.length
+        });
+        */
+
+        result = {
+          success: true,
+          message: 'Google Reviews check completed (placeholder)',
+          reviewsChecked: 0,
+          newReviewsFound: 0,
+          action: 'googleReviewsCheck',
+          note: 'Implement Google Business Profile API integration to enable this feature'
+        };
+
+      } catch (reviewError) {
+        console.error('❌ Google Reviews check error:', reviewError);
+        result = {
+          success: false,
+          error: reviewError.message,
+          action: 'googleReviewsCheck'
+        };
+      }
+
+      break;
+    }
+
     default:
       console.error(`❌ Unknown action requested: ${action}`);
       response.status(400).json({
@@ -12528,6 +12722,7 @@ console.log('🔐 Enrollment token generated:', token.substring(0, 10) + '...');
           'validateContractSigningToken',
           'markContractSigningTokenUsed',
           'submitSignedContract',
+          'googleReviewsCheck',
         ]
       });
       return;
