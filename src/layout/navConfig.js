@@ -9,10 +9,10 @@
 //   - Removed ReferralManager duplicate (kept ReferralPartnerHub)
 //   - Moved Toyota Sales to Auto Sales group
 //   - Moved Client Onboarding to Client Success group
-//   - Renamed Executive Suite → Command Center
+//   - Renamed Executive Suite â†’ Command Center
 //   - All paths verified and functional
 // DATE: January 16, 2026
-// © 1995-2026 Speedy Credit Repair Inc. | Christopher Lahage | All Rights Reserved
+// Â© 1995-2026 Speedy Credit Repair Inc. | Christopher Lahage | All Rights Reserved
 // ============================================================================
 
 import {
@@ -154,7 +154,7 @@ export function isVisible(item, userRole, isMobile = false) {
 
 export const navigationItems = [
   // ==========================================================================
-  // 🎯 SMART DASHBOARD
+  // ðŸŽ¯ SMART DASHBOARD
   // ==========================================================================
   {
     id: 'smart-dashboard',
@@ -169,7 +169,7 @@ export const navigationItems = [
   },
 
   // ==========================================================================
-  // 👔 COMMAND CENTER (Renamed from Executive Suite)
+  // ðŸ‘” COMMAND CENTER (Renamed from Executive Suite)
   // ==========================================================================
   {
     id: 'command-center-group',
@@ -190,19 +190,19 @@ export const navigationItems = [
         badge: 'KPI',
         description: 'Real-time business KPIs, revenue, and performance metrics'
       },
-      // ❌ REMOVED: Toyota Sales (moved to Auto Sales group)
-      // ❌ REMOVED: Payment Health (moved to Financial Operations as tab)
-      // ❌ REMOVED: Team Tasks (moved to Tasks Hub as tab)
-      // ❌ REMOVED: Compliance Calendar (moved to Compliance Hub as tab)
-      // ❌ REMOVED: Document Vault (DUPLICATE - using DocumentsHub)
-      // ❌ REMOVED: Communication Center (DUPLICATE - using CommunicationsHub)
-      // ❌ REMOVED: Client Onboarding (moved to Client Success group)
-      // ❌ REMOVED: Referral Manager (DUPLICATE - using ReferralPartnerHub)
+      // âŒ REMOVED: Toyota Sales (moved to Auto Sales group)
+      // âŒ REMOVED: Payment Health (moved to Financial Operations as tab)
+      // âŒ REMOVED: Team Tasks (moved to Tasks Hub as tab)
+      // âŒ REMOVED: Compliance Calendar (moved to Compliance Hub as tab)
+      // âŒ REMOVED: Document Vault (DUPLICATE - using DocumentsHub)
+      // âŒ REMOVED: Communication Center (DUPLICATE - using CommunicationsHub)
+      // âŒ REMOVED: Client Onboarding (moved to Client Success group)
+      // âŒ REMOVED: Referral Manager (DUPLICATE - using ReferralPartnerHub)
     ]
   },
 
   // ==========================================================================
-  // 🚗 AUTO SALES & TOYOTA (Consolidated - Toyota moved here)
+  // ðŸš— AUTO SALES & TOYOTA (Consolidated - Toyota moved here)
   // ==========================================================================
   {
     id: 'auto-sales-group',
@@ -216,45 +216,20 @@ export const navigationItems = [
     visibleTo: ['manager', 'admin', 'masterAdmin'],
     items: [
       {
-        id: 'auto-opportunity-dashboard',
-        title: 'Auto Opportunities',
-        path: '/auto-opportunities',
-        icon: Target,
-        permission: 'user',
+        id: 'auto-sales-hub',
+        title: 'Auto Sales Hub',
+        path: '/auto-sales-hub',
+        icon: DirectionsCar,
+        permission: 'manager',
         badge: 'AI',
-        description: 'AI-detected auto loan/lease opportunities'
-      },
-      {
-        id: 'toyota-lead-manager',
-        title: 'Toyota Sales Pipeline',
-        path: '/toyota-leads',
-        icon: TrendingUp,
-        permission: 'manager',
-        badge: '$$$',
-        description: 'Auto leads, Tekion export, commission tracking'
-      },
-      {
-        id: 'tekion-lead-manager',
-        title: 'Tekion Integration',
-        path: '/tekion-leads',
-        icon: Send,
-        permission: 'manager',
-        badge: 'CRM',
-        description: 'Export leads to Tekion, track conversions'
-      },
-      {
-        id: 'commission-tracker',
-        title: 'Commission Tracker',
-        path: '/commissions',
-        icon: DollarSign,
-        permission: 'manager',
-        description: 'Track auto sales commissions and splits'
+        description: 'Complete Toyota franchise integration: opportunity scanner, lead manager, commissions, Tekion export, analytics (6 tabs, 35+ AI features)',
+        consolidated: ['AutoOpportunityDashboard', 'TekionLeadManager', 'CommissionTracker', 'TekionIntegration']
       }
     ]
   },
 
   // ==========================================================================
-  // 🧠 AI COMMAND CENTER
+  // ðŸ§  AI COMMAND CENTER
   // ==========================================================================
   {
     id: 'ai-command-center',
@@ -270,7 +245,7 @@ export const navigationItems = [
   },
 
   // ==========================================================================
-  // 🛒 PRODUCTS & SERVICES
+  // ðŸ›’ PRODUCTS & SERVICES
   // ==========================================================================
   {
     id: 'products-services-hub',
@@ -310,7 +285,7 @@ export const navigationItems = [
   },
 
   // ==========================================================================
-  // 🏠 CORE OPERATIONS
+  // ðŸ  CORE OPERATIONS
   // ==========================================================================
   {
     id: 'core-operations-group',
@@ -368,7 +343,7 @@ export const navigationItems = [
         consolidated: ['DisputeHub', 'DisputeLetters', 'DisputeStatus', 'DisputeAdminPanel']
       },
 
-      // HUB 4: COMMUNICATIONS (✅ CONSOLIDATED - Using CommunicationsHub.jsx 2,314 lines)
+      // HUB 4: COMMUNICATIONS (âœ… CONSOLIDATED - Using CommunicationsHub.jsx 2,314 lines)
       {
         id: 'communications-hub',
         title: 'Communications',
@@ -380,7 +355,7 @@ export const navigationItems = [
         consolidated: ['CommunicationsHub', 'Emails', 'SMS', 'DripCampaigns', 'CallLogs', 'Templates', 'CampaignPlanner']
       },
 
-      // HUB 5: DOCUMENTS & CONTRACTS (✅ CONSOLIDATED - Using DocumentsHub.jsx 1,233 lines)
+      // HUB 5: DOCUMENTS & CONTRACTS (âœ… CONSOLIDATED - Using DocumentsHub.jsx 1,233 lines)
       {
         id: 'documents-contracts-hub',
         title: 'Documents & Contracts',
@@ -433,7 +408,7 @@ export const navigationItems = [
   icon: Zap,
   permission: 'admin',
   badge: 'AI',
-  description: 'Master workflow control - Contact → Lead → Client lifecycle management'
+  description: 'Master workflow control - Contact â†’ Lead â†’ Client lifecycle management'
 },
 
 // ===== CLIENT ONBOARDING WIZARD =====
@@ -472,7 +447,7 @@ export const navigationItems = [
   },
 
   // ==========================================================================
-  // 💰 FINANCIAL OPERATIONS
+  // ðŸ’° FINANCIAL OPERATIONS
   // ==========================================================================
   {
     id: 'financial-group',
@@ -508,7 +483,7 @@ export const navigationItems = [
   },
 
   // ==========================================================================
-  // 📈 BUSINESS GROWTH
+  // ðŸ“ˆ BUSINESS GROWTH
   // ==========================================================================
   {
     id: 'business-growth-group',
@@ -542,7 +517,7 @@ export const navigationItems = [
         description: 'Social scheduling, AI ad creator, content library, engagement, campaigns (9 files)'
       },
 
-      // ✅ CONSOLIDATED - Using ReferralPartnerHub.jsx 3,317 lines
+      // âœ… CONSOLIDATED - Using ReferralPartnerHub.jsx 3,317 lines
       {
         id: 'referrals-partnerships-hub',
         title: 'Referrals & Partnerships',
@@ -583,8 +558,8 @@ export const navigationItems = [
         path: '/revenue-partnerships-hub',
         icon: DollarSign,
         permission: 'user',
-        badge: '💰',
-        description: 'Earn commissions promoting credit cards, loans, monitoring — 200+ programs (2,318 lines)'
+        badge: 'ðŸ’°',
+        description: 'Earn commissions promoting credit cards, loans, monitoring â€” 200+ programs (2,318 lines)'
       },
 
       {
@@ -609,7 +584,7 @@ export const navigationItems = [
   },
 
   // ==========================================================================
-  // 🎓 CLIENT SUCCESS
+  // ðŸŽ“ CLIENT SUCCESS
   // ==========================================================================
   {
     id: 'client-success-group',
@@ -621,7 +596,7 @@ export const navigationItems = [
     category: 'success',
     defaultExpanded: false,
     items: [
-      // ✅ MOVED HERE from Command Center
+      // âœ… MOVED HERE from Command Center
       {
         id: 'client-onboarding',
         title: 'Client Onboarding',
@@ -656,7 +631,7 @@ export const navigationItems = [
   },
 
   // ==========================================================================
-  // ⚙️ SYSTEM & ADMINISTRATION
+  // âš™ï¸ SYSTEM & ADMINISTRATION
   // ==========================================================================
   {
     id: 'system-group',
@@ -753,7 +728,7 @@ export const navigationItems = [
   },
 
   // ==========================================================================
-  // 🌟 SPECIALIZED SERVICES (No changes - Auto Loan Concierge stays here)
+  // ðŸŒŸ SPECIALIZED SERVICES (No changes - Auto Loan Concierge stays here)
   // ==========================================================================
   {
     id: 'specialized-services-group',
@@ -841,7 +816,7 @@ export const navigationItems = [
   },
 
   // ==========================================================================
-  // 🔐 PORTALS
+  // ðŸ” PORTALS
   // ==========================================================================
   {
     id: 'client-portal',
@@ -851,6 +826,18 @@ export const navigationItems = [
     permission: 'client',
     mobileHidden: false,
     description: 'Client self-service dashboard',
+    category: 'client'
+  },
+
+  {
+    id: 'client-progress-portal',
+    title: 'Client Progress Portal',
+    path: '/client-progress-portal',
+    icon: TrendingUp,
+    permission: 'user',
+    mobileHidden: false,
+    badge: 'NEW',
+    description: 'Visual timeline of client credit repair journey with milestones',
     category: 'client'
   },
 

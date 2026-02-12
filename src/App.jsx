@@ -174,6 +174,7 @@ const CreditReports = lazy(() => import("@/components/CreditReports"));
 const ClientPortal = lazy(() => import('@/pages/ClientPortal'));
 const DocumentUploadPortal = lazy(() => import('./components/client-portal/DocumentUploadPortal'));
 const ClientDashboard = lazy(() => import('@/pages/ClientPortal/ClientDashboard'));
+const ClientProgressPortal = lazy(() => import('@/pages/ClientProgressPortal'));
 const ContactDetailPage = lazy(() => import('./pages/ContactDetailPage'));
 const Portal = lazy(() => import('@/pages/Portal'));
 const CreditReportWorkflow = lazy(() => import('@/pages/CreditReportWorkflow'));
@@ -221,6 +222,7 @@ const CommunicationsHub = lazy(() => import('@/pages/hubs/CommunicationsHub'));
 const DocumentsHub = lazy(() => import('@/pages/hubs/DocumentsHub'));
 const ReferralPartnerHub = lazy(() => import('@/pages/hubs/ReferralPartnerHub'));
 const TasksSchedulingHub = lazy(() => import('@/pages/hubs/TasksSchedulingHub'));
+const AutoSalesHub = lazy(() => import('@/pages/hubs/AutoSalesHub'));
 // ===== END PRODUCTION HUBS =====
 
 // ===== CONTACT & CRM PAGES =====
@@ -584,6 +586,7 @@ const AppContent = () => {
         {/* Home - Welcome Hub (separate from analytics dashboard) */}
         <Route path="home" element={<Suspense fallback={<LoadingFallback />}><Home /></Suspense>} />
         <Route path="client-portal" element={<Suspense fallback={<LoadingFallback />}><ClientPortal /></Suspense>} />
+        <Route path="client-progress-portal" element={<ProtectedRoute requiredRoles={['user', 'manager', 'admin', 'masterAdmin']}><Suspense fallback={<LoadingFallback />}><ClientProgressPortal /></Suspense></ProtectedRoute>} />
         <Route path="portal/documents" element={<Suspense fallback={<LoadingFallback />}><DocumentUploadPortal /></Suspense>} />
         {/* Contract Signing Portal - Query param version */}
         <Route path="client" element={<Suspense fallback={<LoadingFallback />}><ClientDashboard /></Suspense>} />
@@ -1447,20 +1450,23 @@ const AppContent = () => {
   }
 />
 
-{/* Toyota/Tekion Lead Manager */}
+{/* ===== AUTO SALES HUB - CONSOLIDATED 6-TAB SOLUTION ===== */}
 <Route
-  path="toyota-leads"
+  path="auto-sales-hub"
   element={
     <ProtectedRoute requiredRoles={['manager', 'admin', 'masterAdmin']}>
       <Suspense fallback={<LoadingFallback />}>
-        <TekionLeadManager />
+        <AutoSalesHub />
       </Suspense>
     </ProtectedRoute>
   }
 />
 
-{/* Tekion Leads Alias */}
-<Route path="tekion-leads" element={<Navigate to="/toyota-leads" replace />} />
+{/* Legacy Auto Sales Routes - Redirect to Hub */}
+<Route path="auto-opportunities" element={<Navigate to="/auto-sales-hub" replace />} />
+<Route path="toyota-leads" element={<Navigate to="/auto-sales-hub" replace />} />
+<Route path="tekion-leads" element={<Navigate to="/auto-sales-hub" replace />} />
+<Route path="commissions" element={<Navigate to="/auto-sales-hub" replace />} />
 
 {/* Payment Health Monitor */}
 <Route
@@ -1533,21 +1539,6 @@ const AppContent = () => {
     </ProtectedRoute>
   }
 />
-
-{/* Auto Opportunity Dashboard */}
-<Route
-  path="auto-opportunities"
-  element={
-    <ProtectedRoute requiredRoles={['manager', 'admin', 'masterAdmin']}>
-      <Suspense fallback={<LoadingFallback />}>
-        <AutoOpportunityDashboard />
-      </Suspense>
-    </ProtectedRoute>
-  }
-/>
-
-{/* Commission Tracker - Alias to Toyota Leads */}
-<Route path="commissions" element={<Navigate to="/toyota-leads" replace />} />
 
 {/* Workflow Testing Dashboard */}
 <Route
