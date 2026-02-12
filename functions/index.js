@@ -1599,7 +1599,9 @@ No commitment required — just information.
 <span style="color: #6b7280;">Questions? Reply to this email or call me directly at ${SPEEDY_BRAND.phone}. I'm happy to chat.</span>`,
     ctaButton: {
       text: '📊 Get My Free Credit Report',
-      url: `${SPEEDY_BRAND.portalUrl}/complete-enrollment?contactId=${contact.id || contact.contactId}&source=quiz-nurture`,
+      url: contact.enrollmentToken
+        ? `${SPEEDY_BRAND.portalUrl}/enroll?token=${contact.enrollmentToken}&contactId=${contact.id || contact.contactId}&source=quiz-nurture`
+        : `${SPEEDY_BRAND.portalUrl}/enroll?contactId=${contact.id || contact.contactId}&source=quiz-nurture`,
       color: 'green'
     },
     showTrustBadges: true
@@ -1641,7 +1643,9 @@ If we pull your report and there's genuinely nothing we can do, I'll tell you th
 <span style="color: #6b7280;">Take 5 minutes today. Future you will thank you.</span>`,
     ctaButton: {
       text: '✅ Start My Free Credit Report — 5 Minutes',
-      url: `${SPEEDY_BRAND.portalUrl}/complete-enrollment?contactId=${contact.id || contact.contactId}&source=quiz-urgency`,
+      url: contact.enrollmentToken
+        ? `${SPEEDY_BRAND.portalUrl}/enroll?token=${contact.enrollmentToken}&contactId=${contact.id || contact.contactId}&source=quiz-urgency`
+        : `${SPEEDY_BRAND.portalUrl}/enroll?contactId=${contact.id || contact.contactId}&source=quiz-urgency`,
       color: 'orange'
     },
     showTrustBadges: true
@@ -2874,7 +2878,28 @@ exports.onContactCreated = onDocumentCreated(
             console.log(`   Template: ${templateId}`);
             console.log(`   Source: ${contactSource}`);
             
-            // ===== BUILD: Template data with contact info =====
+            // ===== SECURITY: Generate enrollment token for secure email links =====
+            const crypto = require('crypto');
+            const enrollmentToken = crypto.randomBytes(32).toString('hex');
+            const enrollmentTokenExpiry = new Date();
+            enrollmentTokenExpiry.setDate(enrollmentTokenExpiry.getDate() + 30); // 30-day expiry
+            
+            // Store token in enrollmentTokens collection (for validateEnrollmentToken backend)
+            await db.collection('enrollmentTokens').add({
+              contactId: contactId,
+              token: enrollmentToken,
+              expiresAt: enrollmentTokenExpiry,
+              used: false,
+              createdAt: admin.firestore.FieldValue.serverTimestamp(),
+              createdBy: 'welcome_email',
+              source: contactSource
+            });
+            console.log('🔐 Enrollment token generated for welcome email');
+
+            // ===== BUILD: Secure enrollment URL =====
+            const enrollmentUrl = `${SPEEDY_BRAND.portalUrl}/enroll?token=${enrollmentToken}&contactId=${contactId}`;
+
+            // ===== BUILD: Template data with contact info + secure enrollment URL =====
             const templateData = {
               firstName: contactData.firstName || 'there',
               lastName: contactData.lastName || '',
@@ -2882,6 +2907,8 @@ exports.onContactCreated = onDocumentCreated(
               email: contactEmail,
               phone: contactData.phone || (contactData.phones && contactData.phones[0]?.number) || '',
               contactId: contactId,
+              enrollmentToken: enrollmentToken,
+              enrollmentUrl: enrollmentUrl,
               leadScore: contactData.leadScore || 5,
               sentiment: contactData.aiTracking?.sentiment || { description: 'neutral' },
               source: contactSource
@@ -2942,17 +2969,23 @@ exports.onContactCreated = onDocumentCreated(
               leadWelcomeEmailSent: true,
               leadWelcomeEmailSentAt: admin.firestore.FieldValue.serverTimestamp(),
               leadWelcomeEmailTemplate: templateId,
+              // ===== SECURITY: Store enrollment token on contact for future emails =====
+              // All nurture emails, retry emails, and SMS can now read this
+              // instead of using unsecured contactId-only URLs
+              enrollmentToken: enrollmentToken,
+              enrollmentTokenExpiresAt: enrollmentTokenExpiry,
               // ===== Add to contact timeline =====
               timeline: admin.firestore.FieldValue.arrayUnion({
                 id: Date.now() + 1,  // +1 to avoid collision with role assignment timeline entry
                 type: 'email_sent',
-                description: `Welcome email sent with enrollment link (template: ${templateId})`,
+                description: `Welcome email sent with secure enrollment link (template: ${templateId})`,
                 timestamp: new Date().toISOString(),
                 metadata: {
                   templateId: templateId,
                   recipientEmail: contactEmail,
                   messageId: mailResult.messageId,
-                  source: contactSource
+                  source: contactSource,
+                  hasEnrollmentToken: true
                 },
                 source: 'system'
               })
@@ -4730,6 +4763,943 @@ exports.idiqService = onCall(
           }
         }
 
+        // ═══════════════════════════════════════════════════════════════════
+        // CASE: pullDisputeReport
+        // ═══════════════════════════════════════════════════════════════════
+        // Pulls a FRESH credit report specifically for dispute submission.
+        // IDIQ requires the report to be < 24 hours old when submitting
+        // disputes. This is DIFFERENT from the regular credit report.
+        //
+        // USAGE (from frontend):
+        //   const idiqService = httpsCallable(functions, 'idiqService');
+        //   const result = await idiqService({
+        //     action: 'pullDisputeReport',
+        //     contactId: 'abc123'
+        //   });
+        //
+        // RETURNS: { success: true, message: 'Dispute report pulled' }
+        // Then call getDisputeReport to get the actual data with handles.
+        // ═══════════════════════════════════════════════════════════════════
+        case 'pullDisputeReport': {
+          try {
+            const { contactId, email } = params;
+            console.log('⚔️ ===== PULL DISPUTE CREDIT REPORT =====');
+            console.log('📧 Contact:', contactId, '| Email:', email);
+
+            // ===== STEP 1: Get member token =====
+            // We need the client's member token to pull their dispute report.
+            // Try enrollment record first, then fall back to email-based token.
+            let memberToken = null;
+            let memberEmail = email;
+
+            if (contactId) {
+              // Look up enrollment to get email + stored token
+              const enrollments = await db.collection('idiqEnrollments')
+                .where('contactId', '==', contactId)
+                .where('status', 'in', ['active', 'verified', 'enrolled'])
+                .orderBy('createdAt', 'desc')
+                .limit(1)
+                .get();
+
+              if (!enrollments.empty) {
+                const enrollment = enrollments.docs[0].data();
+                memberEmail = enrollment.email || email;
+
+                // Check if stored token is still valid (< 1 hour old)
+                const tokenExpiry = enrollment.tokenExpiresAt?.toDate?.() || enrollment.tokenExpiresAt;
+                if (enrollment.memberAccessToken && tokenExpiry && new Date(tokenExpiry) > new Date()) {
+                  memberToken = enrollment.memberAccessToken;
+                  console.log('🔑 Using cached member token (still valid)');
+                }
+              }
+            }
+
+            if (!memberEmail) {
+              return { success: false, error: 'Email is required. Provide contactId or email.' };
+            }
+
+            // Get fresh token if cached one expired
+            if (!memberToken) {
+              console.log('🔑 Getting fresh member token for:', memberEmail);
+              const partnerToken = await getPartnerToken();
+              memberToken = await getMemberToken(memberEmail, partnerToken);
+            }
+
+            // ===== STEP 2: Pull fresh dispute credit report =====
+            // POST v1/dispute/credit-report — forces IDIQ to pull a fresh
+            // TransUnion report specifically for dispute purposes.
+            console.log('📊 Pulling fresh dispute credit report from IDIQ...');
+
+            const disputeReportResponse = await fetch(`${IDIQ_BASE_URL}v1/dispute/credit-report`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${memberToken}`,
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+              }
+            });
+
+            console.log('📋 Dispute report pull status:', disputeReportResponse.status);
+
+            if (!disputeReportResponse.ok) {
+              const errorText = await disputeReportResponse.text();
+              console.error('❌ Dispute report pull failed:', disputeReportResponse.status, errorText);
+              return {
+                success: false,
+                error: `IDIQ dispute report pull failed (${disputeReportResponse.status}): ${errorText}`
+              };
+            }
+
+            // ===== STEP 3: Store metadata in Firestore =====
+            // Record that we pulled a dispute report so we know it's fresh
+            if (contactId) {
+              await db.collection('contacts').doc(contactId).update({
+                'disputeReport.lastPulledAt': admin.firestore.FieldValue.serverTimestamp(),
+                'disputeReport.status': 'pulled',
+                'disputeReport.memberToken': memberToken,
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+              });
+            }
+
+            console.log('✅ Dispute credit report pulled successfully');
+
+            return {
+              success: true,
+              message: 'Dispute credit report pulled. Call getDisputeReport to retrieve data with tradeline handles.',
+              memberToken: memberToken,
+              pulledAt: new Date().toISOString()
+            };
+          } catch (err) {
+            console.error('❌ pullDisputeReport error:', err.message);
+            return { success: false, error: err.message };
+          }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // CASE: getDisputeReport
+        // ═══════════════════════════════════════════════════════════════════
+        // Retrieves the dispute credit report that contains tradeline
+        // HANDLES — the unique identifiers needed by v1/dispute/submit.
+        //
+        // MUST be called AFTER pullDisputeReport (report must be < 24h).
+        //
+        // Each tradeline in the response has a 'handle' attribute like:
+        //   handle="TR01_206301426_-1916449900_82"
+        // This handle is the 'creditReportItem' required for submission.
+        //
+        // USAGE:
+        //   const result = await idiqService({
+        //     action: 'getDisputeReport',
+        //     contactId: 'abc123'
+        //   });
+        //
+        // RETURNS: { success, tradelines: [...], handles: [...] }
+        // ═══════════════════════════════════════════════════════════════════
+        case 'getDisputeReport': {
+          try {
+            const { contactId, email, memberToken: providedToken } = params;
+            console.log('📋 ===== GET DISPUTE CREDIT REPORT (WITH HANDLES) =====');
+
+            // ===== STEP 1: Get member token =====
+            let memberToken = providedToken || null;
+            let memberEmail = email;
+
+            if (!memberToken && contactId) {
+              const enrollments = await db.collection('idiqEnrollments')
+                .where('contactId', '==', contactId)
+                .where('status', 'in', ['active', 'verified', 'enrolled'])
+                .orderBy('createdAt', 'desc')
+                .limit(1)
+                .get();
+
+              if (!enrollments.empty) {
+                const enrollment = enrollments.docs[0].data();
+                memberEmail = enrollment.email || email;
+                const tokenExpiry = enrollment.tokenExpiresAt?.toDate?.() || enrollment.tokenExpiresAt;
+                if (enrollment.memberAccessToken && tokenExpiry && new Date(tokenExpiry) > new Date()) {
+                  memberToken = enrollment.memberAccessToken;
+                }
+              }
+            }
+
+            if (!memberToken) {
+              if (!memberEmail) {
+                return { success: false, error: 'No valid token or email found. Pull dispute report first.' };
+              }
+              const partnerToken = await getPartnerToken();
+              memberToken = await getMemberToken(memberEmail, partnerToken);
+            }
+
+            // ===== STEP 2: GET the dispute credit report =====
+            // This returns the full report with tradeline handles.
+            console.log('📊 Fetching dispute credit report with handles...');
+
+            const reportResponse = await fetch(`${IDIQ_BASE_URL}v1/dispute/credit-report`, {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${memberToken}`,
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+              }
+            });
+
+            console.log('📋 Dispute report GET status:', reportResponse.status);
+
+            if (!reportResponse.ok) {
+              const errorText = await reportResponse.text();
+              console.error('❌ Dispute report fetch failed:', reportResponse.status, errorText);
+              return {
+                success: false,
+                error: `Failed to get dispute report (${reportResponse.status}): ${errorText}`,
+                tip: 'Make sure pullDisputeReport was called first (report must be < 24h old).'
+              };
+            }
+
+            const reportData = await reportResponse.json();
+            console.log('📋 Dispute report received, extracting handles...');
+
+            // ===== STEP 3: Extract tradeline handles =====
+            // The IDIQ dispute report contains tradelines with 'handle' attrs.
+            // Format: handle="TR01_206301426_-1916449900_82"
+            // We need these for the submitIDIQDispute case.
+            const tradelines = [];
+
+            // Parse the credit report to find tradelines with handles.
+            // IDIQ returns structured data — handles can be nested in
+            // different locations depending on API version. We recursively
+            // search for any object that has a 'handle' or '@handle' key.
+            const extractHandles = (data, prefix = '') => {
+              if (!data || typeof data !== 'object') return;
+
+              // Check if this object has a handle attribute
+              if (data['@handle'] || data.handle || data['@Handle']) {
+                const handle = data['@handle'] || data.handle || data['@Handle'];
+                tradelines.push({
+                  handle: handle,
+                  creditorName: data['@creditorName'] || data.creditorName || 
+                                data.Creditor?.['@name'] || data.subscriberName || 'Unknown',
+                  accountNumber: data['@accountNumber'] || data.accountNumber || 
+                                 data.Account?.['@number'] || '****',
+                  accountType: data['@accountType'] || data.accountType || 
+                               data['@type'] || 'Unknown',
+                  balance: parseFloat(data['@balance'] || data.balance || 
+                                      data.Balance?.['$'] || 0),
+                  accountStatus: data['@accountStatus'] || data.accountStatus || 
+                                 data.AccountCondition?.['@symbol'] || 'Unknown',
+                  paymentStatus: data['@paymentStatus'] || data.paymentStatus || 
+                                 data.PaymentProfile?.['@description'] || 'Unknown',
+                  dateOpened: data['@dateOpened'] || data.dateOpened || 
+                              data.DateOpened?.['$'] || null,
+                  bureau: 'TransUnion',
+                  rawData: data
+                });
+                return;
+              }
+
+              // Recurse into nested objects and arrays to find handles
+              for (const key of Object.keys(data)) {
+                if (Array.isArray(data[key])) {
+                  data[key].forEach(item => extractHandles(item, `${prefix}${key}.`));
+                } else if (typeof data[key] === 'object' && data[key] !== null) {
+                  extractHandles(data[key], `${prefix}${key}.`);
+                }
+              }
+            };
+
+            extractHandles(reportData);
+
+            console.log(`📊 Extracted ${tradelines.length} tradelines with handles`);
+
+            // ===== STEP 4: Store dispute report + handles in Firestore =====
+            if (contactId) {
+              const reportRef = await db.collection('disputeReports').add({
+                contactId,
+                email: memberEmail?.toLowerCase(),
+                reportData: reportData,
+                tradelines: tradelines,
+                handleCount: tradelines.length,
+                pulledAt: admin.firestore.FieldValue.serverTimestamp(),
+                expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+                source: 'idiq_dispute_api'
+              });
+
+              await db.collection('contacts').doc(contactId).update({
+                'disputeReport.reportId': reportRef.id,
+                'disputeReport.handleCount': tradelines.length,
+                'disputeReport.fetchedAt': admin.firestore.FieldValue.serverTimestamp(),
+                'disputeReport.status': 'ready',
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+              });
+
+              console.log('✅ Dispute report stored:', reportRef.id);
+            }
+
+            return {
+              success: true,
+              handleCount: tradelines.length,
+              tradelines: tradelines.map(t => ({
+                handle: t.handle,
+                creditorName: t.creditorName,
+                accountNumber: t.accountNumber,
+                accountType: t.accountType,
+                balance: t.balance,
+                accountStatus: t.accountStatus,
+                paymentStatus: t.paymentStatus,
+                dateOpened: t.dateOpened,
+                bureau: t.bureau
+              })),
+              message: `Found ${tradelines.length} tradelines with handles ready for dispute submission.`,
+              tip: tradelines.length === 0
+                ? 'No handles found. The report format may differ — check raw reportData in Firestore disputeReports collection.'
+                : 'Select items to dispute and call submitIDIQDispute with the handles.'
+            };
+          } catch (err) {
+            console.error('❌ getDisputeReport error:', err.message);
+            return { success: false, error: err.message };
+          }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // CASE: submitIDIQDispute
+        // ═══════════════════════════════════════════════════════════════════
+        // Submits disputes to TransUnion via IDIQ's dispute API.
+        // This is the CORE dispute submission — the heart of credit repair.
+        //
+        // IMPORTANT: IDIQ dispute API only submits to TransUnion.
+        // For Experian and Equifax, use FaxCenter.jsx + sendFaxOutbound
+        // with AI-generated dispute letters.
+        //
+        // REQUIRES:
+        //   - contactId (to look up member token)
+        //   - lineItems: array of objects, each with:
+        //       creditReportItem: tradeline handle from getDisputeReport
+        //       claimCodes: array of dispute reason codes (e.g. ['NOT_MINE'])
+        //       comment: description of why item is disputed
+        //
+        // CLAIM CODES (common ones from IDIQ):
+        //   'NOT_MINE'   — Account does not belong to consumer
+        //   'INACCURATE' — Information reported is inaccurate
+        //   'OUTDATED'   — Information is outdated / past reporting period
+        //   'DUPLICATE'  — Account is reported more than once
+        //   'FRAUD'      — Result of identity theft / fraud
+        //   See full list in IDIQ Partner Framework Appendix.
+        //
+        // USAGE:
+        //   const result = await idiqService({
+        //     action: 'submitIDIQDispute',
+        //     contactId: 'abc123',
+        //     lineItems: [
+        //       {
+        //         creditReportItem: 'TR01_206301426_-1916449900_82',
+        //         claimCodes: ['NOT_MINE'],
+        //         comment: 'This account does not belong to me.',
+        //         creditorName: 'ABC Collections',   // optional, for Firestore
+        //         accountNumber: '****1234'           // optional, for Firestore
+        //       }
+        //     ]
+        //   });
+        //
+        // RETURNS: { success, idiqDisputeId, disputeRecordIds, itemCount }
+        // ═══════════════════════════════════════════════════════════════════
+        case 'submitIDIQDispute': {
+          try {
+            const { contactId, email, lineItems, employers, indicativeDispute } = params;
+            console.log('⚔️ ===== SUBMIT IDIQ DISPUTE TO TRANSUNION =====');
+
+            // ===== VALIDATION =====
+            if (!lineItems || !Array.isArray(lineItems) || lineItems.length === 0) {
+              return {
+                success: false,
+                error: 'lineItems is required. Each item needs: creditReportItem (handle), claimCodes (array), comment (string).'
+              };
+            }
+
+            // Validate each line item has required fields
+            for (let i = 0; i < lineItems.length; i++) {
+              const item = lineItems[i];
+              if (!item.creditReportItem) {
+                return {
+                  success: false,
+                  error: `lineItems[${i}] is missing creditReportItem (the tradeline handle). Call getDisputeReport first to get handles.`
+                };
+              }
+              if (!item.claimCodes || !Array.isArray(item.claimCodes) || item.claimCodes.length === 0) {
+                return {
+                  success: false,
+                  error: `lineItems[${i}] is missing claimCodes. Provide at least one dispute reason code (e.g. 'NOT_MINE', 'INACCURATE').`
+                };
+              }
+            }
+
+            console.log(`📋 Submitting ${lineItems.length} line items for dispute...`);
+
+            // ===== STEP 1: Get member token =====
+            let memberToken = null;
+            let memberEmail = email;
+
+            if (contactId) {
+              const enrollments = await db.collection('idiqEnrollments')
+                .where('contactId', '==', contactId)
+                .where('status', 'in', ['active', 'verified', 'enrolled'])
+                .orderBy('createdAt', 'desc')
+                .limit(1)
+                .get();
+
+              if (!enrollments.empty) {
+                const enrollment = enrollments.docs[0].data();
+                memberEmail = enrollment.email || email;
+                const tokenExpiry = enrollment.tokenExpiresAt?.toDate?.() || enrollment.tokenExpiresAt;
+                if (enrollment.memberAccessToken && tokenExpiry && new Date(tokenExpiry) > new Date()) {
+                  memberToken = enrollment.memberAccessToken;
+                }
+              }
+            }
+
+            if (!memberToken) {
+              if (!memberEmail) {
+                return { success: false, error: 'No valid token or email found for this contact.' };
+              }
+              const partnerToken = await getPartnerToken();
+              memberToken = await getMemberToken(memberEmail, partnerToken);
+            }
+
+            // ===== STEP 2: Build the dispute submission payload =====
+            // Per IDIQ API: POST v1/dispute/submit
+            // Body: { lineItems: [...], employers: [...], indicativeDispute: {...} }
+            const disputePayload = {
+              lineItems: lineItems.map(item => ({
+                creditReportItem: item.creditReportItem,
+                claimCodes: item.claimCodes,
+                comment: item.comment || ''
+              }))
+            };
+
+            // Optional: employer info (some disputes require current employer)
+            if (employers && Array.isArray(employers) && employers.length > 0) {
+              disputePayload.employers = employers;
+            }
+
+            // Optional: indicative dispute (for AKA name removal, address removal)
+            if (indicativeDispute) {
+              disputePayload.indicativeDispute = indicativeDispute;
+            }
+
+            console.log('📤 Sending dispute to IDIQ TransUnion API...');
+            console.log('📋 Payload items:', lineItems.length);
+            console.log('📋 First handle:', lineItems[0].creditReportItem);
+
+            // ===== STEP 3: Submit to IDIQ =====
+            const submitResponse = await fetch(`${IDIQ_BASE_URL}v1/dispute/submit`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${memberToken}`,
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(disputePayload)
+            });
+
+            console.log('📋 Submit response status:', submitResponse.status);
+
+            const submitResult = await submitResponse.json();
+            console.log('📋 Submit result:', JSON.stringify(submitResult).substring(0, 500));
+
+            if (!submitResponse.ok) {
+              console.error('❌ IDIQ dispute submission failed:', submitResponse.status, submitResult);
+              return {
+                success: false,
+                error: `IDIQ dispute submission failed (${submitResponse.status}): ${JSON.stringify(submitResult)}`,
+                tip: 'Check that handles are from a report pulled within the last 24 hours, and claimCodes are valid IDIQ codes.'
+              };
+            }
+
+            // ===== STEP 4: Store dispute records in Firestore =====
+            const disputeId = submitResult.disputeId || submitResult.id || `idiq_${Date.now()}`;
+
+            // Create a dispute record for each line item
+            const disputeRecords = [];
+            for (const item of lineItems) {
+              const disputeRecord = await db.collection('disputes').add({
+                contactId: contactId || null,
+                email: memberEmail?.toLowerCase(),
+                source: 'idiq_api',
+                bureau: 'TransUnion',
+                bureauName: 'TransUnion',
+                idiqDisputeId: disputeId,
+                creditReportItem: item.creditReportItem,
+                claimCodes: item.claimCodes,
+                comment: item.comment || '',
+                creditorName: item.creditorName || 'Unknown',
+                accountNumber: item.accountNumber || '****',
+                status: 'submitted',
+                submittedAt: admin.firestore.FieldValue.serverTimestamp(),
+                submittedVia: 'idiq_api',
+                // FCRA requires 30-day response from bureaus
+                responseDueBy: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+                round: item.round || 1,
+                outcome: null,
+                outcomeDetails: null,
+                idiqResponse: submitResult,
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                createdBy: 'system:idiq_dispute'
+              });
+              disputeRecords.push(disputeRecord.id);
+            }
+
+            // ===== STEP 5: Update contact workflow =====
+            if (contactId) {
+              await db.collection('contacts').doc(contactId).update({
+                'workflow.stage': 'disputes_submitted',
+                'workflow.lastDisputeSubmittedAt': admin.firestore.FieldValue.serverTimestamp(),
+                'workflow.disputeCount': admin.firestore.FieldValue.increment(lineItems.length),
+                'workflow.activeDisputeIds': admin.firestore.FieldValue.arrayUnion(...disputeRecords),
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+              });
+            }
+
+            // ===== STEP 6: Create staff notification =====
+            // This shows up in the bell icon / toast notifications
+            try {
+              await db.collection('staffNotifications').add({
+                type: 'dispute_submitted',
+                title: `⚔️ IDIQ Dispute Submitted: ${lineItems.length} item(s) to TransUnion`,
+                message: `Dispute submitted for ${memberEmail}. ${lineItems.length} tradeline(s) disputed via IDIQ API. Dispute ID: ${disputeId}. Response due in 30 days.`,
+                contactId: contactId || null,
+                contactEmail: memberEmail,
+                severity: 'info',
+                targetRoles: ['masterAdmin', 'admin', 'manager', 'user'],
+                readBy: {},
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                createdBy: 'system:idiq_dispute'
+              });
+            } catch (notifErr) {
+              // Don't fail the whole operation if notification fails
+              console.warn('⚠️ Staff notification failed (non-critical):', notifErr.message);
+            }
+
+            // ===== STEP 7: Log activity for audit trail =====
+            try {
+              await db.collection('activityLogs').add({
+                type: 'dispute_submitted',
+                action: 'idiq_dispute_submit',
+                contactId: contactId || null,
+                details: {
+                  idiqDisputeId: disputeId,
+                  itemCount: lineItems.length,
+                  handles: lineItems.map(i => i.creditReportItem),
+                  bureau: 'TransUnion',
+                  disputeRecordIds: disputeRecords
+                },
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                createdBy: 'system:idiq_dispute'
+              });
+            } catch (logErr) {
+              console.warn('⚠️ Activity log failed (non-critical):', logErr.message);
+            }
+
+            console.log(`✅ IDIQ dispute submitted! ID: ${disputeId}, ${lineItems.length} items, ${disputeRecords.length} records created`);
+
+            return {
+              success: true,
+              idiqDisputeId: disputeId,
+              disputeRecordIds: disputeRecords,
+              itemCount: lineItems.length,
+              bureau: 'TransUnion',
+              responseDueBy: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+              message: `Successfully submitted ${lineItems.length} item(s) to TransUnion via IDIQ. Response due in 30 days.`,
+              idiqResponse: submitResult
+            };
+          } catch (err) {
+            console.error('❌ submitIDIQDispute error:', err.message);
+            return { success: false, error: err.message };
+          }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // CASE: getDisputeStatus
+        // ═══════════════════════════════════════════════════════════════════
+        // Checks the status of a previously submitted IDIQ dispute.
+        // Returns dispute status, letter content, and resolution details.
+        //
+        // Call this periodically (or on-demand from DisputeHub) to check
+        // if TransUnion has responded to a submitted dispute.
+        //
+        // USAGE:
+        //   const result = await idiqService({
+        //     action: 'getDisputeStatus',
+        //     contactId: 'abc123',
+        //     idiqDisputeId: '17154'
+        //   });
+        //
+        // RETURNS: { success, overallStatus, isComplete, details, letterContent }
+        // ═══════════════════════════════════════════════════════════════════
+        case 'getDisputeStatus': {
+          try {
+            const { contactId, email, idiqDisputeId } = params;
+            console.log('📊 ===== CHECK IDIQ DISPUTE STATUS =====');
+            console.log('🆔 Dispute ID:', idiqDisputeId);
+
+            if (!idiqDisputeId) {
+              return { success: false, error: 'idiqDisputeId is required. This is returned by submitIDIQDispute.' };
+            }
+
+            // ===== STEP 1: Get member token =====
+            let memberToken = null;
+            let memberEmail = email;
+
+            if (contactId) {
+              const enrollments = await db.collection('idiqEnrollments')
+                .where('contactId', '==', contactId)
+                .where('status', 'in', ['active', 'verified', 'enrolled'])
+                .orderBy('createdAt', 'desc')
+                .limit(1)
+                .get();
+
+              if (!enrollments.empty) {
+                const enrollment = enrollments.docs[0].data();
+                memberEmail = enrollment.email || email;
+                const tokenExpiry = enrollment.tokenExpiresAt?.toDate?.() || enrollment.tokenExpiresAt;
+                if (enrollment.memberAccessToken && tokenExpiry && new Date(tokenExpiry) > new Date()) {
+                  memberToken = enrollment.memberAccessToken;
+                }
+              }
+            }
+
+            if (!memberToken) {
+              if (!memberEmail) {
+                return { success: false, error: 'No valid token or email found for this contact.' };
+              }
+              const partnerToken = await getPartnerToken();
+              memberToken = await getMemberToken(memberEmail, partnerToken);
+            }
+
+            // ===== STEP 2: Call IDIQ dispute status API =====
+            console.log('📊 Fetching dispute status from IDIQ...');
+
+            const statusResponse = await fetch(`${IDIQ_BASE_URL}v1/dispute/${idiqDisputeId}/status`, {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${memberToken}`,
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+              }
+            });
+
+            console.log('📋 Dispute status response:', statusResponse.status);
+
+            if (!statusResponse.ok) {
+              const errorText = await statusResponse.text();
+              console.error('❌ Dispute status check failed:', statusResponse.status, errorText);
+              return {
+                success: false,
+                error: `Failed to get dispute status (${statusResponse.status}): ${errorText}`
+              };
+            }
+
+            const statusData = await statusResponse.json();
+            console.log('📋 Dispute status data:', JSON.stringify(statusData).substring(0, 500));
+
+            // ===== STEP 3: Parse the status response =====
+            // IDIQ returns: { status, disputeStatusDetail: [...] }
+            // Each detail has: disputeId, status, openDispute, closedDispute, letterStatus
+            const details = statusData.disputeStatusDetail || [];
+            const overallStatus = statusData.status || 'unknown';
+
+            // Determine if dispute is complete (all items resolved)
+            const isComplete = details.length > 0 && details.every(d =>
+              d.status === 'closedDispute' ||
+              d.status === 'cancelledDispute' ||
+              d.closedDispute !== null
+            );
+
+            // Extract dispute confirmation letters if available
+            const letterContent = details
+              .filter(d => d.letterStatus?.disputeLetterContent)
+              .map(d => ({
+                disputeId: d.disputeId,
+                letterCode: d.letterStatus.disputeLetterCode,
+                letterContent: d.letterStatus.disputeLetterContent,
+                status: d.status
+              }));
+
+            // ===== STEP 4: Update Firestore disputes =====
+            // Find all Firestore dispute records with this IDIQ dispute ID
+            // and sync their status with what IDIQ reports.
+            const disputeQuery = await db.collection('disputes')
+              .where('idiqDisputeId', '==', idiqDisputeId)
+              .get();
+
+            let updatedCount = 0;
+            for (const disputeDoc of disputeQuery.docs) {
+              const updateData = {
+                idiqStatus: overallStatus,
+                idiqStatusCheckedAt: admin.firestore.FieldValue.serverTimestamp(),
+                idiqStatusDetails: statusData,
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+              };
+
+              // If dispute is complete, update status and extract outcome
+              if (isComplete) {
+                const matchingDetail = details.find(d => d.disputeId === idiqDisputeId) || details[0];
+                const totalItems = matchingDetail?.closedDispute?.totalDisputedItems || 0;
+                const closedItems = matchingDetail?.closedDispute?.totalClosedDisputedItems || 0;
+                const pvItems = matchingDetail?.closedDispute?.totalPVDisputedItemCount || 0;
+
+                updateData.status = 'completed';
+                updateData.completedAt = admin.firestore.FieldValue.serverTimestamp();
+                // PV = "Previously Verified" means bureau verified it and it stays
+                // Resolved = item was updated or removed
+                updateData.outcome = pvItems > 0 ? 'previously_verified' : (closedItems > 0 ? 'resolved' : 'investigated');
+                updateData.outcomeDetails = {
+                  totalDisputedItems: totalItems,
+                  totalClosedItems: closedItems,
+                  totalPVItems: pvItems,
+                  estimatedCompletion: matchingDetail?.closedDispute?.estimatedCompletionDate,
+                  lastUpdated: matchingDetail?.closedDispute?.lastUpdatedDate
+                };
+              }
+
+              await disputeDoc.ref.update(updateData);
+              updatedCount++;
+            }
+
+            // ===== STEP 5: If complete, notify staff =====
+            if (isComplete) {
+              try {
+                await db.collection('staffNotifications').add({
+                  type: 'dispute_completed',
+                  title: `✅ Dispute Results: ${idiqDisputeId} — TransUnion responded`,
+                  message: `Dispute ${idiqDisputeId} for ${memberEmail} is complete. ${letterContent.length} letter(s) available. Check DisputeHub for details.`,
+                  contactId: contactId || null,
+                  severity: 'success',
+                  targetRoles: ['masterAdmin', 'admin', 'manager', 'user'],
+                  readBy: {},
+                  createdAt: admin.firestore.FieldValue.serverTimestamp()
+                });
+              } catch (notifErr) {
+                console.warn('⚠️ Completion notification failed:', notifErr.message);
+              }
+            }
+
+            console.log(`✅ Dispute status checked. Overall: ${overallStatus}. Updated ${updatedCount} records.`);
+
+            return {
+              success: true,
+              idiqDisputeId,
+              overallStatus,
+              isComplete,
+              details: details.map(d => ({
+                disputeId: d.disputeId,
+                status: d.status,
+                openDispute: d.openDispute,
+                closedDispute: d.closedDispute,
+                errorStatus: d.errorStatus
+              })),
+              letterContent,
+              firestoreRecordsUpdated: updatedCount,
+              message: isComplete
+                ? `Dispute ${idiqDisputeId} is COMPLETE. ${letterContent.length} letter(s) available.`
+                : `Dispute ${idiqDisputeId} is still ${overallStatus}. Check again later.`
+            };
+          } catch (err) {
+            console.error('❌ getDisputeStatus error:', err.message);
+            return { success: false, error: err.message };
+          }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // CASE: refreshCreditReport
+        // ═══════════════════════════════════════════════════════════════════
+        // Refreshes a client's credit report via IDIQ.
+        // Used for monthly re-pulls to track progress over time.
+        //
+        // HOW IT WORKS:
+        //   1. POST v1/credit-report/refresh → triggers IDIQ to pull fresh data
+        //   2. Wait 3 seconds for processing
+        //   3. GET v1/credit-report → retrieves the refreshed report
+        //   4. Store new report + compare scores to previous
+        //   5. Contact record updated with new score + change amount
+        //
+        // Score improvements of 50+ or 100+ points trigger celebration
+        // emails automatically via the existing Rule 9 in
+        // processAbandonmentEmails.
+        //
+        // USAGE:
+        //   const result = await idiqService({
+        //     action: 'refreshCreditReport',
+        //     contactId: 'abc123'
+        //   });
+        //
+        // RETURNS: { success, reportId, vantageScore, scoreChange }
+        // ═══════════════════════════════════════════════════════════════════
+        case 'refreshCreditReport': {
+          try {
+            const { contactId, email } = params;
+            console.log('🔄 ===== REFRESH CREDIT REPORT =====');
+            console.log('📧 Contact:', contactId);
+
+            // ===== STEP 1: Get member token =====
+            let memberToken = null;
+            let memberEmail = email;
+
+            if (contactId) {
+              const enrollments = await db.collection('idiqEnrollments')
+                .where('contactId', '==', contactId)
+                .where('status', 'in', ['active', 'verified', 'enrolled'])
+                .orderBy('createdAt', 'desc')
+                .limit(1)
+                .get();
+
+              if (!enrollments.empty) {
+                const enrollment = enrollments.docs[0].data();
+                memberEmail = enrollment.email || email;
+                const tokenExpiry = enrollment.tokenExpiresAt?.toDate?.() || enrollment.tokenExpiresAt;
+                if (enrollment.memberAccessToken && tokenExpiry && new Date(tokenExpiry) > new Date()) {
+                  memberToken = enrollment.memberAccessToken;
+                }
+              }
+            }
+
+            if (!memberToken) {
+              if (!memberEmail) {
+                return { success: false, error: 'No valid token or email found.' };
+              }
+              const partnerToken = await getPartnerToken();
+              memberToken = await getMemberToken(memberEmail, partnerToken);
+            }
+
+            // ===== STEP 2: Trigger credit report refresh =====
+            console.log('🔄 Triggering IDIQ credit report refresh...');
+
+            const refreshResponse = await fetch(`${IDIQ_BASE_URL}v1/credit-report/refresh`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${memberToken}`,
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+              }
+            });
+
+            console.log('📋 Refresh trigger status:', refreshResponse.status);
+
+            if (!refreshResponse.ok) {
+              const errorText = await refreshResponse.text();
+              console.error('❌ Credit report refresh failed:', refreshResponse.status, errorText);
+              return {
+                success: false,
+                error: `Refresh failed (${refreshResponse.status}): ${errorText}`
+              };
+            }
+
+            // ===== STEP 3: Wait briefly then fetch updated report =====
+            // IDIQ needs a moment to process the refresh request
+            console.log('⏳ Waiting 3 seconds for IDIQ to process refresh...');
+            await new Promise(resolve => setTimeout(resolve, 3000));
+
+            console.log('📊 Fetching refreshed credit report...');
+
+            const reportResponse = await fetch(`${IDIQ_BASE_URL}v1/credit-report`, {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${memberToken}`,
+                'Accept': 'application/json'
+              }
+            });
+
+            if (!reportResponse.ok) {
+              // Report may still be processing — that's OK
+              console.warn('⚠️ Could not fetch refreshed report yet. Still processing.');
+              return {
+                success: true,
+                refreshTriggered: true,
+                reportReady: false,
+                message: 'Refresh triggered but report still processing. Call getReport in a few minutes.'
+              };
+            }
+
+            const reportData = await reportResponse.json();
+
+            // Extract scores from the report (IDIQ uses multiple formats)
+            const scores = {
+              transunion: reportData.bureaus?.transunion?.score || reportData.tuScore || null,
+              experian: reportData.bureaus?.experian?.score || reportData.expScore || null,
+              equifax: reportData.bureaus?.equifax?.score || reportData.eqfScore || null
+            };
+            const vantageScore = reportData.vantageScore || reportData.score ||
+                                 scores.transunion || scores.experian || scores.equifax || null;
+
+            console.log('📈 Refreshed score:', vantageScore);
+
+            // ===== STEP 4: Store refreshed report in creditReports =====
+            const reportRef = await db.collection('creditReports').add({
+              contactId,
+              email: memberEmail?.toLowerCase(),
+              reportData,
+              vantageScore: vantageScore,
+              scores: scores,
+              createdAt: admin.firestore.FieldValue.serverTimestamp(),
+              source: 'idiq_refresh',
+              refreshedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+
+            // ===== STEP 5: Compare to previous score =====
+            let previousScore = null;
+            let scoreChange = null;
+
+            if (contactId) {
+              // Get the second-most-recent report (the one BEFORE this refresh)
+              const prevReports = await db.collection('creditReports')
+                .where('contactId', '==', contactId)
+                .orderBy('createdAt', 'desc')
+                .limit(2)
+                .get();
+
+              if (prevReports.docs.length >= 2) {
+                // First doc is the one we just saved, second is previous
+                previousScore = prevReports.docs[1].data().vantageScore;
+                if (previousScore && vantageScore) {
+                  scoreChange = vantageScore - previousScore;
+                }
+              }
+
+              // Update contact with new score data
+              await db.collection('contacts').doc(contactId).update({
+                'creditReport.lastPulled': admin.firestore.FieldValue.serverTimestamp(),
+                'creditReport.reportId': reportRef.id,
+                'creditReport.status': 'available',
+                'creditReport.averageScore': vantageScore,
+                'creditReport.previousScore': previousScore,
+                'creditReport.scoreChange': scoreChange,
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+              });
+
+              // If score improved 50+ points, existing Rule 9 handles celebration
+              if (scoreChange && scoreChange >= 50) {
+                console.log(`🎉 Score improved by ${scoreChange} points! Celebration email will trigger via Rule 9.`);
+              }
+            }
+
+            console.log(`✅ Credit report refreshed. Score: ${vantageScore}, Change: ${scoreChange}, Report: ${reportRef.id}`);
+
+            return {
+              success: true,
+              refreshTriggered: true,
+              reportReady: true,
+              reportId: reportRef.id,
+              vantageScore: vantageScore,
+              scores: scores,
+              previousScore: previousScore,
+              scoreChange: scoreChange,
+              message: `Credit report refreshed. Score: ${vantageScore || 'N/A'}${scoreChange ? ` (${scoreChange > 0 ? '+' : ''}${scoreChange} from last report)` : ''}.`
+            };
+          } catch (err) {
+            console.error('❌ refreshCreditReport error:', err.message);
+            return { success: false, error: err.message };
+          }
+        }
+
+
         default:
           throw new Error(`Unknown action: ${action}`);
       }
@@ -5793,7 +6763,9 @@ exports.processAbandonmentEmails = onSchedule(
         if (!recipientEmail) continue;
         
         try {
-          const retryUrl = `${SPEEDY_BRAND.portalUrl}/complete-enrollment?contactId=${contactId}&retry=true`;
+          const retryUrl = contact.enrollmentToken
+            ? `${SPEEDY_BRAND.portalUrl}/enroll?token=${contact.enrollmentToken}&contactId=${contactId}&retry=true`
+            : `${SPEEDY_BRAND.portalUrl}/enroll?contactId=${contactId}&retry=true`;
           
           const emailHtml = EMAIL_TEMPLATES.idiqEnrollmentFailed(
             { ...contact, id: contactId },
@@ -6593,6 +7565,12 @@ exports.processAbandonmentEmails = onSchedule(
         const isAIPhoneLead = (contactSource === 'ai_receptionist' || contactSource === 'ai_phone' || contactSource === 'phone_call');
         
         // ===== TEMPLATE DATA: Same format used by all emailTemplates.js templates =====
+        // ===== BUILD: Enrollment URL with token security =====
+        const enrollmentToken = contact.enrollmentToken || null;
+        const enrollmentUrl = enrollmentToken
+          ? `${SPEEDY_BRAND.portalUrl}/enroll?token=${enrollmentToken}&contactId=${contactId}`
+          : `${SPEEDY_BRAND.portalUrl}/enroll?contactId=${contactId}`;
+
         const templateData = {
           firstName: contact.firstName || 'there',
           lastName: contact.lastName || '',
@@ -6600,6 +7578,8 @@ exports.processAbandonmentEmails = onSchedule(
           email: recipientEmail,
           phone: contact.phone || contact.phones?.[0]?.number || '',
           contactId: contactId,
+          enrollmentToken: enrollmentToken,
+          enrollmentUrl: enrollmentUrl,
           leadScore: contact.leadScore || 5,
           sentiment: contact.aiTracking?.sentiment || { description: 'neutral' },
           source: contactSource
@@ -6703,7 +7683,7 @@ exports.processAbandonmentEmails = onSchedule(
                     body: JSON.stringify({
                       from: telnyxSmsPhone.value(),
                       to: smsPhone,
-                      text: `Hi ${contact.firstName}, it's Chris from Speedy Credit Repair. Your free credit analysis is still waiting — takes just 5 min. Start here: https://myclevercrm.com/complete-enrollment?contactId=${contactId}&source=sms-48h`
+                      text: `Hi ${contact.firstName}, it's Chris from Speedy Credit Repair. Your free credit analysis is still waiting — takes just 5 min. Start here: ${contact.enrollmentToken ? `https://myclevercrm.com/enroll?token=${contact.enrollmentToken}&contactId=${contactId}` : `https://myclevercrm.com/enroll?contactId=${contactId}`}&source=sms-48h`
                     })
                   });
                   leadNurtureSmsSent++;
@@ -6893,7 +7873,7 @@ exports.processAbandonmentEmails = onSchedule(
                     body: JSON.stringify({
                       from: telnyxSmsPhone.value(),
                       to: smsPhone,
-                      text: `Hi ${contact.firstName}, Chris here from Speedy Credit Repair. We've been trying to reach you about your free credit analysis. Still interested? Takes 5 min: https://myclevercrm.com/complete-enrollment?contactId=${contactId}&source=sms-7d`
+                      text: `Hi ${contact.firstName}, Chris here from Speedy Credit Repair. We've been trying to reach you about your free credit analysis. Still interested? Takes 5 min: ${contact.enrollmentToken ? `https://myclevercrm.com/enroll?token=${contact.enrollmentToken}&contactId=${contactId}` : `https://myclevercrm.com/enroll?contactId=${contactId}`}&source=sms-7d`
                     })
                   });
                   leadNurtureSmsSent++;

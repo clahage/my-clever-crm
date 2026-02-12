@@ -1,9 +1,9 @@
 import { useState } from "react";
 
 // ============================================================================
-// SpeedyCRM COMPLETE LIFECYCLE AUDIT — Updated 2026-02-11
+// SpeedyCRM COMPLETE LIFECYCLE AUDIT — Updated 2026-02-11 (Session 5)
 // Maps every contact path from entry → outcome, showing built vs missing
-// Reflects: 2/9 workflow chain, 2/10 email/fax/notifications, 2/11 contract signing
+// Reflects: 2/9 workflow chain, 2/10 email/fax/notifications, 2/11 contract V3.0 + bell
 // ============================================================================
 
 const COLORS = {
@@ -38,7 +38,7 @@ const ENTRY_POINTS = [
   { id: "landing", label: "Landing Page / Website Form", icon: "🌐", status: "built", detail: "captureWebLead / landingPageContact in operationsManager → creates contact → onContactCreated sends welcome email + Rule 13 nurture drip (12h, 24h, 48h, 7d, 14d)" },
   { id: "quiz", label: "Quiz Funnel", icon: "🧩", status: "built", detail: "Quiz creates contact → Rule 12 sends 24h + 72h nurture emails. Rule 13 also covers quiz leads with extended drip." },
   { id: "manual", label: "Manual CRM Entry (Staff)", icon: "👤", status: "built", detail: "UltimateContactForm.jsx → creates contact → onContactCreated triggers AI role assessment + welcome email + enrollment link" },
-  { id: "email_sign", label: "Email Contract Signing Link", icon: "✍️", status: "built", detail: "NEW 2/11: Staff sends signing link via generateContractSigningLink → client clicks → signs at /sign/TOKEN → ContractSigningPortal → triggers Scenario 3 automation. Premium luxury design." },
+  { id: "email_sign", label: "Email Contract Signing Link", icon: "✍️", status: "built", detail: "BUILT 2/11, V3.0 2/11: Staff sends signing link via generateContractSigningLink → client clicks → signs at /sign/TOKEN → ContractSigningPortal V3.0 (marker system, 11 click-to-initial, 5-Day Right, positive cancellation, SCR auto-sig) → triggers Scenario 3 automation." },
   { id: "social", label: "Yelp / Google / Social Media", icon: "⭐", status: "missing", detail: "No webhook or integration to auto-capture leads from Yelp messages, Google Business, Facebook, or Instagram DMs" },
   { id: "affiliate", label: "Affiliate / Referral Partner", icon: "🤝", status: "missing", detail: "No affiliate portal, tracking links, or commission system. ReferralEngineHub exists as placeholder only" },
   { id: "walkin", label: "Walk-in / Phone Call (Non-AI)", icon: "🚶", status: "built", detail: "Manual entry by staff via UltimateContactForm with source='walk_in' or 'phone_call'. Same automation triggers as all contacts." },
@@ -53,7 +53,7 @@ const LIFECYCLE_STAGES = [
       { label: "AI Role Assessment (auto-assign 'lead')", status: "built", where: "onContactCreated", notes: "Checks source, leadScore, email/phone presence, AI interactions → assigns 'lead' role to roles[] array" },
       { label: "Welcome Email with Enrollment Link", status: "built", where: "onContactCreated → emailTemplates.js", notes: "BUILT 2/10: Every new contact with email immediately gets branded welcome email with personalized enrollment link" },
       { label: "Speed-to-Lead Alert to SCR Staff", status: "built", where: "staffNotifications collection", notes: "BUILT 2/10: Creates staffNotification with priority, targetRoles, real-time onSnapshot listener for bell/toast/chime" },
-      { label: "CRM Dashboard Notification", status: "partial", where: "SmartDashboard needs bell widget", notes: "staffNotifications collection exists and fires correctly. Frontend bell icon widget not yet wired into SmartDashboard header." },
+      { label: "CRM Dashboard Notification", status: "built", where: "SmartDashboard.jsx QuickAccessPanel (lines 4038-4177)", notes: "BUILT 2/11: Bell icon in QuickAccessPanel sidebar reads from staffNotifications collection with color-coded types, time-ago formatting. Same collection as ProtectedLayout bell." },
     ]
   },
   {
@@ -78,7 +78,7 @@ const LIFECYCLE_STAGES = [
       { label: "Phase 3: AI Credit Analysis + Review", status: "built", where: "CompleteEnrollmentFlow.jsx", notes: "Shows credit report widget, projected improvement (dynamic), floating Continue timer" },
       { label: "Phase 4: Document Upload", status: "built", where: "CompleteEnrollmentFlow.jsx", notes: "Photo ID, utility bill, SSN card, bank statements" },
       { label: "Phase 5: Service Plan Selection", status: "built", where: "CompleteEnrollmentFlow.jsx", notes: "3 plans: Essentials $79/mo, Professional $149/mo (most popular), VIP Concierge $299/mo" },
-      { label: "Phase 6: Contract Signing", status: "built", where: "ContractSigningPortal.jsx (1,613 lines)", notes: "6 tabs: Full Agreement, POA, Info Sheet, ACH Auth, Addendums. Digital signature pad, generates PDF. ALSO available via email link (2/11)." },
+      { label: "Phase 6: Contract Signing", status: "built", where: "ContractSigningPortal.jsx V3.0 (1,781 lines)", notes: "6 tabs: Info Statement, Privacy Notice, Service Contract (11 initials), ACH Auth, POA, 5-Day Right. V3.0 marker system (__INITIAL_N__, __SIGNATURE__, __SCR_SIGNATURE__, __DATE__). Also available via email link (2/11)." },
       { label: "Phase 7: Payment (NMI)", status: "built", where: "CompleteEnrollmentFlow.jsx + operationsManager", notes: "ACH + Credit Card via NMI, vault tokenization, recurring billing setup" },
       { label: "Phase 8-10: Celebration + Next Steps", status: "built", where: "CompleteEnrollmentFlow.jsx", notes: "Confetti, portal access link, what to expect timeline" },
       { label: "Enrollment Abandonment Recovery", status: "built", where: "processAbandonmentEmails", notes: "If enrollmentStatus='started' and 5+ minutes passed, sends recovery email with resume link" },
@@ -89,7 +89,7 @@ const LIFECYCLE_STAGES = [
     title: "Post-Enrollment & Contract Signing",
     stages: [
       { label: "Welcome Email (Portal Access)", status: "built", where: "onContactUpdated Scenario 1", notes: "Fires when enrollmentStatus changes to 'enrolled'. Sends branded portal access email." },
-      { label: "Email Contract Signing Link", status: "built", where: "generateContractSigningLink (operationsManager)", notes: "NEW 2/11: Staff sends branded email → client clicks → signs at /sign/TOKEN → premium PublicContractSigningRoute (1,057 lines). Zero cost (replaced DocuSign)." },
+      { label: "Email Contract Signing Link", status: "built", where: "generateContractSigningLink (operationsManager)", notes: "BUILT 2/11, V3.0: Staff sends branded email → client clicks → signs at /sign/TOKEN → premium PublicContractSigningRoute → ContractSigningPortal V3.0 with marker system. Zero cost (replaced DocuSign)." },
       { label: "Contract Signed → Confirmation Email", status: "built", where: "onContactUpdated Scenario 3", notes: "Auto-fires when contractSigned=true. Sends confirmation + triggers doc request + ACH setup." },
       { label: "ACH Setup Request (4h delay)", status: "built", where: "onContactUpdated Scenario 3 + scheduledEmails", notes: "Schedules ACH setup request email 4 hours after contract signing to avoid email overload." },
       { label: "Document Reminder (24h if docs missing)", status: "built", where: "Rule 14 in processAbandonmentEmails", notes: "BUILT 2/10: If docs not uploaded within 24h of enrollment, sends gentle reminder email." },
@@ -142,10 +142,10 @@ const PRIORITY_ACTIONS = [
   {
     rank: 1,
     title: "Test Email Signing Flow End-to-End",
-    impact: "CRITICAL — Verify the new contract signing link works: email → click → sign → automation triggers",
+    impact: "CRITICAL — Verify the V3.0 contract signing link works: email → click → sign all 6 tabs with markers → automation triggers",
     effort: "~15 min",
-    where: "Call generateContractSigningLink with your own email, click link, sign, verify Scenario 3 fires",
-    why: "This is deployed but untested with a real contact. Must confirm before sending to actual clients.",
+    where: "Call generateContractSigningLink with your own email, click link, test 11 initials + signatures + ACH, verify Scenario 3 fires",
+    why: "V3.0 marker system deployed but untested with a real contact. Must confirm __INITIAL_N__, __SIGNATURE__, __DATE__ rendering before sending to actual clients.",
   },
   {
     rank: 2,
@@ -157,14 +157,6 @@ const PRIORITY_ACTIONS = [
   },
   {
     rank: 3,
-    title: "SmartDashboard Bell Notification Widget",
-    impact: "HIGH — Staff need to SEE the real-time notifications that are already firing",
-    effort: "~30 min",
-    where: "SmartDashboard.jsx or ProtectedLayout.jsx header",
-    why: "staffNotifications collection is working, triggers on leads/payments/fax — but no frontend bell to see them.",
-  },
-  {
-    rank: 4,
     title: "Stripe/NMI Recurring Billing Management",
     impact: "HIGH — Monthly billing must work for revenue",
     effort: "~2 hours",
@@ -172,7 +164,7 @@ const PRIORITY_ACTIONS = [
     why: "NMI handles first payment at enrollment. Ongoing monthly billing needs subscription management, retry logic, upgrade/downgrade.",
   },
   {
-    rank: 5,
+    rank: 4,
     title: "IDIQ Dispute API Integration",
     impact: "HIGH — Core credit repair service delivery",
     effort: "~3 hours",
@@ -180,7 +172,7 @@ const PRIORITY_ACTIONS = [
     why: "The heart of credit repair: pull report → AI analyzes → generates disputes → submits via IDIQ → faxes bureaus.",
   },
   {
-    rank: 6,
+    rank: 5,
     title: "Monthly Credit Report Re-Pull",
     impact: "MEDIUM — Track client progress automatically",
     effort: "~45 min",
@@ -188,7 +180,7 @@ const PRIORITY_ACTIONS = [
     why: "Active clients should get automatic monthly credit report re-pulls to measure dispute results.",
   },
   {
-    rank: 7,
+    rank: 6,
     title: "Cancellation / Offboarding Flow",
     impact: "MEDIUM — Clean client exits + win-back opportunity",
     effort: "~1 hour",
@@ -196,7 +188,7 @@ const PRIORITY_ACTIONS = [
     why: "Clients currently cannot self-cancel. No NMI subscription cancellation handler. No exit survey or win-back drip.",
   },
   {
-    rank: 8,
+    rank: 7,
     title: "90-Day Cold Lead Recycling",
     impact: "LOW — Re-engage dormant leads with fresh offer",
     effort: "~30 min",
@@ -404,7 +396,7 @@ export default function SpeedyCRMLifecycleAudit() {
 
       {/* Summary */}
       <div style={{ maxWidth: 900, margin: "0 auto", textAlign: "center", padding: "20px 0 40px", color: COLORS.muted, fontSize: 12 }}>
-        Audit based on index.js (11,511 lines) + CompleteEnrollmentFlow.jsx (6,363 lines) + ContractSigningPortal (1,613 lines) + PublicContractSigningRoute (1,057 lines) + project architecture • {new Date().toLocaleDateString()}
+        Audit based on index.js (11,511 lines) + CompleteEnrollmentFlow.jsx (6,363 lines) + SmartDashboard.jsx (5,348 lines) + ContractSigningPortal V3.0 (1,781 lines) + contractTemplates V3.0 (1,262 lines) + PublicContractSigningRoute (1,057 lines) + project architecture • {new Date().toLocaleDateString()}
       </div>
     </div>
   );

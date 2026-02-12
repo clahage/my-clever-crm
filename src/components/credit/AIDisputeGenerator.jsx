@@ -1,13 +1,23 @@
 // src/components/credit/AIDisputeGenerator.jsx
 // ============================================================================
-// 🤖 MEGA-ENHANCED AI DISPUTE LETTER GENERATOR - ULTIMATE VERSION
+// 🤖 MEGA-ENHANCED AI DISPUTE LETTER GENERATOR - IDIQ API WIRED VERSION
 // ============================================================================
+// WHAT CHANGED (vs previous version):
+//   1. REMOVED client-side OpenAI API key (security violation fixed)
+//   2. ALL AI calls now route through aiContentGenerator Cloud Function
+//   3. handleSendDisputes now calls IDIQ API for TransUnion disputes
+//   4. Added pullDisputeReport → getDisputeReport → submitIDIQDispute pipeline
+//   5. Experian/Equifax flagged as 'ready_to_fax' for FaxCenter
+//   6. Removed all fake/sample data from fallbackAnalysis
+//   7. Added claim code mapping (strategy → IDIQ codes)
+//   8. Added IDIQ submission progress tracking UI
+//
 // MAXIMUM AI FEATURES:
-// ✅ AI-powered disputable item identification (GPT-4)
+// ✅ AI-powered disputable item identification (via Cloud Function → GPT-4)
 // ✅ Intelligent success probability calculation
-// ✅ AI-generated bureau-specific letters
+// ✅ AI-generated bureau-specific letters (server-side)
 // ✅ Smart strategy recommendation engine
-// ✅ Automated FCRA compliance checking
+// ✅ Automated FCRA compliance checking (server-side)
 // ✅ AI-powered letter quality scoring
 // ✅ Predictive dispute outcome analysis
 // ✅ Natural language editing with AI refinement
@@ -18,6 +28,8 @@
 // ✅ 5-step wizard with beautiful animations
 // ✅ 6 dispute strategies with success rates
 // ✅ Bureau-specific formatting (Experian, Equifax, TransUnion)
+// ✅ IDIQ API integration for TransUnion disputes
+// ✅ Fax pipeline integration for Experian/Equifax
 // ✅ Advanced filtering (bureau, priority, round, search)
 // ✅ Round-based tracking (Round 1, 2, 3)
 // ✅ Priority classification (high/medium/low)
@@ -31,6 +43,9 @@
 // ✅ Dark mode support
 // ✅ Real-time progress tracking
 // ✅ Success analytics dashboard
+//
+// © 1995-2026 Speedy Credit Repair Inc. | Chris Lahage | All Rights Reserved
+// Trademark: Speedy Credit Repair® - USPTO Registered
 // ============================================================================
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -136,7 +151,8 @@ import {
   updateDoc,
   doc,
 } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { httpsCallable } from 'firebase/functions';
+import { db, functions } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { format, addDays } from 'date-fns';
 
@@ -144,8 +160,24 @@ import { format, addDays } from 'date-fns';
 // 🎨 CONSTANTS & CONFIGURATION
 // ============================================================================
 
-const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
+// ===== NO CLIENT-SIDE API KEYS =====
+// All AI operations route through Firebase Cloud Functions (server-side).
+// OpenAI API key is stored in Firebase Secrets, never exposed to browser.
+
 const IDIQ_PARTNER_ID = '11981';
+
+// ===== CLAIM CODE MAPPING =====
+// Maps our dispute strategies to IDIQ's dispute claim codes.
+// These are sent to IDIQ when submitting TransUnion disputes.
+const STRATEGY_TO_CLAIM_CODES = {
+  factual_error: ['INACCURATE'],
+  validation:    ['NOT_MINE'],
+  goodwill:      ['INACCURATE'],   // Goodwill goes direct to creditor, not bureau API
+  not_mine:      ['NOT_MINE'],
+  outdated:      ['OUTDATED'],
+  pay_delete:    ['INACCURATE'],   // Pay-for-delete is a negotiation, not API dispute
+  fraud:         ['FRAUD'],
+};
 
 // ===== DISPUTE STRATEGIES =====
 const DISPUTE_STRATEGIES = [
@@ -161,6 +193,7 @@ const DISPUTE_STRATEGIES = [
     fcraSection: '611(a)(1)(A)',
     tone: 'assertive',
     difficulty: 'medium',
+    idiqSupported: true,
   },
   {
     id: 'validation',
@@ -174,6 +207,7 @@ const DISPUTE_STRATEGIES = [
     fcraSection: '611(a)(1)',
     tone: 'formal',
     difficulty: 'medium',
+    idiqSupported: true,
   },
   {
     id: 'goodwill',
@@ -187,6 +221,7 @@ const DISPUTE_STRATEGIES = [
     fcraSection: 'N/A (Creditor discretion)',
     tone: 'friendly',
     difficulty: 'easy',
+    idiqSupported: false,  // Goes directly to creditor, not through IDIQ
   },
   {
     id: 'not_mine',
@@ -200,6 +235,7 @@ const DISPUTE_STRATEGIES = [
     fcraSection: '605B',
     tone: 'urgent',
     difficulty: 'easy',
+    idiqSupported: true,
   },
   {
     id: 'outdated',
@@ -213,6 +249,7 @@ const DISPUTE_STRATEGIES = [
     fcraSection: '605(a)',
     tone: 'authoritative',
     difficulty: 'easy',
+    idiqSupported: true,
   },
   {
     id: 'pay_delete',
@@ -226,6 +263,7 @@ const DISPUTE_STRATEGIES = [
     fcraSection: 'Negotiation',
     tone: 'negotiating',
     difficulty: 'hard',
+    idiqSupported: false,  // Negotiation, not API dispute
   },
 ];
 
@@ -239,6 +277,7 @@ const BUREAUS = [
     email: 'disputes@experian.com',
     fax: '1-888-397-3742',
     website: 'www.experian.com/dispute',
+    sendMethod: 'fax',  // Experian = send via FaxCenter
   },
   {
     id: 'equifax',
@@ -248,6 +287,7 @@ const BUREAUS = [
     email: 'disputes@equifax.com',
     fax: '1-404-885-8000',
     website: 'www.equifax.com/dispute',
+    sendMethod: 'fax',  // Equifax = send via FaxCenter
   },
   {
     id: 'transunion',
@@ -257,6 +297,7 @@ const BUREAUS = [
     email: 'disputes@transunion.com',
     fax: '1-610-546-4771',
     website: 'www.transunion.com/dispute',
+    sendMethod: 'idiq',  // TransUnion = send via IDIQ API
   },
 ];
 
@@ -284,90 +325,53 @@ const DISPUTE_ROUNDS = [
 ];
 
 // ============================================================================
-// 🧠 AI FUNCTIONS
+// 🧠 AI FUNCTIONS (ALL SERVER-SIDE VIA CLOUD FUNCTIONS)
 // ============================================================================
 
 /**
  * AI-POWERED: Identify disputable items from credit report
+ * Routes through aiContentGenerator Cloud Function → OpenAI GPT-4
+ * NO client-side API key needed.
  */
 const identifyDisputableItems = async (creditReportData) => {
-  console.log('🧠 AI: Analyzing credit report for disputable items...');
-  
-  if (!OPENAI_API_KEY) {
-    console.warn('⚠️ OpenAI API key not configured, using fallback analysis');
-    return fallbackAnalysis(creditReportData);
-  }
+  console.log('🧠 AI: Analyzing credit report for disputable items (via Cloud Function)...');
 
   try {
-    const prompt = `Analyze this credit report and identify ALL disputable negative items.
-
-CREDIT REPORT DATA:
-${JSON.stringify(creditReportData, null, 2)}
-
-For each disputable item, provide:
-1. Item ID/reference
-2. Type (Late Payment, Collection, Charge-off, etc.)
-3. Creditor name
-4. Account number (if available)
-5. Amount (if applicable)
-6. Date reported
-7. Reason it's disputable
-8. Recommended dispute strategy
-9. Success probability (0-100)
-10. Priority level (high/medium/low)
-11. Impact on credit score (high/medium/low)
-
-Return ONLY valid JSON array format:
-[
-  {
-    "id": "item_1",
-    "type": "Late Payment",
-    "creditor": "Chase Bank",
-    "accountNumber": "****1234",
-    "amount": 1500,
-    "dateReported": "2023-06-15",
-    "disputeReason": "Payment was made on time but reported late",
-    "recommendedStrategy": "factual_error",
-    "successProbability": 75,
-    "priority": "high",
-    "scoreImpact": "high",
-    "bureaus": ["experian", "equifax", "transunion"]
-  }
-]`;
-
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert credit repair analyst with 20+ years of experience. Analyze credit reports and identify disputable items. Return ONLY valid JSON, no markdown or explanations.',
-          },
-          { role: 'user', content: prompt },
-        ],
-        temperature: 0.3, // Lower temperature for more consistent analysis
-        max_tokens: 3000,
-      }),
+    // ===== Route through aiContentGenerator Cloud Function =====
+    // The 'analyzeCreditReport' case in aiContentGenerator handles the
+    // OpenAI call server-side with the API key from Firebase Secrets.
+    const aiContentGenerator = httpsCallable(functions, 'aiContentGenerator');
+    const result = await aiContentGenerator({
+      type: 'analyzeCreditReport',
+      params: {
+        creditReportData: creditReportData,
+        analysisType: 'dispute_identification',
+        returnFormat: 'json'
+      }
     });
 
-    if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
+    console.log('📊 AI analysis result:', result.data);
+
+    // Parse the AI response — it should contain an array of disputable items
+    if (result.data?.success && result.data?.content) {
+      // The content may be a JSON string or already parsed
+      let items;
+      if (typeof result.data.content === 'string') {
+        const cleaned = result.data.content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        items = JSON.parse(cleaned);
+      } else if (Array.isArray(result.data.content)) {
+        items = result.data.content;
+      } else {
+        items = result.data.content?.items || result.data.content?.disputableItems || [];
+      }
+
+      console.log(`✅ AI identified ${items.length} disputable items`);
+      return items;
     }
 
-    const data = await response.json();
-    const content = data.choices[0].message.content.trim();
-    
-    // Remove markdown code blocks if present
-    const jsonContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    const disputableItems = JSON.parse(jsonContent);
-
-    console.log(`✅ AI identified ${disputableItems.length} disputable items`);
-    return disputableItems;
+    // If the Cloud Function returned but no structured items, try fallback
+    console.warn('⚠️ AI returned no structured items, using fallback analysis');
+    return fallbackAnalysis(creditReportData);
 
   } catch (error) {
     console.error('❌ AI analysis error:', error);
@@ -377,91 +381,96 @@ Return ONLY valid JSON array format:
 
 /**
  * FALLBACK: Manual analysis when AI is unavailable
+ * Parses credit report data to find negative items without AI.
+ * NO FAKE DATA — only real items from the report.
  */
 const fallbackAnalysis = (creditReportData) => {
   console.log('📊 Using fallback analysis (non-AI)');
   
   const items = [];
   
-  // Analyze negative accounts
-  if (creditReportData?.negativeAccounts) {
-    creditReportData.negativeAccounts.forEach((account, index) => {
-      items.push({
-        id: `item_${index + 1}`,
-        type: account.type || 'Unknown',
-        creditor: account.creditor || 'Unknown Creditor',
-        accountNumber: account.accountNumber || 'N/A',
-        amount: account.balance || 0,
-        dateReported: account.dateReported || new Date().toISOString().split('T')[0],
-        disputeReason: 'Item requires verification',
-        recommendedStrategy: determineStrategy(account),
-        successProbability: estimateSuccessProbability(account),
-        priority: determinePriority(account),
-        scoreImpact: determineImpact(account),
-        bureaus: account.bureaus || ['experian', 'equifax', 'transunion'],
-      });
+  // ===== Parse negative accounts from credit report data =====
+  const negativeAccounts = creditReportData?.negativeAccounts ||
+                           creditReportData?.derogatory ||
+                           creditReportData?.collections ||
+                           [];
+  
+  negativeAccounts.forEach((account, index) => {
+    items.push({
+      id: `item_${index + 1}`,
+      type: account.type || account.accountType || 'Unknown',
+      creditor: account.creditor || account.creditorName || account.companyName || 'Unknown Creditor',
+      accountNumber: account.accountNumber || account.acctNumber || 'N/A',
+      amount: account.balance || account.amount || 0,
+      dateReported: account.dateReported || account.dateOpened || new Date().toISOString().split('T')[0],
+      disputeReason: 'Item requires verification',
+      recommendedStrategy: determineStrategy(account),
+      successProbability: estimateSuccessProbability(account),
+      priority: determinePriority(account),
+      scoreImpact: determineImpact(account),
+      bureaus: account.bureaus || ['experian', 'equifax', 'transunion'],
     });
-  }
+  });
 
-  // If no negative accounts, create sample data
+  // ===== Parse tradelines for late payments =====
+  const tradelines = creditReportData?.tradelines || creditReportData?.tradelineAccounts || [];
+  tradelines.forEach((trade, index) => {
+    const status = (trade.accountStatus || trade.status || '').toLowerCase();
+    const payStatus = (trade.paymentStatus || trade.payStatus || '').toLowerCase();
+    
+    // Only add items with negative marks
+    const isNegative = status.includes('delinquent') || status.includes('derogatory') ||
+                       status.includes('collection') || payStatus.includes('late') ||
+                       payStatus.includes('charge') || payStatus.includes('collection');
+    
+    if (isNegative) {
+      items.push({
+        id: `trade_${index + 1}`,
+        type: trade.accountType || 'Account',
+        creditor: trade.creditorName || trade.subscriberName || 'Unknown',
+        accountNumber: trade.accountNumber || '****',
+        amount: trade.balance || 0,
+        dateReported: trade.dateReported || trade.dateOpened || null,
+        disputeReason: `Account shows ${payStatus || status} status`,
+        recommendedStrategy: determineStrategy(trade),
+        successProbability: estimateSuccessProbability(trade),
+        priority: determinePriority(trade),
+        scoreImpact: determineImpact(trade),
+        bureaus: extractBureauList(trade),
+      });
+    }
+  });
+
+  // ===== NO FAKE DATA =====
+  // If no items found, return empty array. The UI will show
+  // an appropriate empty state message.
   if (items.length === 0) {
-    items.push(
-      {
-        id: 'item_1',
-        type: 'Collection',
-        creditor: 'ABC Collections',
-        accountNumber: '****5678',
-        amount: 1250,
-        dateReported: '2022-03-15',
-        disputeReason: 'This account requires validation',
-        recommendedStrategy: 'validation',
-        successProbability: 70,
-        priority: 'high',
-        scoreImpact: 'high',
-        bureaus: ['experian', 'equifax', 'transunion'],
-      },
-      {
-        id: 'item_2',
-        type: 'Late Payment',
-        creditor: 'Capital One',
-        accountNumber: '****9012',
-        amount: 0,
-        dateReported: '2023-01-10',
-        disputeReason: 'Payment was made on time',
-        recommendedStrategy: 'factual_error',
-        successProbability: 75,
-        priority: 'medium',
-        scoreImpact: 'medium',
-        bureaus: ['experian', 'transunion'],
-      },
-      {
-        id: 'item_3',
-        type: 'Charge-off',
-        creditor: 'Old Navy Credit',
-        accountNumber: '****3456',
-        amount: 850,
-        dateReported: '2016-08-20',
-        disputeReason: 'Item is beyond 7-year reporting period',
-        recommendedStrategy: 'outdated',
-        successProbability: 90,
-        priority: 'high',
-        scoreImpact: 'high',
-        bureaus: ['equifax'],
-      }
-    );
+    console.log('📋 No negative items found in credit report data');
   }
 
   return items;
 };
 
 /**
+ * HELPER: Extract bureau list from tradeline data
+ */
+const extractBureauList = (trade) => {
+  const bureaus = [];
+  if (trade.transunion || trade.tu || trade.bureaus?.transunion) bureaus.push('transunion');
+  if (trade.experian || trade.exp || trade.bureaus?.experian) bureaus.push('experian');
+  if (trade.equifax || trade.eqf || trade.bureaus?.equifax) bureaus.push('equifax');
+  return bureaus.length > 0 ? bureaus : ['experian', 'equifax', 'transunion'];
+};
+
+/**
  * HELPER: Determine best strategy for item
  */
 const determineStrategy = (account) => {
-  if (account.type === 'Collection' || account.type === 'Charge-off') {
+  const type = (account.type || account.accountType || '').toLowerCase();
+  if (type.includes('collection') || type.includes('charge')) {
     return 'validation';
   }
-  if (account.type === 'Late Payment') {
+  if (type.includes('late') || type.includes('payment')) {
     return account.paymentHistory?.onTimePayments > 0.9 ? 'goodwill' : 'factual_error';
   }
   if (account.isOld || account.age > 7) {
@@ -474,13 +483,11 @@ const determineStrategy = (account) => {
  * HELPER: Estimate success probability
  */
 const estimateSuccessProbability = (account) => {
-  let probability = 50; // Base probability
-  
+  let probability = 50;
   if (account.isOld || account.age > 7) probability += 30;
-  if (account.amount < 500) probability += 10;
-  if (account.type === 'Medical') probability += 15;
+  if ((account.amount || account.balance || 0) < 500) probability += 10;
+  if ((account.type || '').toLowerCase().includes('medical')) probability += 15;
   if (account.isVerified === false) probability += 20;
-  
   return Math.min(probability, 95);
 };
 
@@ -488,8 +495,9 @@ const estimateSuccessProbability = (account) => {
  * HELPER: Determine priority level
  */
 const determinePriority = (account) => {
-  if (account.scoreImpact === 'high' || account.amount > 5000) return 'high';
-  if (account.scoreImpact === 'medium' || account.amount > 1000) return 'medium';
+  const amount = account.amount || account.balance || 0;
+  if (account.scoreImpact === 'high' || amount > 5000) return 'high';
+  if (account.scoreImpact === 'medium' || amount > 1000) return 'medium';
   return 'low';
 };
 
@@ -497,107 +505,58 @@ const determinePriority = (account) => {
  * HELPER: Determine score impact
  */
 const determineImpact = (account) => {
-  if (account.type === 'Bankruptcy' || account.type === 'Judgment') return 'high';
-  if (account.type === 'Collection' || account.type === 'Charge-off') return 'high';
-  if (account.type === 'Late Payment' && account.daysLate > 90) return 'high';
-  if (account.type === 'Late Payment' && account.daysLate > 30) return 'medium';
+  const type = (account.type || account.accountType || '').toLowerCase();
+  if (type.includes('bankruptcy') || type.includes('judgment')) return 'high';
+  if (type.includes('collection') || type.includes('charge')) return 'high';
+  if (type.includes('late') && (account.daysLate || 0) > 90) return 'high';
+  if (type.includes('late') && (account.daysLate || 0) > 30) return 'medium';
   return 'low';
 };
 
 /**
- * AI-POWERED: Generate dispute letter
+ * AI-POWERED: Generate dispute letter via Cloud Function
+ * Routes through aiContentGenerator → 'disputeLetter' case → OpenAI
  */
 const generateDisputeLetterWithAI = async (params) => {
   const { strategy, item, clientInfo, bureau, round = 1 } = params;
-  
-  console.log(`🧠 AI: Generating ${strategy} letter for ${bureau.name}...`);
-
-  if (!OPENAI_API_KEY) {
-    console.warn('⚠️ OpenAI API key not configured, using template');
-    return generateTemplateDisputeLetter(params);
-  }
+  console.log(`🧠 AI: Generating ${strategy} letter for ${bureau.name} (via Cloud Function)...`);
 
   try {
     const strategyInfo = DISPUTE_STRATEGIES.find(s => s.id === strategy);
     
-    const prompt = `Generate a professional, legally compliant dispute letter for a credit bureau.
-
-STRATEGY: ${strategyInfo.name}
-TONE: ${strategyInfo.tone}
-ROUND: ${round} (${round === 1 ? 'Initial' : round === 2 ? 'Follow-up' : 'Final'} dispute)
-FCRA SECTION: ${strategyInfo.fcraSection}
-
-BUREAU INFO:
-Name: ${bureau.name}
-Address: ${bureau.address}
-
-CLIENT INFO:
-Name: ${clientInfo.firstName} ${clientInfo.lastName}
-Address: ${clientInfo.address?.street || ''}, ${clientInfo.address?.city || ''}, ${clientInfo.address?.state || ''} ${clientInfo.address?.zip || ''}
-Date of Birth: ${clientInfo.dateOfBirth || 'N/A'}
-SSN: ***-**-${clientInfo.ssn?.slice(-4) || 'XXXX'}
-
-DISPUTED ITEM:
-Type: ${item.type}
-Creditor: ${item.creditor}
-Account: ${item.accountNumber || 'N/A'}
-Amount: $${item.amount || 0}
-Date Reported: ${item.dateReported || 'Unknown'}
-Reason: ${item.disputeReason}
-
-REQUIREMENTS:
-1. Professional, ${strategyInfo.tone} tone
-2. Cite FCRA Section ${strategyInfo.fcraSection}
-3. Clear identification of disputed item
-4. Specific reason for dispute
-5. Request for investigation and correction
-6. 30-day response deadline
-7. Request for written confirmation
-8. Professional closing
-9. Maximum 1 page (300-400 words)
-10. ${round > 1 ? 'Reference previous dispute attempt' : 'Initial formal dispute'}
-
-Format as a proper business letter with:
-- Date (use ${format(new Date(), 'MMMM dd, yyyy')})
-- Bureau address
-- Client address
-- Subject line
-- Professional greeting
-- Body paragraphs
-- Professional closing
-- Signature line
-
-Return ONLY the letter text, no markdown or formatting codes.`;
-
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert credit repair specialist and attorney. Write professional, FCRA-compliant dispute letters that maximize success rates. Be clear, assertive, and legally precise.',
-          },
-          { role: 'user', content: prompt },
-        ],
-        temperature: 0.7,
-        max_tokens: 1500,
-      }),
+    // ===== Route through aiContentGenerator Cloud Function =====
+    const aiContentGenerator = httpsCallable(functions, 'aiContentGenerator');
+    const result = await aiContentGenerator({
+      type: 'disputeLetter',
+      params: {
+        item: `${item.type} - ${item.creditor} (${item.accountNumber || 'N/A'})`,
+        bureau: bureau.name,
+        accountNumber: item.accountNumber || 'N/A',
+        reason: item.disputeReason,
+        strategy: strategyInfo?.name || strategy,
+        fcraSection: strategyInfo?.fcraSection || '611',
+        tone: strategyInfo?.tone || 'professional',
+        round: round,
+        amount: item.amount || 0,
+        clientName: clientInfo ? `${clientInfo.firstName} ${clientInfo.lastName}` : '',
+        clientAddress: clientInfo?.address
+          ? `${clientInfo.address.street || ''}, ${clientInfo.address.city || ''}, ${clientInfo.address.state || ''} ${clientInfo.address.zip || ''}`
+          : '',
+        dateOfBirth: clientInfo?.dateOfBirth || clientInfo?.dob || 'N/A',
+        ssnLast4: clientInfo?.ssn?.slice(-4) || 'XXXX',
+        bureauAddress: bureau.address,
+        dateReported: item.dateReported || 'Unknown',
+      }
     });
 
-    if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`);
+    if (result.data?.success && result.data?.content) {
+      console.log('✅ Letter generated via Cloud Function');
+      return result.data.content;
     }
 
-    const data = await response.json();
-    const letterText = data.choices[0].message.content.trim();
-
-    console.log('✅ Letter generated successfully');
-    return letterText;
+    // Fallback to template if Cloud Function didn't return content
+    console.warn('⚠️ Cloud Function returned no letter content, using template');
+    return generateTemplateDisputeLetter(params);
 
   } catch (error) {
     console.error('❌ Letter generation error:', error);
@@ -606,7 +565,7 @@ Return ONLY the letter text, no markdown or formatting codes.`;
 };
 
 /**
- * FALLBACK: Template-based letter generation
+ * FALLBACK: Template-based letter generation (no AI needed)
  */
 const generateTemplateDisputeLetter = (params) => {
   const { strategy, item, clientInfo, bureau, round = 1 } = params;
@@ -623,7 +582,7 @@ Account: ${item.accountNumber || 'N/A'}
 
 Dear ${bureau.name} Dispute Department,
 
-I am writing to formally dispute the following information on my credit report, as guaranteed by the Fair Credit Reporting Act (FCRA) Section ${strategyInfo.fcraSection}.
+I am writing to formally dispute the following information on my credit report, as guaranteed by the Fair Credit Reporting Act (FCRA) Section ${strategyInfo?.fcraSection || '611'}.
 
 DISPUTED ITEM:
 Creditor: ${item.creditor}
@@ -642,10 +601,10 @@ Thank you for your prompt attention to this matter.
 
 Sincerely,
 
-${clientInfo.firstName} ${clientInfo.lastName}
-${clientInfo.address?.street || ''}
-${clientInfo.address?.city || ''}, ${clientInfo.address?.state || ''} ${clientInfo.address?.zip || ''}
-SSN: ***-**-${clientInfo.ssn?.slice(-4) || 'XXXX'}`;
+${clientInfo?.firstName || ''} ${clientInfo?.lastName || ''}
+${clientInfo?.address?.street || ''}
+${clientInfo?.address?.city || ''}, ${clientInfo?.address?.state || ''} ${clientInfo?.address?.zip || ''}
+SSN: ***-**-${clientInfo?.ssn?.slice(-4) || 'XXXX'}`;
 };
 
 /**
@@ -653,42 +612,35 @@ SSN: ***-**-${clientInfo.ssn?.slice(-4) || 'XXXX'}`;
  */
 const calculateSuccessProbability = (item, strategy, round = 1) => {
   const strategyInfo = DISPUTE_STRATEGIES.find(s => s.id === strategy);
-  let baseRate = strategyInfo.successRate;
+  let baseRate = strategyInfo?.successRate || 50;
 
-  // Item-specific adjustments
   if (item.type === 'Collection' && strategy === 'validation') baseRate += 10;
   if (item.type === 'Late Payment' && strategy === 'goodwill') baseRate += 15;
   if (item.isOld || item.age > 7) baseRate += 20;
-  if (item.amount < 500) baseRate += 5;
+  if ((item.amount || 0) < 500) baseRate += 5;
   if (item.priority === 'high') baseRate += 5;
-  
-  // Round adjustments
-  if (round === 2) baseRate -= 15; // Lower success on second attempt
-  if (round === 3) baseRate -= 25; // Even lower on third attempt
-  
-  // Bureau-specific adjustments (some bureaus are easier)
+  if (round === 2) baseRate -= 15;
+  if (round === 3) baseRate -= 25;
   if (item.bureaus?.includes('experian')) baseRate += 3;
 
-  return Math.min(Math.max(baseRate, 10), 98); // Keep between 10-98%
+  return Math.min(Math.max(baseRate, 10), 98);
 };
 
 /**
- * AI-POWERED: Check FCRA compliance
+ * AI-POWERED: Check FCRA compliance via Cloud Function
  */
 const checkFCRACompliance = async (letterText) => {
-  console.log('🧠 AI: Checking FCRA compliance...');
-
-  if (!OPENAI_API_KEY) {
-    return {
-      compliant: true,
-      score: 85,
-      issues: [],
-      suggestions: ['Manual compliance review recommended'],
-    };
-  }
+  console.log('🧠 AI: Checking FCRA compliance (via Cloud Function)...');
 
   try {
-    const prompt = `Analyze this dispute letter for FCRA compliance and quality.
+    const aiContentGenerator = httpsCallable(functions, 'aiContentGenerator');
+    const result = await aiContentGenerator({
+      type: 'analyzeCreditReport',
+      params: {
+        creditReportData: { letterTextToCheck: letterText },
+        analysisType: 'fcra_compliance_check',
+        returnFormat: 'json',
+        customPrompt: `Analyze this dispute letter for FCRA compliance and quality.
 
 LETTER:
 ${letterText}
@@ -709,35 +661,23 @@ Return ONLY valid JSON:
   "score": 0-100,
   "issues": ["array of compliance issues found"],
   "suggestions": ["array of improvement suggestions"]
-}`;
-
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an FCRA compliance expert. Analyze dispute letters for legal compliance and quality. Return ONLY valid JSON.',
-          },
-          { role: 'user', content: prompt },
-        ],
-        temperature: 0.2,
-        max_tokens: 500,
-      }),
+}`
+      }
     });
 
-    const data = await response.json();
-    const content = data.choices[0].message.content.trim();
-    const jsonContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    const compliance = JSON.parse(jsonContent);
+    if (result.data?.success && result.data?.content) {
+      let compliance;
+      if (typeof result.data.content === 'string') {
+        const cleaned = result.data.content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        compliance = JSON.parse(cleaned);
+      } else {
+        compliance = result.data.content;
+      }
+      console.log(`✅ Compliance score: ${compliance.score}/100`);
+      return compliance;
+    }
 
-    console.log(`✅ Compliance score: ${compliance.score}/100`);
-    return compliance;
+    return { compliant: true, score: 80, issues: [], suggestions: ['AI compliance check returned no data'] };
 
   } catch (error) {
     console.error('❌ Compliance check error:', error);
@@ -745,7 +685,7 @@ Return ONLY valid JSON:
       compliant: true,
       score: 80,
       issues: [],
-      suggestions: ['AI compliance check unavailable'],
+      suggestions: ['AI compliance check unavailable — manual review recommended'],
     };
   }
 };
@@ -774,20 +714,27 @@ const AIDisputeGenerator = ({ clientId, creditReportData = null, onComplete }) =
   const [sentDisputes, setSentDisputes] = useState([]);
 
   // ===== STATE: UI =====
-  const [itemFilter, setItemFilter] = useState('all'); // all, high, medium, low
+  const [itemFilter, setItemFilter] = useState('all');
   const [bureauFilter, setBureauFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState('probability'); // probability, impact, type
+  const [sortBy, setSortBy] = useState('probability');
   const [generationProgress, setGenerationProgress] = useState(0);
   const [editingLetter, setEditingLetter] = useState(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showComplianceDialog, setShowComplianceDialog] = useState(false);
   const [complianceResults, setComplianceResults] = useState(null);
   const [selectedTab, setSelectedTab] = useState(0);
-  // Populate from IDIQ state
+
+  // ===== STATE: Populate from IDIQ =====
   const [showPopulateDialog, setShowPopulateDialog] = useState(false);
   const [populateContactId, setPopulateContactId] = useState('');
   const [populateLoading, setPopulateLoading] = useState(false);
+
+  // ===== STATE: IDIQ DISPUTE SUBMISSION =====
+  // Tracks the multi-step IDIQ pipeline during "Send All Disputes"
+  const [idiqSubmissionStep, setIdiqSubmissionStep] = useState('');
+  const [idiqHandles, setIdiqHandles] = useState([]);  // tradeline handles from getDisputeReport
+  const [idiqDisputeResults, setIdiqDisputeResults] = useState(null);  // submitIDIQDispute response
 
   // ===== HANDLER: Populate Disputes from IDIQ Credit Report =====
   const handlePopulateFromIDIQ = async () => {
@@ -802,10 +749,6 @@ const AIDisputeGenerator = ({ clientId, creditReportData = null, onComplete }) =
     try {
       console.log('🔍 Scanning IDIQ credit report for contact:', populateContactId);
 
-      // Import httpsCallable dynamically to avoid breaking existing imports
-      const { httpsCallable } = await import('firebase/functions');
-      const { functions } = await import('../../lib/firebase');
-      
       const aiContentGenerator = httpsCallable(functions, 'aiContentGenerator');
       const result = await aiContentGenerator({
         type: 'populateDisputes',
@@ -815,17 +758,11 @@ const AIDisputeGenerator = ({ clientId, creditReportData = null, onComplete }) =
       console.log('📊 Populate result:', result.data);
 
       if (result.data.success) {
-        // Close dialog
         setShowPopulateDialog(false);
         setPopulateContactId('');
-        
-        // Show success message
         setSuccess(`✅ Found ${result.data.disputeCount} disputable items! Loading into generator...`);
 
-        // Convert the saved disputes to our disputableItems format
-        // and advance to the next step
         if (result.data.disputeCount > 0) {
-          // Fetch the newly created disputes from Firestore
           const disputesQuery = query(
             collection(db, 'disputes'),
             where('contactId', '==', populateContactId)
@@ -852,7 +789,7 @@ const AIDisputeGenerator = ({ clientId, creditReportData = null, onComplete }) =
           });
 
           setDisputableItems(loadedItems);
-          setActiveStep(1); // Move to item selection step
+          setActiveStep(1);
         }
       } else {
         setError(result.data.error || 'Failed to scan credit report');
@@ -905,13 +842,11 @@ const AIDisputeGenerator = ({ clientId, creditReportData = null, onComplete }) =
       
       setDisputableItems(items);
       
-      // Auto-select high priority items
       const highPriorityIds = items
         .filter(item => item.priority === 'high')
         .map(item => item.id);
       setSelectedItems(highPriorityIds);
 
-      // Set recommended strategies
       const strategies = {};
       const bureaus = {};
       const rounds = {};
@@ -941,28 +876,22 @@ const AIDisputeGenerator = ({ clientId, creditReportData = null, onComplete }) =
   const filteredItems = useMemo(() => {
     let items = disputableItems;
 
-    // Filter by priority
     if (itemFilter !== 'all') {
       items = items.filter(item => item.priority === itemFilter);
     }
-
-    // Filter by bureau
     if (bureauFilter !== 'all') {
       items = items.filter(item => item.bureaus?.includes(bureauFilter));
     }
-
-    // Filter by search query
     if (searchQuery) {
-      const query = searchQuery.toLowerCase();
+      const q = searchQuery.toLowerCase();
       items = items.filter(
         item =>
-          item.creditor?.toLowerCase().includes(query) ||
-          item.type?.toLowerCase().includes(query) ||
-          item.disputeReason?.toLowerCase().includes(query)
+          item.creditor?.toLowerCase().includes(q) ||
+          item.type?.toLowerCase().includes(q) ||
+          item.disputeReason?.toLowerCase().includes(q)
       );
     }
 
-    // Sort
     if (sortBy === 'probability') {
       items = [...items].sort((a, b) => b.successProbability - a.successProbability);
     } else if (sortBy === 'impact') {
@@ -1046,48 +975,284 @@ const AIDisputeGenerator = ({ clientId, creditReportData = null, onComplete }) =
     }
   };
 
-  // ===== STEP 3: SEND DISPUTES =====
+  // ===== STEP 3: SEND DISPUTES (IDIQ-WIRED) =====
+  // This is the CORE change: TransUnion disputes go through IDIQ API,
+  // Experian/Equifax are saved as 'ready_to_fax' for FaxCenter.
   const handleSendDisputes = async () => {
     setLoading(true);
     setError(null);
+    setIdiqSubmissionStep('');
+    setIdiqDisputeResults(null);
 
     try {
       const sent = [];
+      const contactId = clientId || populateContactId;
 
-      for (const letter of generatedLetters) {
-        // Save to Firebase
-        const disputeDoc = await addDoc(collection(db, 'disputes'), {
-          clientId,
-          clientName: `${clientInfo.firstName} ${clientInfo.lastName}`,
-          itemId: letter.itemId,
-          item: letter.item,
-          strategy: letter.strategy,
-          strategyName: letter.strategyInfo.name,
-          bureau: letter.bureau.id,
-          bureauName: letter.bureau.name,
-          round: letter.round,
-          letterText: letter.text,
-          successProbability: letter.successProbability,
-          status: 'sent',
-          sentDate: serverTimestamp(),
-          dueDate: addDays(new Date(), 30),
-          createdBy: currentUser.uid,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
+      // ===== SEPARATE LETTERS BY BUREAU SEND METHOD =====
+      const transunionLetters = generatedLetters.filter(l => l.bureau.id === 'transunion');
+      const faxLetters = generatedLetters.filter(l => l.bureau.id !== 'transunion');
+
+      console.log(`📤 Sending ${transunionLetters.length} via IDIQ API, ${faxLetters.length} via Fax`);
+
+      // ═══════════════════════════════════════════════════════════════════
+      // PART A: TRANSUNION — Send via IDIQ Dispute API
+      // ═══════════════════════════════════════════════════════════════════
+      if (transunionLetters.length > 0 && contactId) {
+        const idiqService = httpsCallable(functions, 'idiqService');
+
+        // STEP A1: Pull fresh dispute credit report (< 24h requirement)
+        setIdiqSubmissionStep('Pulling fresh TransUnion credit report for disputes...');
+        console.log('⚔️ Step 1: Pulling fresh dispute report from IDIQ...');
+
+        const pullResult = await idiqService({
+          action: 'pullDisputeReport',
+          contactId: contactId
         });
 
-        sent.push({ ...letter, firestoreId: disputeDoc.id });
-        console.log(`✅ Dispute sent: ${letter.bureau.name} - ${letter.item.creditor}`);
+        if (!pullResult.data?.success) {
+          console.error('❌ pullDisputeReport failed:', pullResult.data?.error);
+          setError(`IDIQ dispute report pull failed: ${pullResult.data?.error}. TransUnion letters saved as drafts — you can fax them manually.`);
+          // Fall through to save as drafts instead of failing entirely
+        }
+
+        // STEP A2: Get dispute report with tradeline handles
+        let handles = [];
+        if (pullResult.data?.success) {
+          setIdiqSubmissionStep('Extracting tradeline handles from dispute report...');
+          console.log('⚔️ Step 2: Getting dispute report with handles...');
+
+          const reportResult = await idiqService({
+            action: 'getDisputeReport',
+            contactId: contactId,
+            memberToken: pullResult.data?.memberToken
+          });
+
+          if (reportResult.data?.success) {
+            handles = reportResult.data.tradelines || [];
+            setIdiqHandles(handles);
+            console.log(`✅ Got ${handles.length} tradeline handles`);
+          } else {
+            console.warn('⚠️ getDisputeReport returned no handles:', reportResult.data?.error);
+          }
+        }
+
+        // STEP A3: Match letters to handles and submit
+        if (handles.length > 0) {
+          setIdiqSubmissionStep(`Submitting ${transunionLetters.length} dispute(s) to TransUnion via IDIQ...`);
+          console.log('⚔️ Step 3: Submitting disputes to IDIQ...');
+
+          // Build lineItems by matching our dispute items to IDIQ handles
+          const lineItems = [];
+          for (const letter of transunionLetters) {
+            // Try to match by creditor name or account number
+            const matchedHandle = handles.find(h => {
+              const creditorMatch = h.creditorName?.toLowerCase()?.includes(letter.item.creditor?.toLowerCase()) ||
+                                    letter.item.creditor?.toLowerCase()?.includes(h.creditorName?.toLowerCase());
+              const accountMatch = h.accountNumber && letter.item.accountNumber &&
+                                   h.accountNumber.includes(letter.item.accountNumber?.replace(/\*/g, ''));
+              return creditorMatch || accountMatch;
+            });
+
+            if (matchedHandle) {
+              // Get IDIQ claim codes based on our dispute strategy
+              const claimCodes = STRATEGY_TO_CLAIM_CODES[letter.strategy] || ['INACCURATE'];
+              
+              lineItems.push({
+                creditReportItem: matchedHandle.handle,
+                claimCodes: claimCodes,
+                comment: letter.item.disputeReason || `Dispute: ${letter.item.type} - ${letter.item.creditor}`,
+                creditorName: letter.item.creditor,
+                accountNumber: letter.item.accountNumber,
+                round: letter.round
+              });
+
+              console.log(`✅ Matched: ${letter.item.creditor} → handle: ${matchedHandle.handle}`);
+            } else {
+              console.warn(`⚠️ No handle match for ${letter.item.creditor}. Will save as draft for manual fax.`);
+            }
+          }
+
+          // Submit matched items to IDIQ
+          if (lineItems.length > 0) {
+            const submitResult = await idiqService({
+              action: 'submitIDIQDispute',
+              contactId: contactId,
+              lineItems: lineItems
+            });
+
+            if (submitResult.data?.success) {
+              console.log(`✅ IDIQ submission successful! Dispute ID: ${submitResult.data.idiqDisputeId}`);
+              setIdiqDisputeResults(submitResult.data);
+
+              // Mark matched TransUnion letters as 'submitted_idiq'
+              for (const letter of transunionLetters) {
+                const wasSubmitted = lineItems.some(li => 
+                  li.creditorName === letter.item.creditor
+                );
+                
+                if (wasSubmitted) {
+                  sent.push({
+                    ...letter,
+                    status: 'submitted_idiq',
+                    idiqDisputeId: submitResult.data.idiqDisputeId,
+                    submittedAt: new Date(),
+                    sendMethod: 'idiq_api'
+                  });
+                } else {
+                  // No handle match — save as draft for manual fax
+                  const disputeDoc = await addDoc(collection(db, 'disputes'), {
+                    clientId: contactId,
+                    clientName: clientInfo ? `${clientInfo.firstName} ${clientInfo.lastName}` : '',
+                    itemId: letter.itemId,
+                    item: letter.item,
+                    strategy: letter.strategy,
+                    strategyName: letter.strategyInfo.name,
+                    bureau: letter.bureau.id,
+                    bureauName: letter.bureau.name,
+                    round: letter.round,
+                    letterText: letter.text,
+                    successProbability: letter.successProbability,
+                    status: 'ready_to_fax',
+                    sendMethod: 'fax',
+                    note: 'No IDIQ handle match — send via FaxCenter',
+                    createdBy: currentUser?.uid,
+                    createdAt: serverTimestamp(),
+                    updatedAt: serverTimestamp(),
+                  });
+                  sent.push({ ...letter, firestoreId: disputeDoc.id, status: 'ready_to_fax', sendMethod: 'fax' });
+                }
+              }
+            } else {
+              console.error('❌ IDIQ submission failed:', submitResult.data?.error);
+              // Save all TransUnion letters as ready_to_fax (fallback)
+              for (const letter of transunionLetters) {
+                const disputeDoc = await addDoc(collection(db, 'disputes'), {
+                  clientId: contactId,
+                  clientName: clientInfo ? `${clientInfo.firstName} ${clientInfo.lastName}` : '',
+                  itemId: letter.itemId,
+                  item: letter.item,
+                  strategy: letter.strategy,
+                  strategyName: letter.strategyInfo?.name,
+                  bureau: letter.bureau.id,
+                  bureauName: letter.bureau.name,
+                  round: letter.round,
+                  letterText: letter.text,
+                  successProbability: letter.successProbability,
+                  status: 'ready_to_fax',
+                  sendMethod: 'fax',
+                  note: `IDIQ API failed: ${submitResult.data?.error}`,
+                  createdBy: currentUser?.uid,
+                  createdAt: serverTimestamp(),
+                  updatedAt: serverTimestamp(),
+                });
+                sent.push({ ...letter, firestoreId: disputeDoc.id, status: 'ready_to_fax', sendMethod: 'fax' });
+              }
+            }
+          } else {
+            // No handles matched any letters — save as ready_to_fax
+            for (const letter of transunionLetters) {
+              const disputeDoc = await addDoc(collection(db, 'disputes'), {
+                clientId: contactId,
+                clientName: clientInfo ? `${clientInfo.firstName} ${clientInfo.lastName}` : '',
+                itemId: letter.itemId,
+                item: letter.item,
+                strategy: letter.strategy,
+                strategyName: letter.strategyInfo?.name,
+                bureau: letter.bureau.id,
+                bureauName: letter.bureau.name,
+                round: letter.round,
+                letterText: letter.text,
+                successProbability: letter.successProbability,
+                status: 'ready_to_fax',
+                sendMethod: 'fax',
+                note: 'No tradeline handles found — send via FaxCenter',
+                createdBy: currentUser?.uid,
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+              });
+              sent.push({ ...letter, firestoreId: disputeDoc.id, status: 'ready_to_fax', sendMethod: 'fax' });
+            }
+          }
+        } else {
+          // pullDisputeReport failed — save TransUnion letters as ready_to_fax
+          for (const letter of transunionLetters) {
+            const disputeDoc = await addDoc(collection(db, 'disputes'), {
+              clientId: contactId,
+              clientName: clientInfo ? `${clientInfo.firstName} ${clientInfo.lastName}` : '',
+              itemId: letter.itemId,
+              item: letter.item,
+              strategy: letter.strategy,
+              strategyName: letter.strategyInfo?.name,
+              bureau: letter.bureau.id,
+              bureauName: letter.bureau.name,
+              round: letter.round,
+              letterText: letter.text,
+              successProbability: letter.successProbability,
+              status: 'ready_to_fax',
+              sendMethod: 'fax',
+              note: 'IDIQ not available — send via FaxCenter',
+              createdBy: currentUser?.uid,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+            });
+            sent.push({ ...letter, firestoreId: disputeDoc.id, status: 'ready_to_fax', sendMethod: 'fax' });
+          }
+        }
       }
 
+      // ═══════════════════════════════════════════════════════════════════
+      // PART B: EXPERIAN & EQUIFAX — Save for Fax via FaxCenter
+      // ═══════════════════════════════════════════════════════════════════
+      if (faxLetters.length > 0) {
+        setIdiqSubmissionStep(`Saving ${faxLetters.length} Experian/Equifax letter(s) for fax...`);
+        console.log(`📠 Saving ${faxLetters.length} letters for fax sending...`);
+
+        for (const letter of faxLetters) {
+          const disputeDoc = await addDoc(collection(db, 'disputes'), {
+            clientId: contactId || clientId,
+            clientName: clientInfo ? `${clientInfo.firstName} ${clientInfo.lastName}` : '',
+            itemId: letter.itemId,
+            item: letter.item,
+            strategy: letter.strategy,
+            strategyName: letter.strategyInfo?.name,
+            bureau: letter.bureau.id,
+            bureauName: letter.bureau.name,
+            round: letter.round,
+            letterText: letter.text,
+            successProbability: letter.successProbability,
+            status: 'ready_to_fax',
+            sendMethod: 'fax',
+            faxNumber: letter.bureau.fax,
+            dueDate: addDays(new Date(), 30),
+            createdBy: currentUser?.uid,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          });
+
+          sent.push({ ...letter, firestoreId: disputeDoc.id, status: 'ready_to_fax', sendMethod: 'fax' });
+          console.log(`✅ ${letter.bureau.name} letter saved for fax: ${disputeDoc.id}`);
+        }
+      }
+
+      // ===== COMPLETE =====
+      setIdiqSubmissionStep('');
       setSentDisputes(sent);
-      setSuccess(`Successfully sent ${sent.length} disputes!`);
+
+      // Build success message with breakdown
+      const idiqCount = sent.filter(s => s.sendMethod === 'idiq_api').length;
+      const faxCount = sent.filter(s => s.sendMethod === 'fax').length;
+      let successMsg = `Successfully processed ${sent.length} disputes!`;
+      if (idiqCount > 0) successMsg += ` ${idiqCount} submitted to TransUnion via IDIQ.`;
+      if (faxCount > 0) successMsg += ` ${faxCount} ready to fax via FaxCenter.`;
+
+      setSuccess(successMsg);
       setActiveStep(4);
     } catch (err) {
       console.error('❌ Send error:', err);
-      setError('Failed to send disputes. Please try again.');
+      setError(`Failed to send disputes: ${err.message}. Please try again.`);
     } finally {
       setLoading(false);
+      setIdiqSubmissionStep('');
     }
   };
 
@@ -1143,7 +1308,7 @@ const AIDisputeGenerator = ({ clientId, creditReportData = null, onComplete }) =
                 AI Dispute Generator
               </Typography>
               <Typography variant="body2" className="text-purple-100">
-                Powered by GPT-4 • FCRA Compliant • Maximum Success Rate
+                Powered by GPT-4 • FCRA Compliant • IDIQ API Connected
               </Typography>
             </Box>
           </Box>
@@ -1208,9 +1373,6 @@ const AIDisputeGenerator = ({ clientId, creditReportData = null, onComplete }) =
 
       {/* ===== MAIN CONTENT ===== */}
       <Paper elevation={2} className="p-6 dark:bg-gray-800">
-        {/* ========================================= */}
-        {/* STEP 0: AI ANALYSIS */}
-        {/* ========================================= */}
         {activeStep === 0 && (
           <Box className="text-center py-12">
             <Zoom in timeout={600}>
@@ -1283,8 +1445,8 @@ const AIDisputeGenerator = ({ clientId, creditReportData = null, onComplete }) =
 
             {!creditReportData && (
               <Alert severity="info" className="max-w-2xl mx-auto mb-6">
-                <AlertTitle>Demo Mode Active</AlertTitle>
-                No credit report provided. Click below to see AI analysis with sample data.
+                <AlertTitle>No Credit Report Data</AlertTitle>
+                No credit report data available. Use "Scan from IDIQ Credit Report" to pull real data from an enrolled contact.
               </Alert>
             )}
 
@@ -1319,7 +1481,6 @@ const AIDisputeGenerator = ({ clientId, creditReportData = null, onComplete }) =
             </Typography>
           </Box>
         )}
-
         {/* ========================================= */}
         {/* STEP 1: SELECT ITEMS */}
         {/* ========================================= */}
@@ -1698,7 +1859,6 @@ const AIDisputeGenerator = ({ clientId, creditReportData = null, onComplete }) =
             </Box>
           </Box>
         )}
-
         {/* ========================================= */}
         {/* STEP 3: GENERATE & REVIEW LETTERS */}
         {/* ========================================= */}
@@ -1957,6 +2117,43 @@ const AIDisputeGenerator = ({ clientId, creditReportData = null, onComplete }) =
                   ))}
                 </Grid>
 
+
+                {/* ===== IDIQ SUBMISSION PROGRESS ===== */}
+                {/* Shows during handleSendDisputes when IDIQ pipeline is running */}
+                {loading && idiqSubmissionStep && (
+                  <Alert severity="info" icon={<CircularProgress size={20} />} className="mb-4">
+                    <AlertTitle>Processing Disputes...</AlertTitle>
+                    <Typography variant="body2">{idiqSubmissionStep}</Typography>
+                    <LinearProgress className="mt-2" />
+                  </Alert>
+                )}
+
+                {/* ===== SEND METHOD BREAKDOWN ===== */}
+                {!loading && generatedLetters.length > 0 && (
+                  <Alert severity="info" className="mb-4">
+                    <AlertTitle>How These Will Be Sent:</AlertTitle>
+                    <Typography variant="body2">
+                      {generatedLetters.filter(l => l.bureau.id === 'transunion').length > 0 && (
+                        <>
+                          <strong>TransUnion ({generatedLetters.filter(l => l.bureau.id === 'transunion').length}):</strong> Submitted electronically via IDIQ API (fastest)
+                          <br />
+                        </>
+                      )}
+                      {generatedLetters.filter(l => l.bureau.id === 'experian').length > 0 && (
+                        <>
+                          <strong>Experian ({generatedLetters.filter(l => l.bureau.id === 'experian').length}):</strong> Saved for fax via FaxCenter
+                          <br />
+                        </>
+                      )}
+                      {generatedLetters.filter(l => l.bureau.id === 'equifax').length > 0 && (
+                        <>
+                          <strong>Equifax ({generatedLetters.filter(l => l.bureau.id === 'equifax').length}):</strong> Saved for fax via FaxCenter
+                        </>
+                      )}
+                    </Typography>
+                  </Alert>
+                )}
+
                 {/* Navigation Buttons */}
                 <Box className="flex justify-between mt-6 flex-wrap gap-3">
                   <Button onClick={() => setActiveStep(2)} startIcon={<BackIcon />}>
@@ -1970,7 +2167,7 @@ const AIDisputeGenerator = ({ clientId, creditReportData = null, onComplete }) =
                     className="bg-green-600 hover:bg-green-700"
                     size="large"
                   >
-                    Send All Disputes
+                    {loading ? 'Submitting Disputes...' : 'Send All Disputes'}
                   </Button>
                 </Box>
               </Box>
@@ -1993,15 +2190,15 @@ const AIDisputeGenerator = ({ clientId, creditReportData = null, onComplete }) =
             </Zoom>
 
             <Typography variant="h3" fontWeight="bold" gutterBottom className="dark:text-white">
-              Disputes Sent Successfully! 🎉
+              Disputes Processed Successfully!
             </Typography>
 
             <Typography variant="h6" color="text.secondary" className="mb-8 max-w-2xl mx-auto">
-              {sentDisputes.length} dispute letter{sentDisputes.length !== 1 ? 's' : ''} sent to credit bureaus
+              {sentDisputes.length} dispute letter{sentDisputes.length !== 1 ? 's' : ''} processed
             </Typography>
 
             {/* Success Stats */}
-            <Grid container spacing={3} className="max-w-4xl mx-auto mb-8">
+            <Grid container spacing={3} className="max-w-5xl mx-auto mb-8">
               <Grid item xs={12} sm={6} md={3}>
                 <Card className="dark:bg-gray-700">
                   <CardContent>
@@ -2009,7 +2206,7 @@ const AIDisputeGenerator = ({ clientId, creditReportData = null, onComplete }) =
                       {sentDisputes.length}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Letters Sent
+                      Total Processed
                     </Typography>
                   </CardContent>
                 </Card>
@@ -2019,23 +2216,13 @@ const AIDisputeGenerator = ({ clientId, creditReportData = null, onComplete }) =
                 <Card className="dark:bg-gray-700">
                   <CardContent>
                     <Typography variant="h3" className="text-blue-600 dark:text-blue-400 mb-2">
-                      {selectedItems.length}
+                      {sentDisputes.filter(d => d.sendMethod === 'idiq_api').length}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Items Disputed
+                      Submitted via IDIQ
                     </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-
-              <Grid item xs={12} sm={6} md={3}>
-                <Card className="dark:bg-gray-700">
-                  <CardContent>
-                    <Typography variant="h3" className="text-purple-600 dark:text-purple-400 mb-2">
-                      30
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Days to Respond
+                    <Typography variant="caption" color="text.secondary">
+                      TransUnion (electronic)
                     </Typography>
                   </CardContent>
                 </Card>
@@ -2045,11 +2232,26 @@ const AIDisputeGenerator = ({ clientId, creditReportData = null, onComplete }) =
                 <Card className="dark:bg-gray-700">
                   <CardContent>
                     <Typography variant="h3" className="text-orange-600 dark:text-orange-400 mb-2">
-                      {Math.round(
-                        sentDisputes.reduce((sum, l) => sum + l.successProbability, 0) /
+                      {sentDisputes.filter(d => d.sendMethod === 'fax').length}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Ready to Fax
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Experian / Equifax
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              <Grid item xs={12} sm={6} md={3}>
+                <Card className="dark:bg-gray-700">
+                  <CardContent>
+                    <Typography variant="h3" className="text-purple-600 dark:text-purple-400 mb-2">
+                      {sentDisputes.length > 0 ? Math.round(
+                        sentDisputes.reduce((sum, l) => sum + (l.successProbability || 0), 0) /
                           sentDisputes.length
-                      )}
-                      %
+                      ) : 0}%
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       Expected Success
@@ -2059,17 +2261,45 @@ const AIDisputeGenerator = ({ clientId, creditReportData = null, onComplete }) =
               </Grid>
             </Grid>
 
+            {/* IDIQ Dispute ID (if submitted) */}
+            {idiqDisputeResults && (
+              <Alert severity="success" className="max-w-3xl mx-auto mb-4">
+                <AlertTitle>IDIQ Dispute Submitted Successfully</AlertTitle>
+                <Typography variant="body2" className="text-left">
+                  <strong>IDIQ Dispute ID:</strong> {idiqDisputeResults.idiqDisputeId}
+                  <br />
+                  <strong>Items Submitted:</strong> {idiqDisputeResults.itemCount}
+                  <br />
+                  <strong>Response Due By:</strong> {idiqDisputeResults.responseDueBy ? format(new Date(idiqDisputeResults.responseDueBy), 'MMMM dd, yyyy') : '30 days'}
+                </Typography>
+              </Alert>
+            )}
+
+            {/* Fax Notice */}
+            {sentDisputes.filter(d => d.sendMethod === 'fax').length > 0 && (
+              <Alert severity="warning" className="max-w-3xl mx-auto mb-4">
+                <AlertTitle>Action Needed: Fax Remaining Letters</AlertTitle>
+                <Typography variant="body2" className="text-left">
+                  {sentDisputes.filter(d => d.sendMethod === 'fax').length} letter(s) are saved as "Ready to Fax" in your Disputes collection.
+                  <br />
+                  Go to <strong>FaxCenter</strong> to send them to Experian and/or Equifax.
+                  <br />
+                  Letters are already formatted and ready — just select and fax.
+                </Typography>
+              </Alert>
+            )}
+
             {/* Next Steps */}
             <Alert severity="info" className="max-w-3xl mx-auto mb-6">
-              <AlertTitle className="text-lg font-bold">📅 What Happens Next?</AlertTitle>
+              <AlertTitle>What Happens Next?</AlertTitle>
               <Typography variant="body2" className="text-left">
-                <strong>Within 30 Days:</strong> Credit bureaus must investigate and respond
+                <strong>Within 30 Days:</strong> Credit bureaus must investigate and respond (FCRA requirement)
                 <br />
-                <strong>You'll Receive:</strong> Investigation results and updated credit reports
+                <strong>TransUnion (IDIQ):</strong> Check status anytime via DisputeHub — results sync automatically
                 <br />
-                <strong>We'll Track:</strong> All responses and automatically follow up if needed
+                <strong>Experian/Equifax (Fax):</strong> Responses arrive via mail — update status in DisputeHub
                 <br />
-                <strong>If Successful:</strong> Negative items will be removed from credit reports
+                <strong>If Successful:</strong> Negative items will be removed or corrected on credit reports
               </Typography>
             </Alert>
 
@@ -2084,6 +2314,8 @@ const AIDisputeGenerator = ({ clientId, creditReportData = null, onComplete }) =
                   setSelectedItems([]);
                   setGeneratedLetters([]);
                   setSentDisputes([]);
+                  setIdiqDisputeResults(null);
+                  setIdiqHandles([]);
                 }}
                 startIcon={<RefreshIcon />}
                 className="bg-purple-600 hover:bg-purple-700"
@@ -2103,7 +2335,6 @@ const AIDisputeGenerator = ({ clientId, creditReportData = null, onComplete }) =
           </Box>
         )}
       </Paper>
-
       {/* ========================================= */}
       {/* EDIT DIALOG */}
       {/* ========================================= */}

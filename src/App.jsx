@@ -1,8 +1,8 @@
 // src/App.jsx - Speedy Credit Repair CRM Complete Application Router
-// VERSION: 3.1 - HYBRID HUB ARCHITECTURE + ENROLLMENT WRAPPER
-// LAST UPDATED: 2026-01-21 - Added CompleteEnrollmentWrapper for URL params
+// VERSION: 3.2 - HYBRID HUB ARCHITECTURE + TOKEN-SECURED ENROLLMENT
+// LAST UPDATED: 2026-02-11 - Secure enrollment tokens, redirect old URLs
 import React, { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useSearchParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useSearchParams, useLocation } from 'react-router-dom';
 import EmailWorkflowDashboard from './components/EmailWorkflowDashboard';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
@@ -38,6 +38,18 @@ const LoadingFallback = () => (
     </div>
   </div>
 );
+
+// ============================================================================
+// REDIRECT HELPER: Preserves query params during route redirects
+// ============================================================================
+// Used to redirect old /complete-enrollment links to /enroll
+// Example: /complete-enrollment?contactId=abc&source=web-welcome
+//       → /enroll?contactId=abc&source=web-welcome
+// ============================================================================
+function NavigateWithParams({ to }) {
+  const location = useLocation();
+  return <Navigate to={`${to}${location.search}`} replace />;
+}
 
 // ============================================================================
 // ERROR BOUNDARY
@@ -523,6 +535,11 @@ const AppContent = () => {
       />
       {/* PUBLIC CONTRACT SIGNING - Email link signing (no login required) */}
       <Route path="/sign/:token" element={<Suspense fallback={<LoadingFallback />}><PublicContractSigningRoute /></Suspense>} />
+
+      {/* REDIRECT: Old /complete-enrollment links → /enroll (token-secured) */}
+      {/* Preserves query params so ?contactId=xxx&source=yyy carry over */}
+      <Route path="/complete-enrollment" element={<NavigateWithParams to="/enroll" />} />
+
       {/* PROTECTED ROUTES */}
       <Route path="/" element={<ProtectedRoute><ProtectedLayout /></ProtectedRoute>}>
         <Route index element={<SmartRedirect />} />
@@ -546,8 +563,7 @@ const AppContent = () => {
         <Route path="admin/ai-reviews/:reviewId" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><AIReviewEditor /></Suspense></ProtectedRoute>} />
         <Route path="credit-analysis" element={<ProtectedRoute requiredRole="admin"><Suspense fallback={<LoadingFallback />}><CreditAnalysisEngine /></Suspense></ProtectedRoute>} />
         <Route path="test-idiq-workflow" element={<Suspense fallback={<LoadingFallback />}><TestIDIQWorkflow /></Suspense>} />
-        <Route path="complete-enrollment" element={<CompleteEnrollmentWrapper />} />
-        {/* ============================================================================ */}
+                {/* ============================================================================ */}
 {/* WORKFLOW MANAGEMENT ROUTES - ADDED FOR COMPLETE DEAL FLOW                    */}
 {/* ============================================================================ */}
 

@@ -3,26 +3,24 @@
 // © 1995-2026 Speedy Credit Repair Inc. | Chris Lahage | All Rights Reserved
 // Trademark registered USPTO, violations prosecuted.
 //
-// CONTRACT SIGNING PORTAL — ENHANCED VERSION 2.0 🚀
+// CONTRACT SIGNING PORTAL — VERSION 3.0 MERGED 🚀
 // ============================================================================
-// MAJOR ENHANCEMENTS (Phase 2A):
-//   ✅ Click-to-initial functionality (Service Contract has 8+ initials)
-//   ✅ Enhanced click-to-sign (signature canvas improvements)
-//   ✅ Interactive ACH banking form (Tab 3 replacement)
-//   ✅ SCR auto-signature (Christopher Lahage programmatic signature)
-//   ✅ Deferred banking with grace period tracking
-//   ✅ Zelle QR code + email for setup fee payment
-//   ✅ Initial entry modal (type OR draw initials)
-//   ✅ Banking info validation and real-time feedback
-//   ✅ SCR signature applied when ALL client signatures complete
+// V2.0 full infrastructure PRESERVED + V3.0 fixes applied:
+//   ✅ __INITIAL_N__ marker-based click-to-initial (replaces DOM walker)
+//   ✅ __SIGNATURE__ / __SCR_SIGNATURE__ / __DATE__ marker rendering
+//   ✅ Tab "3-Day Right" → "5-Day Right" (federal law)
+//   ✅ Enhanced document metadata (signatureType from contractTemplates V3)
+//   ✅ SCR auto-signature rendered as cursive text in HTML
+//   ✅ All V2.0 features intact: InitialEntryModal, SignatureCanvas,
+//      callOperationsManager, Zelle, public signing, Stepper, audit trail
 //
 // TAB STRUCTURE (6 tabs after ACH merge):
 //   Tab 0: Information Statement (CROA — MUST BE VIEWED FIRST)
 //   Tab 1: Privacy Notice
-//   Tab 2: Service Contract (with click-to-initial)
+//   Tab 2: Service Contract (with click-to-initial __INITIAL_N__ markers)
 //   Tab 3: ACH Authorization (unified - interactive banking form)
 //   Tab 4: Power of Attorney
-//   Tab 5: Notice of Cancellation
+//   Tab 5: Notice of Cancellation (5-Day Right)
 //
 // WORKFLOW:
 //   1. Client views all documents
@@ -434,23 +432,85 @@ export default function ContractSigningPortal({
       // Try to dynamically import the contract templates
       const contractTemplates = await import('@/utils/contractTemplates');
       
-      // Check which function is available
-      if (contractTemplates.generateAllContractDocuments) {
-        return await contractTemplates.generateAllContractDocuments(contactData, planData);
-      } else if (contractTemplates.getContractDocuments) {
-        return await contractTemplates.getContractDocuments(contactData, planData);
-      } else if (contractTemplates.default) {
-        // Try default export
-        return await contractTemplates.default(contactData, planData);
-      } else {
-        // Fallback: Create basic document structure
-        console.warn('⚠️ No contract template function found, using fallback');
-        return createFallbackDocuments(contactData, planData);
+      // ===== Check ALL possible function names (varies by contractTemplates version) =====
+      // Named exports first (most reliable)
+      const generatorFn =
+        contractTemplates.generateAllContractDocuments ||  // v2 format
+        contractTemplates.generateAllDocuments ||          // v1 format
+        contractTemplates.getContractDocuments ||          // alternate name
+        // Default export might be an OBJECT containing the function (not a function itself)
+        (contractTemplates.default && typeof contractTemplates.default === 'object'
+          ? (contractTemplates.default.generateAllContractDocuments ||
+             contractTemplates.default.generateAllDocuments ||
+             contractTemplates.default.getContractDocuments)
+          : null) ||
+        // Default export might be a function directly
+        (typeof contractTemplates.default === 'function' ? contractTemplates.default : null);
+
+      if (generatorFn) {
+        console.log('✅ Found contract template generator function');
+        const result = generatorFn(contactData, planData);
+        // Handle both Promise and sync returns
+        const docs = result instanceof Promise ? await result : result;
+        // If result is { documents: [...] } format, unwrap it
+        const rawDocs = Array.isArray(docs) ? docs : (docs?.documents || docs);
+        if (Array.isArray(rawDocs) && rawDocs.length > 0) {
+          // Normalize docs to portal format (handles both v1 and v2 template versions)
+          return normalizeDocuments(rawDocs);
+        }
       }
+
+      // No function found or returned empty
+      console.warn('⚠️ No contract template function found, using fallback');
+      return createFallbackDocuments(contactData, planData);
     } catch (error) {
       console.error('❌ Error loading contract templates:', error);
       return createFallbackDocuments(contactData, planData);
     }
+  };
+
+  // ===== Normalize documents from any contractTemplates version to portal format =====
+  const normalizeDocuments = (docs) => {
+    const shortTitleMap = {
+      'Information Statement': 'Info',
+      'Privacy Notice': 'Privacy',
+      'Service Contract': 'Contract',
+      'Contract for Credit Repair Service': 'Contract',
+      'ACH Authorization': 'ACH',
+      'ACH Authorization — Monthly Service': 'ACH Monthly',
+      'ACH Authorization — Items & Charges': 'ACH Items',
+      'Power of Attorney': 'POA',
+      'Notice of Cancellation': '5-Day Right',
+    };
+
+    const iconMap = {
+      'Information Statement': 'Info',
+      'Privacy Notice': 'Shield',
+      'Service Contract': 'FileText',
+      'Contract for Credit Repair Service': 'FileText',
+      'ACH Authorization': 'CreditCard',
+      'ACH Authorization — Monthly Service': 'CreditCard',
+      'ACH Authorization — Items & Charges': 'CreditCard',
+      'Power of Attorney': 'Scale',
+      'Notice of Cancellation': 'FileCheck',
+    };
+
+    return docs.map((doc, i) => ({
+      id: doc.id || `doc${i}`,
+      tabIndex: doc.tabIndex ?? i,
+      title: doc.title || `Document ${i + 1}`,
+      shortTitle: doc.shortTitle || shortTitleMap[doc.title] || doc.title?.split(' ')[0] || `Doc ${i + 1}`,
+      description: doc.description || doc.subtitle || doc.title || '',
+      icon: doc.icon || iconMap[doc.title] || 'FileText',
+      requiresSignature: doc.requiresSignature ?? doc.requiresInitial ?? false,
+      signatureType: doc.signatureType || (doc.requiresSignature ? 'signature' : 'acknowledgment'),
+      isApplicable: doc.isApplicable ?? true,
+      html: doc.html || '',
+      // Preserve any extra fields from the template
+      ...(doc.mustReadFirst && { mustReadFirst: true }),
+      ...(doc.requiresBankingInfo && { requiresBankingInfo: true }),
+      ...(doc.initialCount && { initialCount: doc.initialCount }),
+    }));
   };
 
   // ===== Fallback document structure =====
@@ -517,9 +577,9 @@ export default function ContractSigningPortal({
         id: 'doc5',
         tabIndex: 5,
         title: 'Notice of Cancellation',
-        shortTitle: 'Cancel',
-        description: 'Right to Cancel',
-        icon: 'XCircle',
+        shortTitle: '5-Day Right',
+        description: 'Your Right to Cancel',
+        icon: 'FileCheck',
         requiresSignature: false,
         isApplicable: true,
         html: '<h1>Notice of Right to Cancel</h1><p>You have the right to cancel...</p>'
@@ -533,7 +593,7 @@ export default function ContractSigningPortal({
 
   useEffect(() => {
     if (contractId || contactId) {
-      console.log('📄 ContractSigningPortal ENHANCED v2.0 initialized');
+      console.log('📄 ContractSigningPortal MERGED v3.0 initialized');
       console.log('   - contactId:', contactId);
       console.log('   - contractId:', contractId);
       loadContractData();
@@ -578,73 +638,79 @@ export default function ContractSigningPortal({
     checkAndApplySCRSignature();
   }, [signatures, initials, bankingInfo, deferBanking]);
 
-  // ===== NEW: Click-to-initial functionality for Service Contract (Tab 2) =====
-  useEffect(() => {
-    if (activeTab === 2 && documents.length > 0) {
-      // Find all initial placeholders in the rendered HTML
-      const container = document.querySelector('.document-content');
-      if (!container) return;
+  // ============================================================================
+  // ===== V3.0: PROCESS DOCUMENT HTML (marker-based system) =====
+  // ============================================================================
+  // Replaces V2's DOM walker with explicit marker processing.
+  // contractTemplates V3.0 uses these markers in HTML:
+  //   __INITIAL_N__     → Clickable initial button
+  //   __SIGNATURE__     → Clickable sign button (or placed signature image)
+  //   __SCR_SIGNATURE__ → SCR auto-signature (cursive text or placeholder)
+  //   __DATE__          → Current date
+  // ============================================================================
 
-      // Find text nodes containing "____ (initial)"
-      const walker = document.createTreeWalker(
-        container,
-        NodeFilter.SHOW_TEXT,
-        null,
-        false
-      );
+  const processDocumentHtml = (docObj) => {
+    let html = docObj.html || '';
+    const docId = docObj.id;
+    const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
-      const nodesToReplace = [];
-      let node;
-      let fieldIndex = 0;
+    // ===== Replace __DATE__ with formatted date =====
+    html = html.replace(/__DATE__/g, today);
 
-      while (node = walker.nextNode()) {
-        if (node.textContent.includes('____ (initial)') || 
-            node.textContent.includes('________________________ (initial)')) {
-          nodesToReplace.push({ node, fieldIndex });
-          fieldIndex++;
+    // ===== Replace __INITIAL_N__ with clickable buttons =====
+    html = html.replace(/__INITIAL_(\d+)__/g, (match, index) => {
+      const key = `${docId}_${index}`;
+      const hasInitial = initials[key];
+      if (hasInitial) {
+        // Show completed initial (green badge)
+        if (hasInitial.startsWith('data:image')) {
+          return `<span style="display:inline-block; padding:2px 8px; background:#e8f5e9; border:2px solid #4caf50; border-radius:4px; vertical-align:middle;"><img src="${hasInitial}" style="height:24px;" /> ✓</span>`;
         }
+        return `<span style="display:inline-block; padding:4px 12px; background:#e8f5e9; border:2px solid #4caf50; border-radius:4px; font-weight:bold; color:#2e7d32; cursor:pointer;" data-initial-field="${key}" title="Click to change initials">${hasInitial} ✓</span>`;
       }
+      // Show clickable placeholder (yellow button)
+      return `<span style="display:inline-block; padding:4px 12px; background:#fff3cd; border:2px solid #ffc107; border-radius:4px; font-weight:bold; color:#856404; cursor:pointer; transition:background-color 0.2s;" data-initial-field="${key}" title="Click to add your initials">____ (click to initial)</span>`;
+    });
 
-      // Replace each text node with a clickable span
-      nodesToReplace.forEach(({ node, fieldIndex: idx }) => {
-        const span = document.createElement('span');
-        const key = `doc2_${idx}`;
-        
-        span.setAttribute('data-initial-field', key);
-        span.className = 'initial-placeholder';
-        span.style.cssText = `
-          display: inline-block;
-          min-width: 100px;
-          padding: 4px 8px;
-          border-bottom: 2px solid #1976d2;
-          cursor: pointer;
-          background-color: ${initials[key] ? '#e3f2fd' : '#fff3cd'};
-          border-radius: 4px;
-          font-weight: bold;
-          color: #1976d2;
-          transition: background-color 0.2s;
-        `;
-        
-        span.textContent = initials[key] || '____ (click to initial)';
-        span.title = 'Click to add your initials';
-        
-        span.onclick = () => handleInitialClick('doc2', idx);
-        
-        // Hover effect
-        span.onmouseenter = () => {
-          span.style.backgroundColor = initials[key] ? '#bbdefb' : '#ffe082';
-        };
-        span.onmouseleave = () => {
-          span.style.backgroundColor = initials[key] ? '#e3f2fd' : '#fff3cd';
-        };
-
-        const parent = node.parentNode;
-        parent.replaceChild(span, node);
-      });
-
-      console.log(`✅ Processed ${nodesToReplace.length} initial fields for Tab 2`);
+    // ===== Replace __SIGNATURE__ with sign button or placed signature =====
+    if (signatures[docId]) {
+      // Signature already placed — show confirmation
+      html = html.replace(/__SIGNATURE__/g,
+        `<span style="display:inline-block; padding:4px 12px; background:#e8f5e9; border:2px solid #4caf50; border-radius:4px; color:#2e7d32; font-weight:bold;">✓ Signed</span>`
+      );
+    } else {
+      // Show "Sign Here" placeholder
+      html = html.replace(/__SIGNATURE__/g,
+        `<span style="display:inline-block; padding:4px 12px; background:#e3f2fd; border:2px solid #1976d2; border-radius:4px; color:#1565c0; font-weight:bold; cursor:default;">⬇ Sign below ⬇</span>`
+      );
     }
-  }, [activeTab, initials, documents]);
+
+    // ===== Replace __SCR_SIGNATURE__ with auto-signature or placeholder =====
+    if (scrSignatureApplied && scrSignature) {
+      html = html.replace(/__SCR_SIGNATURE__/g,
+        `<span style="font-family:'Brush Script MT','Segoe Script',cursive; font-size:22px; color:#1a365d; font-weight:bold;">Christopher Lahage</span> <span style="color:#4caf50;">✓</span>`
+      );
+    } else {
+      html = html.replace(/__SCR_SIGNATURE__/g,
+        `<span style="display:inline-block; padding:4px 12px; background:#f5f5f5; border:1px dashed #999; border-radius:4px; color:#999; font-style:italic;">(SCR signature — auto-applied when complete)</span>`
+      );
+    }
+
+    return html;
+  };
+
+  // ===== V3.0: Handle clicks on initial markers (event delegation) =====
+  const handleDocumentClick = (e) => {
+    const initialField = e.target.closest('[data-initial-field]');
+    if (initialField) {
+      const key = initialField.getAttribute('data-initial-field');
+      // key format: "doc2_3" → docId = "doc2", fieldIndex = 3
+      const parts = key.split('_');
+      const docId = parts[0];
+      const fieldIndex = parseInt(parts[1], 10);
+      handleInitialClick(docId, fieldIndex);
+    }
+  };
 
   // ============================================================================
   // ===== DETECT IP ADDRESS =====
@@ -1482,10 +1548,11 @@ export default function ContractSigningPortal({
                         onDeferChange={setDeferBanking}
                       />
                     ) : (
-                      /* Other tabs: HTML content */
+                      /* Other tabs: HTML content with V3.0 marker processing */
                       <Paper
                         variant="outlined"
                         className="document-content"
+                        onClick={handleDocumentClick}
                         sx={{
                           p: { xs: 2, md: 4 },
                           maxHeight: 500,
@@ -1498,7 +1565,7 @@ export default function ContractSigningPortal({
                           '& li': { mb: 0.5 },
                           '& strong': { color: '#111' }
                         }}
-                        dangerouslySetInnerHTML={{ __html: docObj.html }}
+                        dangerouslySetInnerHTML={{ __html: processDocumentHtml(docObj) }}
                       />
                     )}
 

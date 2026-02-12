@@ -411,19 +411,8 @@ export const navigationItems = [
   permission: 'user',
   badge: 'AI',
   description: 'Task management, calendar, team schedule, automation - 2,735 lines, 8 tabs, 45+ AI features',
-  consolidated: ['TasksSchedulingHub', 'Tasks', 'Reminders', 'Goals']
+  consolidated: ['TasksSchedulingHub', 'Calendar', 'Tasks', 'Reminders', 'Goals']
 },
-
-      // HUB 6B: CALENDAR & APPOINTMENTS
-      {
-        id: 'calendar-scheduling-hub',
-        title: 'Calendar & Appointments',
-        path: '/calendar-hub',
-        icon: Calendar,
-        permission: 'user',
-        badge: 'AI',
-        description: 'Client appointments, team availability, booking links, Google Calendar sync'
-      },
 
 // ===== WORKFLOW ORCHESTRATION - MASTER CONTROL =====
 {
@@ -456,17 +445,6 @@ export const navigationItems = [
         permission: 'user',
         badge: 'PRO',
         description: 'Workflow automation and AI-powered tools'
-      },
-
-      // HUB 8: AI OPERATIONS - Lead scoring, contact conversion, predictions
-      {
-        id: 'ai-operations-hub',
-        title: 'AI Operations',
-        path: '/ai-hub',
-        icon: Sparkles,
-        permission: 'admin',
-        badge: 'AI',
-        description: 'Lead scoring, contact conversion, automation rules, predictions (8 tabs, 50+ AI features)'
       }
     ]
   },
@@ -527,19 +505,8 @@ export const navigationItems = [
         icon: Zap,
         permission: 'user',
         badge: 'AI',
-        description: 'Marketing campaigns, SEO, content creation, drip campaigns',
-        consolidated: ['MarketingHub', 'ContentCreatorSEOHub', 'DripCampaignsHub']
-      },
-
-      // SOCIAL MEDIA HUB - 9 files, scheduling, AI content, engagement tracking
-      {
-        id: 'social-media-hub',
-        title: 'Social Media Hub',
-        path: '/social-media-hub',
-        icon: Globe,
-        permission: 'user',
-        badge: 'AI',
-        description: 'Social scheduling, AI ad creator, content library, engagement, campaigns (9 files)'
+        description: 'Marketing campaigns, social media, SEO, content creation',
+        consolidated: ['MarketingHub', 'SocialMediaHub', 'ContentCreatorSEOHub', 'DripCampaignsHub', 'SocialAnalytics', 'PostScheduler']
       },
 
       // ✅ CONSOLIDATED - Using ReferralPartnerHub.jsx 3,317 lines
@@ -550,42 +517,31 @@ export const navigationItems = [
         icon: Handshake,
         permission: 'user',
         badge: 'PRO',
-        description: 'Referral engine, partner management (8 tabs, 50+ AI features)',
-        consolidated: ['ReferralEngineHub', 'ReferralPartnerHub', 'UnifiedReferralHub']
+        description: 'Referral engine, partner management, affiliate program (8 tabs, 50+ AI features)',
+        consolidated: ['ReferralEngineHub', 'ReferralPartnerHub', 'UnifiedReferralHub', 'AffiliatesHub', 'RevenuePartnershipsHub']
       },
 
       {
   id: 'referral-engine-hub',
   title: 'Client Referral Program',
   path: '/referral-engine-hub',
-  icon: Award,
+  icon: Award, // Make sure Award is imported from lucide-react
   permission: 'user',
   badge: 'AI',
   description: 'Client referral program with gamification, rewards, social sharing (9 tabs, 45+ AI features)',
   consolidated: ['ReferralEngine', 'Rewards', 'Leaderboard', 'ReferralCampaigns']
 },
 
-      // AFFILIATES HUB - Manage affiliate salespeople, commissions, payouts
       {
-        id: 'affiliates-hub',
-        title: 'Affiliates Program',
-        path: '/affiliates-hub',
-        icon: Users,
-        permission: 'admin',
-        badge: 'PRO',
-        description: 'Manage affiliate salespeople: commissions, payouts, 5-tier system, marketing materials (4,202 lines)'
-      },
-
-      // REVENUE PARTNERSHIPS HUB - Earn commissions from affiliate products
-      {
-        id: 'revenue-partnerships-hub',
-        title: 'Revenue Partnerships',
-        path: '/revenue-partnerships-hub',
-        icon: DollarSign,
-        permission: 'user',
-        badge: '💰',
-        description: 'Earn commissions promoting credit cards, loans, monitoring — 200+ programs (2,318 lines)'
-      },
+  id: 'referral-engine-hub',
+  title: 'Client Referral Program',
+  path: '/referral-engine-hub',
+  icon: Award, // Make sure Award is imported from lucide-react
+  permission: 'user',
+  badge: 'AI',
+  description: 'Client referral program with gamification, rewards, social sharing (9 tabs, 45+ AI features)',
+  consolidated: ['ReferralEngine', 'Rewards', 'Leaderboard', 'ReferralCampaigns']
+},
 
       {
         id: 'reviews-reputation-hub',

@@ -71,6 +71,27 @@ const SPEEDY_BRAND = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
+// SECURE ENROLLMENT URL BUILDER
+// ═══════════════════════════════════════════════════════════════════════════
+// Builds token-secured enrollment URLs for all email templates.
+// Uses enrollmentToken generated during welcome email and stored on contact.
+// Falls back gracefully if token is not available (pre-existing contacts).
+// ═══════════════════════════════════════════════════════════════════════════
+
+function buildEnrollUrl(data, source) {
+  // Priority 1: Pre-built URL from caller (already has token + contactId)
+  // Priority 2: Build from enrollmentToken on the data object
+  // Priority 3: Fallback to contactId-only (less secure, for legacy contacts)
+  const baseUrl = data.enrollmentUrl
+    || (data.enrollmentToken
+      ? `${SPEEDY_BRAND.portalUrl}/enroll?token=${data.enrollmentToken}&contactId=${data.contactId}`
+      : `${SPEEDY_BRAND.portalUrl}/enroll?contactId=${data.contactId}`);
+  
+  // Append source tracking parameter
+  return `${baseUrl}&source=${source}`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // AI-POWERED TEMPLATE SELECTOR
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -464,7 +485,7 @@ const TEMPLATES = Object.freeze({
       </div>
 
       <div style="text-align: center; margin: 30px 0;">
-        <a href="${SPEEDY_BRAND.portalUrl}/complete-enrollment?contactId=${data.contactId}&source=ai-welcome"
+        <a href="${buildEnrollUrl(data, 'ai-welcome')}"
            class="cta-button" style="display: inline-block; padding: 16px 32px; background-color: ${SPEEDY_BRAND.primaryGreen}; color: #ffffff !important; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
           Get My Free Credit Analysis
         </a>
@@ -545,7 +566,7 @@ const TEMPLATES = Object.freeze({
       </div>
 
       <div style="text-align: center; margin: 30px 0;">
-        <a href="${SPEEDY_BRAND.portalUrl}/complete-enrollment?contactId=${data.contactId}&source=ai-reminder-4h"
+        <a href="${buildEnrollUrl(data, 'ai-reminder-4h')}"
            class="cta-button" style="display: inline-block; padding: 16px 32px; background-color: ${SPEEDY_BRAND.primaryGreen}; color: #ffffff !important; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
           Complete My Free Analysis
         </a>
@@ -593,7 +614,7 @@ const TEMPLATES = Object.freeze({
       </div>
 
       <div style="text-align: center; margin: 30px 0;">
-        <a href="${SPEEDY_BRAND.portalUrl}/complete-enrollment?contactId=${data.contactId}&source=ai-help-24h"
+        <a href="${buildEnrollUrl(data, 'ai-help-24h')}"
            class="cta-button" style="display: inline-block; padding: 16px 32px; background-color: ${SPEEDY_BRAND.primaryGreen}; color: #ffffff !important; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
           Get My Free Analysis
         </a>
@@ -690,7 +711,7 @@ const TEMPLATES = Object.freeze({
       </div>
 
       <div style="text-align: center; margin: 30px 0;">
-        <a href="${SPEEDY_BRAND.portalUrl}/complete-enrollment?contactId=${data.contactId}&source=web-welcome"
+        <a href="${buildEnrollUrl(data, 'web-welcome')}"
            class="cta-button" style="display: inline-block; padding: 16px 32px; background-color: ${SPEEDY_BRAND.primaryGreen}; color: #ffffff !important; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
           Get My Free Credit Analysis
         </a>
@@ -773,7 +794,7 @@ const TEMPLATES = Object.freeze({
       </p>
 
       <div style="text-align: center; margin: 30px 0;">
-        <a href="${SPEEDY_BRAND.portalUrl}/complete-enrollment?contactId=${data.contactId}&source=web-value-12h"
+        <a href="${buildEnrollUrl(data, 'web-value-12h')}"
            class="cta-button" style="display: inline-block; padding: 16px 32px; background-color: ${SPEEDY_BRAND.primaryGreen}; color: #ffffff !important; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
           Get My Free Analysis
         </a>
@@ -840,7 +861,7 @@ const TEMPLATES = Object.freeze({
       </p>
 
       <div style="text-align: center; margin: 30px 0;">
-        <a href="${SPEEDY_BRAND.portalUrl}/complete-enrollment?contactId=${data.contactId}&source=web-social-24h"
+        <a href="${buildEnrollUrl(data, 'web-social-24h')}"
            class="cta-button" style="display: inline-block; padding: 16px 32px; background-color: ${SPEEDY_BRAND.primaryGreen}; color: #ffffff !important; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
           Start My Success Story
         </a>
@@ -936,7 +957,7 @@ const TEMPLATES = Object.freeze({
       </div>
 
       <div style="text-align: center; margin: 30px 0;">
-        <a href="${SPEEDY_BRAND.portalUrl}/complete-enrollment?contactId=${data.contactId}&source=final-attempt"
+        <a href="${buildEnrollUrl(data, 'final-attempt')}"
            class="cta-button" style="display: inline-block; padding: 16px 32px; background-color: ${SPEEDY_BRAND.primaryGreen}; color: #ffffff !important; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
           Yes, I'm Still Interested
         </a>
@@ -1349,7 +1370,7 @@ const TEMPLATES = Object.freeze({
       </p>
 
       <div style="text-align: center; margin: 30px 0;">
-        <a href="${SPEEDY_BRAND.portalUrl}/complete-enrollment?contactId=${data.contactId}&source=abandoned-cart"
+        <a href="${buildEnrollUrl(data, 'abandoned-cart')}"
            class="cta-button" style="display: inline-block; padding: 16px 32px; background-color: ${SPEEDY_BRAND.primaryGreen}; color: #ffffff !important; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
           Complete My Analysis
         </a>

@@ -3,11 +3,15 @@
 // © 1995-2026 Speedy Credit Repair Inc. | Chris Lahage | All Rights Reserved
 // Trademark registered USPTO, violations prosecuted.
 //
-// CONTRACT TEMPLATE GENERATOR — ENHANCED WITH MERGED ACH
+// CONTRACT TEMPLATE GENERATOR — VERSION 3.0 MERGED
 // ============================================================================
-// Generates all 6 legal documents for the contract signing portal.
-// Adapted from the official Speedy Credit Repair document package.
-// Each document dynamically adapts to the selected service plan.
+// V2.0 full content PRESERVED + V3.0 fixes applied:
+//   ✅ __INITIAL_N__ markers for click-to-initial system
+//   ✅ __SIGNATURE__ / __SCR_SIGNATURE__ / __DATE__ markers for click-to-sign
+//   ✅ Cancellation clause — positive consumer assurance framing (from real PDF)
+//   ✅ Tab 5 renamed from "3-Day Right" to "5-Day Right"
+//   ✅ generateAllDocuments returns enhanced metadata (signatureType, initialCount)
+//   ✅ Backward compatibility aliases (generateAllContractDocuments, getContractDocuments)
 //
 // DOCUMENTS GENERATED:
 //   Tab 0: Information Statement (CROA Consumer Rights) - MUST BE FIRST
@@ -15,14 +19,13 @@
 //   Tab 2: Contract for Credit Repair Service (with interactive initials)
 //   Tab 3: ACH Payment Authorization — UNIFIED (monthly + items + setup)
 //   Tab 4: Power of Attorney
-//   Tab 5: Notice of Cancellation (acknowledgment + downloadable blanks)
+//   Tab 5: Notice of Cancellation (5-Day Right)
 //
-// MAJOR ENHANCEMENT:
-//   ✅ Merged ACH Monthly + ACH Items into ONE comprehensive authorization
-//   ✅ Handles ALL payment types: monthly service, per-item charges, setup fees
-//   ✅ Smart conditional display based on service plan configuration
-//   ✅ Interactive fields for client banking data entry
-//   ✅ Clear fee breakdown table showing all applicable charges
+// MARKER SYSTEM (used by ContractSigningPortal.jsx):
+//   __INITIAL_N__     → Click-to-initial button (N = 0-indexed field number)
+//   __SIGNATURE__     → Click-to-sign button (client signature)
+//   __SCR_SIGNATURE__ → SCR auto-signature (Christopher Lahage)
+//   __DATE__          → Auto-filled current date
 // ============================================================================
 
 // ============================================================================
@@ -369,11 +372,11 @@ export function generateInformationStatement(contact) {
         <p style="font-weight: bold;">ACKNOWLEDGMENT OF RECEIPT</p>
         <p>I, <strong>${contact.firstName || ''} ${contact.lastName || ''}</strong>, acknowledge that I have received and read this Information Statement about my rights under state and federal law.</p>
         <p style="margin-top: 20px;">
-          ____________________________ <em>(initial)</em><br/>
-          <span style="font-size: 12px;">Client Initial</span>
+          __SIGNATURE__ <br/>
+          <span style="font-size: 12px;">Client Signature</span>
         </p>
         <p style="margin-top: 20px;">
-          Dated: ${today}
+          Dated: __DATE__
         </p>
       </div>
     </div>
@@ -529,11 +532,11 @@ export function generatePrivacyNotice(contact) {
         <p style="font-weight: bold;">ACKNOWLEDGMENT OF RECEIPT</p>
         <p>I, <strong>${contact.firstName || ''} ${contact.lastName || ''}</strong>, acknowledge that I have received and read this Privacy Notice.</p>
         <p style="margin-top: 20px;">
-          ____________________________ <em>(initial)</em><br/>
-          <span style="font-size: 12px;">Client Initial</span>
+          __SIGNATURE__ <br/>
+          <span style="font-size: 12px;">Client Signature</span>
         </p>
         <p style="margin-top: 20px;">
-          Dated: ${today}
+          Dated: __DATE__
         </p>
       </div>
     </div>
@@ -616,11 +619,14 @@ export function generateServiceContract(contact, plan) {
   let cancellationClause = '';
   if (config.cancelAfterPayment > 0) {
     cancellationClause = `
-      <p style="color: #d32f2f; font-weight: bold;">CANCELLATION POLICY: Client cannot cancel this agreement until after the ${config.cancelAfterPayment}${getOrdinalSuffix(config.cancelAfterPayment)} month has been completed and payment is received. ____________________________ <em>(initial)</em></p>
+      <div style="background: #f0fdf4; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #10b981;">
+        <p style="font-weight: bold; color: #1a365d;">YOUR RIGHT TO CANCEL:</p>
+        <p>Client may cancel SCR's services after ${config.cancelAfterPayment}${getOrdinalSuffix(config.cancelAfterPayment)} installment of ${formatCurrency(config.monthlyFee)} is made if Client believes that the efforts of SCR are not meeting reasonable expectations. Cancellation must be in writing, and Client must maintain the credit monitoring service accessible to SCR for 30 days after written cancellation date so deleted items to date may be billed. If access is not made available to SCR for those 30 days; Client will be charged ${formatCurrency(config.monthlyFee)} (the equivalent of one month's service). No refund in part or in full of monies billed or collected will be made if SCR has completed the agreed upon work.</p>
+      </div>
     `;
   } else if (config.isMonthToMonth) {
     cancellationClause = `
-      <p style="color: #10b981; font-weight: bold;">CANCELLATION POLICY: This is a month-to-month service and may be cancelled at any time with no penalty. ____________________________ <em>(initial)</em></p>
+      <p style="color: #10b981; font-weight: bold;">CANCELLATION POLICY: This is a month-to-month service and may be cancelled at any time with no penalty. __INITIAL_10__</p>
     `;
   }
 
@@ -628,11 +634,11 @@ export function generateServiceContract(contact, plan) {
   let idiqClause = '';
   if (config.requiresIDIQPostCancel) {
     idiqClause = `
-      <p><strong>Credit Monitoring Requirement:</strong> Client acknowledges that IdentityIQ credit monitoring service (currently $21.86 per month) is required to be maintained for ${config.idiqPostCancelDays} days after cancellation or termination of this agreement. This ensures proper tracking of final dispute results and protects both parties. ____________________________ <em>(initial)</em></p>
+      <p><strong>Credit Monitoring Requirement:</strong> Client acknowledges that IdentityIQ credit monitoring service (currently $21.86 per month) is required to be maintained for ${config.idiqPostCancelDays} days after cancellation or termination of this agreement. This ensures proper tracking of final dispute results and protects both parties. __INITIAL_8__</p>
     `;
   } else if (config.id === 'diy') {
     idiqClause = `
-      <p><strong>Credit Monitoring:</strong> DIY plan does not require IDIQ subscription maintenance after cancellation. ____________________________ <em>(initial)</em></p>
+      <p><strong>Credit Monitoring:</strong> DIY plan does not require IDIQ subscription maintenance after cancellation. __INITIAL_8__</p>
     `;
   }
 
@@ -670,7 +676,7 @@ export function generateServiceContract(contact, plan) {
 
       <p>This agreement ("Agreement") is entered into between <strong>${clientName}</strong> ("Client") and <strong>Speedy Credit Repair Inc.</strong> ("SCR") on <strong>${today}</strong>.</p>
 
-      <p><strong>Initial to acknowledge:</strong> Client has received and reviewed the Consumer Credit File Rights document and understands the right to dispute credit report inaccuracies independently at no cost. ____________________________ <em>(initial)</em></p>
+      <p><strong>Initial to acknowledge:</strong> Client has received and reviewed the Consumer Credit File Rights document and understands the right to dispute credit report inaccuracies independently at no cost. __INITIAL_0__</p>
 
       <h2 style="color: #1a365d;">SERVICES PROVIDED</h2>
 
@@ -678,7 +684,7 @@ export function generateServiceContract(contact, plan) {
 
       <p style="margin-left: 20px;">${servicesListHtml}</p>
 
-      <p><strong>Initial to acknowledge services:</strong> Client understands the services SCR will provide as listed above. ____________________________ <em>(initial)</em></p>
+      <p><strong>Initial to acknowledge services:</strong> Client understands the services SCR will provide as listed above. __INITIAL_1__</p>
 
       <h2 style="color: #1a365d;">MONTHLY SERVICE DEFINITION</h2>
 
@@ -693,7 +699,7 @@ export function generateServiceContract(contact, plan) {
 
         <p><em>Examples: Each of the three credit bureaus report the same "Item". The "Item" is repaired, deleted, updated, or corrected on two of the bureaus. You would be billed ${formatCurrency(config.perItemFee * 2)} for two "Items". ${formatCurrency(config.perItemFee)} X 2 = ${formatCurrency(config.perItemFee * 2)}. If the item is only affected on one of the three bureaus, the cost would be only ${formatCurrency(config.perItemFee)}.</em></p>
 
-        <p><strong>Initial to acknowledge per-item fees:</strong> Client understands the per-item fee structure. ____________________________ <em>(initial)</em></p>
+        <p><strong>Initial to acknowledge per-item fees:</strong> Client understands the per-item fee structure. __INITIAL_2__</p>
       ` : ''}
 
       <p>After corrected reports are received, SCR will communicate with Client again to discuss accomplishments and/or need for additional action. SCR will continue this process until all inaccurate negative information is repaired, deleted, updated, corrected, resolved, validated, or ${config.contractMonths * 30} days, whichever comes first. If an item comes back as valid, SCR will work with you to best address that item with said creditor.</p>
@@ -707,11 +713,11 @@ export function generateServiceContract(contact, plan) {
 
       <p>SCR agrees not to provide any personal and/or confidential information to any person other than those stated in the Privacy Notice or as required by SCR during the normal course of services or as set forth in this agreement.</p>
 
-      <p><strong>Initial to acknowledge privacy:</strong> Client understands SCR's privacy and confidentiality commitments. ____________________________ <em>(initial)</em></p>
+      <p><strong>Initial to acknowledge privacy:</strong> Client understands SCR's privacy and confidentiality commitments. __INITIAL_3__</p>
 
       ${feeScheduleHtml}
 
-      <p><strong>Initial to acknowledge fees:</strong> Client understands and agrees to the fee schedule above. ____________________________ <em>(initial)</em></p>
+      <p><strong>Initial to acknowledge fees:</strong> Client understands and agrees to the fee schedule above. __INITIAL_4__</p>
 
       <h2 style="color: #1a365d;">BILLING TERMS</h2>
 
@@ -721,7 +727,7 @@ export function generateServiceContract(contact, plan) {
         <p>Per-item success fees are billed in the month the item is successfully repaired/deleted/updated.</p>
       ` : ''}
 
-      <p><strong>Initial to acknowledge billing:</strong> Client understands when fees will be charged. ____________________________ <em>(initial)</em></p>
+      <p><strong>Initial to acknowledge billing:</strong> Client understands when fees will be charged. __INITIAL_5__</p>
 
       <h2 style="color: #1a365d;">REPRESENTATIONS</h2>
 
@@ -729,12 +735,12 @@ export function generateServiceContract(contact, plan) {
 
       <p>Client is aware that each of the actions to be performed by SCR can be performed independently by Client. However, Client represents that he or she has hired SCR to perform this service on his or her behalf.</p>
 
-      <p><strong>Initial to acknowledge no guarantee:</strong> Client understands SCR makes no guarantee of specific results. ____________________________ <em>(initial)</em></p>
+      <p><strong>Initial to acknowledge no guarantee:</strong> Client understands SCR makes no guarantee of specific results. __INITIAL_6__</p>
 
       ${config.hasCancellationPeriod ? `
         <p style="background: #fff3cd; padding: 15px; border-radius: 8px; border-left: 4px solid #ffc107;"><strong>NOTICE:</strong> You may cancel this contract without penalty or obligation at any time before midnight on the 5th working day after the date on which you signed the contract. See the attached notice of cancellation form for an explanation of this right.</p>
 
-        <p><strong>Initial to acknowledge cancellation rights:</strong> Client understands the 5-day cancellation period. ____________________________ <em>(initial)</em></p>
+        <p><strong>Initial to acknowledge cancellation rights:</strong> Client understands the 5-day cancellation period. __INITIAL_7__</p>
       ` : ''}
 
       <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #333;">
@@ -743,13 +749,13 @@ export function generateServiceContract(contact, plan) {
         
         <div style="margin-top: 30px;">
           <p style="margin: 0;"><strong>CLIENT SIGNATURE:</strong></p>
-          <p style="margin: 10px 0 5px 0;">_________________________________ &nbsp;&nbsp;&nbsp; Date: __________</p>
+          <p style="margin: 10px 0 5px 0;">__SIGNATURE__ &nbsp;&nbsp;&nbsp; Date: __DATE__</p>
           <p style="margin: 0; font-size: 14px;"><strong>${clientName}</strong></p>
         </div>
 
         <div style="margin-top: 30px;">
           <p style="margin: 0;"><strong>SPEEDY CREDIT REPAIR SIGNATURE:</strong></p>
-          <p style="margin: 10px 0 5px 0;">_________________________________ &nbsp;&nbsp;&nbsp; Date: __________</p>
+          <p style="margin: 10px 0 5px 0;">__SCR_SIGNATURE__ &nbsp;&nbsp;&nbsp; Date: __DATE__</p>
           <p style="margin: 0; font-size: 14px;"><strong>Christopher Lahage, CEO</strong></p>
           <p style="margin: 0; font-size: 12px; color: #666;">Speedy Credit Repair Inc.</p>
         </div>
@@ -996,7 +1002,7 @@ export function generateUnifiedACHAuthorization(contact, plan) {
           By signing below, I authorize Speedy Credit Repair Inc. to electronically debit my account for all charges associated with my <strong>${config.name}</strong> plan as described in this authorization.
         </p>
         <p style="color: #d32f2f; font-weight: bold; margin-top: 20px;">
-          SIGNATURE: _________________________________ &nbsp;&nbsp;&nbsp; DATE: ${today}
+          SIGNATURE: __SIGNATURE__ &nbsp;&nbsp;&nbsp; DATE: __DATE__
         </p>
         <p style="margin-top: 5px; font-size: 14px;"><strong>${clientName}</strong></p>
       </div>
@@ -1055,8 +1061,8 @@ export function generatePowerOfAttorney(contact) {
         <p style="margin: 5px 0;"><strong>${clientName}</strong></p>
         <p style="margin: 5px 0;">${addressLine}</p>
         <p style="margin: 5px 0;">Social Security #: ___-__-____</p>
-        <p style="margin: 20px 0 5px 0;">Signature: __________________________</p>
-        <p style="margin: 5px 0;">Date: ${today}</p>
+        <p style="margin: 20px 0 5px 0;">Signature: __SIGNATURE__</p>
+        <p style="margin: 5px 0;">Date: __DATE__</p>
         <p style="margin: 5px 0;">Telephone Number: ${contact.phone || '_______________'}</p>
       </div>
     </div>
@@ -1117,8 +1123,8 @@ export function generateNoticeOfCancellation(contact, plan) {
       <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #333;">
         <p><strong>ACKNOWLEDGMENT OF RECEIPT:</strong></p>
         <p>I acknowledge that I have received two (2) blank copies of this Notice of Cancellation form. I understand that I may download additional blank copies from my client portal at any time.</p>
-        <p style="margin-top: 20px;">__________________________ <em>(Sign to acknowledge receipt)</em></p>
-        <p>Client Signature &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ${today}</p>
+        <p style="margin-top: 20px;">__SIGNATURE__ <em>(Sign to acknowledge receipt)</em></p>
+        <p>Client Signature &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; __DATE__</p>
       </div>
 
       <div style="margin-top: 20px; padding: 15px; background: #e8f4fd; border-radius: 8px; text-align: center;">
@@ -1131,57 +1137,110 @@ export function generateNoticeOfCancellation(contact, plan) {
 // ============================================================================
 // ===== MASTER DOCUMENT GENERATOR =====
 // ============================================================================
+// V3.0 ENHANCED: Returns rich metadata for ContractSigningPortal.jsx
+//   - signatureType: 'acknowledgment' | 'agreement' | 'authorization'
+//   - hasInitials / initialCount: for click-to-initial system
+//   - requiresBankingInfo: for ACH tab
+//   - shortTitle: for tab labels (V3 FIX: "5-Day Right" not "3-Day Right")
+// ============================================================================
 
 export function generateAllDocuments(contact, plan) {
+  const config = getPlanConfig(plan?.id);
+
+  // Calculate actual initial count based on plan config
+  // Base: 0 (CROA), 1 (services), 3 (privacy), 4 (fees), 5 (billing), 6 (no guarantee)
+  let initialCount = 6;
+  if (config.perItemFee > 0) initialCount++; // __INITIAL_2__
+  if (config.hasCancellationPeriod) initialCount++; // __INITIAL_7__
+  if (config.requiresIDIQPostCancel || config.id === 'diy') initialCount++; // __INITIAL_8__
+  if (config.isMonthToMonth) initialCount++; // __INITIAL_10__
+
   return [
     {
-      id: 0,
+      id: 'doc0',
+      tabIndex: 0,
       title: 'Information Statement',
+      shortTitle: 'Info',
       subtitle: 'Consumer Credit File Rights (CROA)',
+      icon: 'Info',
       html: generateInformationStatement(contact),
       mustReadFirst: true,
-      requiresInitial: true
-    },
-    {
-      id: 1,
-      title: 'Privacy Notice',
-      subtitle: 'How We Protect Your Information',
-      html: generatePrivacyNotice(contact),
-      requiresInitial: true
-    },
-    {
-      id: 2,
-      title: 'Service Contract',
-      subtitle: `${getPlanConfig(plan?.id).name} Agreement`,
-      html: generateServiceContract(contact, plan),
-      requiresInitial: true,
       requiresSignature: true,
-      initialCount: 8 // Approximate number of initial fields in contract
+      signatureType: 'acknowledgment',
+      isApplicable: true
     },
     {
-      id: 3,
+      id: 'doc1',
+      tabIndex: 1,
+      title: 'Privacy Notice',
+      shortTitle: 'Privacy',
+      subtitle: 'How We Protect Your Information',
+      icon: 'Shield',
+      html: generatePrivacyNotice(contact),
+      requiresSignature: true,
+      signatureType: 'acknowledgment',
+      isApplicable: true
+    },
+    {
+      id: 'doc2',
+      tabIndex: 2,
+      title: 'Service Contract',
+      shortTitle: 'Contract',
+      subtitle: `${config.name} Agreement`,
+      icon: 'FileText',
+      html: generateServiceContract(contact, plan),
+      requiresSignature: true,
+      signatureType: 'agreement',
+      hasInitials: true,
+      initialCount: initialCount,
+      isApplicable: true
+    },
+    {
+      id: 'doc3',
+      tabIndex: 3,
       title: 'ACH Authorization',
+      shortTitle: 'ACH',
       subtitle: 'Unified Payment Authorization',
+      icon: 'CreditCard',
       html: generateUnifiedACHAuthorization(contact, plan),
       requiresSignature: true,
-      requiresBankingInfo: true
+      signatureType: 'authorization',
+      requiresBankingInfo: true,
+      isApplicable: true
     },
     {
-      id: 4,
+      id: 'doc4',
+      tabIndex: 4,
       title: 'Power of Attorney',
+      shortTitle: 'POA',
       subtitle: 'Authorization to Act on Your Behalf',
+      icon: 'Scale',
       html: generatePowerOfAttorney(contact),
-      requiresSignature: true
+      requiresSignature: true,
+      signatureType: 'authorization',
+      isApplicable: true
     },
     {
-      id: 5,
+      id: 'doc5',
+      tabIndex: 5,
       title: 'Notice of Cancellation',
+      shortTitle: '5-Day Right',
       subtitle: '5-Day Cancellation Rights',
+      icon: 'XCircle',
       html: generateNoticeOfCancellation(contact, plan),
-      requiresSignature: true
+      requiresSignature: config.hasCancellationPeriod,
+      signatureType: 'acknowledgment',
+      isApplicable: true
     }
   ];
 }
+
+// ============================================================================
+// ===== BACKWARD COMPATIBILITY ALIASES =====
+// ============================================================================
+// The portal tries multiple function names. These ensure any import works.
+export const generateAllContractDocuments = generateAllDocuments;
+export const getContractDocuments = generateAllDocuments;
 
 // ============================================================================
 // ===== EXPORTS =====
@@ -1198,5 +1257,7 @@ export default {
   generateUnifiedACHAuthorization,
   generatePowerOfAttorney,
   generateNoticeOfCancellation,
-  generateAllDocuments
+  generateAllDocuments,
+  generateAllContractDocuments,
+  getContractDocuments
 };
