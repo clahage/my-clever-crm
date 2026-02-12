@@ -78,7 +78,7 @@ const CreditScoreSimulator = lazy(() => import('../../components/ai/CreditScoreS
 const VictoryCelebrationDashboard = lazy(() => import('../../components/ai/VictoryCelebrationDashboard'));
 const ReferralPredictor = lazy(() => import('../../components/ai/ReferralPredictor'));
 const ComplianceMonitor = lazy(() => import('../../components/ai/ComplianceMonitor'));
-const ClientProgressPortal = lazy(() => import('../../components/ai/ClientProgressPortal'));
+const ClientProgressPortal = lazy(() => import('../ClientProgressPortal'));
 
 // Placeholder components for features to be built
 const createPlaceholder = (title, description, icon) => () => (
