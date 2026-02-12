@@ -584,34 +584,64 @@ const UltimateReportsHub = () => {
     setLoadingAI(true);
     
     try {
-      // TODO: Real OpenAI implementation
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
+      // ===== REAL DATA ANALYSIS - Queries live Firebase data =====
+      // Load contacts, disputes, invoices for analysis
+      const [contactsSnap, disputesSnap, invoicesSnap] = await Promise.all([
+        getDocs(query(collection(db, 'contacts'), limit(500))),
+        getDocs(query(collection(db, 'bureauDisputes'), limit(500))),
+        getDocs(query(collection(db, 'invoices'), limit(500))),
+      ]);
+
+      const contacts = contactsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const allDisputes = disputesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const invoices = invoicesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      // Calculate real metrics
+      const totalClients = contacts.filter(c => c.roles?.includes('client')).length;
+      const totalLeads = contacts.filter(c => c.roles?.includes('lead')).length;
+      const totalRevenue = invoices.reduce((s, inv) => s + (inv.amount || 0), 0);
+      const paidInvoices = invoices.filter(i => i.status === 'paid');
+      const paidRevenue = paidInvoices.reduce((s, inv) => s + (inv.amount || 0), 0);
+      const collectionRate = invoices.length > 0 ? ((paidInvoices.length / invoices.length) * 100).toFixed(1) : 0;
+
+      const successfulDisputes = allDisputes.filter(d => ['resolved-deleted', 'resolved-updated'].includes(d.status)).length;
+      const disputeSuccessRate = allDisputes.length > 0 ? ((successfulDisputes / allDisputes.length) * 100).toFixed(1) : 0;
+      const activeDisputes = allDisputes.filter(d => ['sent', 'received', 'pending'].includes(d.status)).length;
+
+      // Build real insights from data
       const insights = {
-        summary: 'Overall performance is excellent with 18% revenue growth and 76% dispute success rate.',
+        summary: contacts.length === 0 && allDisputes.length === 0
+          ? 'No data available yet. As contacts, disputes, and invoices are added, AI insights will analyze your real performance metrics.'
+          : `${totalClients} active clients, ${totalLeads} leads in pipeline. ${allDisputes.length > 0 ? `Dispute success rate: ${disputeSuccessRate}% (${successfulDisputes} of ${allDisputes.length}).` : 'No disputes filed yet.'} ${invoices.length > 0 ? `Collection rate: ${collectionRate}%. Total revenue: $${totalRevenue.toFixed(2)}.` : ''}`,
         trends: [
-          'Client acquisition from social media increased 35% this quarter',
-          'Premium tier retention improved to 97%, highest in 6 months',
-          'Dispute resolution time decreased by 4 days on average'
-        ],
+          totalClients > 0 ? `${totalClients} clients currently enrolled in services` : 'No clients enrolled yet — focus on lead conversion',
+          totalLeads > 0 ? `${totalLeads} leads in pipeline awaiting conversion` : 'No leads captured yet — check AI Receptionist and website forms',
+          activeDisputes > 0 ? `${activeDisputes} disputes currently active across all bureaus` : 'No active disputes — ready to begin dispute processing',
+        ].filter(Boolean),
         predictions: [
-          'Projected revenue for next month: $58,000 (20% increase)',
-          'Expected client growth: 28-32 new clients',
-          'Estimated success rate: 78-82%'
+          totalRevenue > 0 ? `Current total invoiced: $${totalRevenue.toFixed(2)} with ${collectionRate}% collection rate` : 'Revenue tracking will populate as invoices are created',
+          totalClients > 0 ? `Client base: ${totalClients} — each additional client at avg plan = incremental monthly revenue` : 'Client acquisition is the top priority for revenue growth',
+          allDisputes.length > 0 ? `At current ${disputeSuccessRate}% success rate, scaling dispute volume will drive client satisfaction` : 'Filing first disputes will establish baseline success metrics',
         ],
         recommendations: [
-          'Focus marketing efforts on social media channels',
-          'Consider launching a platinum tier above premium',
-          'Implement automated dispute tracking to improve efficiency'
-        ],
+          parseFloat(collectionRate) < 80 && invoices.length > 0 ? 'Collection rate below 80% — review payment follow-up automation' : null,
+          totalLeads > totalClients * 2 ? 'Lead-to-client ratio is high — improve conversion workflows' : null,
+          parseFloat(disputeSuccessRate) < 60 && allDisputes.length > 10 ? 'Dispute success rate below 60% — review letter templates and dispute strategies' : null,
+          totalClients === 0 ? 'Priority: Convert first leads to clients to begin revenue generation' : null,
+          allDisputes.length === 0 && totalClients > 0 ? 'Clients enrolled but no disputes filed — begin dispute process to deliver value' : null,
+          'Review and optimize automation rules to reduce manual workload',
+        ].filter(Boolean),
         anomalies: [
-          'TransUnion success rate 8% below average - investigate',
-          'Client churn slightly elevated in basic tier'
-        ]
+          invoices.filter(i => {
+            const due = i.dueDate?.toDate ? i.dueDate.toDate() : new Date(i.dueDate);
+            return (new Date() - due) > 90 * 86400000 && i.status !== 'paid';
+          }).length > 0 ? `${invoices.filter(i => { const d = i.dueDate?.toDate ? i.dueDate.toDate() : new Date(i.dueDate); return (new Date() - d) > 90 * 86400000 && i.status !== 'paid'; }).length} invoices are 90+ days overdue — critical follow-up needed` : null,
+          allDisputes.filter(d => d.status === 'resolved-verified').length > successfulDisputes && allDisputes.length > 5 ? 'More disputes verified (denied) than successful — review dispute approach' : null,
+        ].filter(Boolean),
       };
       
       setAiInsights(insights);
-      setSuccess('AI insights generated successfully!');
+      setSuccess('AI insights generated from live data!');
     } catch (err) {
       console.error('Error generating AI insights:', err);
       setError('Failed to generate AI insights');

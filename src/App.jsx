@@ -325,7 +325,6 @@ const SettingsHub = lazy(() => import('@/pages/hubs/SettingsHub'));
 const SocialMediaHub = lazy(() => import('@/pages/hubs/SocialMediaHub'));
 const SupportHub = lazy(() => import('@/pages/hubs/SupportHub'));
 const TaxServicesHub = lazy(() => import('@/pages/hubs/TaxServicesHub'));
-const TrainingHub = lazy(() => import('@/pages/hubs/TrainingHub'));
 const WebsiteLandingPagesHub = lazy(() => import('@/pages/hubs/WebsiteLandingPagesHub'));
 
 // ===== NEW ENTERPRISE AI HUBS (November 2025) =====
@@ -1371,18 +1370,6 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="user">
       <Suspense fallback={<LoadingFallback />}>
         <SocialMediaHub />
-      </Suspense>
-    </ProtectedRoute>
-  }
-/>
-
-{/* Training Hub */}
-<Route
-  path="training-hub"
-  element={
-    <ProtectedRoute requiredRole="user">
-      <Suspense fallback={<LoadingFallback />}>
-        <TrainingHub />
       </Suspense>
     </ProtectedRoute>
   }

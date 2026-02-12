@@ -378,52 +378,105 @@ Initial count varies by plan (some clauses are conditional on plan config).
 | Date | Session Focus | Key Changes |
 |------|--------------|-------------|
 | 2026-02-11 eve | Contract V3.0 Merge + Architecture | Merged V2 base + V3 fixes: contractTemplates.js 1,201â†’1,262 (marker system: __INITIAL_N__, __SIGNATURE__, __SCR_SIGNATURE__, __DATE__). ContractSigningPortal.jsx 1,776â†’1,781 (processDocumentHtml replaces DOM walker). 7 UX fixes: 5-Day Right rename, positive cancellation clause, click-to-initial, per-doc signature config, SCR auto-sig, submit logic, ACH form. SmartDashboard bell confirmed COMPLETE (5,348 lines, staffNotifications, QuickAccessPanel). |
-| 2026-02-12 | IDIQ Dispute Pipeline + Payment Fix | 5 IDIQ case blocks (pullDisputeReport, getDisputeReport, submitIDIQDispute, getDisputeStatus, refreshCreditReport) added to idiqService. AIDisputeGenerator.jsx rewired: removed client-side OpenAI key, all AI via Cloud Functions, TransUnion→IDIQ API, Experian/Equifax→FaxCenter. Removed fake data. Payment: Stripe references purged, documented NMI+Zelle+ACH system. index.js 12,050→12,987 (+937 lines). |
+| 2026-02-12 | IDIQ Dispute Pipeline + Payment Fix | 5 IDIQ case blocks (pullDisputeReport, getDisputeReport, submitIDIQDispute, getDisputeStatus, refreshCreditReport) added to idiqService. AIDisputeGenerator.jsx rewired: removed client-side OpenAI key, all AI via Cloud Functions, TransUnion→IDIQ API, Experian/Equifax→FaxCenter. Removed fake data. Payment: Stripe references purged, documented NMI+Zelle+ACH system. index.js 12,050→12,987 (+937 lines). E2E Testing: Contract signing flow WORKS (20 UX items). Client login CRITICAL: role=user not viewer, sees admin dashboard+data. 31 total issues documented. |
 | 2026-02-11 aft | Contract V3.0 Rebuild + Assessment | Rebuilt ContractSigningPortal from Christopher's 7-issue test report. Discovered V3.0 rebuild lost 1,173 lines vs V2.0. Decided on merge strategy: V2 base + V3 surgical fixes. |
 | 2026-02-11 | DocuSign removal + Email signing + Premium design | Removed DocuSign (1,045 lines, 4 secrets). Built email contract signing (3 cases, 490 lines). PublicContractSigningRoute (1,057 lines premium design). ContractSigningPortal updated (1,559â†’1,613). App.jsx route added. index.js 11,021â†’11,511 (+490). |
 | 2026-02-10 eve | Priorities 5-8 + Fax Health | NMI webhook, CAN-SPAM, servicePlans seed, FaxCenter 1,212 lines, Telnyx webhook, bureauFaxHealth, index.js 10,555â†’11,021 (+466) |
 | 2026-02-10 aft | Priorities 1-4 | Welcome email, lead nurture drip (Rule 13, 9 templates), document reminder (Rule 14), staff notifications. index.js 9,237â†’10,555 (+1,318) |
 | 2026-02-09 | A-to-Z workflow + bug fixes | Workflow chain connected, 3-plan system, 10 bug fixes |
 
+
 ---
 
-## ðŸ”´ REMAINING CRITICAL FOR PUBLIC LAUNCH
+## 🧪 END-TO-END TESTING RESULTS (2/12)
 
-| # | Task | Complexity | Why It Matters |
-|---|------|-----------|----------------|
-| 1 | **NMI Recurring Billing Wiring** | MEDIUM | NMI gateway built (paymentGateway.js). Zelle + ACH live to Chase. Need recurring subscription automation. **NO STRIPE** — Stripe/PayPal/Square all ban credit repair. Future: 5 Star Processing for CC/debit. |
-| 2 | **Client Login Flow Test** | MEDIUM | Verify: client registers â†’ logs in â†’ sees ClientPortal â†’ correct data. |
-| 3 | **Test Email Signing Flow End-to-End** | SMALL | Create test contact, fire generateContractSigningLink, click email, sign all 6 tabs with V3.0 markers, verify automation triggers. |
+### Test 1: Contract Signing Flow — ✅ PLUMBING WORKS, UX NEEDS POLISH
+- ✅ generateContractSigningLink fires from console
+- ✅ Email arrives with signing link
+- ✅ /sign/:token loads publicly (no login)
+- ✅ All 6 tabs signable
+- ✅ Submit triggers Scenario 3 automation
+- ✅ Bell notification fires
+- ✅ Contact updated in Firestore
 
-### ðŸŸ¡ IMPORTANT BUT NOT BLOCKING LAUNCH
+### Test 2: Client Login Flow — ❌ CRITICAL SECURITY ISSUES
+- ❌ New registrant gets role "user" (level 5) — should be "viewer" (1) or "prospect" (2)
+- ❌ Client sees full admin SmartDashboard with revenue, leads, disputes
+- ❌ Client sees all sidebar hubs (AI Command Centre, Core Operations, etc.)
+- ❌ Client sees staff notifications
+- ❌ Dashboard says "Good evening, Chris!" instead of registered user's name
+
+---
+
+## 🔴 REMAINING CRITICAL FOR PUBLIC LAUNCH
+
+### 🚨 SECURITY FIXES (Must fix before ANY public access)
+| # | Task | Complexity | Details |
+|---|------|-----------|---------|
+| S1 | **Register.jsx: Default role → "viewer" not "user"** | SMALL | New registrants get employee-level access |
+| S2 | **ProtectedLayout: Redirect low roles to /client-portal** | SMALL | Roles below user (5) should never see SmartDashboard |
+| S3 | **SmartDashboard: Show logged-in user's name** | SMALL | Currently shows "Chris" for ALL users |
+| S4 | **Firestore rules: Restrict client data access** | MEDIUM | Clients can see all contacts/revenue/disputes |
+
+### ⚡ CONTRACT SIGNING UX (Grouped by priority)
+| # | Task | Complexity | Details |
+|---|------|-----------|---------|
+| C1 | 3-day → 5-day cancellation language | SMALL | contractTemplates.js + email |
+| C2 | Initials/signature persist across tabs | MEDIUM | Save once, auto-apply |
+| C3 | Signature modal popup (not inline scroll) | MEDIUM | Pop up when clicking init/sign spots |
+| C4 | Type/draw/upload signature options | MEDIUM | Currently freehand only |
+| C5 | Email: "ACH Payment" → "Payment Information" | SMALL | Don't assume payment method |
+| C6 | Email: Simplify document list | SMALL | "Service Agreement Documents" |
+| C7 | "I agree" checkbox next to final signature | SMALL | Currently hidden |
+| C8 | Cancellation section: Remove title box + highlight | SMALL | Don't draw attention |
+| C9 | Fee section: Add reassuring language | SMALL | Soften per-deletion impact |
+| C10 | Submit dialog: Soften "legally binding" | SMALL | Too intimidating |
+| C11 | Last doc: Submit button replaces "Next" | SMALL | No extra scrolling |
+| C12 | autocomplete="off" on bank fields | SMALL | Stops "Save Password" popup |
+| C13 | Routing number auto-lookup (ABA database) | MEDIUM | Auto-populate bank name |
+| C14 | ACH authorization survives beyond 6-month term | SMALL | For NSF/deletion charges |
+| C15 | Payment method selection before ACH form | MEDIUM | ACH vs Zelle choice |
+| C16 | Bell notification click → show detail | MEDIUM | Currently blank contact page |
+| C17 | "Email Us" button broken on confirmation | SMALL | Missing mailto: link |
+| C18 | All email templates need Christopher review | MEDIUM | Edit copy before launch |
+| C19 | Register: Company Name should be blank | SMALL | Prepopulated incorrectly |
+| C20 | Real logos throughout CRM | LOW | Future item |
+
+### 🔧 REMAINING BUILD ITEMS
 | # | Task | Complexity |
 |---|------|-----------|
-| 4 | ~~IDIQ Dispute API wiring~~ | ✅ DONE 2/12 | pullDisputeReport, getDisputeReport, submitIDIQDispute, getDisputeStatus, refreshCreditReport |
-| 5 | ~~Monthly credit report re-pull~~ | ✅ DONE 2/12 | idiqService refreshCreditReport case block |
-| 6 | Cancellation/offboarding flow | MEDIUM |
-| 7 | Win-back campaign for cancelled clients | SMALL |
-| 8 | 90-day cold lead recycling | SMALL |
-| 9 | Hub consolidation (BillingHub+BillingPaymentsHub, etc.) | MEDIUM |
-| 10 | Pipeline Tab upgrade to T3 (120+ AI features) | LARGE |
-| 11 | SignatureAdoptionModal UX upgrade (adopt once, click to place) | SMALL |
+| B1 | NMI Recurring Billing Wiring | MEDIUM |
+| B2 | Cancellation/offboarding flow | MEDIUM |
+| B3 | Win-back campaign | SMALL |
+| B4 | 90-day cold lead recycling | SMALL |
+| B5 | Hub consolidation | MEDIUM |
+| B6 | Pipeline Tab T3 upgrade | LARGE |
+
+### ✅ COMPLETED THIS SESSION (2/12)
+- IDIQ Dispute API: 5 case blocks (+937 lines to index.js, now 12,987)
+- AIDisputeGenerator.jsx: Security fix + IDIQ pipeline + fake data removed
+- Payment architecture: NO STRIPE documented, Zelle+ACH+NMI stack
+- End-to-end testing: Contract signing (works) + Client login (critical bugs found)
 
 ---
 
-## ðŸ“‹ NEXT SESSION CHECKLIST
+## 📋 NEXT SESSION CHECKLIST
 
-1. **Read this file first** â€” single source of truth
-2. **Check transcripts** at `/mnt/transcripts/` for detailed implementation history
-3. **index.js is now 12,987 lines** — verify line numbers before editing
-4. **Never create new Cloud Functions** â€” add case blocks to existing ones
-5. **Import AuthContext** as `'../../contexts/AuthContext'` (capital A, capital C)
-6. **Use `lib/firebase.js`** for Firestore imports
-7. **ContractSigningPortal V3.0** uses marker system â€” don't revert to DOM walker or old `____ (initial)` patterns
-8. **PublicContractSigningRoute** at `/sign/:token` is public (no auth) â€” don't wrap in ProtectedRoute
-9. **contractTemplates.js V3.0** generates markers: `__INITIAL_N__`, `__SIGNATURE__`, `__SCR_SIGNATURE__`, `__DATE__`
-10. **SmartDashboard bell** is COMPLETE â€” reads from `staffNotifications` collection, same as ProtectedLayout
-11. **Auto-save every 30 min** to memory (task, files, code, next steps)
-12. **Update this file + LifecycleAudit.jsx** at end of every session
+1. **Read this file first** — single source of truth
+2. **PRIORITY: Fix S1-S4 security issues** before any public access
+3. **Check transcripts** at `/mnt/transcripts/` for detailed history
+4. **index.js is now 12,987 lines** — verify line numbers before editing
+5. **Never create new Cloud Functions** — add case blocks to existing ones
+6. **Import AuthContext** as `'../../contexts/AuthContext'` (capital A, capital C)
+7. **Use `lib/firebase.js`** for Firestore imports
+8. **ContractSigningPortal V3.0** uses marker system — don't revert to DOM walker
+9. **PublicContractSigningRoute** at `/sign/:token` is public (no auth)
+10. **contractTemplates.js V3.0** generates markers: `__INITIAL_N__`, `__SIGNATURE__`, `__SCR_SIGNATURE__`, `__DATE__`
+11. **SmartDashboard bell** is COMPLETE — reads from `staffNotifications` collection
+12. **NO STRIPE** — Stripe/PayPal/Square all ban credit repair. Use NMI+Zelle+ACH.
+13. **Auto-save every 30 min** to memory
+14. **Update this file + LifecycleAudit.jsx** at end of every session
 
 ---
 
-*Â© 1995-2026 Speedy Credit Repair Inc. | Chris Lahage | All Rights Reserved*
+*© 1995-2026 Speedy Credit Repair Inc. | Chris Lahage | All Rights Reserved*
