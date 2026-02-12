@@ -1,9 +1,9 @@
 import { useState } from "react";
 
 // ============================================================================
-// SpeedyCRM COMPLETE LIFECYCLE AUDIT — Updated 2026-02-11 (Session 5)
+// SpeedyCRM COMPLETE LIFECYCLE AUDIT — Updated 2026-02-12 (Session 6)
 // Maps every contact path from entry → outcome, showing built vs missing
-// Reflects: 2/9 workflow chain, 2/10 email/fax/notifications, 2/11 contract V3.0 + bell
+// Reflects: 2/9 workflow, 2/10 email/fax, 2/11 contract V3.0, 2/12 IDIQ disputes + E2E testing
 // ============================================================================
 
 const COLORS = {
@@ -101,12 +101,12 @@ const LIFECYCLE_STAGES = [
     phase: "E",
     title: "Active Client Lifecycle",
     stages: [
-      { label: "AI Credit Analysis → Dispute Strategy", status: "missing", where: "Needs AIDisputeGenerator.jsx + IDIQ dispute API", notes: "IDIQ has dispute submission API (v1/disputes/submit). AIDisputeGenerator.jsx exists (2,322 lines) but not wired to IDIQ API." },
-      { label: "Dispute Letter Generation", status: "missing", where: "Planned for DisputeHub upgrade", notes: "IDIQ dispute API supports claim codes, credit report items. Backend integration not built." },
+      { label: "AI Credit Analysis → Dispute Strategy", status: "built", where: "AIDisputeGenerator.jsx → idiqService Cloud Function", notes: "BUILT 2/12: 5-step wizard (analyze → select → strategy → generate → send). TransUnion via IDIQ API (pullDisputeReport → getDisputeReport → submitIDIQDispute). Experian/Equifax via FaxCenter. All AI routed through aiContentGenerator Cloud Function." },
+      { label: "Dispute Letter Generation", status: "built", where: "aiContentGenerator disputeLetter case + AIDisputeGenerator.jsx", notes: "BUILT 2/12: Cloud Function generates FCRA-compliant letters. Claim code mapping: factual_error→INACCURATE, validation→NOT_MINE, outdated→OUTDATED, fraud→FRAUD. Handles per-bureau strategy." },
       { label: "Bureau Fax Sending (Disputes)", status: "built", where: "FaxCenter.jsx (1,212 lines) + sendFaxOutbound", notes: "BUILT 2/10: Telnyx fax integration with smart auto-rotation, 3 numbers per bureau, health monitoring." },
       { label: "Fax Health Monitoring + Auto-Rotation", status: "built", where: "bureauFaxHealth + Telnyx webhook", notes: "BUILT 2/10: Auto-disables numbers after 3 consecutive failures, switches to backup, sends staff notification." },
       { label: "Dispute Result Notifications", status: "built", where: "Rule 7 in processAbandonmentEmails", notes: "Checks disputeResults collection, emails client when results arrive with details." },
-      { label: "Monthly Credit Report Re-Pull", status: "missing", where: "Needs case in processWorkflowStages", notes: "Active clients should get credit reports re-pulled monthly via IDIQ to track progress." },
+      { label: "Monthly Credit Report Re-Pull", status: "built", where: "idiqService refreshCreditReport case block", notes: "BUILT 2/12: Pulls new report via IDIQ, compares scores vs previous, calculates deltas, logs to creditReportHistory collection." },
       { label: "Monthly Progress Report Email", status: "built", where: "Rule 8 in processAbandonmentEmails", notes: "Sends monthly progress email with score changes, items removed, timeline." },
       { label: "Score Milestone Celebrations", status: "built", where: "Rule 9 in processAbandonmentEmails", notes: "Celebrates 50+ and 100+ point score improvements with branded email + confetti." },
       { label: "Payment Failure Notifications", status: "built", where: "nmiWebhook case in operationsManager", notes: "BUILT 2/10: NMI webhook catches payment_failed → emails client + staff notification + logs to paymentLogs. 6-action flow." },
@@ -141,46 +141,30 @@ const LIFECYCLE_STAGES = [
 const PRIORITY_ACTIONS = [
   {
     rank: 1,
-    title: "Test Email Signing Flow End-to-End",
-    impact: "CRITICAL — Verify the V3.0 contract signing link works: email → click → sign all 6 tabs with markers → automation triggers",
-    effort: "~15 min",
-    where: "Call generateContractSigningLink with your own email, click link, test 11 initials + signatures + ACH, verify Scenario 3 fires",
-    why: "V3.0 marker system deployed but untested with a real contact. Must confirm __INITIAL_N__, __SIGNATURE__, __DATE__ rendering before sending to actual clients.",
+    title: "🚨 FIX SECURITY: Client Registration Gets Employee Access",
+    impact: "CRITICAL — New registrants get role user (level 5) with full admin dashboard access",
+    effort: "~45 min",
+    where: "Register.jsx (default role), ProtectedLayout.jsx (redirect), SmartDashboard.jsx (greeting), Firestore rules",
+    why: "S1: Register.jsx sets role=user not viewer. S2: No redirect for low-role users. S3: Greeting hardcoded to Chris. S4: Clients can read all data. MUST FIX before any public access.",
   },
   {
     rank: 2,
-    title: "Client Login Flow Test",
-    impact: "CRITICAL — Verify clients can log in and see their portal correctly",
-    effort: "~30 min",
-    where: "Create test client → register → login → ClientPortal.jsx → verify data displays",
-    why: "The enrollment flow creates accounts but the login→portal path hasn't been tested end-to-end.",
+    title: "Contract Signing UX Polish (20 items from testing)",
+    impact: "HIGH — Contract signing works but has 20 UX issues that hurt conversion",
+    effort: "~3 hours",
+    where: "ContractSigningPortal.jsx, contractTemplates.js, email templates in index.js",
+    why: "TESTED 2/12: Plumbing works perfectly. Issues: 3→5 day cancel language, signature persistence, modal popup, payment method selection, intimidating submit dialog, bank field auto-lookup. See SESSION_6_HANDOFF.md items C1-C20.",
   },
   {
     rank: 3,
-    title: "Stripe/NMI Recurring Billing Management",
+    title: "NMI Recurring Billing Wiring (NO STRIPE)",
     impact: "HIGH — Monthly billing must work for revenue",
     effort: "~2 hours",
-    where: "operationsManager + billing UI in client portal",
-    why: "NMI handles first payment at enrollment. Ongoing monthly billing needs subscription management, retry logic, upgrade/downgrade.",
+    where: "operationsManager + paymentGateway.js + billing UI in client portal",
+    why: "NMI gateway built (paymentGateway.js). Zelle + ACH live to Chase. Need recurring subscription automation. NO STRIPE — Stripe/PayPal/Square all ban credit repair. Future: 5 Star Processing.",
   },
   {
     rank: 4,
-    title: "IDIQ Dispute API Integration",
-    impact: "HIGH — Core credit repair service delivery",
-    effort: "~3 hours",
-    where: "AIDisputeGenerator.jsx + DisputeHub + IDIQ v1/disputes/submit",
-    why: "The heart of credit repair: pull report → AI analyzes → generates disputes → submits via IDIQ → faxes bureaus.",
-  },
-  {
-    rank: 5,
-    title: "Monthly Credit Report Re-Pull",
-    impact: "MEDIUM — Track client progress automatically",
-    effort: "~45 min",
-    where: "Case block in processWorkflowStages (hourly scheduler)",
-    why: "Active clients should get automatic monthly credit report re-pulls to measure dispute results.",
-  },
-  {
-    rank: 6,
     title: "Cancellation / Offboarding Flow",
     impact: "MEDIUM — Clean client exits + win-back opportunity",
     effort: "~1 hour",
@@ -188,12 +172,44 @@ const PRIORITY_ACTIONS = [
     why: "Clients currently cannot self-cancel. No NMI subscription cancellation handler. No exit survey or win-back drip.",
   },
   {
-    rank: 7,
+    rank: 5,
     title: "90-Day Cold Lead Recycling",
     impact: "LOW — Re-engage dormant leads with fresh offer",
     effort: "~30 min",
     where: "New rule in processAbandonmentEmails",
     why: "Leads from 90+ days ago who never enrolled could be reactivated with a new offer or updated plan pricing.",
+  },
+  {
+    rank: 6,
+    title: "✅ DONE: IDIQ Dispute API Integration",
+    impact: "COMPLETED 2/12 — 5 case blocks in idiqService, AIDisputeGenerator.jsx fully wired",
+    effort: "DONE",
+    where: "index.js idiqService + AIDisputeGenerator.jsx",
+    why: "pullDisputeReport, getDisputeReport, submitIDIQDispute, getDisputeStatus, refreshCreditReport. TransUnion via IDIQ API, Experian/Equifax via FaxCenter.",
+  },
+  {
+    rank: 7,
+    title: "✅ DONE: Monthly Credit Report Re-Pull",
+    impact: "COMPLETED 2/12 — idiqService refreshCreditReport case block",
+    effort: "DONE",
+    where: "index.js idiqService refreshCreditReport",
+    why: "Pulls new report, compares scores, calculates deltas, logs to creditReportHistory.",
+  },
+  {
+    rank: 8,
+    title: "✅ DONE: E2E Test — Contract Signing Flow",
+    impact: "COMPLETED 2/12 — Works end-to-end, 20 UX items found",
+    effort: "DONE",
+    where: "generateContractSigningLink → email → /sign/:token → all 6 tabs → submit → Scenario 3",
+    why: "Plumbing confirmed working. Bell notification fires. Automation triggers. 20 UX polish items documented in SESSION_6_HANDOFF.md.",
+  },
+  {
+    rank: 9,
+    title: "✅ DONE (FAILED): E2E Test — Client Login Flow",
+    impact: "COMPLETED 2/12 — CRITICAL security issues found, 4 fixes needed",
+    effort: "DONE (needs fixes)",
+    where: "Register.jsx, ProtectedLayout.jsx, SmartDashboard.jsx, Firestore rules",
+    why: "New registrant gets role=user (employee level), sees full admin dashboard, all data exposed. Fix is Priority #1 above.",
   },
 ];
 
