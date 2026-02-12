@@ -199,6 +199,9 @@ import { updateContactWorkflowStage, WORKFLOW_STAGES } from '@/services/workflow
 import ViewCreditReportButton from '../credit/ViewCreditReportButton';
 import IDIQCreditReportViewer from '../credit/IDIQCreditReportViewer';
 
+// ===== AI CREDIT REVIEW PRESENTATION IMPORT =====
+import AICreditReviewPresentation from '../enrollment/AICreditReviewPresentation';
+
 // ===== CREDIT ANALYSIS AUTOMATION IMPORT =====
 import { runCreditAnalysis } from '@/services/creditAnalysisAutomation';
 import { syncIDIQToContact } from '@/services/idiqContactSync';
@@ -772,6 +775,13 @@ const [creditAnalysisError, setCreditAnalysisError] = useState(null);
   const [scoreLoadingTimeout, setScoreLoadingTimeout] = useState(false);
   const [scoreLoadingStartTime, setScoreLoadingStartTime] = useState(null);
 
+  // ===== AI CREDIT REVIEW PRESENTATION STATE =====
+  const [aiCreditReviewData, setAiCreditReviewData] = useState(null);
+  const [aiCreditReviewLoading, setAiCreditReviewLoading] = useState(false);
+  const [aiCreditReviewError, setAiCreditReviewError] = useState(null);
+  const [disputePipelineResult, setDisputePipelineResult] = useState(null);
+  const [planRecommendation, setPlanRecommendation] = useState(null);
+  const [creditScoresData, setCreditScoresData] = useState({ transunion: null, experian: null, equifax: null });
 
   // ===== FIREBASE FUNCTIONS =====
   const functions = getFunctions();
@@ -1870,6 +1880,97 @@ const [creditAnalysisError, setCreditAnalysisError] = useState(null);
     });
   };
 
+  // ============================================================================
+  // ===== RUN AI CREDIT REVIEW PIPELINE =====
+  // ============================================================================
+  // This function runs after Phase 2 completes (credit report pulled).
+  // It calls the AI content generator to:
+  //   1. Run the full dispute pipeline (populate disputes collection)
+  //   2. Get AI service plan recommendation
+  //   3. Extract credit scores for display
+  // Results are stored in state and passed to AICreditReviewPresentation in Phase 3.
+  // ============================================================================
+  const runAICreditReviewPipeline = async (idiqResponse, currentContactId) => {
+    console.log('🤖 Starting AI Credit Review Pipeline...');
+    setAiCreditReviewLoading(true);
+    setAiCreditReviewError(null);
+
+    try {
+      const aiContentGenerator = httpsCallable(functions, 'aiContentGenerator');
+
+      // ===== EXTRACT CREDIT SCORES FROM IDIQ RESPONSE =====
+      const scores = {
+        transunion: idiqResponse?.vantageScore ||
+                    idiqResponse?.data?.vantageScore ||
+                    idiqResponse?.reportData?.vantageScore ||
+                    null,
+        experian: idiqResponse?.experianScore ||
+                  idiqResponse?.data?.experianScore ||
+                  null,
+        equifax: idiqResponse?.equifaxScore ||
+                 idiqResponse?.data?.equifaxScore ||
+                 null,
+      };
+
+      console.log('📊 Extracted Credit Scores:', scores);
+      setCreditScoresData(scores);
+
+      // ===== STEP 1: RUN FULL DISPUTE PIPELINE =====
+      console.log('🔍 Step 1: Running full dispute pipeline...');
+      const pipelineResult = await aiContentGenerator({
+        type: 'runFullDisputePipeline',
+        contactId: currentContactId,
+      });
+
+      console.log('✅ Dispute pipeline result:', pipelineResult.data);
+      setDisputePipelineResult(pipelineResult.data);
+
+      // ===== STEP 2: GET AI SERVICE PLAN RECOMMENDATION =====
+      console.log('🎯 Step 2: Getting AI service plan recommendation...');
+      const planResult = await aiContentGenerator({
+        type: 'recommendServicePlan',
+        contactId: currentContactId,
+      });
+
+      console.log('✅ Plan recommendation:', planResult.data);
+      setPlanRecommendation(planResult.data?.recommendedPlan || 'professional');
+
+      // If AI recommends a plan, auto-select it
+      if (planResult.data?.recommendedPlan) {
+        setSelectedPlan(planResult.data.recommendedPlan);
+      }
+
+      // ===== STEP 3: ASSEMBLE DATA FOR AI CREDIT REVIEW COMPONENT =====
+      const reviewData = {
+        creditScores: scores,
+        negativeItems: pipelineResult.data?.disputes || [],
+        disputeStrategy: pipelineResult.data?.strategy || null,
+        recommendedPlan: planResult.data?.recommendedPlan || 'professional',
+        planConfidence: planResult.data?.confidence || null,
+        planReasoning: planResult.data?.reasoning || null,
+      };
+
+      console.log('✅ AI Credit Review Data assembled:', reviewData);
+      setAiCreditReviewData(reviewData);
+
+      setAiCreditReviewLoading(false);
+      return reviewData;
+
+    } catch (error) {
+      console.error('❌ AI Credit Review Pipeline Error:', error);
+      setAiCreditReviewError(error.message || 'Failed to run AI credit review pipeline');
+      setAiCreditReviewLoading(false);
+
+      // Don't block progression - we can still show a basic review
+      return {
+        creditScores: creditScoresData,
+        negativeItems: [],
+        disputeStrategy: null,
+        recommendedPlan: 'professional',
+      };
+    }
+  };
+
   const startCreditAnalysis = async () => {
     const cleanSSN = formData.ssn.replace(/\D/g, '');
     
@@ -1929,25 +2030,29 @@ const [creditAnalysisError, setCreditAnalysisError] = useState(null);
       // This happens when IDIQ couldn't generate security questions but member still needs verification
       if (response.data.needsWidgetVerification && !response.data.vantageScore && !response.data.data?.vantageScore) {
         console.log("🔐 Widget verification required - no credit data yet");
-        
+
         // Store member token for widget
         if (response.data?.memberToken) {
           setCreditReportMemberToken(response.data.memberToken);
           console.log('✅ Member token stored for widget verification');
         }
-        
+
         // Set flag to indicate verification is pending
         setPendingWidgetVerification(true);
-        
+
         // Show the widget which will handle identity verification
         setShowFullCreditReport(true);
         setAnalysisComplete(true);
+
+        // ===== RUN AI PIPELINE BEFORE PHASE 3 =====
+        await runAICreditReviewPipeline(response.data, contactId);
+
         setCurrentPhase(3);
         setLoading(false);
-        
+
         // Set a flag to indicate widget verification is in progress
         console.log('📋 IDIQ widget will handle identity verification');
-        
+
         return;
       }
 
@@ -2335,15 +2440,18 @@ const submitVerificationAnswers = async () => {
       } catch (updateErr) {
         console.error('❌ Failed to update IDIQ enrollment status:', updateErr);
       }
-      
+
+      // ===== RUN AI PIPELINE BEFORE PHASE 3 =====
+      await runAICreditReviewPipeline(resData, contactId);
+
       setCurrentPhase(3);
-      
-      const targetScore = 
-        resData.vantageScore || 
-        resData.score || 
-        resData.data?.vantageScore || 
-        resData.data?.reportData?.vantageScore || 
-        resData.reportData?.vantageScore || 
+
+      const targetScore =
+        resData.vantageScore ||
+        resData.score ||
+        resData.data?.vantageScore ||
+        resData.data?.reportData?.vantageScore ||
+        resData.reportData?.vantageScore ||
         null;
       if (targetScore) {
         animateScore(targetScore);
@@ -4105,934 +4213,43 @@ A+ BBB Rating | 4.9 Google (580+ reviews)
     );
   };
 
-  const renderPhase3 = () => (
+  const renderPhase3 = () => {
+    // ============================================================================
+    // ===== PHASE 3: AI CREDIT REVIEW PRESENTATION =====
+    // ============================================================================
+    // This phase shows the conversion-optimized AI credit review with:
+    // - Credit score snapshot (3 bureaus)
+    // - Negative items analysis
+    // - Personalized dispute strategy
+    // - AI-recommended service plan
+    // - Call to action
+    // ============================================================================
+
+    return (
     <Fade in timeout={500}>
       <Box>
-        {/* ===== CREDIT ANALYSIS LOADING STATE ===== */}
-        {creditAnalysisRunning && (
-          <Paper sx={{ p: 4, mb: 3, textAlign: 'center', bgcolor: 'primary.light' }}>
-            <CircularProgress size={60} sx={{ mb: 2 }} />
-            <Typography variant="h5" gutterBottom>
-              🤖 AI Credit Analysis in Progress...
-            </Typography>
-            <Typography color="text.secondary" paragraph>
-              Our AI is analyzing your credit report to identify opportunities for improvement.
-              This typically takes 20-30 seconds.
-            </Typography>
-            <LinearProgress sx={{ mt: 2 }} />
-          </Paper>
-        )}
-
-        {/* ===== CREDIT ANALYSIS ERROR STATE ===== */}
-        {creditAnalysisError && !creditAnalysisRunning && (
-          <Alert severity="warning" sx={{ mb: 3 }}>
-            <AlertTitle>Manual Review Required</AlertTitle>
-            {typeof creditAnalysisError === 'string' ? creditAnalysisError : 'Analysis encountered an issue. Our team will review manually.'}
-            <Typography variant="body2" sx={{ mt: 1 }}>
-              Don't worry! Our expert team will review your credit report and email you 
-              a detailed analysis within 24 hours.
-            </Typography>
-          </Alert>
-        )}
-
-        {/* ===== CREDIT ANALYSIS SUCCESS STATE ===== */}
-        {creditAnalysisComplete && creditAnalysisResult && (
-          <Card sx={{ mb: 3, bgcolor: 'success.light' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <CheckIcon sx={{ fontSize: 48, color: 'success.main' }} />
-                <Box>
-                  <Typography variant="h6" gutterBottom>
-                    ✅ Credit Analysis Complete!
-                  </Typography>
-                  <Typography variant="body2">
-                    Credit Score: <strong>{creditAnalysisResult.creditScore ?? 'Pending'}</strong> • 
-                    Negative Items: <strong>{creditAnalysisResult.negativeItemsCount ?? 0}</strong> • 
-                    Projected Improvement: <strong>+{creditAnalysisResult.gameplan?.projectedScoreIncrease ?? 0} pts</strong>
-                  </Typography>
-                  <Typography variant="caption" sx={{ mt: 1, display: 'block' }}>
-                    📧 Detailed analysis sent to your email!
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        )}              
-        {/* IDIQ Platinum Co-Branded Header */}
-        <IDIQPlatinumCard sx={{ mb: 4 }}>
-          <CardContent sx={{ p: 4 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
-              <Box>
-                <PlatinumBadge>
-                  <SparkleIcon sx={{ fontSize: 14 }} />
-                  Platinum Credit Analysis
-                </PlatinumBadge>
-                <Typography variant="h4" fontWeight={700} sx={{ mt: 2 }}>
-                  Your Credit Report is Ready
-                </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.8, mt: 1 }}>
-                  Powered by IDIQ | Partner ID: 11981
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                <img
-                  src="/brand/default/logo-white-128.png"
-                  alt="Speedy Credit"
-                  style={{ height: 40 }}
-                />
-                <Typography variant="h6" sx={{ opacity: 0.5 }}>×</Typography>
-                <Box sx={{ textAlign: 'center' }}>
-                  <Typography variant="caption" sx={{ opacity: 0.7 }}>
-                    Powered by
-                  </Typography>
-                  <Typography variant="h6" fontWeight={700}>
-                    IDIQ
-                  </Typography>
-                </Box>
-              </Box>
-            </Box>
-
-            <Grid container spacing={4} alignItems="center">
-              <Grid item xs={12} md={4}>
-                <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                  {displayedScore ? (
-                    <ScoreGauge score={displayedScore}>
-                      <Box sx={{ textAlign: 'center', zIndex: 1, position: 'relative' }}>
-                        <Typography variant="h2" fontWeight={700}>
-                          {displayedScore}
-                        </Typography>
-                        <Typography variant="caption" sx={{ opacity: 0.7 }}>
-                          VantageScore 3.0
-                        </Typography>
-                      </Box>
-                    </ScoreGauge>
-                  ) : scoreLoadingTimeout ? (
-                    <Box sx={{ 
-                      textAlign: 'center', 
-                      py: 4,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: 2
-                    }}>
-                      <Alert 
-                        severity="info" 
-                        sx={{ 
-                          bgcolor: 'rgba(255,255,255,0.15)', 
-                          color: 'white',
-                          maxWidth: 400,
-                          '& .MuiAlert-icon': { color: '#64b5f6' }
-                        }}
-                      >
-                        <AlertTitle>Score Display Delayed</AlertTitle>
-                        Your credit report loaded successfully. View the full report below.
-                      </Alert>
-                    </Box>
-                  ) : (
-                    <Box sx={{ 
-                      textAlign: 'center', 
-                      py: 6,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: 2
-                    }}>
-                      <CircularProgress size={60} sx={{ color: 'white' }} />
-                      <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)' }}>
-                        Loading credit score...
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.6)' }}>
-                        This usually takes a few seconds
-                      </Typography>
-                    </Box>
-                  )}
-                </Box>
-              </Grid>
-              <Grid item xs={12} md={8}>
-                <Grid container spacing={2}>
-                  {creditReport?.bureaus &&
-                    Object.entries(creditReport.bureaus).map(([bureau, data]) => (
-                      <Grid item xs={4} key={bureau}>
-                        <Paper
-                          sx={{
-                            p: 2,
-                            textAlign: 'center',
-                            bgcolor: 'rgba(255,255,255,0.1)',
-                            color: '#fff',
-                          }}
-                        >
-                          <Typography variant="caption" sx={{ textTransform: 'capitalize' }}>
-                            {bureau}
-                          </Typography>
-                          <Typography variant="h4" fontWeight={700}>
-                            {data.score}
-                          </Typography>
-                          <Chip
-                            size="small"
-                            label={`${data.negativeItems} issues`}
-                            sx={{ mt: 1, bgcolor: 'rgba(244, 67, 54, 0.3)', color: '#fff' }}
-                          />
-                        </Paper>
-                      </Grid>
-                    ))}
-                </Grid>
-              </Grid>
-            </Grid>
-          </CardContent>
-        </IDIQPlatinumCard>
-
-        {/* Negative Items Summary */}
-        {creditReport?.negativeItems && creditReport.negativeItems.length > 0 && (
-          <Card sx={{ mb: 4 }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h6">
-                  Items We Can Help With ({creditReport.negativeItems.length})
-                </Typography>
-                <Button
-                  size="small"
-                  onClick={() => setShowAllNegativeItems(!showAllNegativeItems)}
-                  endIcon={showAllNegativeItems ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                >
-                  {showAllNegativeItems ? 'Show Less' : `Show All ${creditReport.negativeItems.length}`}
-                </Button>
-              </Box>
-              <List>
-                {(showAllNegativeItems 
-                  ? creditReport.negativeItems 
-                  : creditReport.negativeItems.slice(0, 5)
-                ).map((item, index) => (
-                  <ListItem key={index} divider>
-                    <ListItemIcon>
-                      <WarningIcon color="error" />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={`${item.type} - ${item.creditor}`}
-                      secondary={`${item.amount ? `$${item.amount}` : ''} ${item.date ? `• ${item.date}` : ''} • ${item.bureau}`}
-                    />
-                  </ListItem>
-                ))}
-              </List>
-              {!showAllNegativeItems && creditReport.negativeItems.length > 5 && (
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 1, textAlign: 'center' }}>
-                  + {creditReport.negativeItems.length - 5} more items (click "Show All" above)
-                </Typography>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* ===== ALL CREDIT ACCOUNTS TABLE - HIDDEN FOR NOW =====
-            The IDIQ API only returns TransUnion data (27 accounts), but the
-            IDIQ widget displays all 91 accounts from all 3 bureaus.
-            
-            FUTURE ENHANCEMENT: AI will analyze the full credit report from
-            the widget and generate a comprehensive report with:
-            - All 3 credit scores (TransUnion, Experian, Equifax)
-            - All 91 accounts organized by bureau
-            - Negative items highlighted
-            - Dispute recommendations
-            - Credit improvement action plan
-            
-            For now, users view the full report in the IDIQ widget above.
-        ===== */}
-
-        {/* Projected Improvement */}
-        {/* ===== Bug #8 FIX: Calculate real improvement potential ===== */}
-        {/* Instead of the hardcoded "85", we calculate based on:         */}
-        {/*   - Number of negative items (each removal = ~10-20 pts)      */}
-        {/*   - Current credit score (lower scores improve faster)        */}
-        {/*   - Timeline based on how many items need disputing           */}
-        <Card sx={{ mb: 4, bgcolor: 'success.50' }}>
-          <CardContent>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <TrendingUpIcon sx={{ fontSize: 48, color: 'success.main' }} />
-              <Box>
-                <Typography variant="h5" fontWeight={700} color="success.main">
-                  +{(() => {
-                    // ===== CALCULATE PROJECTED IMPROVEMENT =====
-                    // If the analysis already calculated it, use that value
-                    if (creditReport?.projectedImprovement) return creditReport.projectedImprovement;
-                    
-                    // Otherwise, estimate based on negative items and current score
-                    const negCount = creditReport?.negativeItems?.length
-                      || creditReport?.negativeItemCount
-                      || creditAnalysisResult?.negativeItemsCount
-                      || 0;
-                    const currentScore = creditReport?.vantageScore
-                      || creditReport?.creditScore
-                      || creditAnalysisResult?.creditScore
-                      || 0;
-                    
-                    // No data at all? Show a conservative range instead of a fake number
-                    if (negCount === 0 && currentScore === 0) return '40-100';
-                    
-                    // Each negative item removal can improve score by 10-20 points
-                    // Lower scores see bigger jumps per item removed
-                    let perItemImprovement;
-                    if (currentScore > 0 && currentScore < 550) {
-                      perItemImprovement = 18;  // Low scores improve more per item
-                    } else if (currentScore < 650) {
-                      perItemImprovement = 14;  // Mid-range scores
-                    } else {
-                      perItemImprovement = 10;  // Higher scores improve less per item
-                    }
-                    
-                    // Calculate total, cap at 200 (realistic max improvement)
-                    const projected = Math.min(negCount * perItemImprovement, 200);
-                    
-                    // Minimum 20 if they have any negative items
-                    return negCount > 0 ? Math.max(projected, 20) : '20-40';
-                  })()} Point Potential
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {(() => {
-                    // ===== CALCULATE TIMELINE =====
-                    const negCount = creditReport?.negativeItems?.length
-                      || creditReport?.negativeItemCount
-                      || creditAnalysisResult?.negativeItemsCount
-                      || 0;
-                    
-                    if (creditReport?.improvementTimeline) {
-                      return `Based on our analysis, we project significant improvement within ${creditReport.improvementTimeline} months`;
-                    }
-                    
-                    // Estimate timeline: ~2 items per dispute round, rounds every 35 days
-                    if (negCount <= 3) return 'Based on your report, we project significant improvement within 3-4 months';
-                    if (negCount <= 8) return 'Based on your report, we project significant improvement within 4-6 months';
-                    if (negCount <= 15) return 'Based on your report, we project significant improvement within 6-9 months';
-                    return 'Based on your report, we project significant improvement within 9-12 months';
-                  })()}
-                </Typography>
-              </Box>
-            </Box>
-          </CardContent>
-        </Card>
-
-        {/* ===== FULL IDIQ CREDIT REPORT WIDGET ===== */}
-        {/* This shows the complete credit report using IDIQ's MicroFrontend */}
-        {/* Show widget if we have a member token - works for both verified and needs-verification cases */}
-        {showFullCreditReport && creditReportMemberToken && (
-          <Card sx={{ mb: 4 }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h6" fontWeight={700}>
-                  📊 Complete Credit Report
-                </Typography>
-                <Chip 
-                  label={pendingWidgetVerification ? "VERIFICATION PENDING" : "LIVE FROM IDIQ"}
-                  color={pendingWidgetVerification ? "warning" : "primary"}
-                  size="small"
-                  icon={<ShieldIcon sx={{ fontSize: 16 }} />}
-                />
-              </Box>
-              
-              {/* Show verification pending message if needed */}
-              {pendingWidgetVerification ? (
-                <Alert 
-                  severity="warning" 
-                  sx={{ 
-                    mb: 3,
-                    '& .MuiAlert-message': { width: '100%' }
-                  }}
-                >
-                  <AlertTitle sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Chip 
-                      label="VERIFICATION PENDING" 
-                      size="small" 
-                      sx={{ 
-                        bgcolor: '#ff9800', 
-                        color: 'white', 
-                        fontWeight: 'bold',
-                        fontSize: '0.7rem'
-                      }} 
-                    />
-                    Additional Verification Required
-                  </AlertTitle>
-                  
-                  <Typography variant="body2" sx={{ mt: 1, mb: 2 }}>
-                    The credit bureaus require additional verification for your identity. 
-                    This can happen for several reasons:
-                  </Typography>
-                  
-                  <Box component="ul" sx={{ 
-                    m: 0, 
-                    pl: 2.5,
-                    '& li': { mb: 0.75, fontSize: '0.875rem' }
-                  }}>
-                    <li><strong>Thin credit file</strong> - Limited credit history makes verification harder</li>
-                    <li><strong>Recent address change</strong> - New addresses may not be in the bureaus' records yet</li>
-                    <li><strong>Existing IDIQ account</strong> - You may already have an IDIQ account with a different email</li>
-                    <li><strong>Credit freeze or fraud alert</strong> - Security measures on your credit file</li>
-                    <li><strong>Name variations</strong> - Different name spellings across your credit accounts</li>
-                  </Box>
-                  
-                  <Divider sx={{ my: 2, borderColor: 'rgba(255, 152, 0, 0.3)' }} />
-                  
-                  <Typography variant="body2" sx={{ fontWeight: 500, mb: 1.5 }}>
-                    Your options:
-                  </Typography>
-                  
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                    <Button
-                      variant="contained"
-                      color="warning"
-                      size="small"
-                      startIcon={<OpenInNewIcon />}
-                      onClick={() => window.open('https://member.identityiq.com/', '_blank')}
-                      sx={{ textTransform: 'none' }}
-                    >
-                      Complete Verification at IDIQ
-                    </Button>
-                    
-                    <Button
-                      variant="outlined"
-                      color="warning"
-                      size="small"
-                      startIcon={<RefreshIcon />}
-                      onClick={() => window.location.reload()}
-                      sx={{ textTransform: 'none' }}
-                    >
-                      Refresh After Verification
-                    </Button>
-                    
-                    <Button
-                      variant="outlined"
-                      color="inherit"
-                      size="small"
-                      startIcon={<PhoneIcon />}
-                      onClick={() => window.open('tel:+18887247344')}
-                      sx={{ textTransform: 'none', color: 'text.secondary' }}
-                    >
-                      Call Support: (888) 724-7344
-                    </Button>
-                  </Box>
-                  
-                  <Typography variant="caption" sx={{ display: 'block', mt: 2, opacity: 0.8 }}>
-                    <strong>Already have an IDIQ account?</strong> You can log into your existing account 
-                    at member.identityiq.com to view your credit report, or contact us to link your 
-                    existing account to SpeedyCRM.
-                  </Typography>
-                </Alert>
-              ) : (
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                  This is your full tri-merge credit report from all three bureaus. 
-                  Review all accounts, inquiries, and public records below.
-                </Typography>
-              )}
-              
-              <IDIQCreditReportViewer
-                memberToken={creditReportMemberToken}
-                enrollmentId={enrollmentId}
-                contactId={contactId}
-                showHeader={false}
-                minHeight={pendingWidgetVerification ? 400 : 800}
-                onReportLoaded={(data) => {
-                  console.log('✅ Full credit report loaded in enrollment flow:', data);
-                  // AI can analyze this data for disputes and recommendations
-                  if (data?.token) {
-                    setCreditReportMemberToken(data.token);
-                  }
-                }}
-                onError={(err) => {
-                  console.error('❌ Credit report widget error:', err);
-                  // Don't block enrollment if widget fails - they can view later
-                }}
-              />
-              
-              <Alert severity="info" sx={{ mt: 2 }}>
-                <AlertTitle>What Happens Next?</AlertTitle>
-                <Typography variant="body2">
-                  Our AI is analyzing your credit report to identify disputable items and 
-                  recommend the best service plan for your situation. You'll receive a 
-                  personalized credit review via email within 24 hours.
-                </Typography>
-              </Alert>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Toggle button to show/hide full report */}
-        {enrollmentId && !showFullCreditReport && (
-          <Button
-            variant="outlined"
-            fullWidth
-            sx={{ mb: 4 }}
-            onClick={() => setShowFullCreditReport(true)}
-            startIcon={<AssessmentIcon />}
-          >
-            View Complete Credit Report
-          </Button>
-        )}
-
-        {/* ===== ENROLLMENT INCOMPLETE WARNING ===== */}
-        {/* Shows when IDIQ enrollment failed but user reached Phase 3 */}
-        {!enrollmentId && !creditReport && !creditAnalysisRunning && (
-          <Alert severity="info" sx={{ mb: 3 }}>
-            <AlertTitle>Enrollment Incomplete</AlertTitle>
-            Your credit report could not be retrieved automatically. Don't worry — our team 
-            has been notified and will assist you. You can still continue with document upload 
-            or contact us at 1-888-724-7344.
-          </Alert>
-        )}
-
-        {/* ===== Bug #9 FIX: Floating Continue prompt ===== */}
-        {/* This appears after 8 seconds so users know to continue, even if they */}
-        {/* haven't scrolled past the tall IDIQ credit report widget.             */}
-        {showFloatingContinue && (
-          <Box
-            sx={{
-              position: 'fixed',
-              bottom: 20,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              zIndex: 1200,
-              bgcolor: 'primary.main',
-              color: 'white',
-              px: 3,
-              py: 1.5,
-              borderRadius: 3,
-              boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 2,
-              cursor: 'pointer',
-              transition: 'all 0.3s',
-              '&:hover': { transform: 'translateX(-50%) translateY(-2px)', boxShadow: '0 6px 25px rgba(0,0,0,0.4)' },
-              maxWidth: '90vw',
-            }}
-            onClick={() => {
-              setShowFloatingContinue(false);
-              setCurrentPhase(4);
-            }}
-          >
-            <Typography variant="body1" fontWeight={600}>
-              Ready to continue?
-            </Typography>
-            <ArrowForwardIcon />
-            {floatingCountdown > 0 && (
-              <Chip
-                label={`${floatingCountdown}s`}
-                size="small"
-                sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white', fontWeight: 600 }}
-              />
-            )}
-          </Box>
-        )}
-
-        <Box id="phase3-continue-btn" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Button onClick={() => setCurrentPhase(1)} startIcon={<ArrowBackIcon />}>
-            Back
-          </Button>
-          <GlowingButton
-            onClick={() => { setShowFloatingContinue(false); setCurrentPhase(4); }}
-            endIcon={<ArrowForwardIcon />}
-          >
-            Continue to Document Upload
-          </GlowingButton>
-        </Box>
+        {/* ===== AI CREDIT REVIEW PRESENTATION ===== */}
+        <AICreditReviewPresentation
+          creditScores={creditScoresData}
+          negativeItems={disputePipelineResult?.disputes || aiCreditReviewData?.negativeItems || []}
+          disputeStrategy={disputePipelineResult?.strategy || aiCreditReviewData?.disputeStrategy || null}
+          recommendedPlan={planRecommendation || aiCreditReviewData?.recommendedPlan || selectedPlan}
+          contactId={contactId}
+          loading={aiCreditReviewLoading || creditAnalysisRunning}
+          onContinue={() => {
+            setShowFloatingContinue(false);
+            setCurrentPhase(4);
+          }}
+          onScheduleCall={() => {
+            window.open('tel:888-724-7344', '_self');
+          }}
+        />
       </Box>
     </Fade>
   );
+  };
 
   // ============================================================================
-// EDIT 3: Enhanced renderPhase4 Function
-// ============================================================================
-// REPLACE lines 3223-3337 in CompleteEnrollmentFlow.jsx with this code
-//
-// FEATURES:
-// - Photo ID upload with preview
-// - Utility Bill / Proof of Address upload with preview
-// - SSN Card upload with preview
-// - Bank Statements (multiple) with list
-// - Additional/Misc Documents (multiple) with list
-// - Document viewer modal
-// - Delete document option
-// - Pre-populated documents show checkmark
-//
-// © 1995-2026 Speedy Credit Repair Inc. | Chris Lahage | All Rights Reserved
-// ============================================================================
-
-  // ===== ADDITIONAL DOCUMENT UPLOAD HANDLER =====
-  const handleAdditionalDocUpload = async (file) => {
-    if (!file) return;
-    
-    setUploadingDoc('additional');
-    try {
-      const timestamp = Date.now();
-      const safeFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-      const path = `contact-documents/${contactId || 'temp'}/additional_${timestamp}_${safeFileName}`;
-      
-      const storageRef = ref(storage, path);
-      await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(storageRef);
-      
-      const newDoc = {
-        id: timestamp,
-        name: file.name,
-        url: url,
-        type: file.type,
-        uploadedAt: new Date().toISOString(),
-      };
-      
-      setAdditionalDocs(prev => [...prev, newDoc]);
-      setSuccess('Document uploaded successfully!');
-      
-      console.log('📄 Additional document uploaded:', file.name);
-    } catch (err) {
-      console.error('❌ Error uploading additional document:', err);
-      setError('Failed to upload document. Please try again.');
-    } finally {
-      setUploadingDoc(null);
-    }
-  };
-
-  // ===== BANK STATEMENT UPLOAD HANDLER =====
-  const handleBankStatementUpload = async (file) => {
-    if (!file) return;
-    
-    setUploadingDoc('bank');
-    try {
-      const timestamp = Date.now();
-      const safeFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-      const path = `contact-documents/${contactId || 'temp'}/bank_${timestamp}_${safeFileName}`;
-      
-      const storageRef = ref(storage, path);
-      await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(storageRef);
-      
-      setBankStatementUrls(prev => [...prev, { 
-        id: timestamp, 
-        name: file.name, 
-        url: url,
-        uploadedAt: new Date().toISOString()
-      }]);
-      setSuccess('Bank statement uploaded successfully!');
-      
-      console.log('📄 Bank statement uploaded:', file.name);
-    } catch (err) {
-      console.error('❌ Error uploading bank statement:', err);
-      setError('Failed to upload bank statement. Please try again.');
-    } finally {
-      setUploadingDoc(null);
-    }
-  };
-
-  // ===== SSN CARD UPLOAD HANDLER =====
-  const handleSSNCardUpload = async (file) => {
-    if (!file) return;
-    
-    setUploadingDoc('ssn');
-    try {
-      const timestamp = Date.now();
-      const safeFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-      const path = `contact-documents/${contactId || 'temp'}/ssn_${timestamp}_${safeFileName}`;
-      
-      const storageRef = ref(storage, path);
-      await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(storageRef);
-      
-      setSsnCardUrl(url);
-      setSuccess('SSN Card uploaded successfully!');
-      
-      console.log('📄 SSN Card uploaded');
-    } catch (err) {
-      console.error('❌ Error uploading SSN card:', err);
-      setError('Failed to upload SSN card. Please try again.');
-    } finally {
-      setUploadingDoc(null);
-    }
-  };
-
-  // ===== DELETE DOCUMENT HANDLER =====
-  const handleDeleteDocument = (type, docId = null) => {
-    switch(type) {
-      case 'id':
-        setIdPhotoUrl(null);
-        break;
-      case 'utility':
-        setUtilityPhotoUrl(null);
-        break;
-      case 'ssn':
-        setSsnCardUrl(null);
-        break;
-      case 'bank':
-        setBankStatementUrls(prev => prev.filter(d => d.id !== docId));
-        break;
-      case 'additional':
-        setAdditionalDocs(prev => prev.filter(d => d.id !== docId));
-        break;
-    }
-    setSuccess('Document removed.');
-  };
-
-  // ===== VIEW DOCUMENT HANDLER =====
-  const handleViewDocument = (url, name) => {
-    setViewingDocument({ url, name });
-    setShowDocumentViewer(true);
-  };
-  // ============================================================================
-  // CREDIT ANALYSIS AUTOMATION HANDLER
-  // ============================================================================
-  const handleCreditAnalysis = async (idiqData) => {
-    console.log('===== TRIGGERING CREDIT ANALYSIS AUTOMATION =====');
-    console.log('🎯 IDIQ Data:', idiqData);
-    console.log('📋 Contact ID:', contactId);
-
-    try {
-      // Update UI state
-      setCreditAnalysisRunning(true);
-      setCreditAnalysisError(null);
-      setSuccess('Credit analysis in progress... This will take about 30 seconds.');
-
-      // Sync IDIQ data to contact
-      console.log('📥 Syncing IDIQ data to contact...');
-      
-      await syncIDIQToContact(contactId, {
-        ...formData,
-        ...idiqData,
-        memberToken: idiqData.memberToken || idiqData.idiqMemberToken,
-        membershipNumber: idiqData.membershipNumber || idiqData.idiqMembershipNumber,
-        enrollmentComplete: true
-      });
-
-      console.log('✅ IDIQ data synced');
-
-      // Run credit analysis automation
-      console.log('🤖 Running credit analysis...');
-      
-      const analysisResult = await runCreditAnalysis(
-        contactId, 
-        {
-          memberToken: idiqData.memberToken || idiqData.idiqMemberToken,
-          membershipNumber: idiqData.membershipNumber || idiqData.idiqMembershipNumber,
-          ...idiqData
-        },
-        {
-          autoDisputeEnabled: false
-        }
-      );
-
-      console.log('📊 Analysis Result:', analysisResult);
-
-      // Update state with results
-      if (analysisResult.success) {
-        console.log('✅ Analysis completed!');
-        
-        setCreditAnalysisComplete(true);
-        setCreditAnalysisResult(analysisResult);
-        setCreditReport(analysisResult.analysis);
-        
-        setSuccess(`🎉 Analysis Complete! Score: ${analysisResult.creditScore} | Negative Items: ${analysisResult.negativeItemsCount}`);
-
-        // Auto-advance after 3 seconds
-       setTimeout(() => {
-       setCurrentPhase(3);
-    }, 3000);
-
-      } else {
-        console.error('❌ Analysis failed:', analysisResult.error);
-        
-        setCreditAnalysisError(
-          typeof analysisResult.error === 'string' 
-            ? analysisResult.error 
-            : analysisResult.error?.message || 'Analysis failed. Manual review will follow.'
-        );
-        // ===== Bug #10 FIX: Clear the "in progress" success message =====
-        // Previously, the success "Analysis in progress..." stayed visible
-        // while the error "Analysis encountered an issue" also appeared.
-        // Now we clear the success state so only the error shows.
-        setSuccess(null);
-        setError('Analysis encountered an issue. Our team will review manually within 24 hours.');
-        
-        // Still advance
-        setTimeout(() => {
-        setCurrentPhase(3);
-    },  5000);
-      }
-
-    } catch (error) {
-      console.error('❌ Analysis error:', error);
-      
-      setCreditAnalysisError(error.message);
-      // ===== Bug #10 FIX: Clear "in progress" success message in catch block too =====
-      setSuccess(null);
-      setError('Unable to complete automatic analysis. Manual review will follow.');
-      
-      // Log error to Firestore
-      await logAnalysisError(contactId, error);
-      
-      // Still advance
-      setTimeout(() => {
-        setCurrentPhase(3);
-      }, 5000);
-      
-    } finally {
-      setCreditAnalysisRunning(false);
-    }
-  };
-
-  // Helper to log analysis errors
-  const logAnalysisError = async (contactId, error) => {
-    try {
-      const { doc, collection, setDoc, serverTimestamp } = await import('firebase/firestore');
-      const { db } = await import('@/lib/firebase');
-      
-      const errorRef = doc(collection(db, 'analysisErrors'));
-      await setDoc(errorRef, {
-        contactId,
-        error: error.message,
-        stack: error.stack,
-        timestamp: serverTimestamp(),
-        source: 'CompleteEnrollmentFlow'
-      });
-    } catch (err) {
-      console.error('Failed to log error:', err);
-    }
-  };
-
-  // ===== DOCUMENT VIEWER MODAL =====
-  const DocumentViewerModal = () => (
-    <Dialog
-      open={showDocumentViewer}
-      onClose={() => setShowDocumentViewer(false)}
-      maxWidth="lg"
-      fullWidth
-    >
-      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h6">{viewingDocument?.name || 'Document Viewer'}</Typography>
-        <IconButton onClick={() => setShowDocumentViewer(false)}>
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
-      <DialogContent>
-        {viewingDocument?.url && (
-          viewingDocument.url.toLowerCase().includes('.pdf') ? (
-            <iframe 
-              src={viewingDocument.url} 
-              style={{ width: '100%', height: '70vh', border: 'none' }}
-              title="Document Viewer"
-            />
-          ) : (
-            <Box sx={{ textAlign: 'center' }}>
-              <img 
-                src={viewingDocument.url} 
-                alt={viewingDocument.name}
-                style={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain' }}
-              />
-            </Box>
-          )
-        )}
-      </DialogContent>
-      <DialogActions>
-        <Button 
-          startIcon={<DownloadIcon />}
-          onClick={() => window.open(viewingDocument?.url, '_blank')}
-        >
-          Download
-        </Button>
-        <Button onClick={() => setShowDocumentViewer(false)}>Close</Button>
-      </DialogActions>
-    </Dialog>
-  );
-
-  // ===== DOCUMENT CARD COMPONENT =====
-  const DocumentCard = ({ 
-    title, 
-    subtitle, 
-    icon: Icon, 
-    url, 
-    onUpload, 
-    onDelete, 
-    onView,
-    inputRef,
-    type,
-    isUploading,
-    accept = "image/jpeg,image/jpg,image/png,image/gif,image/webp,application/pdf"
-  }) => (
-    <Card
-      sx={{
-        p: 2,
-        border: url ? '2px solid #4CAF50' : '2px dashed #ccc',
-        textAlign: 'center',
-        cursor: 'pointer',
-        transition: 'all 0.2s',
-        '&:hover': { borderColor: '#2196F3', transform: 'translateY(-2px)' },
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-      }}
-      onClick={() => !url && inputRef?.current?.click()}
-    >
-      <input
-        ref={inputRef}
-        type="file"
-        accept={accept}
-        capture="environment"
-        hidden
-        onChange={(e) => onUpload(e.target.files[0])}
-      />
-      
-      {isUploading ? (
-        <Box sx={{ py: 2 }}>
-          <CircularProgress size={40} />
-          <Typography variant="body2" sx={{ mt: 1 }}>Uploading...</Typography>
-        </Box>
-      ) : url ? (
-        <Box>
-          <CheckIcon color="success" sx={{ fontSize: 40, mb: 1 }} />
-          <Typography variant="subtitle1" color="success.main" fontWeight={600}>
-            {title} ✓
-          </Typography>
-          
-          {/* Preview thumbnail */}
-          {!url.toLowerCase().includes('.pdf') && (
-            <Box sx={{ my: 1 }}>
-              <img 
-                src={url} 
-                alt={title} 
-                style={{ maxWidth: 120, maxHeight: 80, objectFit: 'cover', borderRadius: 4 }} 
-              />
-            </Box>
-          )}
-          
-          {/* Action buttons */}
-          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', mt: 1 }}>
-            <Tooltip title="View Document">
-              <IconButton size="small" onClick={(e) => { e.stopPropagation(); onView(url, title); }}>
-                <ViewIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Replace Document">
-              <IconButton size="small" onClick={(e) => { e.stopPropagation(); inputRef?.current?.click(); }}>
-                <UploadIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Delete Document">
-              <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); onDelete(type); }}>
-                <DeleteIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </Box>
-        </Box>
-      ) : (
-        <Box>
-          <Icon sx={{ fontSize: 40, mb: 1, color: 'primary.main' }} />
-          <Typography variant="subtitle1" fontWeight={600} gutterBottom>
-            {title}
-          </Typography>
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-            {subtitle}
-          </Typography>
-          <Button variant="outlined" size="small" startIcon={<UploadIcon />}>
-            Upload
-          </Button>
-        </Box>
-      )}
-    </Card>
-  );
-
   // ===== RENDER PHASE 4 - ENHANCED DOCUMENT UPLOAD =====
   const renderPhase4 = () => (
     <Fade in timeout={500}>
