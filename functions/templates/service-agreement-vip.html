@@ -2,19 +2,280 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Premium Attorney-Backed Service Agreement</title>
+    <title>VIP Concierge Service Agreement</title>
     <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }
-        .header { text-align: center; margin-bottom: 30px; border-bottom: 3px solid #D32F2F; padding-bottom: 20px; }
-        .header h1 { color: #D32F2F; }
-        .section h2 { color: #D32F2F; border-bottom: 2px solid #e0e0e0; padding-bottom: 10px; }
-        .premium-box { background-color: #ffebee; border: 2px solid #D32F2F; padding: 20px; margin: 15px 0; }
-        .info-box { background-color: #f9f9f9; border-left: 4px solid #D32F2F; padding: 15px; margin: 15px 0; }
-        table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-        table td { padding: 10px; border: 1px solid #ddd; }
-        table td.label { font-weight: bold; width: 40%; background-color: #f5f5f5; }
-        .signature-block { margin-top: 40px; padding-top: 20px; border-top: 2px solid #333; }
-        .footer { margin-top: 50px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 11px; color: #666; text-align: center; }
+        /* ===== VIP CONCIERGE CONTRACT DESIGN ===== */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 10.5pt;
+            line-height: 1.7;
+            max-width: 850px;
+            margin: 0 auto;
+            padding: 40px 50px;
+            color: #1a1a1a;
+            background: #ffffff;
+        }
+        
+        /* ===== VIP HEADER ===== */
+        .header {
+            text-align: center;
+            padding: 40px 30px;
+            margin-bottom: 50px;
+            background: linear-gradient(135deg, #B71C1C 0%, #D32F2F 50%, #F44336 100%);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(211, 47, 47, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,215,0,0.15) 0%, transparent 70%);
+            animation: pulse 15s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(-30px, -30px); }
+        }
+        
+        .header h1 {
+            font-size: 28pt;
+            color: #ffffff;
+            margin: 15px 0 20px 0;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .header p {
+            color: rgba(255, 255, 255, 0.95);
+            position: relative;
+            z-index: 1;
+            font-weight: 500;
+            margin: 10px 0;
+        }
+        
+        .header strong {
+            color: #FFD700;
+            font-size: 12pt;
+        }
+        
+        /* ===== SECTIONS ===== */
+        .section {
+            margin: 45px 0;
+            page-break-inside: avoid;
+        }
+        
+        h2 {
+            font-size: 16pt;
+            color: #B71C1C;
+            padding: 15px 20px;
+            margin: 35px 0 20px 0;
+            font-weight: 700;
+            background: linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%);
+            border-left: 5px solid #D32F2F;
+            border-radius: 8px;
+            letter-spacing: -0.3px;
+        }
+        
+        h3 {
+            font-size: 12.5pt;
+            color: #C62828;
+            margin: 25px 0 12px 0;
+            font-weight: 600;
+            padding-left: 15px;
+            border-left: 3px solid #EF5350;
+        }
+        
+        p {
+            margin: 12px 0;
+            text-align: justify;
+            color: #2c2c2c;
+        }
+        
+        /* ===== TABLES ===== */
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 20px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        td {
+            padding: 14px 18px;
+            text-align: left;
+            border-bottom: 1px solid #FFEBEE;
+        }
+        
+        td.label {
+            font-weight: 600;
+            color: #C62828;
+            background: #FFF5F5;
+            width: 40%;
+        }
+        
+        td:not(.label) {
+            background: white;
+        }
+        
+        tr:last-child td {
+            border-bottom: none;
+        }
+        
+        tr:hover td {
+            background: #FFEBEE !important;
+            transition: all 0.2s ease;
+        }
+        
+        /* ===== LISTS ===== */
+        ul, ol {
+            margin: 15px 0 15px 25px;
+            padding-left: 20px;
+        }
+        
+        li {
+            margin: 10px 0;
+            line-height: 1.8;
+            color: #2c2c2c;
+        }
+        
+        li::marker {
+            color: #D32F2F;
+            font-weight: 600;
+        }
+        
+        /* ===== VIP BOXES ===== */
+        .premium-box {
+            background: linear-gradient(135deg, #FFFBF0 0%, #FFF8E1 100%);
+            border: 2px solid #FFD700;
+            padding: 25px;
+            margin: 25px 0;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(255, 215, 0, 0.2);
+            position: relative;
+        }
+        
+        .premium-box::before {
+            content: '★';
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 32pt;
+            color: rgba(255, 215, 0, 0.3);
+        }
+        
+        .premium-box h3 {
+            color: #F57F17;
+            border-left: 3px solid #FFD700;
+        }
+        
+        .info-box {
+            background: linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%);
+            border-left: 5px solid #D32F2F;
+            padding: 20px 25px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(211, 47, 47, 0.15);
+        }
+        
+        .info-box h3 {
+            color: #B71C1C;
+        }
+        
+        .guarantee-box {
+            background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+            border-left: 5px solid #4CAF50;
+            padding: 20px 25px;
+            margin: 25px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.15);
+        }
+        
+        .guarantee-box strong {
+            color: #2E7D32;
+        }
+        
+        /* ===== SIGNATURE SECTION ===== */
+        .signature-block {
+            margin-top: 60px;
+            padding: 35px;
+            background: linear-gradient(135deg, #FFF5F5 0%, #FFEBEE 100%);
+            border-radius: 12px;
+            border: 2px solid #D32F2F;
+        }
+        
+        .signature-block p {
+            margin: 20px 0;
+        }
+        
+        /* ===== FOOTER ===== */
+        .footer {
+            margin-top: 60px;
+            padding: 35px 30px;
+            background: linear-gradient(135deg, #263238 0%, #37474F 100%);
+            color: #B0BEC5;
+            text-align: center;
+            border-radius: 12px;
+            font-size: 9pt;
+            line-height: 1.8;
+        }
+        
+        .footer strong {
+            color: #ffffff;
+            font-size: 11pt;
+            display: block;
+            margin-bottom: 8px;
+        }
+        
+        .footer p {
+            margin: 8px 0;
+            text-align: center;
+        }
+        
+        /* ===== ACCENTS ===== */
+        strong {
+            color: #C62828;
+            font-weight: 600;
+        }
+        
+        /* ===== PRINT STYLES ===== */
+        @media print {
+            body {
+                padding: 0;
+                max-width: 100%;
+            }
+            
+            .header::before {
+                display: none;
+            }
+            
+            .premium-box::before {
+                display: none;
+            }
+            
+            .section {
+                page-break-inside: avoid;
+            }
+        }
     </style>
 </head>
 <body>
@@ -129,6 +390,15 @@
         <p><strong>Why 12 Months:</strong> Complex legal credit issues require time to properly resolve. Our 12-month term ensures we have adequate time to implement advanced strategies and see them through to completion.</p>
         <p><strong>Early Termination:</strong> If you wish to terminate before 12 months, you may do so with 30 days written notice. Early termination fee equal to 50% of remaining contract value may apply.</p>
         <p><strong>Renewal:</strong> After initial 12 months, automatically renews month-to-month unless cancelled.</p>
+        
+        <h3>Service Guarantee & Cancellation</h3>
+        <div class="guarantee-box">
+            <p><strong>Your Results Protection:</strong> You may cancel after the third month if no reasonable results have been achieved, ensuring you only pay for effective credit repair service.</p>
+            
+            <p><strong>Cancellation Process:</strong> To initiate cancellation, submit your request in writing and await confirmation from our team.</p>
+            
+            <p><strong>Account Requirements:</strong> Please note that your account must remain in good standing, and credit monitoring will continue for up to 45 days to track results from recently submitted disputes.</p>
+        </div>
     </div>
 
     <div class="section">
@@ -189,7 +459,7 @@
     <div class="footer" style="text-align: center; margin-top: 50px; padding-top: 30px; border-top: 2px solid #333; font-size: 9pt; color: #333; page-break-inside: avoid;">
         <p style="margin: 5px 0; font-weight: bold;">Speedy Credit Repair Inc.</p>
         <p style="margin: 5px 0;">117 Main Street Suite 202, Huntington Beach, California 92648</p>
-        <p style="margin: 5px 0;">Phone: 888-724-7344 | Email: Contact@speedycreditrepair.com</p>
+        <p style="margin: 5px 0;">Phone: 888-724-7344 | Email: <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="60230f0e14010314201310050504190312050409141205100109124e030f0d">[email&#160;protected]</a></p>
         <p style="margin: 5px 0;">Website: https://speedycreditrepair.com</p>
 
         <p style="margin: 15px 0 5px 0;">
@@ -208,8 +478,4 @@
         </p>
 
         <p style="margin: 10px 0; font-size: 8pt;">
-            This document is a legally binding contract. Please retain a copy for your records.
-        </p>
-    </div>
-</body>
-</html>
+        

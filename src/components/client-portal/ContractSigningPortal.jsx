@@ -1403,12 +1403,19 @@ export default function ContractSigningPortal({
       </Snackbar>
 
       {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Box sx={{ 
+        mb: 4, 
+        p: 3, 
+        bgcolor: 'primary.main', 
+        color: 'white',
+        borderRadius: 2,
+        boxShadow: 2
+      }}>
+        <Typography variant="h4" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 600 }}>
           <FileText size={32} />
           Contract Signing Portal
         </Typography>
-        <Typography variant="body1" color="text.secondary">
+        <Typography variant="body1" sx={{ opacity: 0.9 }}>
           Please review and sign all documents for your {planConfig?.name || 'service'} plan
         </Typography>
       </Box>
@@ -1427,13 +1434,25 @@ export default function ContractSigningPortal({
       </Card>
 
       {/* Progress Bar */}
-      <Card sx={{ mb: 3 }}>
+      <Card sx={{ mb: 3, boxShadow: 2 }}>
         <CardContent>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-            <Typography variant="subtitle2">Overall Progress</Typography>
-            <Typography variant="subtitle2">{progressPercent}%</Typography>
+            <Typography variant="subtitle1" fontWeight={600}>Overall Progress</Typography>
+            <Typography variant="h6" color="primary.main" fontWeight={600}>{progressPercent}%</Typography>
           </Box>
-          <LinearProgress variant="determinate" value={progressPercent} sx={{ height: 8, borderRadius: 4 }} />
+          <LinearProgress 
+            variant="determinate" 
+            value={progressPercent} 
+            sx={{ 
+              height: 10, 
+              borderRadius: 5,
+              bgcolor: '#e0e0e0',
+              '& .MuiLinearProgress-bar': {
+                borderRadius: 5,
+                bgcolor: progressPercent === 100 ? 'success.main' : 'primary.main'
+              }
+            }} 
+          />
           <Box sx={{ display: 'flex', gap: 2, mt: 2, flexWrap: 'wrap' }}>
             <Chip
               size="small"
@@ -1554,16 +1573,30 @@ export default function ContractSigningPortal({
                         className="document-content"
                         onClick={handleDocumentClick}
                         sx={{
-                          p: { xs: 2, md: 4 },
-                          maxHeight: 500,
+                          p: { xs: 2, md: 3 },
+                          maxHeight: 600, // ✅ C10: Increased from 500 to 600 for less scrolling
                           overflow: 'auto',
                           bgcolor: '#fafafa',
-                          '& h1': { fontSize: '1.4rem', color: '#1a365d' },
-                          '& h2': { fontSize: '1.1rem', color: '#333', mt: 3 },
-                          '& p': { mb: 1.5, lineHeight: 1.7 },
+                          border: '1px solid',
+                          borderColor: 'divider',
+                          borderRadius: 2,
+                          '& h1': { fontSize: '1.5rem', color: '#1a365d', mb: 2, fontWeight: 600 },
+                          '& h2': { fontSize: '1.2rem', color: '#2d3748', mt: 2, mb: 1.5, fontWeight: 600 },
+                          '& h3': { fontSize: '1.1rem', color: '#4a5568', mt: 1.5, mb: 1, fontWeight: 500 },
+                          '& p': { mb: 1.5, lineHeight: 1.7, color: '#2d3748' },
                           '& ul, & ol': { pl: 3, mb: 1.5 },
-                          '& li': { mb: 0.5 },
-                          '& strong': { color: '#111' }
+                          '& li': { mb: 0.5, lineHeight: 1.6 },
+                          '& strong': { color: '#1a202c', fontWeight: 600 },
+                          '& .initial-marker': { 
+                            display: 'inline-block',
+                            minWidth: '80px',
+                            borderBottom: '2px solid #1976d2',
+                            textAlign: 'center',
+                            fontWeight: 600,
+                            color: '#1976d2',
+                            cursor: 'pointer',
+                            '&:hover': { bgcolor: '#e3f2fd' }
+                          }
                         }}
                         dangerouslySetInnerHTML={{ __html: processDocumentHtml(docObj) }}
                       />
@@ -1571,8 +1604,11 @@ export default function ContractSigningPortal({
 
                     {/* Signature Canvas */}
                     {docObj.requiresSignature && (
-                      <Box sx={{ mt: 3 }}>
-                        <Divider sx={{ mb: 2 }} />
+                      <Box sx={{ mt: 4, p: 3, bgcolor: '#f8f9fa', borderRadius: 2, border: '2px dashed', borderColor: 'primary.main' }}>
+                        <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Edit size={20} />
+                          Signature Required
+                        </Typography>
 
                         {signatures[docObj.id] ? (
                           <Alert severity="success" sx={{ mb: 2 }}>

@@ -9,14 +9,17 @@
 // PHASES:
 // 1. Smart Lead Capture (with carrier selection)
 // 2. Progressive Disclosure (animated analysis checklist)
-// 3. Platinum Credit Analysis (IDIQ co-branded with charts)
-// 4. Photo ID Upload
+// 3. Platinum Credit Analysis (IDIQ co-branded with charts) - EMOTIONAL PEAK
+// 4. Plan Selection & Payment - MOVED UP (Strike while iron is hot!)
 // 5. Signature Capture
-// 6. Plan Selection & Payment
+// 6. Photo ID Upload - MOVED DOWN (Admin paperwork after commitment)
 // 7. Account Creation & Automation
 // 8. Celebration (confetti + video)
 // 9. Portal Preview
 // 10. Backend Sync (DisputeHub population)
+//
+// CONVERSION PSYCHOLOGY: Plan selection immediately after credit review
+// maximizes emotional engagement. ID upload moved down as boring admin task.
 //
 // FEATURES:
 // ✅ Iframe postMessage handshake with landing page
@@ -407,9 +410,9 @@ const PHASES = [
   { id: 1, label: 'Your Info', icon: PersonIcon, description: 'Tell us about yourself' },
   { id: 2, label: 'Analysis', icon: SearchIcon, description: 'Analyzing your credit' },
   { id: 3, label: 'Results', icon: AssessmentIcon, description: 'View your analysis' },
-  { id: 4, label: 'Documents', icon: DocumentIcon, description: 'Upload & sign' },
+  { id: 4, label: 'Plan', icon: CreditIcon, description: 'Choose your plan' }, // SWAPPED
   { id: 5, label: 'Agreement', icon: SignatureIcon, description: 'Digital signature' },
-  { id: 6, label: 'Plan', icon: CreditIcon, description: 'Choose your plan' },
+  { id: 6, label: 'Documents', icon: DocumentIcon, description: 'Upload ID' }, // SWAPPED
   { id: 7, label: 'Payment', icon: PaymentIcon, description: 'Secure checkout' },
   { id: 8, label: 'Celebrate', icon: CelebrationIcon, description: "You're enrolled!" },
   { id: 9, label: 'Portal', icon: DashboardIcon, description: 'Preview your portal' },
@@ -421,9 +424,9 @@ const CRM_PHASES = [
   { id: 1, label: 'Client Info', icon: PersonIcon, description: 'Verify details' },
   { id: 2, label: 'Analysis', icon: SearchIcon, description: 'Pull credit report' },
   { id: 3, label: 'Results', icon: AssessmentIcon, description: 'Review report' },
-  { id: 4, label: 'Documents', icon: DocumentIcon, description: 'Upload docs' },
+  { id: 4, label: 'Plan', icon: CreditIcon, description: 'Select plan' }, // SWAPPED
   { id: 5, label: 'Agreement', icon: SignatureIcon, description: 'Digital signature' },
-  { id: 6, label: 'Plan', icon: CreditIcon, description: 'Select plan' },
+  { id: 6, label: 'Documents', icon: DocumentIcon, description: 'Upload docs' }, // SWAPPED
   { id: 7, label: 'Complete', icon: CheckIcon, description: 'Finalize' },
 ];
 
@@ -5501,9 +5504,9 @@ A+ BBB Rating | 4.9 Google (580+ reviews)
           {currentPhase === 1 && renderPhase1()}
           {currentPhase === 2 && renderPhase2()}
           {currentPhase === 3 && renderPhase3()}
-          {currentPhase === 4 && renderPhase4()}
+          {currentPhase === 4 && renderPhase6()} {/* SWAPPED: Plan Selection now at position 4 */}
           {currentPhase === 5 && renderPhase5()}
-          {currentPhase === 6 && renderPhase6()}
+          {currentPhase === 6 && renderPhase4()} {/* SWAPPED: ID Upload now at position 6 */}
           {currentPhase === 7 && renderPhase7()}
           {currentPhase === 8 && renderPhase8()}
           {currentPhase === 9 && renderPhase9()}

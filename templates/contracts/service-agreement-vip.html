@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>VIP Concierge Service Agreement</title>
+    <style>
+        /* ===== VIP CONCIERGE CONTRACT DESIGN ===== */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 10.5pt;
+            line-height: 1.7;
+            max-width: 850px;
+            margin: 0 auto;
+            padding: 40px 50px;
+            color: #1a1a1a;
+            background: #ffffff;
+        }
+        
+        /* ===== VIP HEADER ===== */
+        .header {
+            text-align: center;
+            padding: 40px 30px;
+            margin-bottom: 50px;
+            background: linear-gradient(135deg, #B71C1C 0%, #D32F2F 50%, #F44336 100%);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(211, 47, 47, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,215,0,0.15) 0%, transparent 70%);
+            animation: pulse 15s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(-30px, -30px); }
+        }
+        
+        .header h1 {
+            font-size: 28pt;
+            color: #ffffff;
+            margin: 15px 0 20px 0;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .header p {
+            color: rgba(255, 255, 255, 0.95);
+            position: relative;
+            z-index: 1;
+            font-weight: 500;
+            margin: 10px 0;
+        }
+        
+        .header strong {
+            color: #FFD700;
+            font-size: 12pt;
+        }
+        
+        /* ===== SECTIONS ===== */
+        .section {
+            margin: 45px 0;
+            page-break-inside: avoid;
+        }
+        
+        h2 {
+            font-size: 16pt;
+            color: #B71C1C;
+            padding: 15px 20px;
+            margin: 35px 0 20px 0;
+            font-weight: 700;
+            background: linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%);
+            border-left: 5px solid #D32F2F;
+            border-radius: 8px;
+            letter-spacing: -0.3px;
+        }
+        
+        h3 {
+            font-size: 12.5pt;
+            color: #C62828;
+            margin: 25px 0 12px 0;
+            font-weight: 600;
+            padding-left: 15px;
+            border-left: 3px solid #EF5350;
+        }
+        
+        p {
+            margin: 12px 0;
+            text-align: justify;
+            color: #2c2c2c;
+        }
+        
+        /* ===== TABLES ===== */
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 20px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        td {
+            padding: 14px 18px;
+            text-align: left;
+            border-bottom: 1px solid #FFEBEE;
+        }
+        
+        td.label {
+            font-weight: 600;
+            color: #C62828;
+            background: #FFF5F5;
+            width: 40%;
+        }
+        
+        td:not(.label) {
+            background: white;
+        }
+        
+        tr:last-child td {
+            border-bottom: none;
+        }
+        
+        tr:hover td {
+            background: #FFEBEE !important;
+            transition: all 0.2s ease;
+        }
+        
+        /* ===== LISTS ===== */
+        ul, ol {
+            margin: 15px 0 15px 25px;
+            padding-left: 20px;
+        }
+        
+        li {
+            margin: 10px 0;
+            line-height: 1.8;
+            color: #2c2c2c;
+        }
+        
+        li::marker {
+            color: #D32F2F;
+            font-weight: 600;
+        }
+        
+        /* ===== VIP BOXES ===== */
+        .premium-box {
+            background: linear-gradient(135deg, #FFFBF0 0%, #FFF8E1 100%);
+            border: 2px solid #FFD700;
+            padding: 25px;
+            margin: 25px 0;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(255, 215, 0, 0.2);
+            position: relative;
+        }
+        
+        .premium-box::before {
+            content: '★';
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 32pt;
+            color: rgba(255, 215, 0, 0.3);
+        }
+        
+        .premium-box h3 {
+            color: #F57F17;
+            border-left: 3px solid #FFD700;
+        }
+        
+        .info-box {
+            background: linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%);
+            border-left: 5px solid #D32F2F;
+            padding: 20px 25px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(211, 47, 47, 0.15);
+        }
+        
+        .info-box h3 {
+            color: #B71C1C;
+        }
+        
+        .guarantee-box {
+            background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+            border-left: 5px solid #4CAF50;
+            padding: 20px 25px;
+            margin: 25px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.15);
+        }
+        
+        .guarantee-box strong {
+            color: #2E7D32;
+        }
+        
+        /* ===== SIGNATURE SECTION ===== */
+        .signature-block {
+            margin-top: 60px;
+            padding: 35px;
+            background: linear-gradient(135deg, #FFF5F5 0%, #FFEBEE 100%);
+            border-radius: 12px;
+            border: 2px solid #D32F2F;
+        }
+        
+        .signature-block p {
+            margin: 20px 0;
+        }
+        
+        /* ===== FOOTER ===== */
+        .footer {
+            margin-top: 60px;
+            padding: 35px 30px;
+            background: linear-gradient(135deg, #263238 0%, #37474F 100%);
+            color: #B0BEC5;
+            text-align: center;
+            border-radius: 12px;
+            font-size: 9pt;
+            line-height: 1.8;
+        }
+        
+        .footer strong {
+            color: #ffffff;
+            font-size: 11pt;
+            display: block;
+            margin-bottom: 8px;
+        }
+        
+        .footer p {
+            margin: 8px 0;
+            text-align: center;
+        }
+        
+        /* ===== ACCENTS ===== */
+        strong {
+            color: #C62828;
+            font-weight: 600;
+        }
+        
+        /* ===== PRINT STYLES ===== */
+        @media print {
+            body {
+                padding: 0;
+                max-width: 100%;
+            }
+            
+            .header::before {
+                display: none;
+            }
+            
+            .premium-box::before {
+                display: none;
+            }
+            
+            .section {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>PREMIUM ATTORNEY-BACKED SERVICE AGREEMENT</h1>
+        <p><strong>Speedy Credit Repair Inc.</strong><br>Elite Legal Protection for Complex Cases</p>
+        <p>{{COMPANY_PHONE}} | {{COMPANY_EMAIL}}</p>
+    </div>
+
+    <div class="section">
+        <h2>Contract Information</h2>
+        <table>
+            <tr><td class="label">Contract Number:</td><td>{{CONTRACT_NUMBER}}</td></tr>
+            <tr><td class="label">Contract Date:</td><td>{{CONTRACT_DATE}}</td></tr>
+            <tr><td class="label">Contract Period:</td><td>{{CONTRACT_START_DATE}} to {{CONTRACT_END_DATE}} (12 months)</td></tr>
+            <tr><td class="label">Service Plan:</td><td><strong>Premium Attorney-Backed Plan</strong></td></tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>Client Information</h2>
+        <table>
+            <tr><td class="label">Name:</td><td>{{CLIENT_NAME}}</td></tr>
+            <tr><td class="label">Email:</td><td>{{CLIENT_EMAIL}}</td></tr>
+            <tr><td class="label">Phone:</td><td>{{CLIENT_PHONE}}</td></tr>
+            <tr><td class="label">Address:</td><td>{{CLIENT_ADDRESS}}, {{CLIENT_CITY}}, {{CLIENT_STATE}} {{CLIENT_ZIP}}</td></tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>Premium Services & Attorney Support</h2>
+        <p>{{PLAN_DESCRIPTION}}</p>
+        <div class="premium-box">
+            <h3 style="margin-top: 0; color: #D32F2F;">COMPREHENSIVE ATTORNEY-BACKED FEATURES:</h3>
+            {{PLAN_FEATURES}}
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Pricing</h2>
+        <table>
+            <tr><td class="label">Monthly Fee:</td><td><strong>{{MONTHLY_FEE}}</strong></td></tr>
+            <tr><td class="label">One-Time Legal Case Review Fee:</td><td><strong>{{SETUP_FEE}}</strong></td></tr>
+            <tr><td class="label">Per-Deletion Fees:</td><td>INCLUDED (no additional charges)</td></tr>
+            <tr><td class="label">Contract Term:</td><td>12 months ({{CONTRACT_LENGTH}})</td></tr>
+            <tr><td class="label">First Payment:</td><td><strong>{{TOTAL_FIRST_PAYMENT}}</strong> (includes setup fee + first month)</td></tr>
+        </table>
+
+        <p><strong>What's Included in Setup Fee:</strong></p>
+        <ul>
+            <li>Comprehensive legal case review by licensed attorney</li>
+            <li>Analysis of all credit issues from legal perspective</li>
+            <li>Custom legal strategy development</li>
+            <li>Initial attorney consultation (30 minutes)</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Attorney Consultation & Legal Support</h2>
+        <div class="info-box">
+            <h3>Included Attorney Services:</h3>
+            <ul>
+                <li><strong>Initial Legal Case Review ($199 value):</strong> Comprehensive review of your credit situation from a legal standpoint</li>
+                <li><strong>Bi-Weekly Strategy Calls:</strong> 15-minute consultation calls every two weeks with legal advisor</li>
+                <li><strong>FCRA/FDCPA Expertise:</strong> Advanced knowledge of Fair Credit Reporting Act and Fair Debt Collection Practices Act</li>
+                <li><strong>Legal Documentation:</strong> Custom legal letters and documentation for complex disputes</li>
+                <li><strong>Creditor Lawsuit Defense Coordination:</strong> If you're being sued, we coordinate with attorneys for defense</li>
+                <li><strong>Court Representation Referrals:</strong> Referrals to litigation attorneys if needed</li>
+            </ul>
+        </div>
+
+        <p><strong>Complex Issues We Handle:</strong></p>
+        <ul>
+            <li>Bankruptcy (Chapter 7, 11, 13) credit repair</li>
+            <li>Foreclosure recovery and credit rebuilding</li>
+            <li>Tax lien removal strategies</li>
+            <li>Judgment removal and negotiation</li>
+            <li>Business credit building alongside personal credit</li>
+            <li>Identity theft resolution with legal support</li>
+            <li>Active creditor lawsuits and collections</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Dedicated Senior Account Manager</h2>
+        <p>You will be assigned a senior account manager with 5+ years of credit repair experience who will:</p>
+        <ul>
+            <li>Oversee your entire case from initial review through completion</li>
+            <li>Coordinate with attorneys on legal strategy</li>
+            <li>Handle all disputes and creditor negotiations personally</li>
+            <li>Provide bi-weekly progress updates</li>
+            <li>Be available via direct phone line (priority support)</li>
+            <li>Develop and execute advanced legal dispute strategies</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>24/7 Priority Support</h2>
+        <p>Premium members receive:</p>
+        <ul>
+            <li>Priority phone support (answered first)</li>
+            <li>Direct phone line to your account manager</li>
+            <li>24/7 email support with 4-hour response guarantee</li>
+            <li>Emergency support line for urgent legal matters</li>
+            <li>Dedicated support team trained in complex credit issues</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Contract Term & Commitment</h2>
+        <p><strong>Term:</strong> This agreement is for 12 months ({{CONTRACT_LENGTH}}) beginning {{CONTRACT_START_DATE}}.</p>
+        <p><strong>Why 12 Months:</strong> Complex legal credit issues require time to properly resolve. Our 12-month term ensures we have adequate time to implement advanced strategies and see them through to completion.</p>
+        <p><strong>Early Termination:</strong> If you wish to terminate before 12 months, you may do so with 30 days written notice. Early termination fee equal to 50% of remaining contract value may apply.</p>
+        <p><strong>Renewal:</strong> After initial 12 months, automatically renews month-to-month unless cancelled.</p>
+        
+        <h3>Service Guarantee & Cancellation</h3>
+        <div class="guarantee-box">
+            <p><strong>Your Results Protection:</strong> You may cancel after the third month if no reasonable results have been achieved, ensuring you only pay for effective credit repair service.</p>
+            
+            <p><strong>Cancellation Process:</strong> To initiate cancellation, submit your request in writing and await confirmation from our team.</p>
+            
+            <p><strong>Account Requirements:</strong> Please note that your account must remain in good standing, and credit monitoring will continue for up to 45 days to track results from recently submitted disputes.</p>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Client Responsibilities</h2>
+        <ul>
+            <li>Provide complete and accurate information about all credit issues, legal matters, and financial history</li>
+            <li>Sign Limited Power of Attorney and attorney authorization forms</li>
+            <li>Attend bi-weekly strategy calls with legal advisor</li>
+            <li>Respond promptly to requests for documentation (critical for legal strategies)</li>
+            <li>Maintain timely monthly payments throughout 12-month term</li>
+            <li>Notify us immediately of any legal actions (lawsuits, summons, etc.)</li>
+            <li>Follow legal advice and strategies recommended by attorneys</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Company Responsibilities</h2>
+        <ul>
+            <li>Provide comprehensive legal case review within 10 business days of contract signing</li>
+            <li>Assign dedicated senior account manager</li>
+            <li>Coordinate bi-weekly attorney strategy calls</li>
+            <li>Submit advanced legal disputes to credit bureaus</li>
+            <li>Handle creditor negotiations and intervention</li>
+            <li>Provide 24/7 priority support</li>
+            <li>Develop custom legal documentation as needed</li>
+            <li>Coordinate bankruptcy, foreclosure, and tax lien resolution</li>
+            <li>Provide business credit building support</li>
+            <li>All deletions included in monthly fee (no additional per-deletion charges)</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Federal Rights (CROA)</h2>
+        <p>You have the right to cancel this contract within 3 business days without penalty. We cannot make false statements about our services. Fees are charged monthly as services are performed. You have the right to sue for CROA violations.</p>
+        <p><strong>State Compliance:</strong> {{STATE_COMPLIANCE}}</p>
+    </div>
+
+    <div class="section">
+        <h2>Disclaimers</h2>
+        <p><strong>Attorney-Client Relationship:</strong> The attorneys consulting on your case are independent professionals. While we coordinate their services, they maintain their own professional obligations and licensing.</p>
+        <p><strong>No Guarantee of Results:</strong> While we provide advanced legal strategies, we cannot guarantee specific outcomes. Results depend on many factors including the accuracy of disputed information and legal complexity of your case.</p>
+        <p><strong>Legal Representation:</strong> This service includes attorney consultation and coordination, but does not include direct legal representation in court. Court representation referrals are provided separately.</p>
+    </div>
+
+    <div class="signature-block">
+        <p><strong>By signing, both parties agree to all terms of this Premium Attorney-Backed Service Agreement.</strong></p>
+        <br>
+        <p><strong>CLIENT SIGNATURE:</strong> ___________________________________ Date: _______________</p>
+        <p>Print Name: {{CLIENT_NAME}}</p>
+        <br>
+        <p><strong>COMPANY REPRESENTATIVE:</strong> ___________________________________ Date: _______________</p>
+        <p>{{OWNER_NAME}}, Owner - Speedy Credit Repair Inc.</p>
+    </div>
+
+    <!-- ========================================================================
+         COPYRIGHT FOOTER
+         ======================================================================== -->
+    <div class="footer" style="text-align: center; margin-top: 50px; padding-top: 30px; border-top: 2px solid #333; font-size: 9pt; color: #333; page-break-inside: avoid;">
+        <p style="margin: 5px 0; font-weight: bold;">Speedy Credit Repair Inc.</p>
+        <p style="margin: 5px 0;">117 Main Street Suite 202, Huntington Beach, California 92648</p>
+        <p style="margin: 5px 0;">Phone: 888-724-7344 | Email: <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="60230f0e14010314201310050504190312050409141205100109124e030f0d">[email&#160;protected]</a></p>
+        <p style="margin: 5px 0;">Website: https://speedycreditrepair.com</p>
+
+        <p style="margin: 15px 0 5px 0;">
+            © 1995-{{CURRENT_YEAR}} Speedy Credit Repair Inc. | Created by Chris Lahage | All Rights Reserved
+        </p>
+
+        <p style="margin: 5px 0; font-size: 8pt; line-height: 1.4;">
+            Speedy Credit Repair® is a registered trademark of Speedy Credit Repair Inc.,
+            registered with the United States Patent and Trademark Office (USPTO).
+            Unauthorized use of this trademark is a violation of federal law and will be
+            prosecuted to the fullest extent of the law.
+        </p>
+
+        <p style="margin: 10px 0 0 0; font-size: 7pt; color: #666;">
+            Document Version {{CONTRACT_VERSION}} | Contract: {{CONTRACT_NUMBER}} | Generated {{GENERATED_DATETIME}}
+        </p>
+
+        <p style="margin: 10px 0; font-size: 8pt;">
+        

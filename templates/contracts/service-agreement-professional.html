@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Plan Service Agreement</title>
+    <style>
+        /* ===== MODERN PROFESSIONAL CONTRACT DESIGN ===== */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 10.5pt;
+            line-height: 1.7;
+            max-width: 850px;
+            margin: 0 auto;
+            padding: 40px 50px;
+            color: #1a1a1a;
+            background: #ffffff;
+        }
+        
+        /* ===== HEADER ===== */
+        .header {
+            text-align: center;
+            padding: 40px 30px;
+            margin-bottom: 50px;
+            background: linear-gradient(135deg, #1976D2 0%, #2196F3 50%, #42A5F5 100%);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(33, 150, 243, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: pulse 15s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(-30px, -30px); }
+        }
+        
+        .logo-placeholder {
+            width: 220px;
+            height: 90px;
+            margin: 0 auto 25px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 20pt;
+            border-radius: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            letter-spacing: 1px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        h1 {
+            font-size: 28pt;
+            color: #ffffff;
+            margin: 15px 0 20px 0;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .contract-info {
+            margin-top: 20px;
+            font-size: 10pt;
+            color: rgba(255, 255, 255, 0.95);
+            position: relative;
+            z-index: 1;
+            font-weight: 500;
+        }
+        
+        /* ===== SECTIONS ===== */
+        .section {
+            margin: 45px 0;
+            page-break-inside: avoid;
+            position: relative;
+        }
+        
+        h2 {
+            font-size: 16pt;
+            color: #1976D2;
+            padding: 15px 20px;
+            margin: 35px 0 20px 0;
+            font-weight: 700;
+            background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%);
+            border-left: 5px solid #2196F3;
+            border-radius: 8px;
+            letter-spacing: -0.3px;
+        }
+        
+        h3 {
+            font-size: 12.5pt;
+            color: #1565C0;
+            margin: 25px 0 12px 0;
+            font-weight: 600;
+            padding-left: 15px;
+            border-left: 3px solid #64B5F6;
+        }
+        
+        p {
+            margin: 12px 0;
+            text-align: justify;
+            color: #2c2c2c;
+        }
+        
+        /* ===== TABLES ===== */
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 20px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        th, td {
+            padding: 14px 18px;
+            text-align: left;
+            border-bottom: 1px solid #E3F2FD;
+        }
+        
+        th {
+            background: linear-gradient(135deg, #1976D2 0%, #2196F3 100%);
+            color: white;
+            font-weight: 600;
+            font-size: 11pt;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        td:first-child {
+            font-weight: 600;
+            color: #1565C0;
+            background: #F5F9FC;
+            width: 35%;
+        }
+        
+        td:last-child {
+            background: white;
+        }
+        
+        tr:last-child td {
+            border-bottom: none;
+        }
+        
+        tr:hover td {
+            background: #E3F2FD !important;
+            transition: all 0.2s ease;
+        }
+        
+        /* ===== LISTS ===== */
+        ul, ol {
+            margin: 15px 0 15px 25px;
+            padding-left: 20px;
+        }
+        
+        li {
+            margin: 10px 0;
+            line-height: 1.8;
+            color: #2c2c2c;
+        }
+        
+        li::marker {
+            color: #2196F3;
+            font-weight: 600;
+        }
+        
+        /* ===== INFO BOXES ===== */
+        .info-box {
+            background: linear-gradient(135deg, #FFF9E6 0%, #FFF3CD 100%);
+            border-left: 5px solid #FFC107;
+            padding: 20px 25px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(255, 193, 7, 0.15);
+        }
+        
+        .info-box strong {
+            color: #F57C00;
+        }
+        
+        .guarantee-box {
+            background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+            border-left: 5px solid #4CAF50;
+            padding: 20px 25px;
+            margin: 25px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.15);
+        }
+        
+        .guarantee-box strong {
+            color: #2E7D32;
+        }
+        
+        /* ===== SIGNATURE SECTION ===== */
+        .signature-section {
+            margin-top: 60px;
+            padding: 35px;
+            background: linear-gradient(135deg, #F5F9FC 0%, #E3F2FD 100%);
+            border-radius: 12px;
+            border: 2px solid #2196F3;
+        }
+        
+        .signature-block {
+            margin: 30px 0;
+            padding: 25px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .signature-line {
+            margin: 20px 0;
+            padding-top: 10px;
+        }
+        
+        .signature-line input {
+            border: none;
+            border-bottom: 2px solid #2196F3;
+            width: 60%;
+            padding: 8px 0;
+            font-family: 'Inter', sans-serif;
+            font-size: 11pt;
+        }
+        
+        /* ===== FOOTER ===== */
+        .footer {
+            margin-top: 60px;
+            padding: 35px 30px;
+            background: linear-gradient(135deg, #263238 0%, #37474F 100%);
+            color: #B0BEC5;
+            text-align: center;
+            border-radius: 12px;
+            font-size: 9pt;
+            line-height: 1.8;
+        }
+        
+        .footer strong {
+            color: #ffffff;
+            font-size: 11pt;
+            display: block;
+            margin-bottom: 8px;
+        }
+        
+        .footer p {
+            margin: 8px 0;
+            text-align: center;
+        }
+        
+        .footer a {
+            color: #64B5F6;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        
+        .footer a:hover {
+            color: #90CAF9;
+        }
+        
+        /* ===== ACCENTS ===== */
+        strong {
+            color: #1565C0;
+            font-weight: 600;
+        }
+        
+        .highlight {
+            background: linear-gradient(120deg, #FFF59D 0%, transparent 100%);
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+        
+        /* ===== PRINT STYLES ===== */
+        @media print {
+            body {
+                padding: 0;
+                max-width: 100%;
+            }
+            
+            .header::before {
+                display: none;
+            }
+            
+            .section {
+                page-break-inside: avoid;
+            }
+            
+            h2 {
+                page-break-after: avoid;
+            }
+            
+            table {
+                page-break-inside: avoid;
+            }
+            
+            .signature-section {
+                page-break-before: always;
+            }
+        }
+        
+        /* ===== RESPONSIVE ===== */
+        @media screen and (max-width: 768px) {
+            body {
+                padding: 20px 15px;
+            }
+            
+            h1 {
+                font-size: 22pt;
+            }
+            
+            h2 {
+                font-size: 14pt;
+                padding: 12px 15px;
+            }
+            
+            table {
+                font-size: 9pt;
+            }
+            
+            th, td {
+                padding: 10px 12px;
+            }
+        }
+    </style>
+            background-color: #f5f5f5;
+            font-weight: bold;
+        }
+        .info-box {
+            background-color: #f0f8ff;
+            border: 1px solid #2196F3;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        .warning-box {
+            background-color: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        ul, ol {
+            margin: 10px 0;
+            padding-left: 30px;
+        }
+        li {
+            margin: 5px 0;
+        }
+        .signature-box {
+            border: 2px solid #333;
+            padding: 30px;
+            margin-top: 50px;
+            page-break-inside: avoid;
+        }
+        .signature-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 40px;
+        }
+        .signature-field {
+            width: 45%;
+        }
+        .signature-line {
+            border-top: 1px solid #333;
+            margin-top: 50px;
+            padding-top: 5px;
+        }
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid #ccc;
+            text-align: center;
+            font-size: 9pt;
+            color: #666;
+        }
+        .bold {
+            font-weight: bold;
+        }
+        .underline {
+            text-decoration: underline;
+        }
+        @media print {
+            body {
+                padding: 0;
+            }
+            .section {
+                page-break-inside: avoid;
+            }
+            .signature-box {
+                page-break-before: always;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo-placeholder">
+            SPEEDY CREDIT REPAIR
+        </div>
+        <h1>STANDARD PLAN SERVICE AGREEMENT</h1>
+        <div class="contract-info">
+            <p><strong>Contract Number:</strong> {{CONTRACT_NUMBER}}</p>
+            <p><strong>Contract Date:</strong> {{CONTRACT_DATE}}</p>
+        </div>
+    </div>
+
+    <!-- Section 1: PARTIES TO THIS AGREEMENT -->
+    <div class="section">
+        <h2>1. PARTIES TO THIS AGREEMENT</h2>
+
+        <p>This Service Agreement ("Agreement") is entered into as of <strong>{{CONTRACT_DATE}}</strong> by and between:</p>
+
+        <div class="info-box">
+            <p><strong>COMPANY:</strong></p>
+            <p>Speedy Credit Repair Inc.<br>
+            {{COMPANY_ADDRESS}}<br>
+            Email: {{COMPANY_EMAIL}}<br>
+            Phone: {{COMPANY_PHONE}}</p>
+        </div>
+
+        <div class="info-box">
+            <p><strong>CLIENT:</strong></p>
+            <p>{{CLIENT_NAME}}<br>
+            {{CLIENT_ADDRESS}}<br>
+            {{CLIENT_CITY}}, {{CLIENT_STATE}} {{CLIENT_ZIP}}<br>
+            Email: {{CLIENT_EMAIL}}<br>
+            Phone: {{CLIENT_PHONE}}<br>
+            Date of Birth: {{CLIENT_DOB}}<br>
+            SSN (Last 4): {{CLIENT_SSN_LAST4}}</p>
+        </div>
+    </div>
+
+    <!-- Section 2: SERVICES PROVIDED -->
+    <div class="section">
+        <h2>2. SERVICES PROVIDED</h2>
+
+        <p>The Company agrees to provide the following credit repair services under the <strong>Standard Plan</strong>:</p>
+
+        <ul>
+            {{#FEATURES}}
+            <li>{{FEATURE_NAME}}</li>
+            {{/FEATURES}}
+        </ul>
+
+        <h3>Standard Services Include:</h3>
+        <ul>
+            <li><strong>Credit Bureau Disputes:</strong> Unlimited disputes to Equifax, Experian, and TransUnion</li>
+            <li><strong>Credit Analysis:</strong> Monthly comprehensive credit report review and analysis</li>
+            <li><strong>Dispute Letter Generation:</strong> Professional dispute letters on your behalf</li>
+            <li><strong>Credit Monitoring:</strong> Monthly credit monitoring and updates</li>
+            <li><strong>Customer Support:</strong> Email and phone support during business hours</li>
+            <li><strong>Online Portal Access:</strong> 24/7 access to your client portal</li>
+            <li><strong>Progress Reports:</strong> Monthly progress reports and updates</li>
+            <li><strong>Credit Education:</strong> Access to credit education resources</li>
+        </ul>
+
+        <div class="warning-box">
+            <p><strong>IMPORTANT:</strong> The Company does not guarantee any specific results. Credit repair outcomes depend on many factors including the accuracy of disputed items, creditor responses, and credit bureau decisions.</p>
+        </div>
+    </div>
+
+    <!-- Section 3: PAYMENT TERMS -->
+    <div class="section">
+        <h2>3. PAYMENT TERMS</h2>
+
+        <p>The Client agrees to pay the following fees for services rendered:</p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Fee Type</th>
+                    <th>Amount</th>
+                    <th>Frequency</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Setup Fee</td>
+                    <td>${{SETUP_FEE}}</td>
+                    <td>One-time</td>
+                    <td>Initial account setup and credit report analysis</td>
+                </tr>
+                <tr>
+                    <td>Monthly Service Fee</td>
+                    <td>${{MONTHLY_PRICE}}</td>
+                    <td>Monthly</td>
+                    <td>Ongoing credit repair services and monitoring</td>
+                </tr>
+                <tr>
+                    <td>Per-Deletion Fee</td>
+                    <td>${{PER_DELETION_FEE}}</td>
+                    <td>Per successful deletion</td>
+                    <td>Charged only when negative items are successfully removed</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Payment Schedule:</h3>
+        <ul>
+            <li><strong>First Payment:</strong> Setup fee of ${{SETUP_FEE}} due upon signing this agreement</li>
+            <li><strong>Monthly Payments:</strong> ${{MONTHLY_PRICE}} due on the {{BILLING_DAY}} of each month</li>
+            <li><strong>Per-Deletion Fees:</strong> ${{PER_DELETION_FEE}} charged within 5 business days of confirmed deletion</li>
+            <li><strong>Payment Method:</strong> ACH automatic withdrawal (separate authorization required)</li>
+            <li><strong>Late Fee:</strong> $25 for payments more than 10 days past due</li>
+        </ul>
+
+        <p><strong>Total Estimated Investment:</strong> Based on a {{CONTRACT_TERM_MONTHS}}-month contract term, total fees will range from ${{ESTIMATED_MIN_TOTAL}} to ${{ESTIMATED_MAX_TOTAL}}, depending on the number of successful deletions achieved.</p>
+    </div>
+
+    <!-- Section 4: CONTRACT TERM AND TERMINATION -->
+    <div class="section">
+        <h2>4. CONTRACT TERM AND TERMINATION</h2>
+
+        <h3>4.1 Contract Term</h3>
+        <p>This Agreement begins on <strong>{{START_DATE}}</strong> and continues for a period of <strong>{{CONTRACT_TERM_MONTHS}} months</strong>, ending on <strong>{{END_DATE}}</strong>, unless terminated earlier in accordance with this section.</p>
+
+        <h3>4.2 Five (5) Day Right to Cancel (CROA Requirement)</h3>
+        <div class="warning-box">
+            <p><strong>NOTICE OF CANCELLATION RIGHTS:</strong></p>
+            <p>You may cancel this contract, without penalty or obligation, at any time within 5 business days from the date the contract is signed by you.</p>
+            <p>To cancel this contract, mail or deliver a signed, dated copy of this cancellation notice, or any other written notice to:</p>
+            <p><strong>Speedy Credit Repair Inc.</strong><br>
+            {{COMPANY_ADDRESS}}<br>
+            Email: {{CANCELLATION_EMAIL}}</p>
+            <p>If you cancel, the Company will return, within 10 business days of receiving your cancellation notice, any money you have paid.</p>
+        </div>
+
+        <h3>4.3 Termination After 5-Day Period</h3>
+        <p>After the 5-day cancellation period, either party may terminate this Agreement with 30 days written notice. Upon termination:</p>
+        <ul>
+            <li>Client remains responsible for all fees incurred through the termination date</li>
+            <li>Monthly fees are non-refundable once services for that month have begun</li>
+            <li>No refund will be provided for the setup fee</li>
+            <li>Per-deletion fees for confirmed deletions remain due and payable</li>
+        </ul>
+
+        <h3>4.4 Termination for Cause</h3>
+        <p>The Company may terminate this Agreement immediately if:</p>
+        <ul>
+            <li>Client fails to pay any fees within 30 days of the due date</li>
+            <li>Client provides false or fraudulent information</li>
+            <li>Client engages in abusive or threatening behavior toward Company staff</li>
+            <li>Client violates any material term of this Agreement</li>
+        </ul>
+
+        <h3>4.5 Service Guarantee & Cancellation</h3>
+        <div class="guarantee-box">
+            <p><strong>Your Results Protection:</strong> You may cancel after the third month if no reasonable results have been achieved, ensuring you only pay for effective credit repair service.</p>
+            
+            <p><strong>Cancellation Process:</strong> To initiate cancellation, submit your request in writing and await confirmation from our team.</p>
+            
+            <p><strong>Account Requirements:</strong> Please note that your account must remain in good standing, and credit monitoring will continue for up to 45 days to track results from recently submitted disputes.</p>
+        </div>
+    </div>
+
+    <!-- Section 5: MONEY-BACK GUARANTEE -->
+    <div class="section">
+        <h2>5. MONEY-BACK GUARANTEE</h2>
+
+        <p>The Company offers a <strong>30-Day Money-Back Guarantee</strong> subject to the following terms:</p>
+
+        <h3>5.1 Guarantee Terms</h3>
+        <ul>
+            <li>If no negative items are removed or updated within the first 30 days of service, Client may request a full refund</li>
+            <li>Refund request must be submitted in writing within 35 days of the contract start date</li>
+            <li>Refund includes all monthly service fees paid during the first 30 days</li>
+            <li>Setup fee of ${{SETUP_FEE}} is non-refundable</li>
+            <li>This guarantee does not apply if Client has failed to provide requested documentation</li>
+        </ul>
+
+        <h3>5.2 Refund Process</h3>
+        <p>To request a refund under this guarantee:</p>
+        <ol>
+            <li>Submit written refund request to {{REFUND_EMAIL}}</li>
+            <li>Company will review your account and verify eligibility</li>
+            <li>If approved, refund will be processed within 10 business days</li>
+            <li>Refund will be issued to the original payment method</li>
+        </ol>
+    </div>
+
+    <!-- Section 6: CLIENT RESPONSIBILITIES -->
+    <div class="section">
+        <h2>6. CLIENT RESPONSIBILITIES</h2>
+
+        <p>The Client agrees to:</p>
+
+        <ol>
+            <li><strong>Provide Accurate Information:</strong> Supply complete and accurate personal information, including name, address, Social Security number, and date of birth</li>
+            <li><strong>Provide Documentation:</strong> Promptly provide requested documents such as credit reports, identification, and proof of address</li>
+            <li><strong>Sign Authorizations:</strong> Execute all necessary authorizations, including Power of Attorney and credit bureau authorization forms</li>
+            <li><strong>Review Credit Reports:</strong> Review monthly credit reports and identify inaccurate or questionable items</li>
+            <li><strong>Respond to Requests:</strong> Respond to Company requests for information within 5 business days</li>
+            <li><strong>Maintain Contact:</strong> Keep contact information current and check email regularly</li>
+            <li><strong>Pay Fees Promptly:</strong> Ensure timely payment of all fees as outlined in Section 3</li>
+            <li><strong>Avoid New Negative Items:</strong> Make reasonable efforts to avoid incurring new negative credit items during the service period</li>
+            <li><strong>No Fraudulent Activity:</strong> Refrain from providing false information or disputing accurate items</li>
+            <li><strong>Cooperation:</strong> Cooperate with the Company in all aspects of the credit repair process</li>
+        </ol>
+    </div>
+
+    <!-- Section 7: COMPANY RESPONSIBILITIES -->
+    <div class="section">
+        <h2>7. COMPANY RESPONSIBILITIES</h2>
+
+        <p>The Company agrees to:</p>
+
+        <ol>
+            <li><strong>Professional Service:</strong> Provide professional credit repair services in accordance with all applicable laws</li>
+            <li><strong>Regular Disputes:</strong> Submit monthly disputes to credit bureaus on Client's behalf</li>
+            <li><strong>Progress Updates:</strong> Provide monthly progress reports and credit analysis</li>
+            <li><strong>Compliance:</strong> Maintain compliance with the Credit Repair Organizations Act (CROA), Fair Credit Reporting Act (FCRA), and all state laws</li>
+            <li><strong>Confidentiality:</strong> Maintain the confidentiality of Client's personal and financial information</li>
+            <li><strong>Customer Support:</strong> Provide responsive customer support via email and phone</li>
+            <li><strong>Portal Access:</strong> Maintain secure online portal access for Client review</li>
+            <li><strong>Transparent Pricing:</strong> Clearly communicate all fees before services are rendered</li>
+            <li><strong>Good Faith Efforts:</strong> Use commercially reasonable efforts to help improve Client's credit profile</li>
+            <li><strong>Ethical Practices:</strong> Never engage in fraudulent or deceptive practices</li>
+        </ol>
+    </div>
+
+    <!-- Section 8: NO GUARANTEE OF RESULTS -->
+    <div class="section">
+        <h2>8. NO GUARANTEE OF RESULTS</h2>
+
+        <div class="warning-box">
+            <p><strong>IMPORTANT DISCLAIMER:</strong></p>
+            <p>The Company makes <strong>NO GUARANTEE</strong> of specific results, including but not limited to:</p>
+            <ul>
+                <li>Number of items that will be removed from credit reports</li>
+                <li>Improvement in credit scores</li>
+                <li>Approval for loans, credit cards, or other credit products</li>
+                <li>Timeline for seeing results</li>
+            </ul>
+        </div>
+
+        <p>Credit repair results depend on multiple factors outside the Company's control, including:</p>
+        <ul>
+            <li>Accuracy and verifiability of disputed items</li>
+            <li>Credit bureau investigation processes</li>
+            <li>Creditor responses and documentation</li>
+            <li>Client's overall credit profile and payment history</li>
+            <li>Age and nature of negative items</li>
+        </ul>
+
+        <p>While the Company will use professional expertise and commercially reasonable efforts to help improve Client's credit profile, individual results vary and cannot be predicted or guaranteed.</p>
+    </div>
+
+    <!-- Section 9: STATE-SPECIFIC CLAUSES -->
+    <div class="section">
+        <h2>9. STATE-SPECIFIC REQUIREMENTS</h2>
+
+        {{#STATE_CLAUSES}}
+        <div class="info-box">
+            <h3>{{STATE_NAME}} Specific Requirements:</h3>
+            {{{STATE_CONTENT}}}
+        </div>
+        {{/STATE_CLAUSES}}
+
+        {{#IS_CALIFORNIA}}
+        <div class="info-box">
+            <h3>California Residents:</h3>
+            <p><strong>Surety Bond Information:</strong> Speedy Credit Repair Inc. maintains a $100,000 surety bond as required by California Civil Code Section 1789.16.</p>
+            <p><strong>California Department of Justice Registration:</strong> Certificate Number {{CA_REGISTRATION_NUMBER}}</p>
+            <p><strong>Notice:</strong> You are not required to pay any fee until the Company has performed the services it agreed to perform.</p>
+        </div>
+        {{/IS_CALIFORNIA}}
+
+        {{#IS_NEW_YORK}}
+        <div class="info-box">
+            <h3>New York Residents:</h3>
+            <p>This contract is void if the client does not receive a copy of the executed contract at the time of signing.</p>
+            <p>Consumer protection information is available from the New York State Attorney General's office.</p>
+        </div>
+        {{/IS_NEW_YORK}}
+
+        {{#IS_TEXAS}}
+        <div class="info-box">
+            <h3>Texas Residents:</h3>
+            <p><strong>Surety Bond:</strong> Speedy Credit Repair Inc. maintains a $10,000 surety bond with {{TX_BOND_COMPANY}} as required by Texas Finance Code Chapter 393.</p>
+            <p><strong>Registration:</strong> Texas Secretary of State Registration Number {{TX_REGISTRATION_NUMBER}}</p>
+        </div>
+        {{/IS_TEXAS}}
+
+        {{#IS_FLORIDA}}
+        <div class="info-box">
+            <h3>Florida Residents:</h3>
+            <p>This contract is voidable by the buyer at any time within 5 business days from the date the contract is signed by the buyer.</p>
+            <p>Florida Department of Agriculture and Consumer Services information available upon request.</p>
+        </div>
+        {{/IS_FLORIDA}}
+    </div>
+
+    <!-- Section 10: FCRA & CROA COMPLIANCE -->
+    <div class="section">
+        <h2>10. FCRA & CROA COMPLIANCE</h2>
+
+        <h3>10.1 Credit Repair Organizations Act (CROA) Disclosure</h3>
+        <div class="warning-box">
+            <p><strong>CONSUMER CREDIT FILE RIGHTS UNDER STATE AND FEDERAL LAW</strong></p>
+            <p>You have a right to dispute inaccurate information in your credit report by contacting the credit bureau directly. However, neither you nor any credit repair company or credit repair organization has the right to have accurate, current, and verifiable information removed from your credit report.</p>
+            <p>The credit bureau must remove accurate, negative information from your report only if it is over 7 years old. Bankruptcy information can be reported for 10 years.</p>
+            <p>You have a right to obtain a copy of your credit report from a credit bureau. You may be charged a reasonable fee. There is no fee, however, if you have been turned down for credit, employment, insurance, or a rental dwelling because of information in your credit report within the preceding 60 days. The credit bureau must provide someone to help you interpret the information in your credit file. You are entitled to receive a free copy of your credit report if you are unemployed and intend to apply for employment in the next 60 days, if you are a recipient of public welfare assistance, or if you have reason to believe that there is inaccurate information in your credit report due to fraud.</p>
+            <p>You have a right to sue a credit repair organization that violated the Credit Repair Organization Act. This law prohibits deceptive practices by credit repair organizations.</p>
+            <p>You have the right to cancel your contract with any credit repair organization for any reason within 5 business days from the date you signed it.</p>
+            <p>Credit bureaus are required to follow reasonable procedures to ensure that the information they report is accurate. However, mistakes may occur.</p>
+            <p>You may, on your own, notify a credit bureau in writing that you dispute the accuracy of information in your credit file. The credit bureau must then reinvestigate and modify or remove inaccurate or incomplete information. The credit bureau may not charge any fee for this service. Any pertinent information and copies of all documents you have concerning an error should be given to the credit bureau.</p>
+            <p>If the credit bureau's reinvestigation does not resolve the dispute to your satisfaction, you may send a brief statement to the credit bureau, to be kept in your file, explaining why you think the record is inaccurate. The credit bureau must include a summary of your statement about disputed information with any report it issues about you.</p>
+            <p>The Federal Trade Commission regulates credit bureaus and credit repair organizations. For more information contact: The Public Reference Branch, Federal Trade Commission, Washington, D.C. 20580.</p>
+        </div>
+
+        <h3>10.2 Fair Credit Reporting Act (FCRA) Rights</h3>
+        <p>The Client acknowledges receipt of the FCRA Summary of Rights, which explains:</p>
+        <ul>
+            <li>Right to dispute incomplete or inaccurate information</li>
+            <li>Right to free annual credit reports</li>
+            <li>How long negative information can remain on credit reports</li>
+            <li>Rights when applying for credit or employment</li>
+            <li>Identity theft protections</li>
+        </ul>
+    </div>
+
+    <!-- Section 11: DISPUTE RESOLUTION -->
+    <div class="section">
+        <h2>11. DISPUTE RESOLUTION</h2>
+
+        <h3>11.1 Good Faith Negotiation</h3>
+        <p>In the event of any dispute arising from this Agreement, the parties agree to first attempt resolution through good faith negotiation.</p>
+
+        <h3>11.2 Mediation</h3>
+        <p>If negotiation fails to resolve the dispute within 30 days, the parties agree to submit the dispute to mediation before a mutually agreed-upon mediator. The cost of mediation shall be split equally between the parties.</p>
+
+        <h3>11.3 Arbitration</h3>
+        <p>If mediation fails to resolve the dispute within 60 days, either party may initiate binding arbitration in accordance with the rules of the American Arbitration Association. The arbitration shall take place in {{ARBITRATION_LOCATION}}. Each party shall bear its own attorney's fees and costs, and the arbitrator's fees shall be split equally.</p>
+
+        <h3>11.4 Class Action Waiver</h3>
+        <p>The parties agree to resolve disputes on an individual basis only. Class action lawsuits, class-wide arbitrations, private attorney general actions, and consolidation with other arbitrations are not permitted.</p>
+
+        <h3>11.5 Small Claims Court Exception</h3>
+        <p>Either party may bring an individual action in small claims court instead of arbitration if the claim qualifies.</p>
+    </div>
+
+    <!-- Section 12: GOVERNING LAW -->
+    <div class="section">
+        <h2>12. GOVERNING LAW</h2>
+
+        <p>This Agreement shall be governed by and construed in accordance with the laws of the State of {{GOVERNING_STATE}}, without regard to its conflict of laws provisions, and the federal laws of the United States, including the Credit Repair Organizations Act (15 U.S.C. §§ 1679-1679j) and the Fair Credit Reporting Act (15 U.S.C. § 1681 et seq.).</p>
+
+        <p>Any legal action arising from this Agreement shall be brought exclusively in the state or federal courts located in {{JURISDICTION_COUNTY}}, {{GOVERNING_STATE}}.</p>
+    </div>
+
+    <!-- Section 13: ENTIRE AGREEMENT -->
+    <div class="section">
+        <h2>13. ENTIRE AGREEMENT</h2>
+
+        <h3>13.1 Complete Agreement</h3>
+        <p>This Agreement, together with any attached exhibits and referenced documents (including the ACH Authorization and Power of Attorney), constitutes the entire agreement between the parties and supersedes all prior negotiations, representations, or agreements, whether written or oral.</p>
+
+        <h3>13.2 Amendments</h3>
+        <p>No amendment or modification of this Agreement shall be valid unless made in writing and signed by both parties.</p>
+
+        <h3>13.3 Severability</h3>
+        <p>If any provision of this Agreement is found to be unenforceable or invalid, that provision shall be limited or eliminated to the minimum extent necessary so that the Agreement shall otherwise remain in full force and effect.</p>
+
+        <h3>13.4 Waiver</h3>
+        <p>No waiver of any provision of this Agreement shall be deemed or shall constitute a waiver of any other provision, nor shall any waiver constitute a continuing waiver.</p>
+
+        <h3>13.5 Assignment</h3>
+        <p>Client may not assign this Agreement without the prior written consent of the Company. The Company may assign this Agreement to any successor or affiliated entity.</p>
+
+        <h3>13.6 Headings</h3>
+        <p>Section headings are for convenience only and shall not affect the interpretation of this Agreement.</p>
+
+        <h3>13.7 Counterparts</h3>
+        <p>This Agreement may be executed in counterparts, each of which shall be deemed an original and all of which together shall constitute one and the same instrument. Electronic signatures shall have the same legal effect as original signatures.</p>
+    </div>
+
+    <!-- Section 14: SIGNATURES -->
+    <div class="signature-box">
+        <h2>14. SIGNATURES</h2>
+
+        <p>By signing below, both parties acknowledge that they have read, understood, and agree to be bound by all terms and conditions of this Agreement.</p>
+
+        <div class="warning-box">
+            <p><strong>ACKNOWLEDGMENT:</strong> I have received a copy of this contract and the "Consumer Credit File Rights Under State and Federal Law" disclosure required by the Credit Repair Organizations Act.</p>
+        </div>
+
+        <div style="margin-top: 60px;">
+            <p><strong>CLIENT SIGNATURE:</strong></p>
+            <div class="signature-line">
+                Signature: _____________________________________________
+            </div>
+            <p style="margin-top: 20px;">
+                Print Name: {{CLIENT_NAME}}<br>
+                Date: _______________________<br>
+                IP Address: {{SIGNATURE_IP}}<br>
+                Timestamp: {{SIGNATURE_TIMESTAMP}}
+            </p>
+        </div>
+
+        <div style="margin-top: 60px;">
+            <p><strong>COMPANY REPRESENTATIVE:</strong></p>
+            <div class="signature-line">
+                Signature: _____________________________________________
+            </div>
+            <p style="margin-top: 20px;">
+                Print Name: {{COMPANY_REP_NAME}}<br>
+                Title: {{COMPANY_REP_TITLE}}<br>
+                Date: _______________________<br>
+                Speedy Credit Repair Inc.
+            </p>
+        </div>
+    </div>
+
+    <!-- ========================================================================
+         COPYRIGHT FOOTER
+         ======================================================================== -->
+    <div class="footer" style="text-align: center; margin-top: 50px; padding-top: 30px; border-top: 2px solid #333; font-size: 9pt; color: #333; page-break-inside: avoid;">
+        <p style="margin: 5px 0; font-weight: bold;">Speedy Credit Repair Inc.</p>
+        <p style="margin: 5px 0;">117 Main Street Suite 202, Huntington Beach, California 92648</p>
+        <p style="margin: 5px 0;">Phone: 888-724-7344 | Email: <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="480b27263c292b3c083b382d2d2c312b3a2d2c213c3a2d3829213a662b2725">[email&#160;protected]</a></p>
+        <p style="margin: 5px 0;">Website: https://speedycreditrepair.com</p>
+
+        <p style="margin: 15px 0 5px 0;">
+            © 1995-{{CURRENT_YEAR}} Speedy Credit Repair Inc. | Created by Chris Lahage | All Rights Reserved
+        </p>
+
+        <p style="margin: 5px 0; font-size: 8pt; line-height: 1.4;">
+            Speedy Credit Repair® is a registered trademark of Speedy Credit Repair Inc.,
+            registered with the United States Patent and Trademark Office (USPTO).
+            Unauthorized use of this trademark is a violation of federal law and will be
+            prosecuted to the fullest extent of the law.
+        </p>
+
+        <p style="margin: 10px 0 0 0; font-size: 7pt; color: #666;">
+            Document Version {{CONTRACT_VERSION}} | Generated {{GENERATED_DATETIME}}
+        </p>
+
+        <p style="margin: 10px 0; font-size: 8pt;">
+      

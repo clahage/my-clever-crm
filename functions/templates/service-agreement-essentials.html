@@ -3,83 +3,247 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DIY Credit Repair Service Agreement</title>
+    <title>Essentials Credit Repair Service Agreement</title>
     <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
+        /* ===== ESSENTIALS CONTRACT DESIGN ===== */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 10.5pt;
+            line-height: 1.7;
+            max-width: 850px;
+            margin: 0 auto;
+            padding: 40px 50px;
+            color: #1a1a1a;
+            background: #ffffff;
+        }
+        
+        /* ===== ESSENTIALS HEADER ===== */
         .header {
             text-align: center;
-            margin-bottom: 30px;
-            border-bottom: 3px solid #4CAF50;
-            padding-bottom: 20px;
+            padding: 40px 30px;
+            margin-bottom: 50px;
+            background: linear-gradient(135deg, #388E3C 0%, #4CAF50 50%, #66BB6A 100%);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(76, 175, 80, 0.25);
+            position: relative;
+            overflow: hidden;
         }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 70%);
+            animation: pulse 15s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(-30px, -30px); }
+        }
+        
         .header h1 {
-            color: #4CAF50;
-            margin: 0;
+            font-size: 28pt;
+            color: #ffffff;
+            margin: 15px 0 20px 0;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.15);
         }
-        .header .company-info {
-            font-size: 12px;
-            color: #666;
-            margin-top: 10px;
+        
+        .company-info {
+            margin-top: 20px;
+            font-size: 10pt;
+            color: rgba(255, 255, 255, 0.95);
+            position: relative;
+            z-index: 1;
+            font-weight: 500;
+            line-height: 1.8;
         }
+        
+        .company-info strong {
+            color: #ffffff;
+            font-size: 11pt;
+        }
+        
+        /* ===== SECTIONS ===== */
         .section {
-            margin-bottom: 25px;
+            margin: 45px 0;
+            page-break-inside: avoid;
         }
-        .section h2 {
-            color: #4CAF50;
-            border-bottom: 2px solid #e0e0e0;
-            padding-bottom: 10px;
-            margin-bottom: 15px;
+        
+        h2 {
+            font-size: 16pt;
+            color: #2E7D32;
+            padding: 15px 20px;
+            margin: 35px 0 20px 0;
+            font-weight: 700;
+            background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+            border-left: 5px solid #4CAF50;
+            border-radius: 8px;
+            letter-spacing: -0.3px;
         }
-        .section h3 {
-            color: #333;
-            margin-top: 15px;
+        
+        h3 {
+            font-size: 12.5pt;
+            color: #388E3C;
+            margin: 25px 0 12px 0;
+            font-weight: 600;
+            padding-left: 15px;
+            border-left: 3px solid #66BB6A;
         }
-        .info-box {
-            background-color: #f9f9f9;
-            border-left: 4px solid #4CAF50;
-            padding: 15px;
-            margin: 15px 0;
+        
+        p {
+            margin: 12px 0;
+            text-align: justify;
+            color: #2c2c2c;
         }
+        
+        /* ===== TABLES ===== */
         table {
             width: 100%;
-            border-collapse: collapse;
-            margin: 15px 0;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 20px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-radius: 12px;
+            overflow: hidden;
         }
-        table td {
-            padding: 10px;
-            border: 1px solid #ddd;
+        
+        td {
+            padding: 14px 18px;
+            text-align: left;
+            border-bottom: 1px solid #E8F5E9;
         }
-        table td.label {
-            font-weight: bold;
+        
+        td.label {
+            font-weight: 600;
+            color: #2E7D32;
+            background: #F1F8F4;
             width: 40%;
-            background-color: #f5f5f5;
         }
+        
+        td:not(.label) {
+            background: white;
+        }
+        
+        tr:last-child td {
+            border-bottom: none;
+        }
+        
+        tr:hover td {
+            background: #E8F5E9 !important;
+            transition: all 0.2s ease;
+        }
+        
+        /* ===== LISTS ===== */
+        ul, ol {
+            margin: 15px 0 15px 25px;
+            padding-left: 20px;
+        }
+        
+        li {
+            margin: 10px 0;
+            line-height: 1.8;
+            color: #2c2c2c;
+        }
+        
+        li::marker {
+            color: #4CAF50;
+            font-weight: 600;
+        }
+        
+        /* ===== INFO BOXES ===== */
+        .info-box {
+            background: linear-gradient(135deg, #F1F8F4 0%, #E8F5E9 100%);
+            border-left: 5px solid #4CAF50;
+            padding: 20px 25px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.12);
+        }
+        
+        .info-box h3 {
+            color: #2E7D32;
+        }
+        
+        .info-box strong {
+            color: #1B5E20;
+        }
+        
+        /* ===== SIGNATURE SECTION ===== */
         .signature-block {
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 2px solid #333;
+            margin-top: 60px;
+            padding: 35px;
+            background: linear-gradient(135deg, #F1F8F4 0%, #E8F5E9 100%);
+            border-radius: 12px;
+            border: 2px solid #4CAF50;
         }
+        
         .signature-line {
             margin: 30px 0;
+            padding: 25px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
+        
+        /* ===== FOOTER ===== */
         .footer {
-            margin-top: 50px;
-            padding-top: 20px;
-            border-top: 1px solid #ddd;
-            font-size: 11px;
-            color: #666;
+            margin-top: 60px;
+            padding: 35px 30px;
+            background: linear-gradient(135deg, #263238 0%, #37474F 100%);
+            color: #B0BEC5;
+            text-align: center;
+            border-radius: 12px;
+            font-size: 9pt;
+            line-height: 1.8;
+        }
+        
+        .footer strong {
+            color: #ffffff;
+            font-size: 11pt;
+            display: block;
+            margin-bottom: 8px;
+        }
+        
+        .footer p {
+            margin: 8px 0;
             text-align: center;
         }
+        
+        /* ===== ACCENTS ===== */
+        strong {
+            color: #2E7D32;
+            font-weight: 600;
+        }
+        
+        /* ===== PRINT STYLES ===== */
         @media print {
             body {
                 padding: 0;
+                max-width: 100%;
+            }
+            
+            .header::before {
+                display: none;
+            }
+            
+            .section {
+                page-break-inside: avoid;
             }
         }
     </style>
@@ -87,7 +251,7 @@
 <body>
     <!-- HEADER -->
     <div class="header">
-        <h1>DIY CREDIT REPAIR SERVICE AGREEMENT</h1>
+        <h1>ESSENTIALS CREDIT REPAIR SERVICE AGREEMENT</h1>
         <div class="company-info">
             <strong>Speedy Credit Repair Inc.</strong><br>
             {{COMPANY_ADDRESS}}, {{COMPANY_CITY}}, {{COMPANY_STATE}} {{COMPANY_ZIP}}<br>
@@ -280,7 +444,7 @@
     <div class="footer" style="text-align: center; margin-top: 50px; padding-top: 30px; border-top: 2px solid #333; font-size: 9pt; color: #333; page-break-inside: avoid;">
         <p style="margin: 5px 0; font-weight: bold;">Speedy Credit Repair Inc.</p>
         <p style="margin: 5px 0;">117 Main Street Suite 202, Huntington Beach, California 92648</p>
-        <p style="margin: 5px 0;">Phone: 888-724-7344 | Email: Contact@speedycreditrepair.com</p>
+        <p style="margin: 5px 0;">Phone: 888-724-7344 | Email: <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="96d5f9f8e2f7f5e2d6e5e6f3f3f2eff5e4f3f2ffe2e4f3e6f7ffe4b8f5f9fb">[email&#160;protected]</a></p>
         <p style="margin: 5px 0;">Website: https://speedycreditrepair.com</p>
 
         <p style="margin: 15px 0 5px 0;">
@@ -299,8 +463,4 @@
         </p>
 
         <p style="margin: 10px 0; font-size: 8pt;">
-            This document is a legally binding contract. Please retain a copy for your records.
-        </p>
-    </div>
-</body>
-</html>
+        

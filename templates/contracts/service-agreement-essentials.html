@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Essentials Credit Repair Service Agreement</title>
+    <style>
+        /* ===== ESSENTIALS CONTRACT DESIGN ===== */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 10.5pt;
+            line-height: 1.7;
+            max-width: 850px;
+            margin: 0 auto;
+            padding: 40px 50px;
+            color: #1a1a1a;
+            background: #ffffff;
+        }
+        
+        /* ===== ESSENTIALS HEADER ===== */
+        .header {
+            text-align: center;
+            padding: 40px 30px;
+            margin-bottom: 50px;
+            background: linear-gradient(135deg, #388E3C 0%, #4CAF50 50%, #66BB6A 100%);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(76, 175, 80, 0.25);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 70%);
+            animation: pulse 15s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(-30px, -30px); }
+        }
+        
+        .header h1 {
+            font-size: 28pt;
+            color: #ffffff;
+            margin: 15px 0 20px 0;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.15);
+        }
+        
+        .company-info {
+            margin-top: 20px;
+            font-size: 10pt;
+            color: rgba(255, 255, 255, 0.95);
+            position: relative;
+            z-index: 1;
+            font-weight: 500;
+            line-height: 1.8;
+        }
+        
+        .company-info strong {
+            color: #ffffff;
+            font-size: 11pt;
+        }
+        
+        /* ===== SECTIONS ===== */
+        .section {
+            margin: 45px 0;
+            page-break-inside: avoid;
+        }
+        
+        h2 {
+            font-size: 16pt;
+            color: #2E7D32;
+            padding: 15px 20px;
+            margin: 35px 0 20px 0;
+            font-weight: 700;
+            background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+            border-left: 5px solid #4CAF50;
+            border-radius: 8px;
+            letter-spacing: -0.3px;
+        }
+        
+        h3 {
+            font-size: 12.5pt;
+            color: #388E3C;
+            margin: 25px 0 12px 0;
+            font-weight: 600;
+            padding-left: 15px;
+            border-left: 3px solid #66BB6A;
+        }
+        
+        p {
+            margin: 12px 0;
+            text-align: justify;
+            color: #2c2c2c;
+        }
+        
+        /* ===== TABLES ===== */
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 20px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        td {
+            padding: 14px 18px;
+            text-align: left;
+            border-bottom: 1px solid #E8F5E9;
+        }
+        
+        td.label {
+            font-weight: 600;
+            color: #2E7D32;
+            background: #F1F8F4;
+            width: 40%;
+        }
+        
+        td:not(.label) {
+            background: white;
+        }
+        
+        tr:last-child td {
+            border-bottom: none;
+        }
+        
+        tr:hover td {
+            background: #E8F5E9 !important;
+            transition: all 0.2s ease;
+        }
+        
+        /* ===== LISTS ===== */
+        ul, ol {
+            margin: 15px 0 15px 25px;
+            padding-left: 20px;
+        }
+        
+        li {
+            margin: 10px 0;
+            line-height: 1.8;
+            color: #2c2c2c;
+        }
+        
+        li::marker {
+            color: #4CAF50;
+            font-weight: 600;
+        }
+        
+        /* ===== INFO BOXES ===== */
+        .info-box {
+            background: linear-gradient(135deg, #F1F8F4 0%, #E8F5E9 100%);
+            border-left: 5px solid #4CAF50;
+            padding: 20px 25px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.12);
+        }
+        
+        .info-box h3 {
+            color: #2E7D32;
+        }
+        
+        .info-box strong {
+            color: #1B5E20;
+        }
+        
+        /* ===== SIGNATURE SECTION ===== */
+        .signature-block {
+            margin-top: 60px;
+            padding: 35px;
+            background: linear-gradient(135deg, #F1F8F4 0%, #E8F5E9 100%);
+            border-radius: 12px;
+            border: 2px solid #4CAF50;
+        }
+        
+        .signature-line {
+            margin: 30px 0;
+            padding: 25px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        /* ===== FOOTER ===== */
+        .footer {
+            margin-top: 60px;
+            padding: 35px 30px;
+            background: linear-gradient(135deg, #263238 0%, #37474F 100%);
+            color: #B0BEC5;
+            text-align: center;
+            border-radius: 12px;
+            font-size: 9pt;
+            line-height: 1.8;
+        }
+        
+        .footer strong {
+            color: #ffffff;
+            font-size: 11pt;
+            display: block;
+            margin-bottom: 8px;
+        }
+        
+        .footer p {
+            margin: 8px 0;
+            text-align: center;
+        }
+        
+        /* ===== ACCENTS ===== */
+        strong {
+            color: #2E7D32;
+            font-weight: 600;
+        }
+        
+        /* ===== PRINT STYLES ===== */
+        @media print {
+            body {
+                padding: 0;
+                max-width: 100%;
+            }
+            
+            .header::before {
+                display: none;
+            }
+            
+            .section {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- HEADER -->
+    <div class="header">
+        <h1>ESSENTIALS CREDIT REPAIR SERVICE AGREEMENT</h1>
+        <div class="company-info">
+            <strong>Speedy Credit Repair Inc.</strong><br>
+            {{COMPANY_ADDRESS}}, {{COMPANY_CITY}}, {{COMPANY_STATE}} {{COMPANY_ZIP}}<br>
+            Phone: {{COMPANY_PHONE}} | Email: {{COMPANY_EMAIL}}<br>
+            Website: {{COMPANY_WEBSITE}}
+        </div>
+    </div>
+
+    <!-- CONTRACT INFORMATION -->
+    <div class="section">
+        <h2>1. Contract Information</h2>
+        <table>
+            <tr>
+                <td class="label">Contract Number:</td>
+                <td>{{CONTRACT_NUMBER}}</td>
+            </tr>
+            <tr>
+                <td class="label">Contract Date:</td>
+                <td>{{CONTRACT_DATE}}</td>
+            </tr>
+            <tr>
+                <td class="label">Service Start Date:</td>
+                <td>{{CONTRACT_START_DATE}}</td>
+            </tr>
+            <tr>
+                <td class="label">Service Plan:</td>
+                <td><strong>{{PLAN_NAME}}</strong></td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- CLIENT INFORMATION -->
+    <div class="section">
+        <h2>2. Client Information</h2>
+        <table>
+            <tr>
+                <td class="label">Client Name:</td>
+                <td>{{CLIENT_NAME}}</td>
+            </tr>
+            <tr>
+                <td class="label">Email:</td>
+                <td>{{CLIENT_EMAIL}}</td>
+            </tr>
+            <tr>
+                <td class="label">Phone:</td>
+                <td>{{CLIENT_PHONE}}</td>
+            </tr>
+            <tr>
+                <td class="label">Address:</td>
+                <td>{{CLIENT_ADDRESS}}, {{CLIENT_CITY}}, {{CLIENT_STATE}} {{CLIENT_ZIP}}</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- SERVICE DESCRIPTION -->
+    <div class="section">
+        <h2>3. Services Provided</h2>
+        <p>{{PLAN_DESCRIPTION}}</p>
+        <div class="info-box">
+            <h3>Included Features:</h3>
+            {{PLAN_FEATURES}}
+        </div>
+    </div>
+
+    <!-- PRICING AND PAYMENT -->
+    <div class="section">
+        <h2>4. Pricing and Payment Terms</h2>
+        <table>
+            <tr>
+                <td class="label">Monthly Fee:</td>
+                <td><strong>{{MONTHLY_FEE}}</strong></td>
+            </tr>
+            <tr>
+                <td class="label">Setup Fee:</td>
+                <td>{{SETUP_FEE}}</td>
+            </tr>
+            <tr>
+                <td class="label">Contract Length:</td>
+                <td>Month-to-month (no contract commitment)</td>
+            </tr>
+            <tr>
+                <td class="label">First Payment Date:</td>
+                <td>{{FIRST_PAYMENT_DATE}}</td>
+            </tr>
+            <tr>
+                <td class="label">Total First Payment:</td>
+                <td><strong>{{TOTAL_FIRST_PAYMENT}}</strong></td>
+            </tr>
+        </table>
+
+        <p><strong>Payment Terms:</strong> Monthly payments are due on the same day each month. Payments will be automatically charged to the payment method on file unless otherwise arranged.</p>
+    </div>
+
+    <!-- CANCELLATION POLICY -->
+    <div class="section">
+        <h2>5. Cancellation Policy</h2>
+        <div class="info-box">
+            <p><strong>Month-to-Month Service:</strong> This is a month-to-month service with no long-term contract commitment. You may cancel at any time with 30 days' written notice.</p>
+            <p><strong>How to Cancel:</strong> Send cancellation request via email to {{COMPANY_EMAIL}} or call {{COMPANY_PHONE}}.</p>
+            <p><strong>No Cancellation Fees:</strong> There are no cancellation fees or penalties for ending this service.</p>
+        </div>
+    </div>
+
+    <!-- CONSUMER RIGHTS -->
+    <div class="section">
+        <h2>6. Your Rights Under Federal Law</h2>
+        <p>Under the <strong>Credit Repair Organizations Act (CROA)</strong>, you have the following rights:</p>
+        <ul>
+            <li>You have the right to cancel this contract without penalty or obligation at any time before midnight of the 3rd business day after the date you signed this contract.</li>
+            <li>We cannot make any statement or representation that is false or misleading about our services.</li>
+            <li>We cannot charge or collect any fees until all promised services have been fully performed.</li>
+            <li>You have the right to sue us for violations of the CROA.</li>
+        </ul>
+
+        <h3>State-Specific Rights:</h3>
+        <p>{{STATE_COMPLIANCE}}</p>
+    </div>
+
+    <!-- CLIENT RESPONSIBILITIES -->
+    <div class="section">
+        <h2>7. Client Responsibilities</h2>
+        <p>As a DIY (Do-It-Yourself) plan member, you agree to:</p>
+        <ul>
+            <li>Use the provided tools, templates, and resources to manage your own credit repair process</li>
+            <li>Submit accurate information when using our platform</li>
+            <li>Maintain active access to your client portal account</li>
+            <li>Understand that this is a self-service plan with limited direct support</li>
+            <li>Follow all applicable federal and state laws when disputing credit report information</li>
+            <li>Not use our tools or resources for fraudulent or illegal purposes</li>
+        </ul>
+    </div>
+
+    <!-- COMPANY RESPONSIBILITIES -->
+    <div class="section">
+        <h2>8. Company Responsibilities</h2>
+        <p>Speedy Credit Repair Inc. agrees to:</p>
+        <ul>
+            <li>Provide access to AI-powered dispute letter templates and tools</li>
+            <li>Maintain your client portal and credit monitoring dashboard</li>
+            <li>Provide email support for technical and general questions</li>
+            <li>Protect your personal information in accordance with our Privacy Policy</li>
+            <li>Provide educational resources to support your credit repair journey</li>
+        </ul>
+    </div>
+
+    <!-- DISCLAIMERS -->
+    <div class="section">
+        <h2>9. Disclaimers and Limitations</h2>
+        <p><strong>No Guarantee of Results:</strong> While we provide tools and guidance, we cannot guarantee specific results or outcomes. Credit repair success depends on many factors, including the accuracy of disputed information and responses from credit bureaus.</p>
+
+        <p><strong>Self-Service Nature:</strong> This is a DIY plan. You are responsible for managing your own disputes and following up on results. We provide tools and templates, but you control the process.</p>
+
+        <p><strong>Limited Support:</strong> Support is provided via email only. Response times may vary (typically 24-48 business hours).</p>
+    </div>
+
+    <!-- MISCELLANEOUS -->
+    <div class="section">
+        <h2>10. Miscellaneous Provisions</h2>
+        <p><strong>Entire Agreement:</strong> This agreement constitutes the entire agreement between the parties and supersedes all prior discussions and agreements.</p>
+
+        <p><strong>Amendments:</strong> Any amendments to this agreement must be made in writing and signed by both parties.</p>
+
+        <p><strong>Governing Law:</strong> This agreement is governed by the laws of the State of {{STATE_NAME}} and federal law.</p>
+
+        <p><strong>Severability:</strong> If any provision of this agreement is found to be unenforceable, the remaining provisions shall remain in full effect.</p>
+    </div>
+
+    <!-- SIGNATURES -->
+    <div class="signature-block">
+        <h2>11. Signatures</h2>
+        <p>By signing below, both parties acknowledge that they have read, understood, and agree to all terms and conditions of this DIY Credit Repair Service Agreement.</p>
+
+        <div class="signature-line">
+            <p><strong>CLIENT SIGNATURE</strong></p>
+            <p>Signature: ___________________________________ Date: _______________</p>
+            <p>Print Name: {{CLIENT_NAME}}</p>
+        </div>
+
+        <div class="signature-line">
+            <p><strong>COMPANY REPRESENTATIVE</strong></p>
+            <p>Signature: ___________________________________ Date: _______________</p>
+            <p>Print Name: {{OWNER_NAME}}, Owner</p>
+            <p>Speedy Credit Repair Inc.</p>
+        </div>
+    </div>
+
+    <!-- ========================================================================
+         COPYRIGHT FOOTER
+         ======================================================================== -->
+    <div class="footer" style="text-align: center; margin-top: 50px; padding-top: 30px; border-top: 2px solid #333; font-size: 9pt; color: #333; page-break-inside: avoid;">
+        <p style="margin: 5px 0; font-weight: bold;">Speedy Credit Repair Inc.</p>
+        <p style="margin: 5px 0;">117 Main Street Suite 202, Huntington Beach, California 92648</p>
+        <p style="margin: 5px 0;">Phone: 888-724-7344 | Email: <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="96d5f9f8e2f7f5e2d6e5e6f3f3f2eff5e4f3f2ffe2e4f3e6f7ffe4b8f5f9fb">[email&#160;protected]</a></p>
+        <p style="margin: 5px 0;">Website: https://speedycreditrepair.com</p>
+
+        <p style="margin: 15px 0 5px 0;">
+            © 1995-{{CURRENT_YEAR}} Speedy Credit Repair Inc. | Created by Chris Lahage | All Rights Reserved
+        </p>
+
+        <p style="margin: 5px 0; font-size: 8pt; line-height: 1.4;">
+            Speedy Credit Repair® is a registered trademark of Speedy Credit Repair Inc.,
+            registered with the United States Patent and Trademark Office (USPTO).
+            Unauthorized use of this trademark is a violation of federal law and will be
+            prosecuted to the fullest extent of the law.
+        </p>
+
+        <p style="margin: 10px 0 0 0; font-size: 7pt; color: #666;">
+            Document Version {{CONTRACT_VERSION}} | Contract: {{CONTRACT_NUMBER}} | Generated {{GENERATED_DATETIME}}
+        </p>
+
+        <p style="margin: 10px 0; font-size: 8pt;">
+        
