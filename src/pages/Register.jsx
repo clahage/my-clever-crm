@@ -72,19 +72,36 @@ const Register = () => {
         displayName: `${formData.firstName} ${formData.lastName}`
       });
 
-      // Create user document in Firestore
+      // Create user document in Firestore (legacy collection)
+      // ⚠️ SECURITY FIX S1: Default to 'viewer' (most restrictive role)
+      // Admin must manually upgrade role after verifying the person.
+      // Clients get 'client' role assigned during contract signing flow.
       await setDoc(doc(db, 'users', user.uid), {
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
         companyName: formData.companyName || 'Speedy Credit Repair Inc',
-        role: 'admin',
+        role: 'viewer',  // ✅ SECURITY: Most restrictive role, prevents unauthorized access
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         settings: {
           notifications: true,
           theme: 'light'
         }
+      });
+
+      // S3 FIX: Also create userProfiles document (AuthContext looks here)
+      // This ensures displayName shows correctly: "Good evening, Buck!" not "Good evening, User!"
+      await setDoc(doc(db, 'userProfiles', user.uid), {
+        uid: user.uid,
+        email: formData.email,
+        displayName: `${formData.firstName} ${formData.lastName}`,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        role: 'viewer',  // ✅ SECURITY: Most restrictive role
+        permissions: ['read_basic'],
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
       });
 
       console.log('Registration successful');

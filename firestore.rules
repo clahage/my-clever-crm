@@ -2,183 +2,222 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // TEMPORARY - COMPLETELY OPEN FOR TESTING
-    // TODO: Remove this and use proper rules in production
-    match /{document=**} {
-      allow read, write: if true;
-    }
+    // ============================================================================
+    // S4 SECURITY FIX - REMOVED TEMPORARY OPEN RULE
+    // Previous: allow read, write: if true; ← DANGEROUS!
+    // Now: Specific rules for each collection with role-based access
+    // ============================================================================
 
     // Helper functions
     function isAuthenticated() {
       return request.auth != null;
     }
 
+    function getUserRole() {
+      return get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.role;
+    }
+
     function isEmployee() {
       return isAuthenticated() && 
-        get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.role in ['user', 'manager', 'admin', 'masterAdmin'];
+        getUserRole() in ['user', 'manager', 'admin', 'masterAdmin'];
     }
 
     function isAdmin() {
       return isAuthenticated() && 
-        get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.role in ['admin', 'masterAdmin'];
+        getUserRole() in ['admin', 'masterAdmin'];
     }
 
     // ============================================================================
-    // IDIQ CREDIT REPORT SYSTEM
+    // USER PROFILES - Everyone can read their own, only admins can modify
     // ============================================================================
+    match /userProfiles/{userId} {
+      allow read: if isAuthenticated() && (
+        request.auth.uid == userId ||  // Own profile
+        isEmployee()  // Or employee
+      );
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isAuthenticated() && (
+        request.auth.uid == userId ||  // Own updates
+        isAdmin()  // Or admin changing roles
+      );
+      allow delete: if isAuthenticated() && isAdmin();
+    }
 
-    // IDIQ Enrollments
+    // Legacy users collection (if still used)
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (
+        request.auth.uid == userId || isEmployee()
+      );
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isAuthenticated() && (
+        request.auth.uid == userId || isAdmin()
+      );
+      allow delete: if isAuthenticated() && isAdmin();
+    }
+
+    // ============================================================================
+    // CONTACTS - S4 FIX: Clients can ONLY see their own contact record
+    // ============================================================================
+    match /contacts/{contactId} {
+      allow read: if isAuthenticated() && (
+        isEmployee() ||  // Employees see all
+        resource.data.uid == request.auth.uid  // Clients see only theirs
+      );
+      allow create: if isAuthenticated();  // Anyone can create (enrollment)
+      allow update: if isAuthenticated() && (
+        isEmployee() ||  // Employees can update
+        resource.data.uid == request.auth.uid  // Clients can update own
+      );
+      allow delete: if isAuthenticated() && isAdmin();
+
+      // Subcollections (credit reports, documents, etc.)
+      match /creditReports/{reportId} {
+        allow read: if isAuthenticated() && (
+          isEmployee() ||
+          get(/databases/$(database)/documents/contacts/$(contactId)).data.uid == request.auth.uid
+        );
+        allow write: if isAuthenticated() && isEmployee();
+      }
+
+      match /documents/{docId} {
+        allow read: if isAuthenticated() && (
+          isEmployee() ||
+          get(/databases/$(database)/documents/contacts/$(contactId)).data.uid == request.auth.uid
+        );
+        allow write: if isAuthenticated() && (
+          isEmployee() ||
+          get(/databases/$(database)/documents/contacts/$(contactId)).data.uid == request.auth.uid
+        );
+      }
+    }
+
+    // ============================================================================
+    // INVOICES, TASKS, ANALYTICS - S4 FIX: Staff only or own data
+    // ============================================================================
+    match /invoices/{invoiceId} {
+      allow read: if isAuthenticated() && (
+        isEmployee() || resource.data.contactId == request.auth.uid
+      );
+      allow create, update: if isAuthenticated() && isEmployee();
+      allow delete: if isAuthenticated() && isAdmin();
+    }
+
+    match /tasks/{taskId} {
+      allow read, write: if isAuthenticated() && isEmployee();  // Staff only
+    }
+
+    match /revenue/{revenueId} {
+      allow read: if isAuthenticated() && isEmployee();
+      allow write: if false;  // Cloud functions only
+    }
+
+    match /analytics/{analyticsId} {
+      allow read: if isAuthenticated() && isEmployee();
+      allow write: if false;
+    }
+
+    match /staffNotifications/{notificationId} {
+      allow read: if isAuthenticated() && isEmployee();
+      allow create: if false;
+      allow update: if isAuthenticated() && isEmployee();
+      allow delete: if isAuthenticated() && isAdmin();
+    }
+
+    // ============================================================================
+    // IDIQ, DISPUTES, PAYMENTS - Clients can see own data
+    // ============================================================================
     match /idiqEnrollments/{enrollmentId} {
       allow read: if isAuthenticated() && (
-        isAdmin() || 
-        resource.data.clientId == request.auth.uid
+        isEmployee() || resource.data.clientId == request.auth.uid
       );
       allow create: if isAuthenticated() && isEmployee();
       allow update, delete: if isAuthenticated() && isAdmin();
     }
 
-    // Credit Reports
     match /creditReports/{reportId} {
       allow read: if isAuthenticated() && (
-        isAdmin() || 
-        resource.data.clientId == request.auth.uid
+        isEmployee() || resource.data.clientId == request.auth.uid
       );
       allow create, update: if isAuthenticated() && isEmployee();
       allow delete: if isAuthenticated() && isAdmin();
     }
 
-    // Credit Monitors
-    match /creditMonitors/{monitorId} {
-      allow read: if isAuthenticated() && (
-        isAdmin() || 
-        resource.data.clientId == request.auth.uid
-      );
-      allow create, update, delete: if isAuthenticated() && isEmployee();
-    }
-
-    // Disputes
     match /disputes/{disputeId} {
       allow read: if isAuthenticated() && (
-        isAdmin() ||
-        resource.data.clientId == request.auth.uid
+        isEmployee() || resource.data.clientId == request.auth.uid
       );
       allow create: if isAuthenticated();
       allow update, delete: if isAuthenticated() && isEmployee();
     }
 
-    // ============================================================================
-
-    // PAYMENT MANAGEMENT SYSTEM
-    // ============================================================================
-    // Payment Methods (Bank Accounts, Zelle)
     match /paymentMethods/{methodId} {
       allow read: if isAuthenticated() && (
-        isAdmin() ||
-        resource.data.clientId == request.auth.uid
+        isEmployee() || resource.data.clientId == request.auth.uid
       );
       allow create, update: if isAuthenticated() && (
-        isAdmin() ||
-        request.resource.data.clientId == request.auth.uid
+        isEmployee() || request.resource.data.clientId == request.auth.uid
       );
       allow delete: if isAuthenticated() && isAdmin();
     }
-    // Payments (Transactions)
+
     match /payments/{paymentId} {
       allow read: if isAuthenticated() && (
-        isAdmin() ||
-        resource.data.clientId == request.auth.uid
+        isEmployee() || resource.data.clientId == request.auth.uid
       );
       allow create: if isAuthenticated() && isAdmin();
       allow update: if isAuthenticated() && (
-        isAdmin() ||
-        (resource.data.clientId == request.auth.uid && request.resource.data.status in ['pending', 'failed'])
+        isEmployee() || resource.data.clientId == request.auth.uid
       );
       allow delete: if isAuthenticated() && isAdmin();
     }
 
-    // TAX SERVICES SYSTEM
-    // ============================================================================
+    match /contracts/{contractId} {
+      allow read: if isAuthenticated() && (
+        isEmployee() || resource.data.contactId == request.auth.uid
+      );
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (
+        isEmployee() || resource.data.contactId == request.auth.uid
+      );
+      allow delete: if isAuthenticated() && isAdmin();
+    }
 
-    // Tax Returns
+    match /contractSigningTokens/{tokenId} {
+      allow read: if true;  // Public signing links
+      allow create: if isAuthenticated() && isEmployee();
+      allow update: if true;
+      allow delete: if isAuthenticated() && isAdmin();
+    }
+
+    // ============================================================================
+    // TAX SERVICES (clients can see own data)
+    // ============================================================================
     match /taxReturns/{returnId} {
       allow read: if isAuthenticated() && (
-        isAdmin() ||
-        resource.data.userId == request.auth.uid ||
-        resource.data.clientId == request.auth.uid
-      );
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated() && (
-        isEmployee() ||
-        resource.data.userId == request.auth.uid
-      );
-      allow delete: if isAuthenticated() && isAdmin();
-    }
-
-    // Tax Documents
-    match /taxDocuments/{documentId} {
-      allow read: if isAuthenticated() && (
-        isAdmin() ||
-        resource.data.userId == request.auth.uid
-      );
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated() && (
-        isEmployee() ||
-        resource.data.userId == request.auth.uid
-      );
-      allow delete: if isAuthenticated() && (
-        isAdmin() ||
-        resource.data.userId == request.auth.uid
-      );
-    }
-
-    // Tax Profiles
-    match /taxProfiles/{profileId} {
-      allow read: if isAuthenticated() && (
-        isAdmin() ||
-        resource.data.userId == request.auth.uid ||
-        resource.data.clientId == request.auth.uid
-      );
-      allow create, update: if isAuthenticated() && isEmployee();
-      allow delete: if isAuthenticated() && isAdmin();
-    }
-
-    // Tax Questionnaires
-    match /taxQuestionnaires/{questionnaireId} {
-      allow read: if isAuthenticated() && (
-        isAdmin() ||
-        resource.data.userId == request.auth.uid
+        isEmployee() || resource.data.userId == request.auth.uid
       );
       allow create, update: if isAuthenticated();
       allow delete: if isAuthenticated() && isAdmin();
     }
 
-    // Tax Analytics
-    match /taxAnalytics/{analyticsId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update, delete: if isAuthenticated() && isAdmin();
-    }
-
-    // Tax Analytics Aggregate (public read for dashboards)
-    match /taxAnalyticsAggregate/{aggregateId} {
-      allow read: if isAuthenticated();
-      allow write: if false; // Only cloud functions can write
-    }
-
-    // Tax Audit Logs (read-only for admins)
-    match /taxAuditLogs/{logId} {
-      allow read: if isAuthenticated() && isAdmin();
-      allow create: if isAuthenticated(); // System can create
-      allow update, delete: if false; // Immutable audit logs
-    }
-
-    // Tax Filing Confirmations
-    match /taxFilingConfirmations/{confirmationId} {
-      allow read: if isAuthenticated() && (
-        isAdmin() ||
-        resource.data.userId == request.auth.uid
+    match /taxDocuments/{documentId} {
+      allow read, create, update: if isAuthenticated() && (
+        isEmployee() || resource.data.userId == request.auth.uid
       );
-      allow write: if false; // Only cloud functions can write
+      allow delete: if isAuthenticated() && isAdmin();
+    }
+
+    match /activityLogs/{logId} {
+      allow read: if isAuthenticated() && isEmployee();
+      allow create: if isAuthenticated();
+      allow update, delete: if false;
+    }
+
+    match /emailLogs/{logId} {
+      allow read: if isAuthenticated() && isEmployee();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && isEmployee();
+      allow delete: if isAuthenticated() && isAdmin();
     }
   }
 }

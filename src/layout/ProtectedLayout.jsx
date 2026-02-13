@@ -292,6 +292,35 @@ const ProtectedLayout = () => {
   const userRole = userProfile?.role || user?.role || 'viewer'; // ⚠️ SECURITY: default 'viewer' not 'user'
 
   // =========================================================================
+  // S2 SECURITY FIX: REDIRECT LOW-ROLE USERS TO CLIENT PORTAL
+  // =========================================================================
+  // Prevents clients/prospects/viewers from seeing admin dashboard
+  // Role hierarchy: viewer(1), prospect(2), client(3), affiliate(4), user(5), manager(6), admin(7), masterAdmin(8)
+  // Only users level 5+ should see admin tools
+  // =========================================================================
+  const ROLE_LEVELS = {
+    viewer: 1,
+    prospect: 2,
+    client: 3,
+    affiliate: 4,
+    user: 5,
+    manager: 6,
+    admin: 7,
+    masterAdmin: 8
+  };
+
+  const currentRoleLevel = ROLE_LEVELS[userRole] || 1;
+  // location already declared at top of component (line 229)
+
+  useEffect(() => {
+    // If user has low role (below 'user' level 5) AND not already on client portal
+    if (currentRoleLevel < 5 && !location.pathname.startsWith('/client-portal')) {
+      console.log(`🔒 S2 SECURITY: Redirecting ${userRole} (level ${currentRoleLevel}) to client portal`);
+      navigate('/client-portal', { replace: true });
+    }
+  }, [currentRoleLevel, location.pathname, navigate, userRole]);
+
+  // =========================================================================
   // PERSIST SOUND SETTINGS to localStorage whenever they change
   // =========================================================================
   useEffect(() => {
