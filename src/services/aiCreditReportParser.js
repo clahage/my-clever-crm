@@ -1,25 +1,26 @@
-// src/services/aiCreditReportParser.js
+// ============================================================================
+// AI CREDIT REPORT PARSER - TIER 5+ ENTERPRISE EDITION
+// ============================================================================
+// Path: src/services/aiCreditReportParser.js
+//
 // Enhanced AI-Assisted Credit Report Parsing
-// Supports: IDIQ, PDF uploads, manual entry, and other providers
+// Supports: IDIQ JSON, PDF uploads, text parsing, manual entry
+//
+// FEATURES:
+// ✅ Multi-format detection and parsing (IDIQ, PDF, JSON, text)
+// ✅ Server-side AI via Firebase Cloud Functions (secure)
+// ✅ Comprehensive error handling with fallbacks
+// ✅ Smart normalization and validation
+// ✅ Automatic negative/positive item extraction
+// ✅ Credit metrics calculation (utilization, age, balances)
+// ✅ Bureau score extraction and validation
+// ✅ Production-ready with full logging
+//
+// © 1995-2026 Speedy Credit Repair Inc. | Christopher Lahage
+// ============================================================================
 
-import aiService from '@/services/aiService';
-
-// Proxy to keep existing openai.chat.completions.create(...) calls working
-const openai = {
-  chat: {
-    completions: {
-      create: async (opts) => {
-        // For parsing flows prefer aiService.parseCreditReport if available
-        if (aiService.parseCreditReport) {
-          const res = await aiService.parseCreditReport(opts);
-          return { choices: [{ message: { content: res.response || res || '' } }] };
-        }
-        const res = await aiService.complete(opts);
-        return { choices: [{ message: { content: res.response || res || '' } }] };
-      }
-    }
-  }
-};
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '@/lib/firebase';
 
 // ============================================================================
 // MAIN PARSING FUNCTION
@@ -27,56 +28,80 @@ const openai = {
 
 /**
  * Parse credit report from any format
- * Uses AI to intelligently extract data
+ * Uses AI to intelligently extract and normalize data
  * 
  * @param {object|string} rawReport - Raw report data (JSON, text, or structured)
- * @param {string} provider - Optional provider hint ('IDIQ', 'PDF', etc.)
- * @returns {object} Parsed and normalized report data
+ * @param {string} provider - Optional provider hint ('IDIQ', 'PDF', 'text', etc.)
+ * @returns {Promise<object>} Parsed and normalized report data
  */
 export async function parseCreditReport(rawReport, provider = null) {
-  console.log('📄 Parsing credit report...', provider || 'auto-detect');
+  console.log('📄 AI Credit Report Parser - Starting...', provider || 'auto-detect');
 
   try {
-    // Determine report format
+    // ===== STEP 1: DETECT FORMAT =====
     const format = detectFormat(rawReport);
-    console.log('Detected format:', format);
+    console.log('✅ Detected format:', format);
 
     let parsedData;
 
-    // Route to appropriate parser
+    // ===== STEP 2: ROUTE TO APPROPRIATE PARSER =====
     switch (format) {
       case 'idiq-json':
+        console.log('🔍 Using IDIQ JSON parser...');
         parsedData = await parseIDIQReport(rawReport);
         break;
 
       case 'json':
+        console.log('🔍 Using generic JSON parser...');
         parsedData = await parseGenericJSON(rawReport);
         break;
 
       case 'text':
       case 'pdf':
+        console.log('🔍 Using AI text parser (server-side)...');
         parsedData = await parseTextReport(rawReport);
         break;
 
       case 'structured':
+        console.log('🔍 Using structured data normalizer...');
         parsedData = normalizeStructuredData(rawReport);
         break;
 
       default:
-        throw new Error(`Unsupported format: ${format}`);
+        console.warn('⚠️ Unknown format, attempting AI-assisted parse...');
+        parsedData = await aiAssistedParse(rawReport);
     }
 
-    // Validate and normalize
+    // ===== STEP 3: VALIDATE AND NORMALIZE =====
     const normalized = normalizeData(parsedData);
 
+    // ===== STEP 4: EXTRACT ADDITIONAL METRICS =====
+    normalized.metrics = {
+      utilization: normalized.utilization || 0,
+      ageOfCredit: normalized.ageOfCredit || 0,
+      totalAccounts: normalized.totalAccounts || 0,
+      openAccounts: normalized.openAccounts || 0,
+      totalBalances: normalized.totalBalances || 0,
+      derogatory: normalized.negatives?.length || 0,
+      collections: normalized.collections?.length || 0,
+      latePayments: normalized.latePayments?.length || 0,
+      hardInquiries: normalized.hardInquiries?.length || 0,
+    };
+
     console.log('✅ Report parsed successfully');
+    console.log(`   - Scores: ${Object.keys(normalized.scores || {}).length} bureaus`);
+    console.log(`   - Tradelines: ${normalized.tradelines?.length || 0}`);
+    console.log(`   - Negative Items: ${normalized.negatives?.length || 0}`);
+    console.log(`   - Collections: ${normalized.collections?.length || 0}`);
+
     return normalized;
 
   } catch (error) {
     console.error('❌ Error parsing credit report:', error);
+    console.error('   Stack:', error.stack);
     
     // Return fallback structure if parsing fails
-    return getFallbackStructure();
+    return getFallbackStructure(error.message);
   }
 }
 
@@ -85,127 +110,166 @@ export async function parseCreditReport(rawReport, provider = null) {
 // ============================================================================
 
 /**
- * Detect the format of the credit report
+ * Intelligently detect the format of the credit report
+ * @param {any} rawReport - Raw report in any format
+ * @returns {string} Format identifier
  */
 function detectFormat(rawReport) {
+  // Null/undefined check
+  if (!rawReport) {
+    return 'unknown';
+  }
+
   // Already an object with known structure
   if (typeof rawReport === 'object' && rawReport !== null) {
-    // Check if it's IDIQ format
-    if (rawReport.creditScore || rawReport.vantageScore || rawReport.tradelines) {
+    // Check if it's IDIQ format (has specific IDIQ properties)
+    if (rawReport.creditScore || rawReport.vantageScore || 
+        rawReport.tradelines || rawReport.BundleComponents) {
       return 'idiq-json';
     }
     
-    // Check if it's already structured
-    if (rawReport.scores && rawReport.tradelines) {
+    // Check if it's already structured (has our normalized format)
+    if (rawReport.scores && rawReport.tradelines && rawReport.negatives) {
       return 'structured';
     }
 
-    // Generic JSON
-    return 'json';
+    // Check if it has common credit report properties
+    if (rawReport.accounts || rawReport.creditScores || rawReport.bureaus) {
+      return 'json';
+    }
   }
 
-  // String - could be text or PDF content
+  // String content - check what kind
   if (typeof rawReport === 'string') {
-    // Check if it looks like JSON
-    if (rawReport.trim().startsWith('{') || rawReport.trim().startsWith('[')) {
+    const trimmed = rawReport.trim();
+    
+    // Try to parse as JSON
+    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
       try {
-        JSON.parse(rawReport);
-        return 'json';
+        const parsed = JSON.parse(trimmed);
+        return detectFormat(parsed); // Recursive call with parsed object
       } catch (e) {
         // Not valid JSON, treat as text
       }
     }
 
-    // Check if it's PDF content (base64 or text)
-    if (rawReport.includes('PDF') || rawReport.length > 10000) {
+    // Check for common credit report text patterns
+    if (trimmed.includes('credit score') || trimmed.includes('FICO') || 
+        trimmed.includes('VantageScore') || trimmed.includes('Equifax') ||
+        trimmed.includes('Experian') || trimmed.includes('TransUnion')) {
+      return 'text';
+    }
+
+    // Check for PDF-extracted text patterns
+    if (trimmed.includes('Page ') || trimmed.includes('Credit Report')) {
       return 'pdf';
     }
 
-    return 'text';
+    return 'text'; // Default for any string
   }
 
   return 'unknown';
 }
 
 // ============================================================================
-// IDIQ REPORT PARSER
+// IDIQ FORMAT PARSER
 // ============================================================================
 
 /**
- * Parse IDIQ-specific report format
+ * Parse IDIQ-specific credit report format
+ * Handles their nested structure and extractS all relevant data
  */
 async function parseIDIQReport(report) {
-  console.log('🔵 Parsing IDIQ report format');
+  console.log('📊 Parsing IDIQ report structure...');
+
+  const result = {
+    scores: {},
+    tradelines: [],
+    negatives: [],
+    positives: [],
+    hardInquiries: [],
+    publicRecords: [],
+    collections: [],
+    latePayments: [],
+  };
 
   try {
-    return {
-      // Scores
-      scores: {
-        vantage: report.vantageScore || report.creditScore || null,
-        fico8: report.fico8Score || null,
-        experian: report.experianScore || null,
-        equifax: report.equifaxScore || null,
-        transunion: report.transunionScore || null
-      },
-
-      // Tradelines (accounts)
-      tradelines: (report.tradelines || report.accounts || []).map(account => ({
-        accountId: account.accountNumber || account.id,
-        accountName: account.creditorName || account.accountName,
-        accountType: account.accountType || 'Unknown',
-        status: account.paymentStatus || account.status,
-        balance: parseFloat(account.currentBalance || account.balance || 0),
-        creditLimit: parseFloat(account.creditLimit || account.highCredit || 0),
-        openedDate: account.dateOpened || account.openDate,
-        closedDate: account.dateClosed || null,
-        lastReported: account.dateReported || account.lastReportedDate,
-        paymentHistory: account.paymentHistory || [],
-        remarks: account.remarks || account.comments || ''
-      })),
-
-      // Negative items
-      negatives: extractNegativeItems(report),
-
-      // Positive items
-      positives: extractPositiveItems(report),
-
-      // Hard inquiries
-      hardInquiries: (report.inquiries || report.hardInquiries || []).map(inq => ({
-        creditor: inq.creditorName || inq.name,
-        date: inq.inquiryDate || inq.date,
-        type: 'hard'
-      })),
-
-      // Public records
-      publicRecords: (report.publicRecords || []).map(record => ({
-        type: record.type,
-        status: record.status,
-        filingDate: record.filingDate,
-        amount: parseFloat(record.amount || 0),
-        court: record.court || '',
-        caseNumber: record.caseNumber || ''
-      })),
-
-      // Collections
-      collections: extractCollections(report),
-
-      // Late payments
-      latePayments: extractLatePayments(report),
-
-      // Calculated metrics
-      utilization: calculateUtilization(report.tradelines || report.accounts || []),
-      ageOfCredit: calculateAgeOfCredit(report.tradelines || report.accounts || []),
-      totalAccounts: (report.tradelines || report.accounts || []).length,
-      openAccounts: (report.tradelines || report.accounts || []).filter(a => !a.dateClosed).length,
-      totalBalances: calculateTotalBalances(report.tradelines || report.accounts || []),
-
-      // Report metadata
-      reportDate: report.reportDate || report.pulledDate || new Date().toISOString(),
-      bureaus: report.bureaus || ['Experian', 'Equifax', 'TransUnion']
+    // ===== EXTRACT SCORES =====
+    result.scores = {
+      vantage: report.vantageScore || report.creditScore || null,
+      transunion: report.transunionScore || null,
+      experian: report.experianScore || null,
+      equifax: report.equifaxScore || null,
     };
 
+    // Check BundleComponents structure (IDIQ specific)
+    if (report.BundleComponents?.BundleComponent) {
+      const bc = report.BundleComponents.BundleComponent;
+      
+      // Extract CreditScoreType
+      if (bc.CreditScoreType?.['@riskScore']) {
+        result.scores.vantage = parseInt(bc.CreditScoreType['@riskScore'], 10);
+      }
+
+      // Extract TrueLink Credit Report
+      const trueLink = bc.TrueLinkCreditReportType;
+      if (trueLink?.Borrower?.CreditScore) {
+        const scores = Array.isArray(trueLink.Borrower.CreditScore) 
+          ? trueLink.Borrower.CreditScore 
+          : [trueLink.Borrower.CreditScore];
+        
+        scores.forEach(s => {
+          const score = parseInt(s?.['@riskScore'] || s?.riskScore, 10);
+          if (score >= 300 && score <= 850) {
+            result.scores.vantage = score;
+          }
+        });
+      }
+    }
+
+    // ===== EXTRACT TRADELINES =====
+    const accounts = report.tradelines || report.accounts || [];
+    result.tradelines = accounts.map(account => ({
+      id: account.id || `tradeline-${Date.now()}-${Math.random()}`,
+      creditorName: account.creditorName || account.name || 'Unknown',
+      accountNumber: account.accountNumber || account.number || null,
+      accountType: account.accountType || account.type || 'Unknown',
+      status: account.status || 'Unknown',
+      balance: parseFloat(account.balance || 0),
+      creditLimit: parseFloat(account.creditLimit || account.limit || 0),
+      paymentStatus: account.paymentStatus || account.status || 'Current',
+      dateOpened: account.dateOpened || account.opened || null,
+      lastPayment: account.lastPayment || null,
+    }));
+
+    // ===== EXTRACT NEGATIVE ITEMS =====
+    result.negatives = extractNegativeItems(report);
+    result.collections = extractCollections(report);
+    result.latePayments = extractLatePayments(report);
+    result.publicRecords = report.publicRecords || [];
+    result.hardInquiries = report.inquiries || report.hardInquiries || [];
+
+    // ===== EXTRACT POSITIVE ITEMS =====
+    result.positives = extractPositiveItems(report);
+
+    // ===== CALCULATE METRICS =====
+    result.utilization = calculateUtilization(result.tradelines);
+    result.ageOfCredit = calculateAgeOfCredit(result.tradelines);
+    const balances = calculateTotalBalances(result.tradelines);
+    result.totalBalances = balances.total;
+    result.totalAccounts = result.tradelines.length;
+    result.openAccounts = result.tradelines.filter(t => 
+      t.status?.toLowerCase().includes('open')
+    ).length;
+
+    result.reportDate = report.reportDate || new Date().toISOString();
+    result.bureaus = ['Equifax', 'Experian', 'TransUnion'];
+
+    console.log('✅ IDIQ report parsed successfully');
+    return result;
+
   } catch (error) {
-    console.error('❌ IDIQ parsing error:', error);
+    console.error('❌ Error parsing IDIQ report:', error);
     throw error;
   }
 }
@@ -215,175 +279,138 @@ async function parseIDIQReport(report) {
 // ============================================================================
 
 /**
- * Parse generic JSON credit report
+ * Parse generic JSON credit report formats
+ * Uses AI assistance when needed
  */
 async function parseGenericJSON(report) {
-  console.log('📋 Parsing generic JSON format');
+  console.log('📊 Parsing generic JSON report...');
 
-  // Try to intelligently map fields
   const reportObj = typeof report === 'string' ? JSON.parse(report) : report;
 
-  // Use AI to help parse unknown JSON structure
-  return await aiAssistedParse(reportObj);
+  // If it looks complex or non-standard, use AI
+  if (!reportObj.accounts && !reportObj.tradelines && !reportObj.scores) {
+    console.log('⚡ Using AI-assisted parsing for complex JSON...');
+    return await aiAssistedParse(reportObj);
+  }
+
+  // Otherwise, try to extract what we can
+  return {
+    scores: reportObj.scores || reportObj.creditScores || {},
+    tradelines: reportObj.tradelines || reportObj.accounts || [],
+    negatives: reportObj.negatives || reportObj.derogatories || [],
+    positives: reportObj.positives || [],
+    hardInquiries: reportObj.inquiries || reportObj.hardInquiries || [],
+    publicRecords: reportObj.publicRecords || [],
+    collections: reportObj.collections || [],
+    latePayments: reportObj.latePayments || [],
+    utilization: reportObj.utilization || 0,
+    ageOfCredit: reportObj.ageOfCredit || 0,
+    totalAccounts: reportObj.totalAccounts || 0,
+    openAccounts: reportObj.openAccounts || 0,
+    totalBalances: reportObj.totalBalances || 0,
+    reportDate: reportObj.reportDate || new Date().toISOString(),
+    bureaus: reportObj.bureaus || [],
+  };
 }
 
 // ============================================================================
-// TEXT/PDF PARSER
+// TEXT REPORT PARSER (AI-POWERED VIA CLOUD FUNCTIONS)
 // ============================================================================
 
 /**
- * Parse text or PDF credit report using AI
+ * Parse text/PDF credit report using AI
+ * Routes to Cloud Functions for secure AI processing
  */
 async function parseTextReport(textContent) {
-  console.log('📝 Parsing text/PDF format with AI');
+  console.log('📝 Parsing text report via AI (Cloud Functions)...');
 
   try {
-    const prompt = `Parse this credit report and extract all information into JSON format.
-
-CREDIT REPORT TEXT:
-${textContent.substring(0, 8000)} // Limit to avoid token limits
-
-Extract and return ONLY valid JSON with this structure:
-{
-  "scores": {
-    "vantage": number or null,
-    "fico8": number or null,
-    "experian": number or null,
-    "equifax": number or null,
-    "transunion": number or null
-  },
-  "tradelines": [
-    {
-      "accountName": "string",
-      "accountType": "string",
-      "status": "string",
-      "balance": number,
-      "creditLimit": number,
-      "openedDate": "YYYY-MM-DD",
-      "paymentStatus": "string"
-    }
-  ],
-  "negativeItems": [
-    {
-      "type": "string",
-      "account": "string",
-      "date": "YYYY-MM-DD",
-      "status": "string"
-    }
-  ],
-  "inquiries": [
-    {
-      "creditor": "string",
-      "date": "YYYY-MM-DD"
-    }
-  ],
-  "publicRecords": [],
-  "collections": [],
-  "utilization": number (0-100),
-  "totalAccounts": number
-}`;
-
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a credit report parser. Extract ALL information accurately. Return ONLY valid JSON, no explanatory text.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      temperature: 0.1, // Low temperature for accuracy
-      max_tokens: 3000
+    // ===== CALL CLOUD FUNCTION FOR AI PARSING =====
+    const aiContentGenerator = httpsCallable(functions, 'aiContentGenerator');
+    
+    const result = await aiContentGenerator({
+      type: 'parseCreditReportText',
+      text: textContent.substring(0, 12000), // Limit to 12k chars for API
     });
 
-    const parsed = JSON.parse(response.choices[0].message.content);
-
-    // Convert to our standard format
-    return {
-      scores: parsed.scores || {},
-      tradelines: parsed.tradelines || [],
-      negatives: parsed.negativeItems || [],
-      positives: [], // Will be derived
-      hardInquiries: parsed.inquiries || [],
-      publicRecords: parsed.publicRecords || [],
-      collections: parsed.collections || [],
-      latePayments: [], // Will be derived
-      utilization: parsed.utilization || 50,
-      ageOfCredit: calculateAgeOfCredit(parsed.tradelines || []),
-      totalAccounts: parsed.totalAccounts || (parsed.tradelines || []).length,
-      openAccounts: (parsed.tradelines || []).filter(t => t.status !== 'closed').length,
-      totalBalances: calculateTotalBalances(parsed.tradelines || []),
-      reportDate: new Date().toISOString(),
-      bureaus: ['Unknown']
-    };
+    if (result.data?.success && result.data?.parsed) {
+      console.log('✅ AI parsing successful');
+      return result.data.parsed;
+    } else {
+      console.warn('⚠️ AI parsing failed, using fallback extraction');
+      return extractFromText(textContent);
+    }
 
   } catch (error) {
     console.error('❌ AI text parsing error:', error);
-    
-    // Fallback to basic text extraction
-    return basicTextExtraction(textContent);
+    console.log('⚡ Falling back to regex extraction...');
+    return extractFromText(textContent);
   }
 }
 
 // ============================================================================
-// AI-ASSISTED PARSING
+// AI-ASSISTED PARSING (VIA CLOUD FUNCTIONS)
 // ============================================================================
 
 /**
- * Use AI to parse unknown JSON structures
+ * Use AI to parse complex or unknown report formats
+ * Secure server-side processing via Firebase Cloud Functions
  */
 async function aiAssistedParse(reportObj) {
-  console.log('🤖 Using AI to parse unknown structure');
+  console.log('🤖 Using AI-assisted parsing via Cloud Functions...');
 
   try {
-    const reportString = JSON.stringify(reportObj, null, 2).substring(0, 6000);
+    // Convert report to string for AI processing
+    const reportString = typeof reportObj === 'string' 
+      ? reportObj 
+      : JSON.stringify(reportObj, null, 2);
 
-    const prompt = `Convert this credit report JSON to our standard format.
+    // Truncate to reasonable size (12k characters)
+    const truncated = reportString.substring(0, 12000);
 
-INPUT JSON:
-${reportString}
-
-Return ONLY valid JSON with this exact structure (no additional text):
-{
-  "scores": {"vantage": number, "fico8": number, "experian": number, "equifax": number, "transunion": number},
-  "tradelines": [{"accountName": "", "accountType": "", "status": "", "balance": 0, "creditLimit": 0, "openedDate": ""}],
-  "negatives": [{"type": "", "account": "", "status": ""}],
-  "hardInquiries": [{"creditor": "", "date": ""}],
-  "publicRecords": [],
-  "collections": [],
-  "utilization": 0,
-  "totalAccounts": 0
-}`;
-
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a data transformer. Convert credit report data to the specified format. Return ONLY valid JSON.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      temperature: 0.1,
-      max_tokens: 2500
+    // Call Cloud Function
+    const aiContentGenerator = httpsCallable(functions, 'aiContentGenerator');
+    
+    const result = await aiContentGenerator({
+      type: 'parseCreditReportJSON',
+      json: truncated,
     });
 
-    return JSON.parse(response.choices[0].message.content);
+    if (result.data?.success && result.data?.parsed) {
+      console.log('✅ AI-assisted parsing successful');
+      return result.data.parsed;
+    } else {
+      throw new Error('AI parsing returned no data');
+    }
 
   } catch (error) {
-    console.error('❌ AI-assisted parse error:', error);
-    return getFallbackStructure();
+    console.error('❌ AI-assisted parse failed:', error);
+    
+    // Fallback: Try to extract what we can manually
+    console.log('⚡ Attempting manual extraction...');
+    return {
+      scores: {},
+      tradelines: [],
+      negatives: [],
+      positives: [],
+      hardInquiries: [],
+      publicRecords: [],
+      collections: [],
+      latePayments: [],
+      utilization: 0,
+      ageOfCredit: 0,
+      totalAccounts: 0,
+      openAccounts: 0,
+      totalBalances: 0,
+      reportDate: new Date().toISOString(),
+      bureaus: [],
+      error: 'AI parsing failed. Manual data entry recommended.',
+    };
   }
 }
 
 // ============================================================================
-// DATA EXTRACTION HELPERS
+// UTILITY FUNCTIONS: EXTRACTION
 // ============================================================================
 
 /**
@@ -392,71 +419,78 @@ Return ONLY valid JSON with this exact structure (no additional text):
 function extractNegativeItems(report) {
   const negatives = [];
 
-  // From tradelines
-  (report.tradelines || report.accounts || []).forEach(account => {
-    if (account.paymentStatus && 
-        (account.paymentStatus.toLowerCase().includes('late') ||
-         account.paymentStatus.toLowerCase().includes('delinquent') ||
-         account.paymentStatus.toLowerCase().includes('charge') ||
-         account.paymentStatus.toLowerCase().includes('collection'))) {
-      
-      negatives.push({
-        type: determineNegativeType(account.paymentStatus),
-        account: account.creditorName || account.accountName,
-        amount: account.currentBalance || account.balance,
-        status: account.paymentStatus,
-        date: account.dateReported || account.lastReportedDate,
-        age: calculateAge(account.dateReported || account.dateOpened)
+  // Check various possible locations for negative items
+  const sources = [
+    report.negativeItems,
+    report.negatives,
+    report.derogatories,
+    report.adverseItems,
+  ].filter(Boolean);
+
+  sources.forEach(source => {
+    if (Array.isArray(source)) {
+      source.forEach(item => {
+        negatives.push({
+          id: item.id || `neg-${Date.now()}-${Math.random()}`,
+          type: item.type || determineNegativeType(item.status),
+          creditorName: item.creditorName || item.name || 'Unknown',
+          accountNumber: item.accountNumber || null,
+          status: item.status || 'Negative',
+          balance: parseFloat(item.balance || 0),
+          dateOpened: item.dateOpened || null,
+          dateReported: item.dateReported || item.lastReported || null,
+          description: item.description || null,
+        });
       });
     }
   });
 
-  // From collections
-  (report.collections || []).forEach(collection => {
-    negatives.push({
-      type: 'collection',
-      account: collection.creditorName || collection.originalCreditor,
-      amount: collection.balance,
-      status: collection.status,
-      date: collection.dateReported,
-      age: calculateAge(collection.dateReported)
-    });
-  });
-
-  // From public records
-  (report.publicRecords || []).forEach(record => {
-    negatives.push({
-      type: record.type || 'public_record',
-      account: record.court || 'Public Record',
-      amount: record.amount,
-      status: record.status,
-      date: record.filingDate,
-      age: calculateAge(record.filingDate)
-    });
+  // Also check tradelines for negative status
+  const tradelines = report.tradelines || report.accounts || [];
+  tradelines.forEach(account => {
+    const status = (account.status || account.paymentStatus || '').toLowerCase();
+    if (status.includes('late') || status.includes('delinquent') || 
+        status.includes('charge') || status.includes('collection')) {
+      negatives.push({
+        id: `neg-from-tradeline-${account.id}`,
+        type: determineNegativeType(status),
+        creditorName: account.creditorName || account.name || 'Unknown',
+        accountNumber: account.accountNumber || null,
+        status: account.status || 'Negative',
+        balance: parseFloat(account.balance || 0),
+        dateOpened: account.dateOpened || null,
+        dateReported: account.lastReported || null,
+        description: `${status} - from tradelines`,
+      });
+    }
   });
 
   return negatives;
 }
 
 /**
- * Extract positive items from report
+ * Extract positive items (on-time payments, good standing accounts)
  */
 function extractPositiveItems(report) {
   const positives = [];
+  const tradelines = report.tradelines || report.accounts || [];
 
-  (report.tradelines || report.accounts || []).forEach(account => {
-    if (account.paymentStatus && 
-        (account.paymentStatus.toLowerCase().includes('current') ||
-         account.paymentStatus.toLowerCase().includes('paid') ||
-         account.paymentStatus.toLowerCase().includes('good'))) {
-      
+  tradelines.forEach(account => {
+    const status = (account.status || account.paymentStatus || '').toLowerCase();
+    
+    // Consider account positive if current/open/paid/good standing
+    if (status.includes('current') || status.includes('open') || 
+        status.includes('paid') || status.includes('good')) {
       positives.push({
-        type: 'positive_account',
-        account: account.creditorName || account.accountName,
-        accountType: account.accountType,
-        status: account.paymentStatus,
-        openedDate: account.dateOpened,
-        age: calculateAge(account.dateOpened)
+        id: account.id || `pos-${Date.now()}-${Math.random()}`,
+        creditorName: account.creditorName || account.name || 'Unknown',
+        accountNumber: account.accountNumber || null,
+        accountType: account.accountType || account.type || 'Unknown',
+        status: account.status || 'Current',
+        balance: parseFloat(account.balance || 0),
+        creditLimit: parseFloat(account.creditLimit || account.limit || 0),
+        paymentHistory: account.paymentHistory || null,
+        dateOpened: account.dateOpened || null,
       });
     }
   });
@@ -465,34 +499,60 @@ function extractPositiveItems(report) {
 }
 
 /**
- * Extract collections
+ * Extract collection accounts
  */
 function extractCollections(report) {
-  return (report.collections || []).map(collection => ({
-    creditor: collection.creditorName || collection.originalCreditor,
-    balance: parseFloat(collection.balance || 0),
-    status: collection.status,
-    dateReported: collection.dateReported,
-    originalAmount: parseFloat(collection.originalAmount || 0),
-    validationReceived: collection.validationReceived || false
-  }));
+  const collections = [];
+  
+  if (report.collections && Array.isArray(report.collections)) {
+    return report.collections;
+  }
+
+  // Check tradelines and negatives for collections
+  const allItems = [
+    ...(report.tradelines || []),
+    ...(report.negatives || []),
+    ...(report.accounts || []),
+  ];
+
+  allItems.forEach(item => {
+    const status = (item.status || '').toLowerCase();
+    if (status.includes('collection')) {
+      collections.push(item);
+    }
+  });
+
+  return collections;
 }
 
 /**
- * Extract late payments
+ * Extract late payment records
  */
 function extractLatePayments(report) {
   const latePayments = [];
 
-  (report.tradelines || report.accounts || []).forEach(account => {
+  if (report.latePayments && Array.isArray(report.latePayments)) {
+    return report.latePayments;
+  }
+
+  // Check payment history in tradelines
+  const tradelines = report.tradelines || report.accounts || [];
+  tradelines.forEach(account => {
     if (account.paymentHistory) {
-      account.paymentHistory.forEach(payment => {
-        if (payment.status && payment.status.includes('late')) {
+      const history = Array.isArray(account.paymentHistory) 
+        ? account.paymentHistory 
+        : [account.paymentHistory];
+      
+      history.forEach(payment => {
+        const status = (payment.status || '').toLowerCase();
+        if (status.includes('late') || status.includes('30') || 
+            status.includes('60') || status.includes('90')) {
           latePayments.push({
-            account: account.creditorName || account.accountName,
-            date: payment.date,
+            accountId: account.id,
+            creditorName: account.creditorName || account.name,
+            date: payment.date || null,
             daysLate: payment.daysLate || 30,
-            status: payment.status
+            status: payment.status,
           });
         }
       });
@@ -503,41 +563,44 @@ function extractLatePayments(report) {
 }
 
 // ============================================================================
-// CALCULATION HELPERS
+// UTILITY FUNCTIONS: CALCULATIONS
 // ============================================================================
 
 /**
- * Calculate credit utilization
+ * Calculate credit utilization percentage
  */
 function calculateUtilization(accounts) {
-  let totalBalances = 0;
-  let totalLimits = 0;
+  if (!accounts || accounts.length === 0) return 0;
+
+  let totalBalance = 0;
+  let totalLimit = 0;
 
   accounts.forEach(account => {
-    if (account.accountType && 
-        (account.accountType.toLowerCase().includes('credit') ||
-         account.accountType.toLowerCase().includes('card'))) {
-      
-      totalBalances += parseFloat(account.currentBalance || account.balance || 0);
-      totalLimits += parseFloat(account.creditLimit || account.highCredit || 0);
+    const balance = parseFloat(account.balance || 0);
+    const limit = parseFloat(account.creditLimit || account.limit || 0);
+    
+    if (limit > 0) {
+      totalBalance += balance;
+      totalLimit += limit;
     }
   });
 
-  if (totalLimits === 0) return 0;
+  if (totalLimit === 0) return 0;
 
-  return Math.round((totalBalances / totalLimits) * 100);
+  const utilization = (totalBalance / totalLimit) * 100;
+  return Math.round(utilization * 10) / 10; // Round to 1 decimal
 }
 
 /**
- * Calculate age of credit in years
+ * Calculate average age of credit in years
  */
 function calculateAgeOfCredit(accounts) {
-  if (accounts.length === 0) return 0;
+  if (!accounts || accounts.length === 0) return 0;
 
   const dates = accounts
-    .map(a => a.dateOpened || a.openDate)
-    .filter(d => d)
-    .map(d => new Date(d));
+    .map(a => a.dateOpened)
+    .filter(Boolean)
+    .map(d => new Date(d).getTime());
 
   if (dates.length === 0) return 0;
 
@@ -549,12 +612,30 @@ function calculateAgeOfCredit(accounts) {
 }
 
 /**
- * Calculate total balances
+ * Calculate total balances across all accounts
  */
 function calculateTotalBalances(accounts) {
-  return accounts.reduce((sum, account) => {
-    return sum + parseFloat(account.currentBalance || account.balance || 0);
-  }, 0);
+  if (!accounts || accounts.length === 0) {
+    return { total: 0, revolving: 0, installment: 0 };
+  }
+
+  let total = 0;
+  let revolving = 0;
+  let installment = 0;
+
+  accounts.forEach(account => {
+    const balance = parseFloat(account.balance || 0);
+    total += balance;
+
+    const type = (account.accountType || '').toLowerCase();
+    if (type.includes('revolving') || type.includes('credit card')) {
+      revolving += balance;
+    } else if (type.includes('installment') || type.includes('loan')) {
+      installment += balance;
+    }
+  });
+
+  return { total, revolving, installment };
 }
 
 /**
@@ -562,113 +643,126 @@ function calculateTotalBalances(accounts) {
  */
 function calculateAge(date) {
   if (!date) return 0;
-  
+
   const itemDate = new Date(date);
   const now = new Date();
   const ageInYears = (now - itemDate) / (1000 * 60 * 60 * 24 * 365);
-  
+
   return Math.round(ageInYears * 10) / 10;
 }
 
 /**
- * Determine type of negative item
+ * Determine negative item type from status
  */
 function determineNegativeType(status) {
   const statusLower = status.toLowerCase();
-  
-  if (statusLower.includes('charge off')) return 'chargeoff';
-  if (statusLower.includes('collection')) return 'collection';
-  if (statusLower.includes('late')) return 'latePayment';
-  if (statusLower.includes('delinquent')) return 'delinquent';
-  if (statusLower.includes('foreclosure')) return 'foreclosure';
-  if (statusLower.includes('repossession')) return 'repossession';
-  
-  return 'negative';
+
+  if (statusLower.includes('collection')) return 'Collection';
+  if (statusLower.includes('charge off') || statusLower.includes('chargeoff')) return 'Charge-Off';
+  if (statusLower.includes('late') || statusLower.includes('delinquent')) return 'Late Payment';
+  if (statusLower.includes('bankruptcy')) return 'Bankruptcy';
+  if (statusLower.includes('foreclosure')) return 'Foreclosure';
+  if (statusLower.includes('repossession')) return 'Repossession';
+  if (statusLower.includes('judgment')) return 'Judgment';
+  if (statusLower.includes('tax lien')) return 'Tax Lien';
+
+  return 'Derogatory';
 }
 
 // ============================================================================
-// NORMALIZATION
+// NORMALIZATION FUNCTIONS
 // ============================================================================
 
 /**
  * Normalize structured data to standard format
  */
 function normalizeStructuredData(data) {
+  console.log('🔧 Normalizing structured data...');
+  
   return {
     scores: data.scores || {},
     tradelines: data.tradelines || [],
-    negatives: data.negatives || data.negativeItems || [],
-    positives: data.positives || data.positiveItems || [],
-    hardInquiries: data.hardInquiries || data.inquiries || [],
+    negatives: data.negatives || [],
+    positives: data.positives || [],
+    hardInquiries: data.hardInquiries || [],
     publicRecords: data.publicRecords || [],
     collections: data.collections || [],
     latePayments: data.latePayments || [],
-    utilization: data.utilization || 50,
+    utilization: data.utilization || 0,
     ageOfCredit: data.ageOfCredit || 0,
     totalAccounts: data.totalAccounts || 0,
     openAccounts: data.openAccounts || 0,
     totalBalances: data.totalBalances || 0,
     reportDate: data.reportDate || new Date().toISOString(),
-    bureaus: data.bureaus || []
+    bureaus: data.bureaus || [],
   };
 }
 
 /**
- * Final normalization pass
+ * Final normalization pass - ensure all fields exist
  */
 function normalizeData(parsedData) {
+  console.log('🔧 Final normalization...');
+
   // Ensure all required fields exist
-  return {
+  const normalized = {
     scores: parsedData.scores || {},
-    tradelines: parsedData.tradelines || [],
-    negatives: parsedData.negatives || [],
-    positives: parsedData.positives || [],
-    hardInquiries: parsedData.hardInquiries || [],
-    publicRecords: parsedData.publicRecords || [],
-    collections: parsedData.collections || [],
-    latePayments: parsedData.latePayments || [],
+    tradelines: Array.isArray(parsedData.tradelines) ? parsedData.tradelines : [],
+    negatives: Array.isArray(parsedData.negatives) ? parsedData.negatives : [],
+    positives: Array.isArray(parsedData.positives) ? parsedData.positives : [],
+    hardInquiries: Array.isArray(parsedData.hardInquiries) ? parsedData.hardInquiries : [],
+    publicRecords: Array.isArray(parsedData.publicRecords) ? parsedData.publicRecords : [],
+    collections: Array.isArray(parsedData.collections) ? parsedData.collections : [],
+    latePayments: Array.isArray(parsedData.latePayments) ? parsedData.latePayments : [],
     utilization: parsedData.utilization || 0,
     ageOfCredit: parsedData.ageOfCredit || 0,
-    totalAccounts: parsedData.totalAccounts || 0,
+    totalAccounts: parsedData.totalAccounts || parsedData.tradelines?.length || 0,
     openAccounts: parsedData.openAccounts || 0,
     totalBalances: parsedData.totalBalances || 0,
     reportDate: parsedData.reportDate || new Date().toISOString(),
-    bureaus: parsedData.bureaus || []
+    bureaus: Array.isArray(parsedData.bureaus) ? parsedData.bureaus : [],
   };
+
+  // Validate scores are in valid range
+  Object.keys(normalized.scores).forEach(bureau => {
+    const score = parseInt(normalized.scores[bureau]);
+    if (isNaN(score) || score < 300 || score > 850) {
+      delete normalized.scores[bureau];
+    }
+  });
+
+  return normalized;
 }
 
 // ============================================================================
-// FALLBACK EXTRACTION
+// FALLBACK: BASIC TEXT EXTRACTION
 // ============================================================================
 
 /**
- * Basic text extraction (no AI)
+ * Fallback text extraction when AI fails
+ * Uses regex patterns to extract basic info
  */
-function basicTextExtraction(text) {
-  console.log('⚠️ Using basic text extraction (fallback)');
+function extractFromText(text) {
+  console.log('🔍 Using regex-based extraction...');
 
   const scores = {};
   
   // Try to extract scores using regex
   const scorePatterns = [
-    /vantage.*?(\d{3})/i,
-    /fico.*?(\d{3})/i,
-    /credit score.*?(\d{3})/i,
-    /experian.*?(\d{3})/i,
-    /equifax.*?(\d{3})/i,
-    /transunion.*?(\d{3})/i
+    { pattern: /vantage.*?(\d{3})/i, bureau: 'vantage' },
+    { pattern: /fico.*?(\d{3})/i, bureau: 'fico8' },
+    { pattern: /credit score.*?(\d{3})/i, bureau: 'general' },
+    { pattern: /experian.*?(\d{3})/i, bureau: 'experian' },
+    { pattern: /equifax.*?(\d{3})/i, bureau: 'equifax' },
+    { pattern: /transunion.*?(\d{3})/i, bureau: 'transunion' },
   ];
 
-  scorePatterns.forEach(pattern => {
+  scorePatterns.forEach(({ pattern, bureau }) => {
     const match = text.match(pattern);
     if (match) {
       const score = parseInt(match[1]);
       if (score >= 300 && score <= 850) {
-        if (pattern.source.includes('vantage')) scores.vantage = score;
-        else if (pattern.source.includes('fico')) scores.fico8 = score;
-        else if (pattern.source.includes('experian')) scores.experian = score;
-        else if (pattern.source.includes('equifax')) scores.equifax = score;
-        else if (pattern.source.includes('transunion')) scores.transunion = score;
+        scores[bureau] = score;
       }
     }
   });
@@ -682,21 +776,23 @@ function basicTextExtraction(text) {
     publicRecords: [],
     collections: [],
     latePayments: [],
-    utilization: 50,
+    utilization: 50, // Default estimate
     ageOfCredit: 0,
     totalAccounts: 0,
     openAccounts: 0,
     totalBalances: 0,
     reportDate: new Date().toISOString(),
     bureaus: [],
-    note: 'Extracted using basic parsing. Manual verification recommended.'
+    note: 'Extracted using basic parsing. Manual verification recommended.',
   };
 }
 
 /**
  * Get fallback structure when all parsing fails
  */
-function getFallbackStructure() {
+function getFallbackStructure(errorMessage = 'Parsing failed') {
+  console.warn('⚠️ Returning fallback structure');
+  
   return {
     scores: {},
     tradelines: [],
@@ -713,7 +809,8 @@ function getFallbackStructure() {
     totalBalances: 0,
     reportDate: new Date().toISOString(),
     bureaus: [],
-    error: 'Failed to parse report. Please enter data manually.'
+    error: errorMessage,
+    note: 'Failed to parse report. Please enter data manually.',
   };
 }
 
@@ -722,5 +819,5 @@ function getFallbackStructure() {
 // ============================================================================
 
 export default {
-  parseCreditReport
+  parseCreditReport,
 };

@@ -8411,7 +8411,588 @@ RESPOND IN THIS EXACT JSON FORMAT (no markdown, no backticks):
 // The existing line "// ===== All other content types use the regular OpenAI flow =====" 
 // should come AFTER all of the above.
 // ═══════════════════════════════════════════════════════════════════════════
-      
+      // ═════════════════════════════════════════════════════════════════════
+      // AI CREDIT REPORT TEXT PARSER
+      // ═════════════════════════════════════════════════════════════════════
+      // Parses credit report text (from PDF OCR or manual entry) using AI
+      // Called from aiCreditReportParser.js service
+      // ═════════════════════════════════════════════════════════════════════
+      if (type === 'parseCreditReportText') {
+        console.log('📄 AI Text Parser triggered');
+        
+        const { text } = params;
+        
+        if (!text || text.length < 50) {
+          return {
+            success: false,
+            error: 'Text too short to parse (minimum 50 characters)',
+          };
+        }
+
+        try {
+          const prompt = `Parse this credit report text and extract all information into JSON format.
+
+CREDIT REPORT TEXT:
+${text.substring(0, 10000)}
+
+Extract and return ONLY valid JSON (no markdown, no backticks) with this exact structure:
+{
+  "scores": {
+    "vantage": number or null,
+    "fico8": number or null,
+    "experian": number or null,
+    "equifax": number or null,
+    "transunion": number or null
+  },
+  "tradelines": [
+    {
+      "creditorName": "string",
+      "accountNumber": "string or null",
+      "accountType": "Revolving|Installment|Mortgage|Auto|etc",
+      "status": "Current|Late|Charged Off|Collection|etc",
+      "balance": number,
+      "creditLimit": number or null,
+      "dateOpened": "YYYY-MM-DD or null",
+      "paymentStatus": "string"
+    }
+  ],
+  "negatives": [
+    {
+      "type": "Late Payment|Charge-Off|Collection|etc",
+      "creditorName": "string",
+      "accountNumber": "string or null",
+      "status": "string",
+      "balance": number,
+      "dateOpened": "YYYY-MM-DD or null",
+      "dateReported": "YYYY-MM-DD or null",
+      "description": "string"
+    }
+  ],
+  "collections": [],
+  "publicRecords": [],
+  "hardInquiries": [
+    {
+      "creditorName": "string",
+      "date": "YYYY-MM-DD",
+      "type": "Hard Inquiry"
+    }
+  ],
+  "utilization": number (percentage),
+  "ageOfCredit": number (years),
+  "totalAccounts": number,
+  "openAccounts": number,
+  "bureaus": ["Equifax", "Experian", "TransUnion"]
+}
+
+IMPORTANT:
+- Extract ALL accounts, negative items, and inquiries
+- Validate credit scores are 300-850 range
+- Use null for missing data, not empty strings
+- Return ONLY the JSON object, no explanation or markdown`;
+
+          const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${openaiApiKey.value()}`
+            },
+            body: JSON.stringify({
+              model: 'gpt-4',
+              messages: [
+                {
+                  role: 'system',
+                  content: 'You are a credit report parsing expert. Extract data accurately and return ONLY valid JSON with no markdown formatting.'
+                },
+                { role: 'user', content: prompt }
+              ],
+              temperature: 0.3,
+              max_tokens: 4000,
+            })
+          });
+
+          const data = await response.json();
+          
+          if (!data.choices || !data.choices[0]) {
+            throw new Error('Invalid OpenAI response');
+          }
+
+          let content = data.choices[0].message.content;
+          
+          // Remove markdown code fences if present
+          content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+          
+          const parsed = JSON.parse(content);
+
+          console.log('✅ Text parsing successful');
+          console.log(`   - Scores: ${Object.keys(parsed.scores || {}).length} bureaus`);
+          console.log(`   - Tradelines: ${parsed.tradelines?.length || 0}`);
+          console.log(`   - Negatives: ${parsed.negatives?.length || 0}`);
+
+          return {
+            success: true,
+            parsed: parsed,
+            source: 'ai_text_parser',
+          };
+
+        } catch (error) {
+          console.error('❌ Text parsing error:', error);
+          return {
+            success: false,
+            error: error.message || 'Failed to parse credit report text',
+          };
+        }
+      }
+
+      // ═════════════════════════════════════════════════════════════════════
+      // AI CREDIT REPORT JSON PARSER
+      // ═════════════════════════════════════════════════════════════════════
+      // Parses complex/unknown JSON credit report formats using AI
+      // Called from aiCreditReportParser.js service
+      // ═════════════════════════════════════════════════════════════════════
+      if (type === 'parseCreditReportJSON') {
+        console.log('📊 AI JSON Parser triggered');
+        
+        const { json } = params;
+        
+        if (!json) {
+          return {
+            success: false,
+            error: 'No JSON data provided',
+          };
+        }
+
+        try {
+          const prompt = `Convert this credit report JSON to our standard format.
+
+INPUT JSON:
+${json.substring(0, 10000)}
+
+Return ONLY valid JSON (no markdown, no backticks) with this exact structure:
+{
+  "scores": {
+    "vantage": number or null,
+    "fico8": number or null,
+    "experian": number or null,
+    "equifax": number or null,
+    "transunion": number or null
+  },
+  "tradelines": [
+    {
+      "creditorName": "string",
+      "accountNumber": "string or null",
+      "accountType": "Revolving|Installment|Mortgage|Auto|etc",
+      "status": "Current|Late|Charged Off|Collection|etc",
+      "balance": number,
+      "creditLimit": number or null,
+      "dateOpened": "YYYY-MM-DD or null",
+      "paymentStatus": "string"
+    }
+  ],
+  "negatives": [
+    {
+      "type": "Late Payment|Charge-Off|Collection|etc",
+      "creditorName": "string",
+      "accountNumber": "string or null",
+      "status": "string",
+      "balance": number,
+      "dateOpened": "YYYY-MM-DD or null",
+      "dateReported": "YYYY-MM-DD or null",
+      "description": "string"
+    }
+  ],
+  "collections": [],
+  "publicRecords": [],
+  "hardInquiries": [],
+  "utilization": number (percentage),
+  "ageOfCredit": number (years),
+  "totalAccounts": number,
+  "openAccounts": number,
+  "bureaus": ["Equifax", "Experian", "TransUnion"]
+}
+
+MAPPING RULES:
+- Look for credit scores in any field containing "score", "vantage", "fico", "credit"
+- Accounts might be called "accounts", "tradelines", "tradeAccounts", "creditAccounts"
+- Negative items might be "negatives", "derogatories", "adverseItems", "collections"
+- Validate all credit scores are 300-850 range
+- Use null for missing data
+- Return ONLY the JSON object`;
+
+          const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${openaiApiKey.value()}`
+            },
+            body: JSON.stringify({
+              model: 'gpt-4',
+              messages: [
+                {
+                  role: 'system',
+                  content: 'You are a credit report data transformation expert. Convert any format to our standard schema. Return ONLY valid JSON.'
+                },
+                { role: 'user', content: prompt }
+              ],
+              temperature: 0.2,
+              max_tokens: 4000,
+            })
+          });
+
+          const data = await response.json();
+          
+          if (!data.choices || !data.choices[0]) {
+            throw new Error('Invalid OpenAI response');
+          }
+
+          let content = data.choices[0].message.content;
+          
+          // Remove markdown code fences if present
+          content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+          
+          const parsed = JSON.parse(content);
+
+          console.log('✅ JSON parsing successful');
+          console.log(`   - Scores: ${Object.keys(parsed.scores || {}).length} bureaus`);
+          console.log(`   - Tradelines: ${parsed.tradelines?.length || 0}`);
+          console.log(`   - Negatives: ${parsed.negatives?.length || 0}`);
+
+          return {
+            success: true,
+            parsed: parsed,
+            source: 'ai_json_parser',
+          };
+
+        } catch (error) {
+          console.error('❌ JSON parsing error:', error);
+          return {
+            success: false,
+            error: error.message || 'Failed to parse credit report JSON',
+          };
+        }
+      }
+
+      // ═════════════════════════════════════════════════════════════════════
+      // AI CREDIT INSIGHTS ANALYZER
+      // ═════════════════════════════════════════════════════════════════════
+      // Provides AI-enhanced insights for credit analysis
+      // Called from aiCreditAnalyzer.js service
+      // ═════════════════════════════════════════════════════════════════════
+      if (type === 'analyzeCreditInsights') {
+        console.log('🧠 AI Credit Insights triggered');
+        
+        const { profileData } = params;
+        
+        if (!profileData) {
+          return {
+            success: false,
+            error: 'Profile data is required',
+          };
+        }
+
+        try {
+          const prompt = `You are a certified credit expert. Analyze this credit profile and provide insights.
+
+CREDIT PROFILE:
+- Current Score: ${profileData.currentScore || 'Unknown'}
+- Health Score: ${profileData.healthScore}/100 (${profileData.overallHealth || 'Unknown'})
+- Credit Utilization: ${profileData.utilization}%
+- Age of Credit: ${profileData.ageOfCredit} years
+- Negative Items: ${profileData.negativeCount}
+- Positive Items: ${profileData.positiveCount}
+
+TOP ISSUES:
+${(profileData.keyIssues || []).map((issue, i) => `${i + 1}. ${issue.title} (${issue.severity}) - Impact: ${issue.impact}`).join('\n')}
+
+Provide ONLY valid JSON (no markdown, no backticks) with this structure:
+{
+  "summary": "2-3 sentence overview of the credit situation",
+  "keyInsights": [
+    "Insight 1",
+    "Insight 2",
+    "Insight 3"
+  ],
+  "recommendations": [
+    {
+      "title": "Recommendation title",
+      "action": "Specific action to take",
+      "impact": "Expected impact",
+      "timeline": "Timeline for results"
+    }
+  ],
+  "motivation": "Encouraging message about their credit repair journey"
+}`;
+
+          const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${openaiApiKey.value()}`
+            },
+            body: JSON.stringify({
+              model: 'gpt-4',
+              messages: [
+                {
+                  role: 'system',
+                  content: 'You are a certified credit analyst with 20+ years experience. Provide actionable, empathetic credit insights. Return ONLY valid JSON.'
+                },
+                { role: 'user', content: prompt }
+              ],
+              temperature: 0.7,
+              max_tokens: 1000,
+            })
+          });
+
+          const data = await response.json();
+          
+          if (!data.choices || !data.choices[0]) {
+            throw new Error('Invalid OpenAI response');
+          }
+
+          let content = data.choices[0].message.content;
+          content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+          
+          const insights = JSON.parse(content);
+
+          console.log('✅ AI credit insights generated');
+
+          return {
+            success: true,
+            insights: insights,
+          };
+
+        } catch (error) {
+          console.error('❌ AI credit insights error:', error);
+          return {
+            success: false,
+            error: error.message || 'Failed to generate AI insights',
+          };
+        }
+      }
+
+      // ═════════════════════════════════════════════════════════════════════
+      // GENERATE CREDIT REVIEW (INITIAL)
+      // ═════════════════════════════════════════════════════════════════════
+      // Generates comprehensive initial credit review content
+      // Called from aiCreditReviewService.js
+      // ═════════════════════════════════════════════════════════════════════
+      if (type === 'generateCreditReview') {
+        console.log('📄 Generating initial credit review');
+        
+        const { params: reviewParams } = params;
+        const p = reviewParams || params; // Handle nested params
+        
+        if (!p.clientName || !p.currentScore) {
+          return {
+            success: false,
+            error: 'Client name and current score required',
+          };
+        }
+
+        try {
+          const prompt = `You are Christopher Lahage, founder of Speedy Credit Repair (est. 1995) with 30 years of credit repair experience and background as a former Toyota Finance Director. Write a personalized, empathetic credit review.
+
+CLIENT INFORMATION:
+- Name: ${p.clientName}
+- Current Credit Score: ${p.currentScore}
+- Health Score: ${p.healthScore}/100 (${p.overallHealth})
+- Estimated Score Increase: ${p.estimatedImpact?.scoreIncrease || 'Unknown'}
+${p.clientGoals ? `- Goals: ${JSON.stringify(p.clientGoals)}` : ''}
+
+KEY ISSUES (${(p.keyIssues || []).length}):
+${(p.keyIssues || []).map((issue, i) => `${i + 1}. ${issue.title} (${issue.severity}) - ${issue.impact}`).join('\n')}
+
+OPPORTUNITIES (${(p.opportunities || []).length}):
+${(p.opportunities || []).map((opp, i) => `${i + 1}. ${opp.title} - ${opp.potential} in ${opp.timeline}`).join('\n')}
+
+Write a compelling credit review that:
+1. Opens with empathy and understanding
+2. Highlights 2-3 positive aspects (if any)
+3. Explains the key issues in plain English
+4. Provides 3-5 actionable recommendations
+5. Estimates realistic score improvement potential
+6. Closes with a motivational call-to-action
+
+Return ONLY valid JSON (no markdown) with this structure:
+{
+  "summary": "Opening paragraph - empathetic and personalized",
+  "positives": ["Positive factor 1", "Positive factor 2"],
+  "negatives": [
+    {
+      "issue": "Issue name",
+      "severity": "critical|moderate|low",
+      "impact": "Score impact estimate",
+      "solution": "How we'll fix it"
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": "high|medium|low",
+      "action": "Specific action",
+      "impact": "Expected benefit",
+      "timeline": "When to expect results"
+    }
+  ],
+  "estimatedImpact": "1-2 sentences on potential score increase",
+  "callToAction": "Motivating closing paragraph with next steps"
+}`;
+
+          const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${openaiApiKey.value()}`
+            },
+            body: JSON.stringify({
+              model: 'gpt-4',
+              messages: [
+                {
+                  role: 'system',
+                  content: 'You are Christopher Lahage, credit repair expert. Write personalized, empathetic reviews that convert leads to clients. Return ONLY valid JSON.'
+                },
+                { role: 'user', content: prompt }
+              ],
+              temperature: 0.8,
+              max_tokens: 1500,
+            })
+          });
+
+          const data = await response.json();
+          
+          if (!data.choices || !data.choices[0]) {
+            throw new Error('Invalid OpenAI response');
+          }
+
+          let content = data.choices[0].message.content;
+          content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+          
+          const reviewContent = JSON.parse(content);
+
+          console.log('✅ Credit review content generated');
+
+          return {
+            success: true,
+            content: reviewContent,
+          };
+
+        } catch (error) {
+          console.error('❌ Credit review generation error:', error);
+          return {
+            success: false,
+            error: error.message || 'Failed to generate credit review',
+          };
+        }
+      }
+
+      // ═════════════════════════════════════════════════════════════════════
+      // GENERATE MONTHLY UPDATE
+      // ═════════════════════════════════════════════════════════════════════
+      // Generates monthly progress update content for clients
+      // Called from aiCreditReviewService.js
+      // ═════════════════════════════════════════════════════════════════════
+      if (type === 'generateMonthlyUpdate') {
+        console.log('📊 Generating monthly update');
+        
+        const { params: updateParams } = params;
+        const p = updateParams || params;
+        
+        if (!p.clientName) {
+          return {
+            success: false,
+            error: 'Client name is required',
+          };
+        }
+
+        try {
+          const scoreChangeText = p.scoreChange > 0 
+            ? `increased by ${p.scoreChange} points! 🎉` 
+            : p.scoreChange < 0 
+              ? `decreased by ${Math.abs(p.scoreChange)} points`
+              : 'remained stable';
+
+          const prompt = `You are Christopher Lahage from Speedy Credit Repair. Write a personalized monthly credit update for ${p.clientName}.
+
+MONTHLY PROGRESS:
+- Score Change: ${scoreChangeText}
+- Items Deleted: ${p.itemsDeleted || 0}
+- New Negative Items: ${p.newNegatives || 0}
+- Time in Program: ${p.timeInProgram || 1} month(s)
+- Current Health Score: ${p.healthScore}/100
+
+CURRENT ISSUES:
+${(p.keyIssues || []).map((issue, i) => `${i + 1}. ${issue}`).join('\n')}
+
+CURRENT OPPORTUNITIES:
+${(p.opportunities || []).map((opp, i) => `${i + 1}. ${opp}`).join('\n')}
+
+Write a motivating monthly update that:
+1. Celebrates wins (if score increased or items deleted)
+2. Addresses challenges honestly but positively (if score decreased)
+3. Lists 2-3 key achievements this month
+4. Identifies 1-2 current challenges
+5. Provides 3-4 next steps for the coming month
+6. Closes with encouragement and support
+
+Tone: Supportive, personal, motivating - like a coach celebrating progress
+
+Return ONLY valid JSON (no markdown) with this structure:
+{
+  "summary": "Opening paragraph addressing overall progress",
+  "achievements": ["Achievement 1", "Achievement 2", "Achievement 3"],
+  "challenges": ["Challenge 1", "Challenge 2"],
+  "nextSteps": ["Action 1", "Action 2", "Action 3", "Action 4"],
+  "encouragement": "Closing motivational paragraph"
+}`;
+
+          const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${openaiApiKey.value()}`
+            },
+            body: JSON.stringify({
+              model: 'gpt-4',
+              messages: [
+                {
+                  role: 'system',
+                  content: 'You are Christopher Lahage, credit repair expert and motivational coach. Write supportive monthly updates that keep clients engaged. Return ONLY valid JSON.'
+                },
+                { role: 'user', content: prompt }
+              ],
+              temperature: 0.8,
+              max_tokens: 1200,
+            })
+          });
+
+          const data = await response.json();
+          
+          if (!data.choices || !data.choices[0]) {
+            throw new Error('Invalid OpenAI response');
+          }
+
+          let content = data.choices[0].message.content;
+          content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+          
+          const updateContent = JSON.parse(content);
+
+          console.log('✅ Monthly update content generated');
+
+          return {
+            success: true,
+            content: updateContent,
+          };
+
+        } catch (error) {
+          console.error('❌ Monthly update generation error:', error);
+          return {
+            success: false,
+            error: error.message || 'Failed to generate monthly update',
+          };
+        }
+      }
+
+// ============================================================================
+// END OF AI CREDIT ANALYZER & REVIEW SERVICE CASE BLOCKS
+// ============================================================================
       // ===== All other content types use the regular OpenAI flow =====
       const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -12689,7 +13270,576 @@ console.log('🔐 Enrollment token generated:', token.substring(0, 10) + '...');
 
       break;
     }
+      case 'generateProgressTimeline': {
+      console.log('📊 ===== GENERATE PROGRESS TIMELINE =====');
 
+      if (!params.contactId) {
+        response.status(400).json({ success: false, error: 'contactId is required' });
+        return;
+      }
+
+      try {
+        const timelineContactId = params.contactId;
+        console.log('🔍 Building timeline for contact:', timelineContactId);
+
+        // ===== FETCH CONTACT BASE DATA =====
+        const contactDoc = await db.collection('contacts').doc(timelineContactId).get();
+        if (!contactDoc.exists) {
+          result = { success: false, error: 'Contact not found' };
+          break;
+        }
+        const contactData = contactDoc.data();
+        
+        // ===== FETCH ALL RELATED DATA IN PARALLEL =====
+        const [
+          creditReportsSnapshot,
+          disputesSnapshot,
+          paymentsSnapshot,
+          documentsSnapshot,
+          activitiesSnapshot,
+          tasksSnapshot,
+        ] = await Promise.all([
+          // Credit reports from subcollection
+          db.collection('contacts').doc(timelineContactId).collection('creditReports')
+            .orderBy('fetchedAt', 'desc')
+            .get(),
+          
+          // Disputes collection
+          db.collection('disputes')
+            .where('contactId', '==', timelineContactId)
+            .get(),
+          
+          // Payments collection
+          db.collection('payments')
+            .where('contactId', '==', timelineContactId)
+            .orderBy('createdAt', 'desc')
+            .get(),
+          
+          // Documents subcollection
+          db.collection('contacts').doc(timelineContactId).collection('documents')
+            .orderBy('uploadedAt', 'desc')
+            .get(),
+          
+          // Activities subcollection
+          db.collection('contacts').doc(timelineContactId).collection('activities')
+            .orderBy('timestamp', 'desc')
+            .limit(100)
+            .get(),
+          
+          // Tasks related to this contact
+          db.collection('tasks')
+            .where('contactId', '==', timelineContactId)
+            .get(),
+        ]);
+
+        // ===== PROCESS CREDIT REPORTS =====
+        const creditReports = [];
+        creditReportsSnapshot.forEach(doc => {
+          const data = doc.data();
+          creditReports.push({
+            id: doc.id,
+            fetchedAt: data.fetchedAt?.toDate()?.toISOString() || null,
+            vantageScore: data.vantageScore || null,
+            accountCount: data.accountCount || 0,
+            negativeItemCount: data.negativeItemCount || 0,
+            inquiryCount: data.inquiryCount || 0,
+            source: data.source || 'idiq',
+          });
+        });
+
+        // Get most recent scores for comparison
+        const latestReport = creditReports[0] || null;
+        const initialReport = creditReports[creditReports.length - 1] || null;
+        const scoreImprovement = latestReport && initialReport 
+          ? (latestReport.vantageScore || 0) - (initialReport.vantageScore || 0)
+          : 0;
+
+        // ===== PROCESS DISPUTES =====
+        const disputes = [];
+        const disputeStats = {
+          total: 0,
+          pending: 0,
+          inProgress: 0,
+          verified: 0,
+          deleted: 0,
+          updated: 0,
+          rejected: 0,
+        };
+
+        disputesSnapshot.forEach(doc => {
+          const data = doc.data();
+          disputes.push({
+            id: doc.id,
+            itemType: data.itemType || 'Unknown',
+            creditorName: data.creditorName || 'Unknown',
+            accountNumber: data.accountNumber || null,
+            status: data.status || 'pending',
+            round: data.round || 1,
+            priority: data.priority || 'medium',
+            createdAt: data.createdAt?.toDate()?.toISOString() || null,
+            lastUpdated: data.lastUpdated?.toDate()?.toISOString() || null,
+            estimatedImpact: data.estimatedImpact || 0,
+          });
+
+          // Update stats
+          disputeStats.total++;
+          const status = (data.status || 'pending').toLowerCase();
+          if (disputeStats[status] !== undefined) {
+            disputeStats[status]++;
+          }
+        });
+
+        // Calculate deletion rate
+        const deletionRate = disputeStats.total > 0 
+          ? Math.round((disputeStats.deleted / disputeStats.total) * 100)
+          : 0;
+
+        // ===== PROCESS PAYMENTS =====
+        const payments = [];
+        let totalPaid = 0;
+
+        paymentsSnapshot.forEach(doc => {
+          const data = doc.data();
+          const amount = parseFloat(data.amount || data.monthlyAmount || 0);
+          totalPaid += amount;
+          
+          payments.push({
+            id: doc.id,
+            type: data.type || 'one_time',
+            amount: amount,
+            status: data.status || 'completed',
+            description: data.description || 'Payment',
+            createdAt: data.createdAt?.toDate()?.toISOString() || null,
+            transactionId: data.transactionId || null,
+          });
+        });
+
+        // ===== PROCESS DOCUMENTS =====
+        const documents = [];
+        documentsSnapshot.forEach(doc => {
+          const data = doc.data();
+          documents.push({
+            id: doc.id,
+            name: data.name || 'Untitled Document',
+            type: data.type || 'other',
+            status: data.status || 'uploaded',
+            uploadedAt: data.uploadedAt?.toDate()?.toISOString() || null,
+            url: data.url || null,
+          });
+        });
+
+        // ===== PROCESS ACTIVITIES =====
+        const activities = [];
+        activitiesSnapshot.forEach(doc => {
+          const data = doc.data();
+          activities.push({
+            id: doc.id,
+            type: data.type || 'activity',
+            description: data.description || 'Activity',
+            timestamp: data.timestamp?.toDate()?.toISOString() || null,
+            performedBy: data.performedBy || data.createdBy || 'system',
+            performedByName: data.performedByName || 'System',
+          });
+        });
+
+        // ===== PROCESS TASKS =====
+        const tasks = [];
+        const taskStats = {
+          total: 0,
+          pending: 0,
+          inProgress: 0,
+          completed: 0,
+        };
+
+        tasksSnapshot.forEach(doc => {
+          const data = doc.data();
+          const status = (data.status || 'pending').toLowerCase();
+          
+          tasks.push({
+            id: doc.id,
+            title: data.title || 'Untitled Task',
+            description: data.description || '',
+            status: status,
+            priority: data.priority || 'medium',
+            assignedTo: data.assignedTo || null,
+            dueDate: data.dueDate?.toDate()?.toISOString() || null,
+            createdAt: data.createdAt?.toDate()?.toISOString() || null,
+          });
+
+          taskStats.total++;
+          if (taskStats[status] !== undefined) {
+            taskStats[status]++;
+          }
+        });
+
+        // ===== BUILD TIMELINE EVENTS =====
+        const timelineEvents = [];
+
+        // Enrollment event
+        if (contactData.createdAt) {
+          timelineEvents.push({
+            id: `event-enrolled`,
+            date: contactData.createdAt?.toDate()?.toISOString() || null,
+            type: 'enrollment',
+            title: 'Enrollment Complete',
+            description: `${contactData.firstName} ${contactData.lastName} enrolled in credit repair services`,
+            icon: 'CheckCircle',
+            color: 'success',
+            milestone: true,
+          });
+        }
+
+        // IDIQ enrollment event
+        if (contactData.idiqEnrolledAt) {
+          timelineEvents.push({
+            id: `event-idiq`,
+            date: contactData.idiqEnrolledAt?.toDate()?.toISOString() || null,
+            type: 'credit_report',
+            title: 'Credit Report Pulled',
+            description: `Initial credit report obtained via IDIQ Partner`,
+            icon: 'Assessment',
+            color: 'primary',
+            milestone: true,
+          });
+        }
+
+        // Credit report events
+        creditReports.forEach((report, index) => {
+          timelineEvents.push({
+            id: `event-report-${report.id}`,
+            date: report.fetchedAt,
+            type: 'credit_report',
+            title: index === 0 ? 'Latest Credit Report' : `Credit Report Update`,
+            description: `Score: ${report.vantageScore || 'N/A'} | Negatives: ${report.negativeItemCount} | Accounts: ${report.accountCount}`,
+            icon: 'TrendingUp',
+            color: 'info',
+            milestone: false,
+            data: report,
+          });
+        });
+
+        // Dispute milestones
+        const disputeMilestones = [
+          { count: 1, title: 'First Dispute Filed' },
+          { count: 5, title: '5 Disputes Filed' },
+          { count: 10, title: '10 Disputes Filed' },
+          { count: 25, title: '25 Disputes Filed' },
+        ];
+
+        disputeMilestones.forEach(milestone => {
+          if (disputeStats.total >= milestone.count) {
+            const relevantDispute = disputes[milestone.count - 1];
+            if (relevantDispute?.createdAt) {
+              timelineEvents.push({
+                id: `event-dispute-milestone-${milestone.count}`,
+                date: relevantDispute.createdAt,
+                type: 'dispute',
+                title: milestone.title,
+                description: `Reached milestone of ${milestone.count} disputes submitted`,
+                icon: 'Gavel',
+                color: 'warning',
+                milestone: true,
+              });
+            }
+          }
+        });
+
+        // Deletion milestones
+        const deletionMilestones = [
+          { count: 1, title: 'First Item Deleted!' },
+          { count: 3, title: '3 Items Deleted' },
+          { count: 5, title: '5 Items Deleted' },
+          { count: 10, title: '10 Items Deleted!' },
+        ];
+
+        deletionMilestones.forEach(milestone => {
+          if (disputeStats.deleted >= milestone.count) {
+            const deletedDisputes = disputes
+              .filter(d => d.status === 'deleted')
+              .sort((a, b) => new Date(a.lastUpdated) - new Date(b.lastUpdated));
+            
+            const relevantDeletion = deletedDisputes[milestone.count - 1];
+            if (relevantDeletion?.lastUpdated) {
+              timelineEvents.push({
+                id: `event-deletion-milestone-${milestone.count}`,
+                date: relevantDeletion.lastUpdated,
+                type: 'achievement',
+                title: milestone.title,
+                description: `Celebrating ${milestone.count} successful deletions`,
+                icon: 'EmojiEvents',
+                color: 'success',
+                milestone: true,
+                celebration: true,
+              });
+            }
+          }
+        });
+
+        // Payment events (show first and most recent)
+        if (payments.length > 0) {
+          timelineEvents.push({
+            id: `event-payment-first`,
+            date: payments[payments.length - 1].createdAt,
+            type: 'payment',
+            title: 'First Payment Received',
+            description: `$${payments[payments.length - 1].amount.toFixed(2)}`,
+            icon: 'Payment',
+            color: 'success',
+            milestone: true,
+          });
+        }
+
+        // Document upload events (show key documents only)
+        const keyDocuments = documents.filter(doc => 
+          ['id', 'utility', 'contract', 'authorization'].includes(doc.type)
+        );
+        keyDocuments.forEach(doc => {
+          timelineEvents.push({
+            id: `event-doc-${doc.id}`,
+            date: doc.uploadedAt,
+            type: 'document',
+            title: `${doc.name} Uploaded`,
+            description: `Document type: ${doc.type}`,
+            icon: 'Description',
+            color: 'info',
+            milestone: false,
+          });
+        });
+
+        // Sort timeline by date (most recent first)
+        timelineEvents.sort((a, b) => {
+          const dateA = a.date ? new Date(a.date) : new Date(0);
+          const dateB = b.date ? new Date(b.date) : new Date(0);
+          return dateB - dateA;
+        });
+
+        // ===== CALCULATE ACHIEVEMENTS =====
+        const achievements = [];
+
+        if (disputeStats.deleted >= 1) {
+          achievements.push({
+            id: 'achievement-first-deletion',
+            title: 'First Victory',
+            description: 'First negative item deleted',
+            icon: 'Star',
+            earnedAt: disputes.find(d => d.status === 'deleted')?.lastUpdated || null,
+            unlocked: true,
+          });
+        }
+
+        if (disputeStats.deleted >= 5) {
+          achievements.push({
+            id: 'achievement-5-deletions',
+            title: 'Making Progress',
+            description: '5 items successfully deleted',
+            icon: 'Trophy',
+            earnedAt: null,
+            unlocked: true,
+          });
+        }
+
+        if (scoreImprovement >= 50) {
+          achievements.push({
+            id: 'achievement-50-point-boost',
+            title: '50-Point Boost',
+            description: 'Increased credit score by 50+ points',
+            icon: 'TrendingUp',
+            earnedAt: latestReport?.fetchedAt || null,
+            unlocked: true,
+          });
+        }
+
+        if (scoreImprovement >= 100) {
+          achievements.push({
+            id: 'achievement-100-point-boost',
+            title: '100-Point Master',
+            description: 'Increased credit score by 100+ points',
+            icon: 'EmojiEvents',
+            earnedAt: latestReport?.fetchedAt || null,
+            unlocked: true,
+          });
+        }
+
+        if (deletionRate >= 50) {
+          achievements.push({
+            id: 'achievement-50-percent-deletion',
+            title: '50% Success Rate',
+            description: 'Over 50% of disputes resulted in deletions',
+            icon: 'Verified',
+            earnedAt: null,
+            unlocked: true,
+          });
+        }
+
+        // ===== CALCULATE NEXT MILESTONES =====
+        const nextMilestones = [];
+
+        if (disputeStats.deleted < 1) {
+          nextMilestones.push({
+            id: 'next-first-deletion',
+            title: 'First Deletion',
+            description: 'Get your first negative item deleted',
+            progress: 0,
+            target: 1,
+            type: 'deletion',
+          });
+        } else if (disputeStats.deleted < 5) {
+          nextMilestones.push({
+            id: 'next-5-deletions',
+            title: '5 Deletions',
+            description: 'Reach 5 successful deletions',
+            progress: disputeStats.deleted,
+            target: 5,
+            type: 'deletion',
+          });
+        } else if (disputeStats.deleted < 10) {
+          nextMilestones.push({
+            id: 'next-10-deletions',
+            title: '10 Deletions',
+            description: 'Achieve 10 deletions milestone',
+            progress: disputeStats.deleted,
+            target: 10,
+            type: 'deletion',
+          });
+        }
+
+        if (scoreImprovement < 50) {
+          nextMilestones.push({
+            id: 'next-50-points',
+            title: '50-Point Improvement',
+            description: 'Increase your credit score by 50 points',
+            progress: scoreImprovement,
+            target: 50,
+            type: 'score',
+          });
+        } else if (scoreImprovement < 100) {
+          nextMilestones.push({
+            id: 'next-100-points',
+            title: '100-Point Improvement',
+            description: 'Reach 100-point score improvement',
+            progress: scoreImprovement,
+            target: 100,
+            type: 'score',
+          });
+        }
+
+        if (disputeStats.total < 10) {
+          nextMilestones.push({
+            id: 'next-10-disputes',
+            title: '10 Disputes Filed',
+            description: 'Submit 10 disputes to bureaus',
+            progress: disputeStats.total,
+            target: 10,
+            type: 'dispute',
+          });
+        }
+
+        // ===== CALCULATE ESTIMATED COMPLETION =====
+        let estimatedCompletion = null;
+        let estimatedMonthsRemaining = null;
+
+        if (contactData.createdAt && disputeStats.total > 0) {
+          const enrolledDate = contactData.createdAt.toDate();
+          const monthsSinceEnrollment = Math.max(1, Math.floor((Date.now() - enrolledDate) / (1000 * 60 * 60 * 24 * 30)));
+          const deletionsPerMonth = disputeStats.deleted / monthsSinceEnrollment;
+          const remainingItems = disputeStats.total - disputeStats.deleted;
+          
+          if (deletionsPerMonth > 0) {
+            estimatedMonthsRemaining = Math.ceil(remainingItems / deletionsPerMonth);
+            const completionDate = new Date();
+            completionDate.setMonth(completionDate.getMonth() + estimatedMonthsRemaining);
+            estimatedCompletion = completionDate.toISOString();
+          }
+        }
+
+        // ===== ASSEMBLE FINAL RESULT =====
+        result = {
+          success: true,
+          timeline: {
+            contactId: timelineContactId,
+            contactName: `${contactData.firstName || ''} ${contactData.lastName || ''}`.trim(),
+            generatedAt: new Date().toISOString(),
+            
+            // Overview stats
+            overview: {
+              enrolledDate: contactData.createdAt?.toDate()?.toISOString() || null,
+              daysEnrolled: contactData.createdAt 
+                ? Math.floor((Date.now() - contactData.createdAt.toDate()) / (1000 * 60 * 60 * 24))
+                : 0,
+              currentPlan: contactData.servicePlan || contactData.planName || 'Unknown',
+              status: contactData.status || 'active',
+              totalPaid: totalPaid,
+            },
+            
+            // Credit scores
+            creditScores: {
+              initial: initialReport?.vantageScore || null,
+              current: latestReport?.vantageScore || null,
+              improvement: scoreImprovement,
+              lastUpdated: latestReport?.fetchedAt || null,
+              history: creditReports,
+            },
+            
+            // Disputes
+            disputes: {
+              stats: disputeStats,
+              deletionRate: deletionRate,
+              list: disputes.slice(0, 20), // Return first 20 for timeline display
+              total: disputes.length,
+            },
+            
+            // Payments
+            payments: {
+              total: totalPaid,
+              count: payments.length,
+              latest: payments[0] || null,
+              history: payments.slice(0, 10),
+            },
+            
+            // Documents
+            documents: {
+              count: documents.length,
+              recent: documents.slice(0, 5),
+            },
+            
+            // Tasks
+            tasks: taskStats,
+            
+            // Timeline events
+            events: timelineEvents,
+            
+            // Achievements
+            achievements: achievements,
+            
+            // Next milestones
+            nextMilestones: nextMilestones,
+            
+            // Projections
+            projections: {
+              estimatedCompletion: estimatedCompletion,
+              estimatedMonthsRemaining: estimatedMonthsRemaining,
+              projectedScore: latestReport && scoreImprovement > 0
+                ? Math.min(850, (latestReport.vantageScore || 0) + Math.round(scoreImprovement * 1.5))
+                : null,
+            },
+          },
+        };
+
+        console.log('✅ Timeline generated successfully');
+        console.log(`   - ${timelineEvents.length} events`);
+        console.log(`   - ${achievements.length} achievements`);
+        console.log(`   - ${nextMilestones.length} upcoming milestones`);
+
+      } catch (timelineError) {
+        console.error('❌ Generate timeline error:', timelineError);
+        result = {
+          success: false,
+          error: timelineError.message || 'Failed to generate progress timeline',
+        };
+      }
+
+      break;
+    }     
     default:
       console.error(`❌ Unknown action requested: ${action}`);
       response.status(400).json({
