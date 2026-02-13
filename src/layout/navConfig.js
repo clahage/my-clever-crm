@@ -9,10 +9,10 @@
 //   - Removed ReferralManager duplicate (kept ReferralPartnerHub)
 //   - Moved Toyota Sales to Auto Sales group
 //   - Moved Client Onboarding to Client Success group
-//   - Renamed Executive Suite â†’ Command Center
+//   - Renamed Executive Suite Ã¢â€ â€™ Command Center
 //   - All paths verified and functional
 // DATE: January 16, 2026
-// Â© 1995-2026 Speedy Credit Repair Inc. | Christopher Lahage | All Rights Reserved
+// Ã‚Â© 1995-2026 Speedy Credit Repair Inc. | Christopher Lahage | All Rights Reserved
 // ============================================================================
 
 import {
@@ -43,7 +43,10 @@ import {
   Smartphone, Palette, Brush, Info,
 
   // ===== MISC =====
-  MapPin, AlertCircle, Eye, Wrench, Lock, Key, HelpCircle, ExternalLink, RefreshCw, Beaker
+  MapPin, AlertCircle, Eye, Wrench, Lock, Key, HelpCircle, ExternalLink, RefreshCw, Beaker,
+  
+  // ===== AUTO/TOYOTA =====
+  Car
 } from 'lucide-react';
 
 // ============================================================================
@@ -154,7 +157,7 @@ export function isVisible(item, userRole, isMobile = false) {
 
 export const navigationItems = [
   // ==========================================================================
-  // ðŸŽ¯ SMART DASHBOARD
+  // Ã°Å¸Å½Â¯ SMART DASHBOARD
   // ==========================================================================
   {
     id: 'smart-dashboard',
@@ -169,7 +172,7 @@ export const navigationItems = [
   },
 
   // ==========================================================================
-  // ðŸ‘” COMMAND CENTER (Renamed from Executive Suite)
+  // Ã°Å¸â€˜â€ COMMAND CENTER (Renamed from Executive Suite)
   // ==========================================================================
   {
     id: 'command-center-group',
@@ -190,19 +193,19 @@ export const navigationItems = [
         badge: 'KPI',
         description: 'Real-time business KPIs, revenue, and performance metrics'
       },
-      // âŒ REMOVED: Toyota Sales (moved to Auto Sales group)
-      // âŒ REMOVED: Payment Health (moved to Financial Operations as tab)
-      // âŒ REMOVED: Team Tasks (moved to Tasks Hub as tab)
-      // âŒ REMOVED: Compliance Calendar (moved to Compliance Hub as tab)
-      // âŒ REMOVED: Document Vault (DUPLICATE - using DocumentsHub)
-      // âŒ REMOVED: Communication Center (DUPLICATE - using CommunicationsHub)
-      // âŒ REMOVED: Client Onboarding (moved to Client Success group)
-      // âŒ REMOVED: Referral Manager (DUPLICATE - using ReferralPartnerHub)
+      // Ã¢ÂÅ’ REMOVED: Toyota Sales (moved to Auto Sales group)
+      // Ã¢ÂÅ’ REMOVED: Payment Health (moved to Financial Operations as tab)
+      // Ã¢ÂÅ’ REMOVED: Team Tasks (moved to Tasks Hub as tab)
+      // Ã¢ÂÅ’ REMOVED: Compliance Calendar (moved to Compliance Hub as tab)
+      // Ã¢ÂÅ’ REMOVED: Document Vault (DUPLICATE - using DocumentsHub)
+      // Ã¢ÂÅ’ REMOVED: Communication Center (DUPLICATE - using CommunicationsHub)
+      // Ã¢ÂÅ’ REMOVED: Client Onboarding (moved to Client Success group)
+      // Ã¢ÂÅ’ REMOVED: Referral Manager (DUPLICATE - using ReferralPartnerHub)
     ]
   },
 
   // ==========================================================================
-  // ðŸš— AUTO SALES & TOYOTA (Consolidated - Toyota moved here)
+  // Ã°Å¸Å¡â€” AUTO SALES & TOYOTA (Consolidated - Toyota moved here)
   // ==========================================================================
   {
     id: 'auto-sales-group',
@@ -219,7 +222,7 @@ export const navigationItems = [
         id: 'auto-sales-hub',
         title: 'Auto Sales Hub',
         path: '/auto-sales-hub',
-        icon: DirectionsCar,
+        icon: Car,  // Fixed: Was DirectionsCar (Material-UI), now Car (Lucide)
         permission: 'manager',
         badge: 'AI',
         description: 'Complete Toyota franchise integration: opportunity scanner, lead manager, commissions, Tekion export, analytics (6 tabs, 35+ AI features)',
@@ -229,7 +232,7 @@ export const navigationItems = [
   },
 
   // ==========================================================================
-  // ðŸ§  AI COMMAND CENTER
+  // Ã°Å¸Â§Â  AI COMMAND CENTER
   // ==========================================================================
   {
     id: 'ai-command-center',
@@ -245,7 +248,7 @@ export const navigationItems = [
   },
 
   // ==========================================================================
-  // ðŸ›’ PRODUCTS & SERVICES
+  // Ã°Å¸â€ºâ€™ PRODUCTS & SERVICES
   // ==========================================================================
   {
     id: 'products-services-hub',
@@ -285,7 +288,7 @@ export const navigationItems = [
   },
 
   // ==========================================================================
-  // ðŸ  CORE OPERATIONS
+  // Ã°Å¸ÂÂ  CORE OPERATIONS
   // ==========================================================================
   {
     id: 'core-operations-group',
@@ -343,7 +346,7 @@ export const navigationItems = [
         consolidated: ['DisputeHub', 'DisputeLetters', 'DisputeStatus', 'DisputeAdminPanel']
       },
 
-      // HUB 4: COMMUNICATIONS (âœ… CONSOLIDATED - Using CommunicationsHub.jsx 2,314 lines)
+      // HUB 4: COMMUNICATIONS (Ã¢Å“â€¦ CONSOLIDATED - Using CommunicationsHub.jsx 2,314 lines)
       {
         id: 'communications-hub',
         title: 'Communications',
@@ -355,7 +358,7 @@ export const navigationItems = [
         consolidated: ['CommunicationsHub', 'Emails', 'SMS', 'DripCampaigns', 'CallLogs', 'Templates', 'CampaignPlanner']
       },
 
-      // HUB 5: DOCUMENTS & CONTRACTS (âœ… CONSOLIDATED - Using DocumentsHub.jsx 1,233 lines)
+      // HUB 5: DOCUMENTS & CONTRACTS (Ã¢Å“â€¦ CONSOLIDATED - Using DocumentsHub.jsx 1,233 lines)
       {
         id: 'documents-contracts-hub',
         title: 'Documents & Contracts',
@@ -408,7 +411,7 @@ export const navigationItems = [
   icon: Zap,
   permission: 'admin',
   badge: 'AI',
-  description: 'Master workflow control - Contact â†’ Lead â†’ Client lifecycle management'
+  description: 'Master workflow control - Contact Ã¢â€ â€™ Lead Ã¢â€ â€™ Client lifecycle management'
 },
 
 // ===== CLIENT ONBOARDING WIZARD =====
@@ -447,7 +450,7 @@ export const navigationItems = [
   },
 
   // ==========================================================================
-  // ðŸ’° FINANCIAL OPERATIONS
+  // Ã°Å¸â€™Â° FINANCIAL OPERATIONS
   // ==========================================================================
   {
     id: 'financial-group',
@@ -483,7 +486,7 @@ export const navigationItems = [
   },
 
   // ==========================================================================
-  // ðŸ“ˆ BUSINESS GROWTH
+  // Ã°Å¸â€œË† BUSINESS GROWTH
   // ==========================================================================
   {
     id: 'business-growth-group',
@@ -517,7 +520,7 @@ export const navigationItems = [
         description: 'Social scheduling, AI ad creator, content library, engagement, campaigns (9 files)'
       },
 
-      // âœ… CONSOLIDATED - Using ReferralPartnerHub.jsx 3,317 lines
+      // Ã¢Å“â€¦ CONSOLIDATED - Using ReferralPartnerHub.jsx 3,317 lines
       {
         id: 'referrals-partnerships-hub',
         title: 'Referrals & Partnerships',
@@ -558,8 +561,8 @@ export const navigationItems = [
         path: '/revenue-partnerships-hub',
         icon: DollarSign,
         permission: 'user',
-        badge: 'ðŸ’°',
-        description: 'Earn commissions promoting credit cards, loans, monitoring â€” 200+ programs (2,318 lines)'
+        badge: 'Ã°Å¸â€™Â°',
+        description: 'Earn commissions promoting credit cards, loans, monitoring Ã¢â‚¬â€ 200+ programs (2,318 lines)'
       },
 
       {
@@ -584,7 +587,7 @@ export const navigationItems = [
   },
 
   // ==========================================================================
-  // ðŸŽ“ CLIENT SUCCESS
+  // Ã°Å¸Å½â€œ CLIENT SUCCESS
   // ==========================================================================
   {
     id: 'client-success-group',
@@ -596,7 +599,7 @@ export const navigationItems = [
     category: 'success',
     defaultExpanded: false,
     items: [
-      // âœ… MOVED HERE from Command Center
+      // Ã¢Å“â€¦ MOVED HERE from Command Center
       {
         id: 'client-onboarding',
         title: 'Client Onboarding',
@@ -631,7 +634,7 @@ export const navigationItems = [
   },
 
   // ==========================================================================
-  // âš™ï¸ SYSTEM & ADMINISTRATION
+  // Ã¢Å¡â„¢Ã¯Â¸Â SYSTEM & ADMINISTRATION
   // ==========================================================================
   {
     id: 'system-group',
@@ -728,7 +731,7 @@ export const navigationItems = [
   },
 
   // ==========================================================================
-  // ðŸŒŸ SPECIALIZED SERVICES (No changes - Auto Loan Concierge stays here)
+  // Ã°Å¸Å’Å¸ SPECIALIZED SERVICES (No changes - Auto Loan Concierge stays here)
   // ==========================================================================
   {
     id: 'specialized-services-group',
@@ -816,7 +819,7 @@ export const navigationItems = [
   },
 
   // ==========================================================================
-  // ðŸ” PORTALS
+  // Ã°Å¸â€Â PORTALS
   // ==========================================================================
   {
     id: 'client-portal',
