@@ -12,7 +12,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 const ClientDashboard = () => {
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth(); // ✅ Added userProfile
   const [clientData, setClientData] = useState(null);
   const [creditScores, setCreditScores] = useState([]);
   const [disputes, setDisputes] = useState([]);
@@ -131,7 +131,7 @@ const ClientDashboard = () => {
         className="bg-gradient-to-r from-blue-600 to-green-600 rounded-xl p-8 mb-8 text-white"
       >
         <h1 className="text-3xl font-bold mb-2">
-          Welcome back, {clientData?.firstName || user?.displayName || user?.email?.split('@')[0] || 'Client'}!
+          Welcome back, {userProfile?.firstName || clientData?.firstName || user?.displayName?.split(' ')[0] || user?.email?.split('@')[0] || 'there'}!
         </h1>
         <p className="text-xl opacity-90">
           Track your credit repair journey and monitor your progress

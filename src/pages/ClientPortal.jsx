@@ -1651,7 +1651,7 @@ const ACHIEVEMENTS = {
           animation: 'slideDown 1s cubic-bezier(0.23, 1, 0.32, 1)'
         }}>
           <Typography variant="h4" align="center" sx={{ fontWeight: 'bold', letterSpacing: 1 }}>
-            Welcome, {profileForm.firstName || user?.displayName || 'Client'}!
+            Welcome, {userProfile?.firstName || profileForm.firstName || user?.displayName?.split(' ')[0] || user?.email?.split('@')[0] || 'there'}!
           </Typography>
           <Typography variant="subtitle1" align="center" sx={{ opacity: 0.9 }}>
             We're excited to help you achieve your credit goals. Explore your portal and let us know if you need help!
@@ -1709,7 +1709,7 @@ const ACHIEVEMENTS = {
             <Box>
               <Box sx={{ mb: 4 }}>
                 <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
-                  Welcome Back, {clientData?.firstName || 'Client'}! 👋
+                  Welcome Back, {userProfile?.firstName || clientData?.firstName || user?.displayName?.split(' ')[0] || user?.email?.split('@')[0] || 'there'}! 👋
                 </Typography>
                 <Typography variant="body1" color="text.secondary">
                   Here's your credit repair progress at a glance
