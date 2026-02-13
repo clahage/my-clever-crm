@@ -31,7 +31,8 @@ import {
   getDocs, 
   orderBy, 
   limit, 
-  doc, 
+  doc,
+  getDoc,  // ← ADDED: Required for getReviewById
   updateDoc,
   serverTimestamp 
 } from 'firebase/firestore';
@@ -570,6 +571,37 @@ async function getLatestReview(clientEmail) {
 }
 
 // ============================================================================
+// ADDED: GET REVIEW BY ID
+// ============================================================================
+
+/**
+ * Get review by ID
+ * Required by AIReviewEditor.jsx
+ */
+export async function getReviewById(reviewId) {
+  try {
+    const reviewDoc = await getDoc(doc(db, 'creditReviews', reviewId));
+    
+    if (!reviewDoc.exists()) {
+      return { success: false, error: 'Review not found' };
+    }
+
+    return {
+      success: true,
+      review: {
+        id: reviewDoc.id,
+        ...reviewDoc.data(),
+        createdAt: reviewDoc.data().createdAt?.toDate()?.toISOString() || null,
+      },
+    };
+
+  } catch (error) {
+    console.error('❌ Error fetching review:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// ============================================================================
 // REVIEW MANAGEMENT FUNCTIONS
 // ============================================================================
 
@@ -640,6 +672,61 @@ export async function markReviewAsViewed(reviewId) {
 }
 
 // ============================================================================
+// ADDED: APPROVE REVIEW
+// ============================================================================
+
+/**
+ * Approve review
+ * Required by AIReviewEditor.jsx
+ */
+export async function approveReview(reviewId) {
+  try {
+    const reviewRef = doc(db, 'creditReviews', reviewId);
+    
+    await updateDoc(reviewRef, {
+      status: REVIEW_STATUS.APPROVED,
+      approvedAt: new Date().toISOString(),
+      updatedAt: serverTimestamp(),
+    });
+
+    console.log(`✅ Review ${reviewId} approved`);
+    return { success: true };
+
+  } catch (error) {
+    console.error('❌ Error approving review:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// ============================================================================
+// ADDED: REJECT REVIEW
+// ============================================================================
+
+/**
+ * Reject review
+ * Required by AIReviewEditor.jsx
+ */
+export async function rejectReview(reviewId, reason = '') {
+  try {
+    const reviewRef = doc(db, 'creditReviews', reviewId);
+    
+    await updateDoc(reviewRef, {
+      status: REVIEW_STATUS.FAILED,
+      rejectedAt: new Date().toISOString(),
+      rejectionReason: reason,
+      updatedAt: serverTimestamp(),
+    });
+
+    console.log(`✅ Review ${reviewId} rejected`);
+    return { success: true };
+
+  } catch (error) {
+    console.error('❌ Error rejecting review:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -651,13 +738,25 @@ export default {
   // Retrieval
   getPendingReviews,
   getClientReviews,
+  getReviewById,  // ← ADDED
   
   // Management
   updateReviewStatus,
   markReviewAsSent,
   markReviewAsViewed,
+  approveReview,  // ← ADDED
+  rejectReview,   // ← ADDED
   
   // Constants
   REVIEW_TYPES,
   REVIEW_STATUS,
 };
+
+// ============================================================================
+// BACKWARD COMPATIBILITY ALIASES
+// ============================================================================
+
+/**
+ * Alias for backward compatibility with AIReviewEditor.jsx
+ */
+export const markReviewSent = markReviewAsSent;

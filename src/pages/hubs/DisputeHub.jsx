@@ -130,6 +130,7 @@ import {
   Search,
   Plus,
   RefreshCw,
+  RefreshCcw,
   Download,
   Upload,
   BarChart3,
@@ -200,6 +201,7 @@ const AIDisputeGenerator = lazy(() => import('@/components/credit/AIDisputeGener
 // NEW: LAZY LOAD CREDIT ANALYSIS DASHBOARD
 // ═══════════════════════════════════════════════════════════════════════════
 const CreditAnalysisDashboard = lazy(() => import('@/components/credit/CreditAnalysisDashboard'));
+const CreditReportReParser = lazy(() => import('@/components/credit/CreditReportReParser'));
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTS & CONFIGURATIONS
@@ -270,6 +272,15 @@ const TABS = [
     description: 'Track all active disputes',
     roles: ['user', 'manager', 'admin', 'masterAdmin'],
     color: '#4caf50',
+  },
+  {
+    id: 'tools',
+    label: 'Tools',
+    icon: RefreshCcw,
+    description: 'Re-parse credit reports & utilities',
+    roles: ['user', 'manager', 'admin', 'masterAdmin'],
+    color: '#ff5722',
+    badge: 'UTIL',
   },
   // ═══════════════════════════════════════════════════════════════════════════
   // NEW: CREDIT ANALYSIS TAB - UTILIZATION + BUREAU VARIANCE
@@ -1545,6 +1556,20 @@ const DisputeHub = () => {
             <DisputeTracker />
           </Suspense>
         );
+      case 'tools':
+        return (
+          <Box>
+            <Typography variant="h5" gutterBottom sx={{ mb: 3 }}>
+              🔧 Credit Report Tools
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Re-trigger dispute creation from existing credit reports without additional IDIQ charges.
+            </Typography>
+            <Suspense fallback={<LoadingFallback />}>
+              <CreditReportReParser variant="full" />
+            </Suspense>
+          </Box>
+        );  
       // ═══════════════════════════════════════════════════════════════════════════
       // NEW: CREDIT ANALYSIS TAB - RENDERS CreditAnalysisDashboard COMPONENT
       // ═══════════════════════════════════════════════════════════════════════════
@@ -1693,6 +1718,11 @@ const DisputeHub = () => {
           icon={<PieChart size={20} />}
           tooltipTitle="Credit Analysis"
           onClick={() => setActiveTab('credit-analysis')}
+        />
+        <SpeedDialAction
+          icon={<RefreshCcw size={20} />}
+          tooltipTitle="Credit Report Tools"
+          onClick={() => setActiveTab('tools')}
         />
       </SpeedDial>
 
