@@ -161,6 +161,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import SignatureCanvas from 'react-signature-canvas';
+import { QRCodeCanvas } from 'qrcode.react';
 import {
   LineChart,
   Line,
@@ -637,6 +638,7 @@ const [analysisProgress, setAnalysisProgress] = useState(0);
   // paymentError: Specific error message for payment failures (separate from global 'error')
   const [paymentMethod, setPaymentMethod] = useState('ach');  // Default to ACH (most popular)
   const [paymentError, setPaymentError] = useState(null);
+  const [paymentDay, setPaymentDay] = useState(28);  // Default billing day
   const [paymentFields, setPaymentFields] = useState({
     // ===== ACH (Bank Account) Fields =====
     checkName: '',       // Account holder name (e.g., "John A. Doe")
@@ -652,11 +654,11 @@ const [analysisProgress, setAnalysisProgress] = useState(0);
   });
 
   // ===== Auto-fill payment name fields from formData =====
-  // When the user enters Phase 7, we pre-populate the "Account Holder Name"
+  // When the user enters Phase 8 (Payment), we pre-populate the "Account Holder Name"
   // and "Cardholder Name" fields with their first + last name from Phase 1.
   // This saves them typing and reduces errors.
   useEffect(() => {
-    if (currentPhase === 7 && formData.firstName && formData.lastName) {
+    if (currentPhase === 8 && formData.firstName && formData.lastName) {
       const fullName = `${formData.firstName} ${formData.lastName}`;
       setPaymentFields(prev => ({
         ...prev,
@@ -2702,7 +2704,7 @@ Time: ${new Date().toLocaleString()}`,
   // ============================================================================
   // handleNMIPayment — MAIN PAYMENT HANDLER
   // ============================================================================
-  // This is called when the user clicks "Complete Payment" in Phase 7.
+  // This is called when the user clicks "Complete Payment" in Phase 8 (Payment).
   // It validates the payment fields, then calls our Cloud Function
   // (operationsManager → processNewEnrollment), which talks to NMI server-side.
   //
@@ -2710,7 +2712,7 @@ Time: ${new Date().toLocaleString()}`,
   //   1. Validate all required fields based on payment method (ACH or CC)
   //   2. Build the params object with customer info + payment info
   //   3. Call operationsManager({ action: 'processNewEnrollment', ... })
-  //   4. If success → finalizeEnrollment() (moves to Phase 8)
+  //   4. If success → finalizeEnrollment() (moves to Phase 9)
   //   5. If failure → show error message to user
   //
   // SECURITY:
@@ -3020,7 +3022,7 @@ const finalizeEnrollment = async () => {
     if (isCRMMode && skipCelebration) {
       setCurrentPhase(10);
     } else {
-      setCurrentPhase(8);
+      setCurrentPhase(9);
     }
     
     try {
@@ -4247,6 +4249,28 @@ A+ BBB Rating | 4.9 Google (580+ reviews)
             window.open('tel:888-724-7344', '_self');
           }}
         />
+
+        {/* ===== IDIQ SHARING CONSENT CHECKBOX ===== */}
+        <Card sx={{ mt: 3, p: 3, bgcolor: 'info.50', border: '2px solid', borderColor: 'info.main' }}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={formData.idiqSharingConsent || false}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  idiqSharingConsent: e.target.checked
+                }))}
+                color="primary"
+              />
+            }
+            label={
+              <Typography variant="body1">
+                I authorize Speedy Credit Repair to access my credit reports through IdentityIQ
+                for monitoring and credit repair services. This prevents IdentityIQ marketing.
+              </Typography>
+            }
+          />
+        </Card>
       </Box>
     </Fade>
   );
@@ -4599,7 +4623,17 @@ A+ BBB Rating | 4.9 Google (580+ reviews)
     );
   };
 
-  const renderPhase6 = () => (
+  const renderPhase6 = () => {
+    // Define plan colors
+    const planColors = {
+      essentials: '#4CAF50',
+      professional: '#2196F3',
+      vip: '#D32F2F'
+    };
+
+    const recommendedPlanId = planRecommendation || aiCreditReviewData?.recommendedPlan || 'professional';
+
+    return (
     <Fade in timeout={500}>
       <Box>
         <Typography variant="h4" fontWeight={700} gutterBottom>
@@ -4610,40 +4644,59 @@ A+ BBB Rating | 4.9 Google (580+ reviews)
         </Typography>
 
         <Grid container spacing={3}>
-          {SERVICE_PLANS.map((plan) => (
+          {SERVICE_PLANS.map((plan) => {
+            const planColor = planColors[plan.id] || '#2196F3';
+            const isRecommended = plan.id === recommendedPlanId;
+
+            return (
             <Grid item xs={12} md={4} key={plan.id}>
               <Card
                 sx={{
                   height: '100%',
                   cursor: 'pointer',
-                  border: selectedPlan === plan.id ? '3px solid #2196F3' : '1px solid #ddd',
-                  boxShadow: selectedPlan === plan.id ? '0 8px 24px rgba(33, 150, 243, 0.3)' : 1,
+                  border: selectedPlan === plan.id ? `3px solid ${planColor}` : '1px solid #ddd',
+                  boxShadow: selectedPlan === plan.id ? `0 8px 24px ${planColor}40` : 1,
                   position: 'relative',
                   transition: 'all 0.3s ease',
                   '&:hover': { transform: 'translateY(-4px)' },
+                  overflow: 'visible'
                 }}
                 onClick={() => handlePlanSelect(plan.id)}
               >
-                {plan.popular && (
+                {/* Recommended Badge */}
+                {isRecommended && (
                   <Chip
-                    label="Most Popular"
+                    label="Recommended for You"
                     color="primary"
                     sx={{
                       position: 'absolute',
-                      top: -12,
-                      left: '50%',
-                      transform: 'translateX(-50%)',
+                      top: -15,
+                      right: 20,
+                      fontWeight: 700,
+                      bgcolor: planColor,
+                      color: 'white',
+                      boxShadow: 2
                     }}
                   />
                 )}
-                <CardContent sx={{ textAlign: 'center', pt: plan.popular ? 4 : 3 }}>
+
+                {/* Gradient Header */}
+                <Box sx={{
+                  background: `linear-gradient(135deg, ${planColor} 0%, ${planColor}CC 100%)`,
+                  color: 'white',
+                  p: 3,
+                  textAlign: 'center'
+                }}>
                   <Typography variant="h5" fontWeight={700}>
                     {plan.name}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  <Typography variant="body2" sx={{ opacity: 0.9, mt: 1 }}>
                     {plan.description}
                   </Typography>
-                  <Typography variant="h3" fontWeight={700} color="primary">
+                </Box>
+
+                <CardContent sx={{ textAlign: 'center', pt: 3 }}>
+                  <Typography variant="h3" fontWeight={700} sx={{ color: planColor }}>
                     ${plan.price}
                     <Typography component="span" variant="body1" color="text.secondary">
                       /mo
@@ -4654,7 +4707,7 @@ A+ BBB Rating | 4.9 Google (580+ reviews)
                     {plan.features.map((feature, index) => (
                       <ListItem key={index} sx={{ py: 0.5 }}>
                         <ListItemIcon sx={{ minWidth: 32 }}>
-                          <CheckIcon color="success" fontSize="small" />
+                          <CheckIcon sx={{ color: planColor }} fontSize="small" />
                         </ListItemIcon>
                         <ListItemText primary={feature} />
                       </ListItem>
@@ -4663,7 +4716,8 @@ A+ BBB Rating | 4.9 Google (580+ reviews)
                 </CardContent>
               </Card>
             </Grid>
-          ))}
+          )})}
+        </Grid>
         </Grid>
 
         {/* Billing Day Selection */}
@@ -4699,7 +4753,7 @@ A+ BBB Rating | 4.9 Google (580+ reviews)
             onClick={() => setCurrentPhase(7)}
             endIcon={<ArrowForwardIcon />}
           >
-            Continue to Payment
+            Continue
           </GlowingButton>
         </Box>
       </Box>
@@ -4719,7 +4773,7 @@ A+ BBB Rating | 4.9 Google (580+ reviews)
   //   4. handleNMIPayment() sends everything to our Cloud Function
   //   5. Cloud Function talks to NMI (server-side, PCI compliant)
   //   6. NMI vaults the payment method + sets up recurring billing
-  //   7. On success → finalizeEnrollment() → Phase 8 celebration
+  //   7. On success → finalizeEnrollment() → Phase 9 portal preview
   //
   // SECURITY NOTE:
   //   Bank/card numbers are sent ONCE to our Cloud Function over HTTPS,
@@ -4744,6 +4798,71 @@ A+ BBB Rating | 4.9 Google (580+ reviews)
           <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
             Your payment information is encrypted and sent securely. We never store your full account or card numbers.
           </Typography>
+
+          {/* ===== Payment Summary Card ===== */}
+          <Card sx={{ mb: 3, bgcolor: 'primary.50', border: '2px solid', borderColor: 'primary.main' }}>
+            <CardContent>
+              <Box sx={{ textAlign: 'center' }}>
+                <Typography variant="h5" fontWeight={700} gutterBottom>
+                  Your Payment Summary
+                </Typography>
+                <Divider sx={{ my: 2 }} />
+                <Grid container spacing={2} sx={{ justifyContent: 'center' }}>
+                  <Grid item xs={12} sm={6}>
+                    <Box sx={{ textAlign: 'center' }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Due Today:
+                      </Typography>
+                      <Typography variant="h4" fontWeight={700} color="primary.main">
+                        ${selectedPlanData.monthlyPrice || 149}/mo
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Box sx={{ textAlign: 'center' }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Recurring:
+                      </Typography>
+                      <Typography variant="h4" fontWeight={700} color="primary.main">
+                        {paymentDay || 28}th of each month
+                      </Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
+              </Box>
+            </CardContent>
+          </Card>
+
+          {/* ===== Payment Date Selector ===== */}
+          <Card sx={{ mb: 3, p: 3 }}>
+            <Typography variant="h6" fontWeight={700} gutterBottom>
+              📅 Choose Your Monthly Payment Date
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Select a date that works with your pay schedule
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+              {[25, 26, 27, 28, 29, 30, 31].map(day => (
+                <Chip
+                  key={day}
+                  label={`${day}th`}
+                  onClick={() => setPaymentDay(day)}
+                  color={paymentDay === day ? 'primary' : 'default'}
+                  variant={paymentDay === day ? 'filled' : 'outlined'}
+                  sx={{
+                    fontSize: '1rem',
+                    height: 40,
+                    minWidth: 60,
+                    cursor: 'pointer',
+                    mb: 1
+                  }}
+                />
+              ))}
+            </Box>
+            <Alert severity="info" icon={<InfoIcon />}>
+              💡 First payment due today. Subsequent payments on the {paymentDay || 28}th each month.
+            </Alert>
+          </Card>
 
           {/* ===== Discount Banner ===== */}
           {discountApplied && (
@@ -4777,7 +4896,7 @@ A+ BBB Rating | 4.9 Google (580+ reviews)
                   </Typography>
                 </Box>
 
-                {/* ===== Payment Method Tabs: ACH vs Credit Card ===== */}
+                {/* ===== Payment Method Tabs: ACH, Credit Card, Zelle ===== */}
                 <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
                   {/* ACH Tab Button */}
                   <Button
@@ -4808,6 +4927,26 @@ A+ BBB Rating | 4.9 Google (580+ reviews)
                     }}
                   >
                     Credit / Debit Card
+                  </Button>
+                  {/* Zelle Tab Button */}
+                  <Button
+                    variant={paymentMethod === 'zelle' ? 'contained' : 'outlined'}
+                    onClick={() => setPaymentMethod('zelle')}
+                    startIcon={<span>📱</span>}
+                    sx={{
+                      flex: 1,
+                      py: 1.5,
+                      borderRadius: 2,
+                      textTransform: 'none',
+                      fontWeight: paymentMethod === 'zelle' ? 700 : 400,
+                      bgcolor: paymentMethod === 'zelle' ? '#6c1ed3' : 'transparent',
+                      borderColor: paymentMethod === 'zelle' ? '#6c1ed3' : 'divider',
+                      '&:hover': {
+                        bgcolor: paymentMethod === 'zelle' ? '#5a18b3' : 'action.hover',
+                      }
+                    }}
+                  >
+                    Zelle
                   </Button>
                 </Box>
 
@@ -5028,6 +5167,82 @@ A+ BBB Rating | 4.9 Google (580+ reviews)
                       helperText="Name as it appears on the card"
                       sx={{ mb: 2 }}
                     />
+                  </Box>
+                )}
+
+                {/* ================================================================ */}
+                {/* ZELLE INSTANT PAYMENT                                             */}
+                {/* Shows when paymentMethod === 'zelle'                             */}
+                {/* Displays QR code and payment instructions                        */}
+                {/* ================================================================ */}
+                {paymentMethod === 'zelle' && (
+                  <Box>
+                    <Alert severity="success" sx={{ mb: 3 }}>
+                      <AlertTitle>📱 Scan to Pay Instantly</AlertTitle>
+                      Instant, fee-free payment through your bank's Zelle app
+                    </Alert>
+
+                    {/* QR Code Section */}
+                    <Box sx={{
+                      textAlign: 'center',
+                      mb: 3,
+                      p: 3,
+                      bgcolor: 'grey.50',
+                      borderRadius: 2,
+                      border: '2px dashed',
+                      borderColor: '#6c1ed3'
+                    }}>
+                      <QRCodeCanvas
+                        value={`https://enroll.zellepay.com/qr-codes?data=${encodeURIComponent(JSON.stringify({
+                          token: 'pay@speedycreditrepair.com',
+                          amount: selectedPlanData.monthlyPrice || 149
+                        }))}`}
+                        size={200}
+                        level="H"
+                        includeMargin={true}
+                        style={{ margin: '0 auto' }}
+                      />
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                        Scan with your banking app
+                      </Typography>
+                    </Box>
+
+                    <Divider sx={{ my: 2 }}>
+                      <Chip label="OR" size="small" />
+                    </Divider>
+
+                    {/* Manual Instructions */}
+                    <Card sx={{ p: 2, bgcolor: 'info.50', mb: 3 }}>
+                      <Typography variant="subtitle2" fontWeight={700} gutterBottom>
+                        Manual Payment Instructions:
+                      </Typography>
+                      <Box sx={{ mt: 2 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                          <Typography variant="body2" fontWeight={600} sx={{ minWidth: 80 }}>
+                            Send to:
+                          </Typography>
+                          <Chip
+                            label="pay@speedycreditrepair.com"
+                            color="primary"
+                            sx={{ fontFamily: 'monospace' }}
+                          />
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Typography variant="body2" fontWeight={600} sx={{ minWidth: 80 }}>
+                            Amount:
+                          </Typography>
+                          <Chip
+                            label={`$${selectedPlanData.monthlyPrice || 149}.00`}
+                            color="primary"
+                            sx={{ fontFamily: 'monospace', fontSize: '1.1rem' }}
+                          />
+                        </Box>
+                      </Box>
+                    </Card>
+
+                    <Alert severity="info" icon={<InfoIcon />}>
+                      After sending payment via Zelle, click "Complete Payment" below. Our team will verify your payment within 1 business hour.
+                    </Alert>
                   </Box>
                 )}
 
@@ -5265,11 +5480,11 @@ A+ BBB Rating | 4.9 Google (580+ reviews)
         </Card>
 
         <GlowingButton
-          onClick={() => setCurrentPhase(9)}
+          onClick={() => setCurrentPhase(8)}
           endIcon={<ArrowForwardIcon />}
           size="large"
         >
-          Preview Your Client Portal
+          Proceed to Final Payment
         </GlowingButton>
       </Box>
     </Fade>
@@ -5507,8 +5722,8 @@ A+ BBB Rating | 4.9 Google (580+ reviews)
           {currentPhase === 4 && renderPhase6()} {/* SWAPPED: Plan Selection now at position 4 */}
           {currentPhase === 5 && renderPhase5()}
           {currentPhase === 6 && renderPhase4()} {/* SWAPPED: ID Upload now at position 6 */}
-          {currentPhase === 7 && renderPhase7()}
-          {currentPhase === 8 && renderPhase8()}
+          {currentPhase === 7 && renderPhase8()} {/* SWAPPED: Account Creation/Congratulations now at position 7 */}
+          {currentPhase === 8 && renderPhase7()} {/* SWAPPED: Payment now at position 8 (LAST!) */}
           {currentPhase === 9 && renderPhase9()}
           {currentPhase === 10 && renderPhase10()}
         </Paper>
