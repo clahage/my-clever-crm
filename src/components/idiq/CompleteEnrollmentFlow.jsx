@@ -4718,7 +4718,6 @@ A+ BBB Rating | 4.9 Google (580+ reviews)
             </Grid>
           )})}
         </Grid>
-        </Grid>
 
         {/* Billing Day Selection */}
         <Card sx={{ mt: 4, p: 3 }}>
@@ -4759,6 +4758,7 @@ A+ BBB Rating | 4.9 Google (580+ reviews)
       </Box>
     </Fade>
   );
+  };
 
   // ============================================================================
   // PHASE 7: NMI PAYMENT FORM — ACH (Bank Account) + Credit Card
