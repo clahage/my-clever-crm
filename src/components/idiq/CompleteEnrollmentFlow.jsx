@@ -410,11 +410,11 @@ const PHASES = [
   { id: 1, label: 'Your Info', icon: PersonIcon, description: 'Tell us about yourself' },
   { id: 2, label: 'Analysis', icon: SearchIcon, description: 'Analyzing your credit' },
   { id: 3, label: 'Results', icon: AssessmentIcon, description: 'View your analysis' },
-  { id: 4, label: 'Plan', icon: CreditIcon, description: 'Choose your plan' }, // SWAPPED
+  { id: 4, label: 'Plan', icon: CreditIcon, description: 'Choose your plan' },
   { id: 5, label: 'Agreement', icon: SignatureIcon, description: 'Digital signature' },
-  { id: 6, label: 'Documents', icon: DocumentIcon, description: 'Upload ID' }, // SWAPPED
-  { id: 7, label: 'Payment', icon: PaymentIcon, description: 'Secure checkout' },
-  { id: 8, label: 'Celebrate', icon: CelebrationIcon, description: "You're enrolled!" },
+  { id: 6, label: 'Documents', icon: DocumentIcon, description: 'Upload ID' },
+  { id: 7, label: 'Celebrate', icon: CelebrationIcon, description: "You're enrolled!" }, // FIXED - Celebration before payment
+  { id: 8, label: 'Payment', icon: PaymentIcon, description: 'Secure checkout' }, // FIXED - Payment is LAST
   { id: 9, label: 'Portal', icon: DashboardIcon, description: 'Preview your portal' },
   { id: 10, label: 'Complete', icon: CheckIcon, description: 'All set!' },
 ];
@@ -463,10 +463,19 @@ const SERVICE_PLANS = [
   {
     id: 'essentials',
     name: 'Essentials',
-    price: 79,
-    setupFee: 49,
+    price: 59,
+    setupFee: 0,
+    monthlyPrice: 59,
+    perDeletion: 0,
     description: 'Take control of your credit with AI-powered tools',
-    features: ['AI Credit Analysis & Strategy', 'Dispute Letter Templates', 'Client Portal & Progress Tracking', 'Email Support (24-48hr)'],
+    features: [
+      'Access to professional dispute letter templates',
+      'Step-by-step DIY credit repair guide',
+      'Educational resources and videos',
+      'Monthly credit monitoring through IDIQ',
+      'Email support (response within 24 hours)',
+      'Upgrade to full service anytime',
+    ],
     popular: false,
   },
   {
@@ -474,18 +483,37 @@ const SERVICE_PLANS = [
     name: 'Professional',
     price: 149,
     setupFee: 0,
-    perDeletion: 25,
+    monthlyPrice: 149,
+    perDeletion: 25, // Per item, per bureau
     description: 'We handle everything for you',
-    features: ['Full-Service Disputes (mail + fax)', 'Dedicated Account Manager', 'Phone + Email Support', 'Monthly AI Analysis', '$25/item deleted/bureau'],
+    features: [
+      'Full-service credit repair - we do everything',
+      'Custom dispute letters prepared and mailed',
+      'Direct bureau and creditor negotiations',
+      'Monthly progress reports with score updates',
+      'Dedicated case manager',
+      'Phone and email support',
+      'Success-based deletion fees: $25/item/bureau',
+    ],
     popular: true,
   },
   {
     id: 'vip',
-    name: 'VIP Concierge',
+    name: 'VIP',
     price: 299,
     setupFee: 0,
+    monthlyPrice: 299,
+    perDeletion: 0, // Included in monthly fee
     description: 'Maximum results, maximum speed',
-    features: ['Everything in Professional', 'Bi-Weekly Cycles (2x faster)', 'ALL Deletion Fees Included', '90-Day Guarantee', 'Direct Cell Access', 'Weekly Reports'],
+    features: [
+      'Everything in Professional plan',
+      'Priority processing - disputes sent within 24 hours',
+      'Dedicated personal credit specialist',
+      'Unlimited phone consultations',
+      'Expedited bureau responses',
+      'Advanced creditor intervention strategies',
+      'No per-deletion fees - all included',
+    ],
     popular: false,
   },
 ];
@@ -2700,9 +2728,33 @@ Time: ${new Date().toLocaleString()}`,
   };
 
   // ============================================================================
-  // handleNMIPayment — MAIN PAYMENT HANDLER
+  // ENROLLMENT PROGRESS SAVING (Error Recovery)
   // ============================================================================
-  // This is called when the user clicks "Complete Payment" in Phase 7.
+  // Saves enrollment state to Firestore so user doesn't lose data on errors
+  const saveEnrollmentProgress = async () => {
+    try {
+      if (!contactId) return;
+
+      const contactRef = doc(db, 'contacts', contactId);
+      await updateDoc(contactRef, {
+        enrollmentState: {
+          phase: currentPhase,
+          selectedPlan,
+          formData,
+          lastSaved: new Date(),
+        }
+      });
+
+      console.log('📂 Enrollment progress saved');
+    } catch (err) {
+      console.error('Failed to save progress:', err);
+    }
+  };
+
+  // ============================================================================
+  // handleNMIPayment — MAIN PAYMENT HANDLER (ENHANCED ERROR HANDLING)
+  // ============================================================================
+  // This is called when the user clicks "Complete Payment" in Phase 8.
   // It validates the payment fields, then calls our Cloud Function
   // (operationsManager → processNewEnrollment), which talks to NMI server-side.
   //
@@ -2710,14 +2762,16 @@ Time: ${new Date().toLocaleString()}`,
   //   1. Validate all required fields based on payment method (ACH or CC)
   //   2. Build the params object with customer info + payment info
   //   3. Call operationsManager({ action: 'processNewEnrollment', ... })
-  //   4. If success → finalizeEnrollment() (moves to Phase 8)
-  //   5. If failure → show error message to user
+  //   4. If success → finalizeEnrollment() (moves to Phase 9)
+  //   5. If failure → STAY ON PAGE, show error, allow retry, preserve data
   //
   // SECURITY:
   //   - Bank/card numbers are sent over HTTPS to our Cloud Function
   //   - Cloud Function sends them to NMI (server-side, never exposed)
   //   - NMI returns a vault token — that's all we store in Firestore
   //   - Raw numbers are NEVER stored anywhere in our system
+  //
+  // CRITICAL: On error, we NEVER redirect. User stays on payment page with data preserved.
   // ============================================================================
   const handleNMIPayment = async () => {
     // ===== Clear any previous errors =====
@@ -2917,6 +2971,9 @@ Time: ${new Date().toLocaleString()}`,
         'If this continues, call us at (888) 724-7344 and we\'ll process your payment over the phone.'
       );
       setLoading(false);
+
+      // CRITICAL: Save enrollment progress so user doesn't lose data
+      await saveEnrollmentProgress();
     }
   };
 
@@ -3016,11 +3073,11 @@ const finalizeEnrollment = async () => {
     discountApplied: appliedDiscount
   });
   
-  // Skip celebration phase in CRM mode if requested
+  // FIXED: After payment (phase 8), go to portal preview (phase 9)
     if (isCRMMode && skipCelebration) {
       setCurrentPhase(10);
     } else {
-      setCurrentPhase(8);
+      setCurrentPhase(9); // FIXED: Was 8, now 9 (portal preview after payment)
     }
     
     try {
@@ -4730,10 +4787,18 @@ A+ BBB Rating | 4.9 Google (580+ reviews)
     const selectedPlanData = SERVICE_PLANS.find((p) => p.id === selectedPlan) || SERVICE_PLANS[1];
     const finalPrice = Math.max(selectedPlanData.price - appliedDiscount, 0);
 
-    // ===== Calculate what's due today =====
-    // Setup fee (if any) is charged today. Monthly starts in 30 days.
+    // ===== CROA-COMPLIANT BILLING: Calculate payment schedule =====
+    // CRITICAL: Only setup fee charged today. Monthly fee charged at END of first service month.
+    const today = new Date();
+    const firstServiceEnd = new Date(today);
+    firstServiceEnd.setDate(firstServiceEnd.getDate() + 30);
+
     const setupFee = selectedPlanData.setupFee || 0;
-    const dueToday = setupFee + (appliedDiscount > 0 ? Math.max(selectedPlanData.price - appliedDiscount, 0) : 0);
+    const monthlyPrice = selectedPlanData.monthlyPrice || selectedPlanData.price;
+    const perDeletionFee = selectedPlanData.perDeletion || 0;
+
+    // CROA COMPLIANCE: dueToday = setup fee ONLY (not monthly fee!)
+    const dueToday = setupFee;
 
     return (
       <Fade in timeout={500}>
@@ -5080,78 +5145,135 @@ A+ BBB Rating | 4.9 Google (580+ reviews)
               </Card>
             </Grid>
 
-            {/* ===== RIGHT COLUMN: Order Summary ===== */}
+            {/* ===== RIGHT COLUMN: CROA-COMPLIANT Payment Summary ===== */}
             <Grid item xs={12} md={4}>
-              <Card sx={{ p: 3, bgcolor: discountApplied ? 'success.50' : 'grey.50' }}>
-                <Typography variant="h6" gutterBottom>
-                  Order Summary
+              <Card sx={{ p: 3, bgcolor: 'grey.50' }}>
+                <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  💎 Your Investment Schedule
                 </Typography>
                 <Divider sx={{ my: 2 }} />
 
-                {/* Plan Name + Monthly Price */}
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography>{selectedPlanData.name} Plan</Typography>
-                  <Typography
-                    fontWeight={600}
-                    sx={discountApplied ? { textDecoration: 'line-through', color: 'text.disabled' } : {}}
-                  >
-                    ${selectedPlanData.price}/mo
+                {/* One-Time Setup Fee */}
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    One-Time Setup Fee
+                  </Typography>
+                  <Typography variant="h3" sx={{
+                    fontWeight: 800,
+                    color: setupFee === 0 ? '#10B981' : '#3B82F6',
+                    mb: 1
+                  }}>
+                    {setupFee === 0 ? 'FREE' : `$${setupFee}`}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {setupFee === 0 ? '🎉 Setup fee waived - start for free today!' : 'Due today'}
                   </Typography>
                 </Box>
 
-                {/* Discount Line (only if discount applied) */}
-                {discountApplied && (
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                    <Typography color="success.main" fontWeight={600}>
-                      Special Discount
-                    </Typography>
-                    <Typography color="success.main" fontWeight={600}>
-                      -${appliedDiscount}
+                <Divider sx={{ my: 2 }} />
+
+                {/* Monthly Service Fee */}
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    Monthly Service Fee
+                  </Typography>
+                  <Typography variant="h4" fontWeight={700} color="primary.main" gutterBottom>
+                    ${monthlyPrice}
+                  </Typography>
+                  <Box sx={{
+                    p: 1.5,
+                    bgcolor: '#EFF6FF',
+                    borderRadius: 1,
+                    border: '1px solid #BFDBFE',
+                    mb: 1
+                  }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: '#1E40AF', mb: 0.5 }}>
+                      First payment: {firstServiceEnd.toLocaleDateString('en-US', {
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric'
+                      })} (end of first service month)
                     </Typography>
                   </Box>
-                )}
-
-                {/* Setup Fee Line */}
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography color="text.secondary">Setup Fee</Typography>
-                  <Typography fontWeight={600} color={setupFee > 0 ? 'text.primary' : 'success.main'}>
-                    {setupFee > 0 ? `$${setupFee}` : '$0 (Waived)'}
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    📅 Recurring: Charged at end of each service month
                   </Typography>
                 </Box>
 
-                {/* Per-Deletion Fee Note (Professional plan) */}
-                {selectedPlanData.perDeletion && (
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                    <Typography color="text.secondary" variant="body2">Per Deletion</Typography>
-                    <Typography variant="body2">${selectedPlanData.perDeletion}/item</Typography>
-                  </Box>
+                {/* Per-Deletion Fee (Professional Plan Only) */}
+                {selectedPlan === 'professional' && perDeletionFee > 0 && (
+                  <>
+                    <Divider sx={{ my: 2 }} />
+                    <Box sx={{ mb: 3 }}>
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        Success-Based Deletion Fees
+                      </Typography>
+                      <Typography variant="h5" fontWeight={700} gutterBottom>
+                        ${perDeletionFee}
+                        <Typography component="span" variant="body2" color="text.secondary">
+                          {' '}/item/bureau
+                        </Typography>
+                      </Typography>
+                      <Alert severity="success" icon={<CheckIcon />} sx={{ mt: 1 }}>
+                        <Typography variant="body2" fontWeight={600}>
+                          ✅ Only Pay for Results
+                        </Typography>
+                        <Typography variant="caption" display="block">
+                          Charged only when we successfully delete negative items.
+                          Billed at end of month in which deletion occurs.
+                        </Typography>
+                      </Alert>
+                    </Box>
+                  </>
                 )}
 
                 <Divider sx={{ my: 2 }} />
 
-                {/* Due Today */}
-                {setupFee > 0 && (
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                    <Typography variant="subtitle1" fontWeight={600}>Due Today (Setup)</Typography>
-                    <Typography variant="subtitle1" fontWeight={700} color="primary">
-                      ${setupFee}
-                    </Typography>
-                  </Box>
-                )}
+                {/* CROA Compliance Badge */}
+                <Alert
+                  severity="info"
+                  icon={<ShieldIcon />}
+                  sx={{
+                    mb: 3,
+                    bgcolor: '#F0F9FF',
+                    border: '1px solid #BAE6FD',
+                    '& .MuiAlert-icon': { color: '#0284C7' }
+                  }}
+                >
+                  <Typography variant="body2" fontWeight={700} color="#0C4A6E" gutterBottom>
+                    CROA Compliant Billing
+                  </Typography>
+                  <Typography variant="caption" display="block" color="#075985">
+                    We only charge AFTER providing service each month. No upfront monthly fees.
+                    This is required by federal law and protects you as a consumer.
+                  </Typography>
+                </Alert>
 
-                {/* Monthly Amount */}
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="h6">{setupFee > 0 ? 'Monthly (starts in 30 days)' : 'Monthly Amount'}</Typography>
-                  <Typography variant="h6" fontWeight={700} color={discountApplied ? 'success.main' : 'primary'}>
-                    ${finalPrice}/mo
+                {/* What You Pay Today */}
+                <Box sx={{
+                  p: 2,
+                  bgcolor: dueToday === 0 ? '#F0FDF4' : '#DBEAFE',
+                  borderRadius: 2,
+                  border: `2px solid ${dueToday === 0 ? '#86EFAC' : '#93C5FD'}`
+                }}>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    💳 Amount Due Today
+                  </Typography>
+                  <Typography variant="h3" fontWeight={800} color={dueToday === 0 ? '#10B981' : '#2563EB'}>
+                    ${dueToday}
+                    {dueToday === 0 && (
+                      <Typography component="span" variant="h6" color="success.main" sx={{ ml: 1 }}>
+                        🎉
+                      </Typography>
+                    )}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
+                    {dueToday === 0
+                      ? 'Start your credit repair journey today at no cost! Monthly billing begins in 30 days.'
+                      : `One-time setup fee. Monthly service billing begins ${firstServiceEnd.toLocaleDateString()}.`
+                    }
                   </Typography>
                 </Box>
-
-                {discountApplied && (
-                  <Typography variant="caption" color="success.main" sx={{ display: 'block', mt: 1, textAlign: 'center' }}>
-                    You're saving ${appliedDiscount}!
-                  </Typography>
-                )}
 
                 {/* ===== Trust Badges ===== */}
                 <Divider sx={{ my: 2 }} />
@@ -5265,11 +5387,11 @@ A+ BBB Rating | 4.9 Google (580+ reviews)
         </Card>
 
         <GlowingButton
-          onClick={() => setCurrentPhase(9)}
+          onClick={() => setCurrentPhase(8)}
           endIcon={<ArrowForwardIcon />}
           size="large"
         >
-          Preview Your Client Portal
+          Complete Payment
         </GlowingButton>
       </Box>
     </Fade>
@@ -5507,8 +5629,8 @@ A+ BBB Rating | 4.9 Google (580+ reviews)
           {currentPhase === 4 && renderPhase6()} {/* SWAPPED: Plan Selection now at position 4 */}
           {currentPhase === 5 && renderPhase5()}
           {currentPhase === 6 && renderPhase4()} {/* SWAPPED: ID Upload now at position 6 */}
-          {currentPhase === 7 && renderPhase7()}
-          {currentPhase === 8 && renderPhase8()}
+          {currentPhase === 7 && renderPhase8()} {/* FIXED: Celebration at Phase 7 */}
+          {currentPhase === 8 && renderPhase7()} {/* FIXED: Payment at Phase 8 (LAST!) */}
           {currentPhase === 9 && renderPhase9()}
           {currentPhase === 10 && renderPhase10()}
         </Paper>
