@@ -161,6 +161,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import SignatureCanvas from 'react-signature-canvas';
+import { QRCodeCanvas } from 'qrcode.react';
 import {
   LineChart,
   Line,
@@ -4842,7 +4843,7 @@ A+ BBB Rating | 4.9 Google (580+ reviews)
                   </Typography>
                 </Box>
 
-                {/* ===== Payment Method Tabs: ACH vs Credit Card ===== */}
+                {/* ===== Payment Method Tabs: ACH, Credit Card, Zelle ===== */}
                 <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
                   {/* ACH Tab Button */}
                   <Button
@@ -4873,6 +4874,28 @@ A+ BBB Rating | 4.9 Google (580+ reviews)
                     }}
                   >
                     Credit / Debit Card
+                  </Button>
+                  {/* Zelle Tab Button */}
+                  <Button
+                    variant={paymentMethod === 'zelle' ? 'contained' : 'outlined'}
+                    onClick={() => setPaymentMethod('zelle')}
+                    startIcon={<span>💜</span>}
+                    sx={{
+                      flex: 1,
+                      py: 1.5,
+                      borderRadius: 2,
+                      textTransform: 'none',
+                      fontWeight: paymentMethod === 'zelle' ? 700 : 400,
+                      background: paymentMethod === 'zelle' ? '#6c1ed3' : 'transparent',
+                      borderColor: paymentMethod === 'zelle' ? '#6c1ed3' : 'rgba(108, 30, 211, 0.5)',
+                      color: paymentMethod === 'zelle' ? 'white' : '#6c1ed3',
+                      '&:hover': {
+                        background: paymentMethod === 'zelle' ? '#5a18b3' : 'rgba(108, 30, 211, 0.05)',
+                        borderColor: '#6c1ed3',
+                      }
+                    }}
+                  >
+                    Zelle
                   </Button>
                 </Box>
 
@@ -5096,6 +5119,261 @@ A+ BBB Rating | 4.9 Google (580+ reviews)
                   </Box>
                 )}
 
+                {/* ================================================================ */}
+                {/* ZELLE PAYMENT FORM (PREMIUM DESIGN)                             */}
+                {/* Shows when paymentMethod === 'zelle'                            */}
+                {/* Features: Large QR code, clear instructions, purple branding    */}
+                {/* ================================================================ */}
+                {paymentMethod === 'zelle' && (
+                  <Box>
+                    {/* Zelle Header */}
+                    <Box sx={{
+                      p: 3,
+                      mb: 3,
+                      background: 'linear-gradient(135deg, #6c1ed3 0%, #5a18b3 100%)',
+                      borderRadius: 2,
+                      color: 'white',
+                      textAlign: 'center'
+                    }}>
+                      <Typography variant="h5" fontWeight={700} gutterBottom>
+                        💜 Pay Instantly with Zelle
+                      </Typography>
+                      <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                        Fee-free payment through your banking app
+                      </Typography>
+                    </Box>
+
+                    {/* Instructions */}
+                    <Alert severity="info" sx={{ mb: 3 }}>
+                      <Typography variant="body2" fontWeight={600} gutterBottom>
+                        📱 Two Easy Ways to Pay:
+                      </Typography>
+                      <Typography variant="body2" component="div" sx={{ ml: 2, mt: 1 }}>
+                        <strong>Option 1 (Fastest):</strong> Scan the QR code below with your phone's camera app
+                      </Typography>
+                      <Typography variant="body2" component="div" sx={{ ml: 2, mt: 0.5 }}>
+                        <strong>Option 2 (Manual):</strong> Open your banking app and send to our Zelle email
+                      </Typography>
+                    </Alert>
+
+                    {/* QR Code Section - LARGE & PROMINENT */}
+                    <Box sx={{
+                      p: 3,
+                      mb: 3,
+                      bgcolor: '#F9FAFB',
+                      borderRadius: 2,
+                      border: '2px dashed #6c1ed3',
+                      textAlign: 'center'
+                    }}>
+                      <Typography variant="h6" fontWeight={700} color="#6c1ed3" gutterBottom>
+                        📸 Step 1: Scan This QR Code
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        Point your phone's camera at this code - your banking app will open automatically
+                      </Typography>
+
+                      {/* Large QR Code */}
+                      <Box sx={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        p: 3,
+                        bgcolor: 'white',
+                        borderRadius: 2,
+                        mb: 2
+                      }}>
+                        <QRCodeCanvas
+                          value={`https://enroll.zellepay.com/qr-codes?data=${encodeURIComponent(JSON.stringify({
+                            token: 'pay@speedycreditrepair.com',
+                            amount: dueToday > 0 ? dueToday : monthlyPrice,
+                            name: 'Speedy Credit Repair Inc'
+                          }))}`}
+                          size={250}
+                          level="H"
+                          includeMargin={true}
+                        />
+                      </Box>
+
+                      <Typography variant="caption" color="text.secondary" display="block">
+                        👆 Point your phone's camera at this code
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" display="block">
+                        Your banking app will open automatically
+                      </Typography>
+                    </Box>
+
+                    {/* Manual Instructions - CLEAR & PROMINENT */}
+                    <Box sx={{
+                      p: 3,
+                      mb: 3,
+                      bgcolor: '#F0F9FF',
+                      borderRadius: 2,
+                      border: '1px solid #BAE6FD'
+                    }}>
+                      <Typography variant="h6" fontWeight={700} color="#0C4A6E" gutterBottom>
+                        💼 Step 2: Send Payment Manually
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        Open your bank's mobile app and select "Send Money with Zelle"
+                      </Typography>
+
+                      {/* Send To */}
+                      <Box sx={{ mb: 2 }}>
+                        <Typography variant="body2" fontWeight={600} color="text.secondary" gutterBottom>
+                          1. Send To (Zelle Email):
+                        </Typography>
+                        <Chip
+                          label="pay@speedycreditrepair.com"
+                          sx={{
+                            fontFamily: 'monospace',
+                            fontSize: '1rem',
+                            height: 40,
+                            bgcolor: 'white',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            '&:hover': {
+                              bgcolor: '#F3F4F6',
+                            }
+                          }}
+                          onClick={() => {
+                            navigator.clipboard.writeText('pay@speedycreditrepair.com');
+                            setSuccess('Email copied to clipboard!');
+                          }}
+                        />
+                        <Typography variant="caption" color="success.main" display="block" sx={{ mt: 0.5 }}>
+                          👆 Click to copy
+                        </Typography>
+                      </Box>
+
+                      {/* Amount */}
+                      <Box sx={{ mb: 2 }}>
+                        <Typography variant="body2" fontWeight={600} color="text.secondary" gutterBottom>
+                          2. Amount to Send:
+                        </Typography>
+                        <Chip
+                          label={`$${dueToday > 0 ? dueToday : monthlyPrice}.00`}
+                          color="primary"
+                          sx={{
+                            fontSize: '1.3rem',
+                            fontWeight: 700,
+                            height: 48,
+                            px: 2,
+                          }}
+                        />
+                      </Box>
+
+                      {/* Memo */}
+                      <Box>
+                        <Typography variant="body2" fontWeight={600} color="text.secondary" gutterBottom>
+                          3. Memo/Note (Optional):
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          "{formData.firstName} {formData.lastName} - Setup"
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    {/* Confirmation Alert */}
+                    <Alert severity="success" icon={<CheckIcon />} sx={{ mb: 3, borderRadius: 2 }}>
+                      <Typography variant="body2" fontWeight={600} gutterBottom>
+                        After Sending via Zelle:
+                      </Typography>
+                      <Typography variant="body2">
+                        Click "I've Sent Payment" below. We'll verify your payment within 1 business hour
+                        and activate your account immediately.
+                      </Typography>
+                    </Alert>
+
+                    {/* Zelle Confirmation Button */}
+                    <GlowingButton
+                      fullWidth
+                      onClick={() => handleZelleFallback()}
+                      disabled={loading}
+                      size="large"
+                      startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <CheckIcon />}
+                      sx={{
+                        background: 'linear-gradient(135deg, #6c1ed3 0%, #5a18b3 100%)',
+                        py: 2,
+                        borderRadius: 2,
+                        fontSize: '1.1rem',
+                        fontWeight: 700,
+                        boxShadow: '0 4px 20px rgba(108, 30, 211, 0.4)',
+                        '&:hover': {
+                          background: 'linear-gradient(135deg, #5a18b3 0%, #6c1ed3 100%)',
+                          boxShadow: '0 8px 32px rgba(108, 30, 211, 0.5)',
+                        }
+                      }}
+                    >
+                      {loading ? 'Processing...' : '✅ I\'ve Sent Payment via Zelle'}
+                    </GlowingButton>
+
+                    <Typography variant="caption" color="text.secondary" display="block" textAlign="center" sx={{ mt: 2 }}>
+                      Our team will verify your Zelle payment and activate your account within 1 business hour
+                    </Typography>
+                  </Box>
+                )}
+
+                {/* ===== BILLING DAY SELECTOR (±3 days from today) ===== */}
+                {(paymentMethod === 'ach' || paymentMethod === 'cc') && (
+                  <Box sx={{ mb: 3 }}>
+                    <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+                      Choose Your Monthly Billing Day
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      Select a day within ±3 days of today ({today.getDate()}) for your recurring monthly billing
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+                      {(() => {
+                        const enrollDay = today.getDate();
+                        const min = Math.max(1, enrollDay - 3);
+                        const max = Math.min(31, enrollDay + 3);
+                        const allowedDays = Array.from({ length: max - min + 1 }, (_, i) => min + i);
+                        const getDaySuffix = (day) => {
+                          if (day >= 11 && day <= 13) return 'th';
+                          switch (day % 10) {
+                            case 1: return 'st';
+                            case 2: return 'nd';
+                            case 3: return 'rd';
+                            default: return 'th';
+                          }
+                        };
+                        return allowedDays.map(day => (
+                          <Chip
+                            key={day}
+                            label={`${day}${getDaySuffix(day)}`}
+                            onClick={() => setFormData(prev => ({ ...prev, billingDay: day }))}
+                            variant={formData.billingDay === day ? 'filled' : 'outlined'}
+                            color={formData.billingDay === day ? 'primary' : 'default'}
+                            sx={{
+                              fontWeight: formData.billingDay === day ? 700 : 400,
+                              fontSize: '1rem',
+                              height: 40,
+                              minWidth: 50,
+                              cursor: 'pointer',
+                              '&:hover': {
+                                bgcolor: formData.billingDay === day ? 'primary.main' : 'action.hover',
+                              }
+                            }}
+                          />
+                        ));
+                      })()}
+                    </Box>
+                    {formData.billingDay && (
+                      <Typography variant="caption" color="success.main">
+                        ✓ Your monthly billing will occur on the {formData.billingDay}
+                        {(() => {
+                          if (formData.billingDay >= 11 && formData.billingDay <= 13) return 'th';
+                          switch (formData.billingDay % 10) {
+                            case 1: return 'st';
+                            case 2: return 'nd';
+                            case 3: return 'rd';
+                            default: return 'th';
+                          }
+                        })()} of each month (approximately {Math.abs(formData.billingDay - today.getDate())} days from today)
+                      </Typography>
+                    )}
+                  </Box>
+                )}
+
                 {/* ===== Authorization Disclaimer ===== */}
                 <Alert severity="warning" sx={{ mb: 3, mt: 1 }}>
                   <Typography variant="body2">
@@ -5103,7 +5381,7 @@ A+ BBB Rating | 4.9 Google (580+ reviews)
                     {setupFee > 0
                       ? `charge a one-time setup fee of $${setupFee} today and `
                       : ''}
-                    set up recurring monthly billing of ${finalPrice}/mo beginning 30 days from today.
+                    set up recurring monthly billing of ${monthlyPrice}/mo beginning 30 days from today.
                     You may cancel at any time by calling (888) 724-7344.
                   </Typography>
                 </Alert>

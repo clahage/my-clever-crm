@@ -29,7 +29,7 @@ import {
   Chip,
 } from '@mui/material';
 import { FileText, RefreshCw } from 'lucide-react';
-import IDIQEnrollmentWorkflow from '@/components/idiq/IDIQEnrollmentWorkflow';
+import CompleteEnrollmentFlow from '@/components/idiq/CompleteEnrollmentFlow';
 
 // ============================================================================
 // SAMPLE TEST DATA
@@ -459,7 +459,7 @@ const TestIDIQWorkflow = () => {
             Back to Form
           </Button>
 
-          <IDIQEnrollmentWorkflow
+          <CompleteEnrollmentFlow
             enrollmentData={testData}
             creditReportData={includeCreditReport ? SAMPLE_CREDIT_REPORT : null}
             onComplete={handleWorkflowComplete}

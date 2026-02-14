@@ -13,7 +13,7 @@ import Products from '@/pages/Products';
 import ServicePlanSelector from '@/components/ServicePlanSelector';
 import ContractStatusTracker from '@/components/common/ContractStatusTracker';
 import PricingCalculatorCommon from '@/components/common/PricingCalculator';
-import IDIQEnrollmentWizard from "./components/idiq/IDIQEnrollmentWizard.jsx"
+// CompleteEnrollmentFlow is lazy-loaded below
 import FinancialPlanningHub from './pages/hubs/FinancialPlanningHub.jsx';
 import TradelineHub from './pages/hubs/TradelineHub.jsx';
 import PublicEnrollmentRoute from '@/routes/PublicEnrollmentRoute';
@@ -519,7 +519,7 @@ const AppContent = () => {
         path="get-report" 
         element={
           <Suspense fallback={<LoadingFallback />}>
-            <IDIQEnrollmentWizard 
+            <CompleteEnrollmentFlow 
               publicMode={true}
               onComplete={(data) => {
                 console.log('✅ Public enrollment completed:', data);
@@ -542,7 +542,7 @@ const AppContent = () => {
         path="get-report/:source" 
         element={
           <Suspense fallback={<LoadingFallback />}>
-            <IDIQEnrollmentWizard 
+            <CompleteEnrollmentFlow 
               publicMode={true}
               trackingEnabled={true}
               onComplete={(data) => {
@@ -558,7 +558,7 @@ const AppContent = () => {
         path="get-report/contact/:contactId" 
         element={
           <Suspense fallback={<LoadingFallback />}>
-            <IDIQEnrollmentWizard 
+            <CompleteEnrollmentFlow 
               publicMode={true}
               trackingEnabled={true}
             />
@@ -797,7 +797,7 @@ const AppContent = () => {
     element={
       <ProtectedRoute requiredRoles={[5,6,7,8]}>
         <Suspense fallback={<LoadingFallback />}>
-          <IDIQEnrollmentWizard />
+          <CompleteEnrollmentFlow />
         </Suspense>
       </ProtectedRoute>
     }
@@ -808,7 +808,7 @@ const AppContent = () => {
     element={
       <ProtectedRoute requiredRoles={[5,6,7,8]}>
         <Suspense fallback={<LoadingFallback />}>
-          <IDIQEnrollmentWizard />
+          <CompleteEnrollmentFlow />
         </Suspense>
       </ProtectedRoute>
     }
